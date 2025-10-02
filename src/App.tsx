@@ -510,116 +510,6 @@ function App() {
     setShowExitDoorTransition(true);
   };
 
-  // Handle AI Try-On navigation with weather and time integration
-  const handleNavigateToFashnTryOn = async () => {
-    try {
-      console.log('🤖 [AI-TRY-ON] Starting weather-based outfit generation...');
-
-      // Get current weather data
-      const weatherData = await weatherService.getCurrentWeather();
-      console.log('🌤️ [AI-TRY-ON] Weather retrieved:', {
-        temperature: weatherData.temperature,
-        description: weatherData.weatherDescription,
-        isDay: weatherData.isDay
-      });
-
-      // Determine time of day
-      const currentHour = new Date().getHours();
-      let timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
-      if (currentHour >= 6 && currentHour < 12) timeOfDay = 'morning';
-      else if (currentHour >= 12 && currentHour < 17) timeOfDay = 'afternoon';
-      else if (currentHour >= 17 && currentHour < 21) timeOfDay = 'evening';
-      else timeOfDay = 'night';
-
-      console.log('🕐 [AI-TRY-ON] Time of day determined:', timeOfDay, `(${currentHour}:00)`);
-
-      // Get user's style profile from localStorage with fallback
-      let styleProfile;
-      try {
-        const savedStyleProfile = localStorage.getItem('styleProfile');
-        styleProfile = savedStyleProfile ? JSON.parse(savedStyleProfile) : null;
-      } catch (error) {
-        console.warn('⚠️ [AI-TRY-ON] Error loading style profile, using defaults');
-        styleProfile = null;
-      }
-
-      // Use fallback style profile if none exists
-      if (!styleProfile) {
-        styleProfile = {
-          lifestyle: { preferences: ['casual', 'comfortable'] },
-          fit: { preferred: ['regular'] },
-          style: {
-            colorPalette: ['neutral', 'blue', 'black'],
-            preferredStyles: ['casual', 'modern']
-          },
-          bodyType: 'average',
-          favoriteColors: ['blue', 'black', 'white'],
-          lifestylePreferences: ['versatile', 'comfortable']
-        };
-        console.log('🎨 [AI-TRY-ON] Using fallback style profile');
-      } else {
-        console.log('👤 [AI-TRY-ON] Using saved style profile');
-      }
-
-      // Determine current season
-      const currentMonth = new Date().getMonth() + 1; // 1-12
-      let season: 'spring' | 'summer' | 'fall' | 'winter';
-      if (currentMonth >= 3 && currentMonth <= 5) season = 'spring';
-      else if (currentMonth >= 6 && currentMonth <= 8) season = 'summer';
-      else if (currentMonth >= 9 && currentMonth <= 11) season = 'fall';
-      else season = 'winter';
-
-      // Generate outfit suggestions based on weather and time
-      const outfitRequest = {
-        weather: weatherData,
-        styleProfile,
-        avatarImageUrl: appData.avatarData?.imageUrl,
-        occasion: `${timeOfDay} daily activities based on current weather`,
-        numberOfSuggestions: 3,
-        timeOfDay,
-        season,
-        month: currentMonth,
-        usePersonalWardrobe: true
-      };
-
-      console.log('🎯 [AI-TRY-ON] Generating outfits for:', {
-        weather: `${weatherData.temperature}°F ${weatherData.weatherDescription}`,
-        timeOfDay,
-        season,
-        occasion: outfitRequest.occasion
-      });
-
-      const outfitSuggestions = await outfitGenerationService.generateOutfitSuggestions(outfitRequest);
-      console.log('✨ [AI-TRY-ON] Generated outfit suggestions:', outfitSuggestions.length);
-
-      // Store the generated suggestions globally for the AppFace page to use
-      if (outfitSuggestions.length > 0) {
-        // Store in sessionStorage so AppFace can access the weather-based suggestions
-        sessionStorage.setItem('aiTryOnSuggestions', JSON.stringify({
-          suggestions: outfitSuggestions,
-          context: {
-            weather: weatherData,
-            timeOfDay,
-            season,
-            generatedAt: new Date().toISOString()
-          }
-        }));
-        console.log('💾 [AI-TRY-ON] Stored suggestions in sessionStorage for AppFace');
-      }
-
-      // Navigate to the try-on page
-      setCurrentScreen('appFace');
-      console.log('🚀 [AI-TRY-ON] Navigated to try-on page');
-
-    } catch (error) {
-      console.error('❌ [AI-TRY-ON] Failed to generate weather-based outfit:', error);
-
-      // Still navigate to try-on page even if outfit generation fails
-      setCurrentScreen('appFace');
-      console.log('🔄 [AI-TRY-ON] Navigated to try-on page (without weather outfits)');
-    }
-  };
-
   // Handle door transition completion
   const handleDoorTransitionComplete = () => {
     setShowDoorTransition(false);
@@ -734,7 +624,6 @@ function App() {
               onNavigateToMeasurements={() => setCurrentScreen('appFace')}
               onNavigateToStyleProfile={() => setCurrentScreen('styleProfile')}
               onNavigateToCloset={handleNavigateToCloset}
-              onNavigateToFashnTryOn={handleNavigateToFashnTryOn}
               onResetAvatar={handleResetAvatar}
               onAvatarUpdate={handleAvatarUpdate}
               avatarData={appData.avatarData}

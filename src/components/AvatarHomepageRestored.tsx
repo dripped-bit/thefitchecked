@@ -3,7 +3,7 @@ import {
   Sun, Cloud, CloudRain, Snowflake, ArrowLeft, ArrowRight, RefreshCw,
   Edit, Settings, Thermometer, Wind, Eye, Calendar,
   Shirt, Palette, User, AlertCircle, Loader, MapPin, Clock,
-  TrendingUp, Sparkles, Camera, Share2, ShoppingCart, ShoppingBag, Heart,
+  TrendingUp, Camera, Share2, ShoppingCart, ShoppingBag, Heart,
   RotateCcw, Trash2, ArrowRightCircle, X, Check, DollarSign,
   Search, ExternalLink, Tag, Package, Users, MessageCircle
 } from 'lucide-react';
@@ -32,7 +32,6 @@ interface AvatarHomepageProps {
   onNavigateToMeasurements?: () => void;
   onNavigateToStyleProfile?: () => void;
   onNavigateToCloset?: () => void;
-  onNavigateToFashnTryOn?: () => void;
   onResetAvatar?: () => void;
   onAvatarUpdate?: (avatarData: any) => void;
   avatarData?: any;
@@ -60,7 +59,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   onNavigateToMeasurements,
   onNavigateToStyleProfile,
   onNavigateToCloset,
-  onNavigateToFashnTryOn,
   onResetAvatar,
   onAvatarUpdate,
   avatarData,
@@ -1163,20 +1161,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                 >
                   <span>👗</span>
                   <span>My Closet</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (onNavigateToFashnTryOn) {
-                      onNavigateToFashnTryOn();
-                    } else {
-                      console.log('Navigate to FASHN try-on - function not available');
-                    }
-                  }}
-                  className="w-full flex items-center justify-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 shadow-lg"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>AI Try-On</span>
                 </button>
 
                 <button
