@@ -496,7 +496,7 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
         generatedClothingImage,
         {
           category: clothingCategory,
-          timeout: 30000
+          timeout: 90000  // 90 seconds - FASHN typically takes 40-50s
         }
       );
 

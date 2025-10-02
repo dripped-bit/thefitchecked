@@ -326,7 +326,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
         outfit.imageUrl,        // The generated clothing from Seedream
         {
           category: 'auto',     // Let FASHN auto-detect clothing category
-          timeout: 30000
+          timeout: 90000        // 90 seconds - FASHN typically takes 40-50s
         }
       );
 
