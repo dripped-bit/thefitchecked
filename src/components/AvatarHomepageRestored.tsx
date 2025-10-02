@@ -1208,6 +1208,16 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const affiliateUrl = 'https://www.rakuten.com/r/DRIPPE62?eeid=28187';
+                    affiliateLinkService.trackClick(affiliateUrl, undefined, {
+                      title: 'Rakuten Coupons',
+                      store: 'rakuten',
+                      url: affiliateUrl
+                    });
+                    window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+                  }}
                 >
                   <Tag className="w-5 h-5 text-orange-600" />
                   <span className="font-medium text-slate-800">Coupons</span>

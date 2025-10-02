@@ -35,6 +35,39 @@ class AffiliateLinkService {
   }
 
   /**
+   * Detect store name from URL
+   */
+  detectStoreFromUrl(url: string): string {
+    if (!url) return 'unknown';
+
+    const urlLower = url.toLowerCase();
+
+    // Check for common store domains
+    if (urlLower.includes('shein.com')) return 'shein';
+    if (urlLower.includes('amazon.com')) return 'amazon';
+    if (urlLower.includes('target.com')) return 'target';
+    if (urlLower.includes('walmart.com')) return 'walmart';
+    if (urlLower.includes('macys.com')) return 'macys';
+    if (urlLower.includes('nordstrom.com')) return 'nordstrom';
+    if (urlLower.includes('gap.com')) return 'gap';
+    if (urlLower.includes('oldnavy.com')) return 'old navy';
+    if (urlLower.includes('bananarepublic.com')) return 'banana republic';
+    if (urlLower.includes('nike.com')) return 'nike';
+    if (urlLower.includes('adidas.com')) return 'adidas';
+    if (urlLower.includes('zara.com')) return 'zara';
+    if (urlLower.includes('hm.com') || urlLower.includes('h&m')) return 'h&m';
+    if (urlLower.includes('asos.com')) return 'asos';
+    if (urlLower.includes('bloomingdales.com')) return 'bloomingdales';
+    if (urlLower.includes('saks.com')) return 'saks';
+    if (urlLower.includes('neimanmarcus.com')) return 'neiman marcus';
+    if (urlLower.includes('sephora.com')) return 'sephora';
+    if (urlLower.includes('tapto.shop') || urlLower.includes('dripped')) return 'dripped';
+    if (urlLower.includes('rakuten.com')) return 'rakuten';
+
+    return 'unknown';
+  }
+
+  /**
    * Convert a product URL to an affiliate link
    */
   convertToAffiliateLink(url: string, storeName: string): string {

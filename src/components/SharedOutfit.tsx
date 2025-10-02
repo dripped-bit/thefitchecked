@@ -14,6 +14,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import shareService, { SharedOutfitData } from '../services/shareService';
+import affiliateLinkService from '../services/affiliateLinkService';
 
 interface SharedOutfitProps {
   shareId: string;
@@ -198,6 +199,21 @@ export const SharedOutfit: React.FC<SharedOutfitProps> = ({ shareId, onCreateOwn
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const storeName = link.store || affiliateLinkService.detectStoreFromUrl(link.url);
+                        const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
+                          link.url,
+                          storeName
+                        );
+                        affiliateLinkService.trackClick(affiliateUrl, outfit.id, {
+                          title: link.name,
+                          price: link.price,
+                          store: storeName,
+                          url: link.url
+                        });
+                        window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+                      }}
                     >
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{link.name}</p>
