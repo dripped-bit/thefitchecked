@@ -14,7 +14,6 @@ import {
   Eye,
   Share2
 } from 'lucide-react';
-import { fal } from '@fal-ai/client';
 import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import { ParsedOccasion } from './SmartOccasionInput';
@@ -238,22 +237,29 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
 
         setGenerationProgress(`Creating ${personality.name.toLowerCase()} option...`);
 
-        const result = await fal.subscribe("fal-ai/bytedance/seedream/v4/text-to-image", {
-          input: {
+        // Use proxy endpoint instead of direct FAL client to avoid 401 errors
+        const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             prompt,
             image_size: { height: 1024, width: 1024 },
             num_images: 1,
             enable_safety_checker: true
-          },
-          logs: true,
-          onQueueUpdate: (update) => {
-            if (update.status === "IN_PROGRESS") {
-              setGenerationProgress(`Generating ${personality.name.toLowerCase()} outfit...`);
-            }
-          }
+          })
         });
 
-        if (!result.data || !result.data.images || result.data.images.length === 0) {
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API request failed: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        setGenerationProgress(`Generating ${personality.name.toLowerCase()} outfit...`);
+
+        if (!result.images || result.images.length === 0) {
           throw new Error(`Failed to generate ${personality.name} outfit`);
         }
 
@@ -265,7 +271,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
 
         return {
           personality,
-          imageUrl: result.data.images[0].url,
+          imageUrl: result.images[0].url,
           reasoning,
           priceRange,
           confidence: 0.85 + Math.random() * 0.1, // Mock confidence between 85-95%

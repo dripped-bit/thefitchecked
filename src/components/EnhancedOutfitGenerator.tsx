@@ -20,7 +20,6 @@ import {
   ShoppingCart,
   Sparkles
 } from 'lucide-react';
-import { fal } from '@fal-ai/client';
 import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import SmartOccasionPlanner from './SmartOccasionPlanner';
@@ -220,26 +219,33 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     // Step 1: Generate clothing only using Seedream V4
     setGenerationProgress('Generating clothing from your description...');
 
-    const result = await fal.subscribe("fal-ai/bytedance/seedream/v4/text-to-image", {
-      input: {
+    // Use proxy endpoint instead of direct FAL client to avoid 401 errors
+    const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         prompt: clothingPrompt,
         image_size: { height: 2048, width: 2048 },
         num_images: 1,
         enable_safety_checker: true
-      },
-      logs: true,
-      onQueueUpdate: (update) => {
-        if (update.status === "IN_PROGRESS") {
-          setGenerationProgress(`Generating clothing... ${update.logs?.[update.logs.length - 1]?.message || ''}`);
-        }
-      }
+      })
     });
 
-    if (!result.data || !result.data.images || result.data.images.length === 0) {
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API request failed: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    setGenerationProgress('Generating clothing...');
+
+    if (!result.images || result.images.length === 0) {
       throw new Error('Failed to generate clothing image');
     }
 
-    const imageUrl = result.data.images[0].url;
+    const imageUrl = result.images[0].url;
 
     console.log('✅ Clothing generated successfully:', imageUrl);
 
@@ -270,29 +276,36 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     const occasionPrompt = generateOccasionPrompt(selectedOccasion);
     console.log('📝 Occasion-based prompt:', occasionPrompt);
 
-    // Step 1: Generate clothing using direct FAL API
+    // Step 1: Generate clothing using proxy API
     setGenerationProgress('Generating occasion-appropriate clothing...');
 
-    const result = await fal.subscribe("fal-ai/bytedance/seedream/v4/text-to-image", {
-      input: {
+    // Use proxy endpoint instead of direct FAL client to avoid 401 errors
+    const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         prompt: occasionPrompt,
         image_size: { height: 2048, width: 2048 },
         num_images: 1,
         enable_safety_checker: true
-      },
-      logs: true,
-      onQueueUpdate: (update) => {
-        if (update.status === "IN_PROGRESS") {
-          setGenerationProgress(`Generating clothing... ${update.logs?.[update.logs.length - 1]?.message || ''}`);
-        }
-      }
+      })
     });
 
-    if (!result.data || !result.data.images || result.data.images.length === 0) {
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API request failed: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    setGenerationProgress('Generating clothing...');
+
+    if (!result.images || result.images.length === 0) {
       throw new Error('Failed to generate clothing');
     }
 
-    const clothingImageUrl = result.data.images[0].url;
+    const clothingImageUrl = result.images[0].url;
     console.log('✅ Clothing generated:', clothingImageUrl);
 
     // Update UI with clothing result
