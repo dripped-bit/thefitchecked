@@ -36,9 +36,11 @@ export interface StyleProfile {
   budgetRange?: string;
   favoriteBrands?: string[];
   sizes?: {
+    gender?: 'women' | 'men' | 'unisex';
     tops?: string;
     bottoms?: string;
     dresses?: string;
+    outerwear?: string; // For men's suits/jackets
     shoes?: string;
   };
 }

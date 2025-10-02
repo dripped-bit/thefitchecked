@@ -52,9 +52,11 @@ export interface UserStyleProfile {
   };
   seasonal?: string[];
   sizes?: {
+    gender?: 'women' | 'men' | 'unisex';
     tops?: string;
     bottoms?: string;
     dresses?: string;
+    outerwear?: string; // For men's suits/jackets
     shoes?: string;
   };
 }

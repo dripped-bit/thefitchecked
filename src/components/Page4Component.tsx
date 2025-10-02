@@ -57,9 +57,11 @@ interface UserProfile {
   };
   seasonal: string[];
   sizes: {
+    gender: 'women' | 'men' | 'unisex' | '';
     tops: string;
     bottoms: string;
     dresses: string;
+    outerwear: string;
     shoes: string;
   };
 }
@@ -84,7 +86,7 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
     uploads: { goToOutfit: null, dreamPurchase: null, inspiration: null, favoritePiece: null },
     descriptions: { threeWords: ['', '', ''], alwaysFollow: '', loveToBreak: '', neverThrowAway: '' },
     seasonal: [],
-    sizes: { tops: '', bottoms: '', dresses: '', shoes: '' }
+    sizes: { gender: '', tops: '', bottoms: '', dresses: '', outerwear: '', shoes: '' }
   });
 
   const [showStyleAnalysis, setShowStyleAnalysis] = useState(false);
@@ -131,7 +133,7 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
       if (key === 'preferences') return acc + 2;
       if (key === 'occasions') return acc + 2;
       if (key === 'influences') return acc + 2;
-      if (key === 'sizes') return acc + 4; // NEW: 4 size fields
+      if (key === 'sizes') return acc + 6; // gender + 5 size fields (tops, bottoms, dresses, outerwear, shoes)
       return acc + 1;
     }, 0);
 
@@ -810,107 +812,249 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
               Help us find the perfect fit! Select your typical sizes for better product recommendations.
             </p>
 
-            {/* Tops */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tops
+            {/* Gender Selector */}
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-6">
+              <label className="block text-sm font-bold text-gray-800 mb-3">
+                Select Size Category
               </label>
-              <select
-                value={userProfile.sizes.tops}
-                onChange={(e) => setUserProfile(prev => ({
-                  ...prev,
-                  sizes: { ...prev.sizes, tops: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              >
-                <option value="">Select size...</option>
-                <option value="XXS">XXS</option>
-                <option value="XS">XS</option>
-                <option value="S">S</option>
-                <option value="M">M</option>
-                <option value="L">L</option>
-                <option value="XL">XL</option>
-                <option value="XXL">XXL</option>
-              </select>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUserProfile(prev => ({
+                    ...prev,
+                    sizes: { ...prev.sizes, gender: 'women' }
+                  }))}
+                  className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                    userProfile.sizes.gender === 'women'
+                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg scale-105'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200'
+                  }`}
+                >
+                  Women's
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserProfile(prev => ({
+                    ...prev,
+                    sizes: { ...prev.sizes, gender: 'men' }
+                  }))}
+                  className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                    userProfile.sizes.gender === 'men'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg scale-105'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200'
+                  }`}
+                >
+                  Men's
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserProfile(prev => ({
+                    ...prev,
+                    sizes: { ...prev.sizes, gender: 'unisex' }
+                  }))}
+                  className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                    userProfile.sizes.gender === 'unisex'
+                      ? 'bg-gradient-to-r from-purple-500 to-amber-500 text-white shadow-lg scale-105'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200'
+                  }`}
+                >
+                  Unisex
+                </button>
+              </div>
             </div>
 
-            {/* Bottoms */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Bottoms
-              </label>
-              <select
-                value={userProfile.sizes.bottoms}
-                onChange={(e) => setUserProfile(prev => ({
-                  ...prev,
-                  sizes: { ...prev.sizes, bottoms: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              >
-                <option value="">Select size...</option>
-                <option value="XXS">XXS</option>
-                <option value="XS">XS</option>
-                <option value="S">S</option>
-                <option value="M">M</option>
-                <option value="L">L</option>
-                <option value="XL">XL</option>
-                <option value="XXL">XXL</option>
-              </select>
-            </div>
+            {/* Size Fields - Shown after gender selection */}
+            {userProfile.sizes.gender && (
+              <div className="space-y-4">
+                {/* Tops */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tops
+                  </label>
+                  <select
+                    value={userProfile.sizes.tops}
+                    onChange={(e) => setUserProfile(prev => ({
+                      ...prev,
+                      sizes: { ...prev.sizes, tops: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  >
+                    <option value="">Select size...</option>
+                    <option value="XXS">XXS</option>
+                    <option value="XS">XS</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                    <option value="XXL">XXL</option>
+                  </select>
+                </div>
 
-            {/* Dresses */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dresses
-              </label>
-              <select
-                value={userProfile.sizes.dresses}
-                onChange={(e) => setUserProfile(prev => ({
-                  ...prev,
-                  sizes: { ...prev.sizes, dresses: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              >
-                <option value="">Select size...</option>
-                <option value="XXS">XXS</option>
-                <option value="XS">XS</option>
-                <option value="S">S</option>
-                <option value="M">M</option>
-                <option value="L">L</option>
-                <option value="XL">XL</option>
-                <option value="XXL">XXL</option>
-              </select>
-            </div>
+                {/* Bottoms */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bottoms
+                  </label>
+                  <select
+                    value={userProfile.sizes.bottoms}
+                    onChange={(e) => setUserProfile(prev => ({
+                      ...prev,
+                      sizes: { ...prev.sizes, bottoms: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  >
+                    <option value="">Select size...</option>
+                    <option value="XXS">XXS</option>
+                    <option value="XS">XS</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                    <option value="XXL">XXL</option>
+                  </select>
+                </div>
 
-            {/* Shoes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Shoes (US Women's)
-              </label>
-              <select
-                value={userProfile.sizes.shoes}
-                onChange={(e) => setUserProfile(prev => ({
-                  ...prev,
-                  sizes: { ...prev.sizes, shoes: e.target.value }
-                }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              >
-                <option value="">Select size...</option>
-                <option value="5">5</option>
-                <option value="5.5">5.5</option>
-                <option value="6">6</option>
-                <option value="6.5">6.5</option>
-                <option value="7">7</option>
-                <option value="7.5">7.5</option>
-                <option value="8">8</option>
-                <option value="8.5">8.5</option>
-                <option value="9">9</option>
-                <option value="9.5">9.5</option>
-                <option value="10">10</option>
-                <option value="10.5">10.5</option>
-                <option value="11">11</option>
-              </select>
-            </div>
+                {/* Dresses - Women's and Unisex only */}
+                {(userProfile.sizes.gender === 'women' || userProfile.sizes.gender === 'unisex') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Dresses
+                    </label>
+                    <select
+                      value={userProfile.sizes.dresses}
+                      onChange={(e) => setUserProfile(prev => ({
+                        ...prev,
+                        sizes: { ...prev.sizes, dresses: e.target.value }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    >
+                      <option value="">Select size...</option>
+                      <option value="XXS">XXS</option>
+                      <option value="XS">XS</option>
+                      <option value="S">S</option>
+                      <option value="M">M</option>
+                      <option value="L">L</option>
+                      <option value="XL">XL</option>
+                      <option value="XXL">XXL</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Outerwear/Suits - Men's and Unisex only */}
+                {(userProfile.sizes.gender === 'men' || userProfile.sizes.gender === 'unisex') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Outerwear / Suits
+                    </label>
+                    <select
+                      value={userProfile.sizes.outerwear}
+                      onChange={(e) => setUserProfile(prev => ({
+                        ...prev,
+                        sizes: { ...prev.sizes, outerwear: e.target.value }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    >
+                      <option value="">Select size...</option>
+                      <option value="XXS">XXS</option>
+                      <option value="XS">XS</option>
+                      <option value="S">S</option>
+                      <option value="M">M</option>
+                      <option value="L">L</option>
+                      <option value="XL">XL</option>
+                      <option value="XXL">XXL</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Shoes - Gender-specific ranges */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Shoes (US {userProfile.sizes.gender === 'men' ? "Men's" : userProfile.sizes.gender === 'women' ? "Women's" : "Sizes"})
+                  </label>
+                  <select
+                    value={userProfile.sizes.shoes}
+                    onChange={(e) => setUserProfile(prev => ({
+                      ...prev,
+                      sizes: { ...prev.sizes, shoes: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  >
+                    <option value="">Select size...</option>
+                    {userProfile.sizes.gender === 'men' ? (
+                      // Men's shoe sizes: 7-15
+                      <>
+                        <option value="7">7</option>
+                        <option value="7.5">7.5</option>
+                        <option value="8">8</option>
+                        <option value="8.5">8.5</option>
+                        <option value="9">9</option>
+                        <option value="9.5">9.5</option>
+                        <option value="10">10</option>
+                        <option value="10.5">10.5</option>
+                        <option value="11">11</option>
+                        <option value="11.5">11.5</option>
+                        <option value="12">12</option>
+                        <option value="12.5">12.5</option>
+                        <option value="13">13</option>
+                        <option value="14">14</option>
+                        <option value="15">15</option>
+                      </>
+                    ) : userProfile.sizes.gender === 'women' ? (
+                      // Women's shoe sizes: 5-12
+                      <>
+                        <option value="5">5</option>
+                        <option value="5.5">5.5</option>
+                        <option value="6">6</option>
+                        <option value="6.5">6.5</option>
+                        <option value="7">7</option>
+                        <option value="7.5">7.5</option>
+                        <option value="8">8</option>
+                        <option value="8.5">8.5</option>
+                        <option value="9">9</option>
+                        <option value="9.5">9.5</option>
+                        <option value="10">10</option>
+                        <option value="10.5">10.5</option>
+                        <option value="11">11</option>
+                        <option value="11.5">11.5</option>
+                        <option value="12">12</option>
+                      </>
+                    ) : (
+                      // Unisex: Show full range 5-15
+                      <>
+                        <option value="5">5</option>
+                        <option value="5.5">5.5</option>
+                        <option value="6">6</option>
+                        <option value="6.5">6.5</option>
+                        <option value="7">7</option>
+                        <option value="7.5">7.5</option>
+                        <option value="8">8</option>
+                        <option value="8.5">8.5</option>
+                        <option value="9">9</option>
+                        <option value="9.5">9.5</option>
+                        <option value="10">10</option>
+                        <option value="10.5">10.5</option>
+                        <option value="11">11</option>
+                        <option value="11.5">11.5</option>
+                        <option value="12">12</option>
+                        <option value="12.5">12.5</option>
+                        <option value="13">13</option>
+                        <option value="13.5">13.5</option>
+                        <option value="14">14</option>
+                        <option value="14.5">14.5</option>
+                        <option value="15">15</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Prompt to select gender if not yet selected */}
+            {!userProfile.sizes.gender && (
+              <div className="text-center py-8 text-gray-500">
+                <p className="text-sm">👆 Please select a size category above to continue</p>
+              </div>
+            )}
           </div>
         );
 
@@ -1122,10 +1266,10 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
               <Sparkles className="w-5 h-5 text-amber-600 animate-pulse" />
               <div className="text-center">
                 <p className="text-sm font-bold text-amber-900">
-                  NEW: Clothing Size Preferences Added!
+                  NEW: Size Preferences for Everyone!
                 </p>
                 <p className="text-xs text-amber-700 mt-1">
-                  Check out section 12 "Your Sizes" to add your measurements for better product recommendations
+                  Section 12 "Your Sizes" now supports Women's, Men's & Unisex sizing for better recommendations
                 </p>
               </div>
               <button
