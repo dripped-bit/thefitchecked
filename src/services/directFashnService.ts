@@ -850,7 +850,7 @@ class DirectFashnService {
     this.lastFashnRequest = Date.now();
 
     const startTime = Date.now();
-    const timeoutDuration = options.timeout || 70000; // 70 seconds default (gives 10s buffer over 60s polling timeout)
+    const timeoutDuration = options.timeout || 90000; // 90 seconds default - FASHN typically takes 40-50s, need generous buffer
     let timeoutId: NodeJS.Timeout | null = null;
     let isTimedOut = false;
 

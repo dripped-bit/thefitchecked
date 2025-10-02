@@ -52,7 +52,7 @@ class ExternalTryOnService {
         product.imageUrl,
         {
           category: 'auto', // Let FASHN auto-detect the category
-          timeout: 30000,
+          timeout: 90000, // 90 seconds - FASHN typically takes 40-50s, need buffer
           source: 'external-search'
         }
       );
