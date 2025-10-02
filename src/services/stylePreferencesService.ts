@@ -51,6 +51,12 @@ export interface UserStyleProfile {
     neverThrowAway?: string;
   };
   seasonal?: string[];
+  sizes?: {
+    tops?: string;
+    bottoms?: string;
+    dresses?: string;
+    shoes?: string;
+  };
 }
 
 export interface FormattedStylePreferences {

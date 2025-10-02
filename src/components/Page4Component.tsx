@@ -56,6 +56,12 @@ interface UserProfile {
     neverThrowAway: string;
   };
   seasonal: string[];
+  sizes: {
+    tops: string;
+    bottoms: string;
+    dresses: string;
+    shoes: string;
+  };
 }
 
 const Page4Component: React.FC<Page4ComponentProps> = ({
@@ -77,7 +83,8 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
     boundaries: [],
     uploads: { goToOutfit: null, dreamPurchase: null, inspiration: null, favoritePiece: null },
     descriptions: { threeWords: ['', '', ''], alwaysFollow: '', loveToBreak: '', neverThrowAway: '' },
-    seasonal: []
+    seasonal: [],
+    sizes: { tops: '', bottoms: '', dresses: '', shoes: '' }
   });
 
   const [showStyleAnalysis, setShowStyleAnalysis] = useState(false);
@@ -109,7 +116,8 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
     'Style Icons',
     'Personal Boundaries',
     'Style Samples',
-    'Seasonal Preferences'
+    'Seasonal Preferences',
+    'Your Sizes'
   ];
 
   const calculateProgress = () => {
@@ -123,6 +131,7 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
       if (key === 'preferences') return acc + 2;
       if (key === 'occasions') return acc + 2;
       if (key === 'influences') return acc + 2;
+      if (key === 'sizes') return acc + 4; // NEW: 4 size fields
       return acc + 1;
     }, 0);
 
@@ -790,6 +799,117 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
                   </label>
                 ))}
               </div>
+            </div>
+          </div>
+        );
+
+      case 11: // Your Sizes
+        return (
+          <div className="space-y-6">
+            <p className="text-sm text-gray-600 mb-6">
+              Help us find the perfect fit! Select your typical sizes for better product recommendations.
+            </p>
+
+            {/* Tops */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tops
+              </label>
+              <select
+                value={userProfile.sizes.tops}
+                onChange={(e) => setUserProfile(prev => ({
+                  ...prev,
+                  sizes: { ...prev.sizes, tops: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              >
+                <option value="">Select size...</option>
+                <option value="XXS">XXS</option>
+                <option value="XS">XS</option>
+                <option value="S">S</option>
+                <option value="M">M</option>
+                <option value="L">L</option>
+                <option value="XL">XL</option>
+                <option value="XXL">XXL</option>
+              </select>
+            </div>
+
+            {/* Bottoms */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bottoms
+              </label>
+              <select
+                value={userProfile.sizes.bottoms}
+                onChange={(e) => setUserProfile(prev => ({
+                  ...prev,
+                  sizes: { ...prev.sizes, bottoms: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              >
+                <option value="">Select size...</option>
+                <option value="XXS">XXS</option>
+                <option value="XS">XS</option>
+                <option value="S">S</option>
+                <option value="M">M</option>
+                <option value="L">L</option>
+                <option value="XL">XL</option>
+                <option value="XXL">XXL</option>
+              </select>
+            </div>
+
+            {/* Dresses */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Dresses
+              </label>
+              <select
+                value={userProfile.sizes.dresses}
+                onChange={(e) => setUserProfile(prev => ({
+                  ...prev,
+                  sizes: { ...prev.sizes, dresses: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              >
+                <option value="">Select size...</option>
+                <option value="XXS">XXS</option>
+                <option value="XS">XS</option>
+                <option value="S">S</option>
+                <option value="M">M</option>
+                <option value="L">L</option>
+                <option value="XL">XL</option>
+                <option value="XXL">XXL</option>
+              </select>
+            </div>
+
+            {/* Shoes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Shoes (US Women's)
+              </label>
+              <select
+                value={userProfile.sizes.shoes}
+                onChange={(e) => setUserProfile(prev => ({
+                  ...prev,
+                  sizes: { ...prev.sizes, shoes: e.target.value }
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              >
+                <option value="">Select size...</option>
+                <option value="5">5</option>
+                <option value="5.5">5.5</option>
+                <option value="6">6</option>
+                <option value="6.5">6.5</option>
+                <option value="7">7</option>
+                <option value="7.5">7.5</option>
+                <option value="8">8</option>
+                <option value="8.5">8.5</option>
+                <option value="9">9</option>
+                <option value="9.5">9.5</option>
+                <option value="10">10</option>
+                <option value="10.5">10.5</option>
+                <option value="11">11</option>
+              </select>
             </div>
           </div>
         );

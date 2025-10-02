@@ -35,6 +35,12 @@ export interface StyleProfile {
   lifestylePreferences?: string[];
   budgetRange?: string;
   favoriteBrands?: string[];
+  sizes?: {
+    tops?: string;
+    bottoms?: string;
+    dresses?: string;
+    shoes?: string;
+  };
 }
 
 export interface OutfitGenerationRequest {
