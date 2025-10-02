@@ -412,7 +412,7 @@ export class CGIAvatarGenerationService {
       this.validateSeedreamEditRequest(request);
 
       console.log('🚀 [PHOTO-TRANSFORM] Calling Seedream v4 edit for photo transformation...');
-      console.log('📝 [PHOTO-TRANSFORM] Transformation prompt:', transformPrompt);
+      console.log('📝 [PHOTO-TRANSFORM] Transformation prompt:', request.prompt);
       console.log('📸 [PHOTO-TRANSFORM] Photo URL preview:', processedHeadPhotoUrl.substring(0, 100) + '...');
 
       const response = await fetch(this.editEndpoint, {
