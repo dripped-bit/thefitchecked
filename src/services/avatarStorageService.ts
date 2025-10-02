@@ -11,11 +11,13 @@ export interface SavedAvatar {
   animatedVideoUrl?: string;
   createdAt: string;
   isDefault: boolean;
+  isPerfect?: boolean; // NEW: Flag for avatars generated with perfect avatar config
   metadata: {
     quality: 'low' | 'medium' | 'high';
     source: 'photo' | 'demo' | 'generated';
     dimensions?: { width: number; height: number };
     fileSize?: number;
+    usedPerfectConfig?: boolean; // NEW: Track if perfect avatar config was used
   };
   tryOnHistory?: string[]; // Track clothing items tried on this avatar
 }
@@ -60,28 +62,33 @@ class AvatarStorageService {
   /**
    * Save a new avatar to the library
    */
-  saveAvatar(avatarData: any, name?: string, setAsDefault: boolean = false): SavedAvatar {
-    console.log('💾 [AVATAR-STORAGE] Saving new avatar:', { name, setAsDefault });
+  saveAvatar(avatarData: any, name?: string, setAsDefault: boolean = false, isPerfect: boolean = false): SavedAvatar {
+    console.log('💾 [AVATAR-STORAGE] Saving new avatar:', { name, setAsDefault, isPerfect });
 
     const library = this.getAvatarLibrary();
 
     // Generate unique ID
     const avatarId = `avatar_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+    // Check if avatar was generated with perfect config
+    const usedPerfectConfig = isPerfect || avatarData.metadata?.usedPerfectConfig || false;
+
     // Create saved avatar object
     const savedAvatar: SavedAvatar = {
       id: avatarId,
-      name: name || `Avatar ${library.savedAvatars.length + 1}`,
+      name: name || (usedPerfectConfig ? `Perfect Avatar ${library.savedAvatars.length + 1}` : `Avatar ${library.savedAvatars.length + 1}`),
       imageUrl: avatarData.imageUrl || avatarData.processedImageUrl,
       originalPhoto: avatarData.originalPhoto,
       animatedVideoUrl: avatarData.animatedVideoUrl,
       createdAt: new Date().toISOString(),
       isDefault: setAsDefault,
+      isPerfect: usedPerfectConfig,
       metadata: {
         quality: this.assessImageQuality(avatarData.imageUrl || avatarData.processedImageUrl),
         source: avatarData.metadata?.demoMode ? 'demo' : 'photo',
         dimensions: avatarData.dimensions,
-        fileSize: this.estimateImageSize(avatarData.imageUrl || avatarData.processedImageUrl)
+        fileSize: this.estimateImageSize(avatarData.imageUrl || avatarData.processedImageUrl),
+        usedPerfectConfig
       },
       tryOnHistory: []
     };
@@ -104,6 +111,7 @@ class AvatarStorageService {
     console.log('✅ [AVATAR-STORAGE] Avatar saved successfully:', {
       id: avatarId,
       name: savedAvatar.name,
+      isPerfect: savedAvatar.isPerfect,
       totalAvatars: library.savedAvatars.length
     });
 
@@ -116,6 +124,50 @@ class AvatarStorageService {
   getDefaultAvatar(): SavedAvatar | null {
     const library = this.getAvatarLibrary();
     return library.savedAvatars.find(avatar => avatar.isDefault) || null;
+  }
+
+  /**
+   * Get the perfect avatar (generated with perfect avatar config)
+   * NEW: Prioritizes perfect avatars for best quality
+   */
+  getPerfectAvatar(): SavedAvatar | null {
+    const library = this.getAvatarLibrary();
+    // Find most recent perfect avatar
+    const perfectAvatars = library.savedAvatars
+      .filter(avatar => avatar.isPerfect)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const perfectAvatar = perfectAvatars[0] || null;
+    if (perfectAvatar) {
+      console.log('✨ [AVATAR-STORAGE] Found perfect avatar:', perfectAvatar.name);
+    }
+    return perfectAvatar;
+  }
+
+  /**
+   * Get the best available avatar (perfect > default > current > most recent)
+   * NEW: Smart avatar selection for best quality
+   */
+  getBestAvatar(): SavedAvatar | null {
+    // Priority: Perfect > Default > Current > Most Recent
+    const perfectAvatar = this.getPerfectAvatar();
+    if (perfectAvatar) return perfectAvatar;
+
+    const defaultAvatar = this.getDefaultAvatar();
+    if (defaultAvatar) return defaultAvatar;
+
+    const currentAvatar = this.getCurrentAvatar();
+    if (currentAvatar) return currentAvatar;
+
+    const library = this.getAvatarLibrary();
+    if (library.savedAvatars.length > 0) {
+      // Return most recent
+      return library.savedAvatars.sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0];
+    }
+
+    return null;
   }
 
   /**

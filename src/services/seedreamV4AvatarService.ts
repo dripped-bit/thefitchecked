@@ -1,11 +1,13 @@
 /**
  * ByteDance Seedream v4 Avatar Service
  * Two-step avatar generation: body from measurements + face composition
+ * Now integrates Perfect Avatar Configuration for high-quality facial preservation
  */
 
 import { environmentConfig } from './environmentConfig';
 import { faceAnalysisService, FaceAnalysis } from './faceAnalysisService';
 import { klingVideoService, AnimatedAvatar } from './klingVideoService';
+import { PerfectAvatarConfig, PERFECT_GENERATION_PARAMS } from '../config/perfectAvatarConfig.js';
 
 console.log('🔧 FAL Client Configuration: Using /api/fal proxy');
 
@@ -312,15 +314,21 @@ export class SeedreamV4AvatarService {
     const bodyPrompt = this.generateBodyPrompt(measurements, faceAnalysis);
     console.log('📝 Generated enhanced body prompt:', bodyPrompt);
 
-    // Create request for text-to-image generation from measurements
+    // Create request using PERFECT AVATAR CONFIG parameters
+    const perfectParams = PERFECT_GENERATION_PARAMS.OPTIMAL;
     const request: SeedreamV4TextToImageRequest = {
       prompt: bodyPrompt,
       num_images: Math.min(Math.max(options.num_images || 1, 1), 6), // Clamp 1-6
-      image_size: options.image_size || { width: 512, height: 768 }, // 9:16 aspect ratio for full-body display
+      image_size: options.image_size || perfectParams.image_size, // Use PERFECT config 1152x2048
       max_images: Math.min(Math.max(options.max_images || 1, 1), 6), // Clamp 1-6
-      enable_safety_checker: options.enable_safety_checker ?? false,
-      seed: options.seed
+      enable_safety_checker: perfectParams.enable_safety_checker,
+      seed: options.seed || perfectParams.seed // Use timestamp seed from perfect config
     };
+
+    console.log('✨ [PERFECT-AVATAR] Using Perfect Avatar Config parameters:', {
+      image_size: request.image_size,
+      enable_safety_checker: request.enable_safety_checker
+    });
 
     try {
 
@@ -470,15 +478,20 @@ export class SeedreamV4AvatarService {
   }> {
     const startTime = Date.now();
 
+    // Use PERFECT AVATAR CONFIG parameters for face composition
+    const perfectParams = PERFECT_GENERATION_PARAMS.OPTIMAL;
+
     const request: SeedreamV4EditRequest = {
       image_urls: [bodyImageUrl, facePhotoUrl],
-      prompt: 'seamlessly blend and composite the face onto the body, maintaining natural proportions and realistic appearance. Use the second image (face photo) to replace the face area of the first image (body), preserving facial features while matching skin tone and lighting',
+      prompt: 'FACIAL IDENTITY PRIORITY: Preserve exact facial features, eye shape, nose structure, mouth shape, jawline, and skin tone from uploaded photo. Seamlessly blend and composite the face onto the body, maintaining natural proportions and realistic appearance. Use the second image (face photo) to replace the face area of the first image (body), preserving exact facial features while matching skin tone and lighting. Perfect facial likeness required.',
       num_images: Math.min(Math.max(options.num_images || 1, 1), 6), // Clamp 1-6
-      image_size: options.image_size || { width: 512, height: 768 }, // 9:16 aspect ratio for full-body display
+      image_size: options.image_size || perfectParams.image_size, // Use PERFECT config 1152x2048
       max_images: Math.min(Math.max(options.max_images || 1, 1), 6), // Clamp 1-6
-      enable_safety_checker: options.enable_safety_checker ?? false,
-      seed: options.seed
+      enable_safety_checker: perfectParams.enable_safety_checker,
+      seed: options.seed || perfectParams.seed
     };
+
+    console.log('✨ [PERFECT-AVATAR] Face composition using Perfect Avatar Config');
 
     try {
 
@@ -579,48 +592,50 @@ export class SeedreamV4AvatarService {
 
   /**
    * Generate detailed body description prompt from measurements and face analysis
+   * NOW USES PERFECT AVATAR CONFIG FOR HIGH-QUALITY FACIAL PRESERVATION
    */
   private generateBodyPrompt(measurements: Measurements, faceAnalysis?: FaceAnalysis): string {
     const height = typeof measurements.height === 'string' ?
       parseFloat(measurements.height) : measurements.height;
 
-    let prompt = 'A photorealistic full-body human figure from head to toe, complete figure visible, professional studio lighting, full body shot with adequate padding, zoomed out to show entire person, ';
+    // START WITH PERFECT AVATAR CONFIG BASE
+    let customContent = '';
 
     // Use face analysis for gender and age if available
     if (faceAnalysis?.characteristics.gender && faceAnalysis.characteristics.gender !== 'neutral') {
-      prompt += `${faceAnalysis.characteristics.gender} `;
+      customContent += `${faceAnalysis.characteristics.gender} `;
     } else if (measurements.gender) {
-      prompt += `${measurements.gender} `;
+      customContent += `${measurements.gender} `;
     }
 
     // Use face analysis for age
     if (faceAnalysis?.characteristics.estimatedAge) {
       switch (faceAnalysis.characteristics.estimatedAge) {
         case 'young':
-          prompt += 'young adult ';
+          customContent += 'young adult ';
           break;
         case 'mature':
-          prompt += 'mature adult ';
+          customContent += 'mature adult ';
           break;
         default:
-          prompt += 'adult ';
+          customContent += 'adult ';
       }
     } else if (measurements.age) {
-      if (measurements.age < 25) prompt += 'young adult ';
-      else if (measurements.age > 45) prompt += 'mature adult ';
-      else prompt += 'adult ';
+      if (measurements.age < 25) customContent += 'young adult ';
+      else if (measurements.age > 45) customContent += 'mature adult ';
+      else customContent += 'adult ';
     }
 
     // Add skin tone from face analysis
     if (faceAnalysis?.characteristics.skinTone) {
-      prompt += `${faceAnalysis.characteristics.skinTone} skin tone, `;
+      customContent += `${faceAnalysis.characteristics.skinTone} skin tone, `;
     }
 
     // Height description
     if (height) {
-      if (height < 160) prompt += 'petite height, ';
-      else if (height > 185) prompt += 'tall height, ';
-      else prompt += 'average height, ';
+      if (height < 160) customContent += 'petite height, ';
+      else if (height > 185) customContent += 'tall height, ';
+      else customContent += 'average height, ';
     }
 
     // Body proportions from measurements
@@ -629,31 +644,35 @@ export class SeedreamV4AvatarService {
 
     // Build type
     if (measurements.build) {
-      prompt += `${measurements.build} build, `;
+      customContent += `${measurements.build} build, `;
     } else {
       // Infer build from ratios
-      if (chestWaistRatio > 1.3) prompt += 'athletic build with broad shoulders, ';
-      else if (waistHipRatio > 0.85) prompt += 'slender build, ';
-      else prompt += 'balanced proportions, ';
+      if (chestWaistRatio > 1.3) customContent += 'athletic build with broad shoulders, ';
+      else if (waistHipRatio > 0.85) customContent += 'slender build, ';
+      else customContent += 'balanced proportions, ';
     }
 
     // Detailed measurements integration
-    prompt += `chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm, `;
-    prompt += `shoulder width ${measurements.shoulders}cm, `;
+    const measurementDetails = `chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm, shoulder width ${measurements.shoulders}cm`;
+    customContent += measurementDetails;
 
     if (measurements.inseam) {
-      prompt += `inseam ${measurements.inseam}cm for proportional legs, `;
+      customContent += `, inseam ${measurements.inseam}cm for proportional legs`;
     }
 
-    // Enhanced framing and positioning for full-body visibility
-    prompt += 'standing straight in neutral pose, arms at sides, feet shoulder-width apart, ';
-    prompt += 'full body framing from head to feet, no cropping, complete figure visible, ';
-    prompt += 'centered composition with adequate white space around subject, ';
-    prompt += 'professional fashion photography quality, detailed anatomy, natural skin texture, ';
-    prompt += 'clean white background, high resolution, photorealistic rendering, ';
-    prompt += 'optimized for virtual try-on applications, proper scale and proportions';
+    customContent += '. Wearing form-fitting white tank top and short fitted blue lounge shorts. ';
+    customContent += 'Professional fashion photography quality, detailed anatomy, natural skin texture, ';
+    customContent += 'clean white background, high resolution, photorealistic rendering, ';
+    customContent += 'optimized for virtual try-on applications, proper scale and proportions.';
 
-    return prompt;
+    // BUILD COMPLETE PROMPT USING PERFECT AVATAR CONFIG
+    const perfectPrompt = PerfectAvatarConfig.buildPrompt(customContent, {
+      BODY_MEASUREMENTS: measurementDetails,
+      POSE: 'standing naturally with arms at sides'
+    });
+
+    console.log('✨ [PERFECT-AVATAR] Using Perfect Avatar Config prompt');
+    return perfectPrompt;
   }
 
   /**

@@ -562,6 +562,91 @@ export class ClosetService {
   }
 
   /**
+   * Save outfit with scheduling details (NEW: for quick generate with calendar)
+   * Includes date, time, purchase tracking, and reminders
+   */
+  static saveDailyOutfit(
+    date: string,
+    items: ClothingItem[],
+    options?: {
+      notes?: string;
+      scheduledTime?: string;
+      needsPurchase?: boolean;
+      purchaseLink?: string;
+      purchaseReminders?: string[];
+    }
+  ): boolean {
+    try {
+      // Parse date to determine week and day
+      const targetDate = new Date(date);
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const dayOfWeek = dayNames[targetDate.getDay()] as DayOfWeek;
+
+      // Get the week start date for this specific date
+      const weekStart = this.getWeekStartDate(targetDate.toISOString());
+      const weeklyPlan = this.getWeeklyPlan(weekStart);
+
+      // Create enhanced daily outfit with scheduling details
+      weeklyPlan.outfits[dayOfWeek] = {
+        date: date,
+        items: [...items],
+        notes: options?.notes || '',
+        createdAt: new Date().toISOString(),
+        scheduledTime: options?.scheduledTime,
+        needsPurchase: options?.needsPurchase || false,
+        purchaseLink: options?.purchaseLink,
+        purchaseReminders: options?.purchaseReminders || []
+      };
+
+      console.log('📅 [CLOSET] Saved scheduled outfit:', {
+        date,
+        dayOfWeek,
+        scheduledTime: options?.scheduledTime,
+        needsPurchase: options?.needsPurchase
+      });
+
+      return this.saveWeeklyPlan(weeklyPlan);
+    } catch (error) {
+      console.error('❌ [CLOSET] Failed to save scheduled outfit:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Add scheduled outfit to calendar (NEW: quick generate calendar integration)
+   * Wrapper for saveDailyOutfit with convenient interface
+   */
+  static addScheduledOutfit(
+    items: ClothingItem[],
+    dateTime: { date: string; time?: string },
+    metadata?: {
+      notes?: string;
+      needsPurchase?: boolean;
+      purchaseLink?: string;
+      reminderDaysBefore?: number[]; // e.g., [7, 3, 1] for reminders 7, 3, and 1 days before
+    }
+  ): boolean {
+    // Calculate reminder dates if needed
+    let purchaseReminders: string[] | undefined;
+    if (metadata?.needsPurchase && metadata?.reminderDaysBefore) {
+      const eventDate = new Date(dateTime.date);
+      purchaseReminders = metadata.reminderDaysBefore.map(daysBefore => {
+        const reminderDate = new Date(eventDate);
+        reminderDate.setDate(reminderDate.getDate() - daysBefore);
+        return reminderDate.toISOString();
+      });
+    }
+
+    return this.saveDailyOutfit(dateTime.date, items, {
+      notes: metadata?.notes,
+      scheduledTime: dateTime.time,
+      needsPurchase: metadata?.needsPurchase,
+      purchaseLink: metadata?.purchaseLink,
+      purchaseReminders
+    });
+  }
+
+  /**
    * Get current week's outfit plan
    */
   static getCurrentWeekPlan(): WeeklyOutfitPlan {
