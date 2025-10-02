@@ -1122,9 +1122,17 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                   className="w-32 h-32 object-contain drop-shadow-2xl hover:drop-shadow-3xl transition-all duration-300"
                 />
 
-                {/* Notification Badge */}
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                  <span className="text-xs text-white font-bold">3</span>
+                {/* Green Flickering Checkmark */}
+                <div className="absolute top-0 right-0">
+                  <img
+                    src="/Untitled design 2.png.PNG"
+                    alt="Active"
+                    className="w-8 h-8 animate-lightbulb-flicker"
+                    style={{
+                      filter: 'contrast(1.3) brightness(1.2)',
+                      mixBlendMode: 'screen'
+                    }}
+                  />
                 </div>
 
                 {/* Hover Tooltip */}
