@@ -244,33 +244,8 @@ export class DirectKlingAvatarService {
           dataUrlPreview: userPhotoUrl.substring(0, 100) + '...'
         });
 
-        // Simple FAL client validation (no problematic config() calls)
-        console.log('🔧 FAL client validation:', {
-          apiKeyPresent: !!falApiKey,
-          apiKeyLength: falApiKey?.length || 0,
-          falClientAvailable: !!fal,
-          storageAvailable: !!fal.storage,
-          subscribeAvailable: !!fal.subscribe
-        });
-
-        // Validate FAL client is ready (avoid problematic config() calls)
-        console.log('🔧 Validating FAL client readiness...');
-        if (!fal || !fal.storage || typeof fal.storage.upload !== 'function') {
-          console.error('❌ FAL client or storage not available');
-          throw new Error('FAL client not properly initialized');
-        }
-        if (!falApiKey) {
-          console.error('❌ FAL API key not available');
-          throw new Error('FAL API key is required');
-        }
-        console.log('✅ FAL client validation passed');
-
-        // Additional validation checks
-        console.log('🧪 FAL service method availability:', {
-          uploadMethod: typeof fal.storage?.upload === 'function',
-          subscribeMethod: typeof fal.subscribe === 'function',
-          storageObject: !!fal.storage
-        });
+        // Storage upload via proxy - validation skipped (using fetch directly)
+        console.log('🔧 Storage upload will use /api/fal proxy');
 
         try {
           // Step 4a: Convert data URL to File object (browser-compatible)
@@ -318,22 +293,37 @@ export class DirectKlingAvatarService {
             throw new Error('Invalid image data: file size is 0 bytes');
           }
 
-          // Step 4b: Upload File to FAL storage with enhanced error handling
-          console.log('📤 Uploading File to FAL storage...');
-          console.log('📤 About to call fal.storage.upload with File object');
+          // Step 4b: Upload File to FAL storage via proxy with enhanced error handling
+          console.log('📤 Uploading File to FAL storage via proxy...');
+          console.log('📤 Converting File to FormData for upload');
 
           let uploadResult;
           try {
-            uploadResult = await fal.storage.upload(imageFile);
+            // Create FormData for file upload
+            const formData = new FormData();
+            formData.append('file', imageFile);
+
+            const uploadResponse = await fetch('/api/fal/storage/upload', {
+              method: 'POST',
+              body: formData
+            });
+
+            if (!uploadResponse.ok) {
+              throw new Error(`Storage upload failed: ${uploadResponse.status}`);
+            }
+
+            uploadResult = await uploadResponse.json();
             console.log('📤 Raw upload result:', uploadResult);
           } catch (storageError) {
-            console.error('❌ FAL storage.upload() failed:', storageError);
+            console.error('❌ FAL storage upload via proxy failed:', storageError);
             throw new Error(`FAL storage upload failed: ${storageError instanceof Error ? storageError.message : 'Unknown error'}`);
           }
 
           // Extract URL from result (handle different response formats)
           if (uploadResult && uploadResult.url) {
             processedImageUrl = uploadResult.url;
+          } else if (uploadResult && uploadResult.file_url) {
+            processedImageUrl = uploadResult.file_url;
           } else if (typeof uploadResult === 'string') {
             processedImageUrl = uploadResult;
           } else {
@@ -449,19 +439,21 @@ export class DirectKlingAvatarService {
       console.log('✅ Validation passed, making API call with processed image URL:', processedImageUrl);
       console.log('📤 Sending to Kling:', JSON.stringify(requestPayload, null, 2));
 
-      // Step 6: Final FAL client validation before API call
-      console.log('🔧 Final validation before Kling API call...');
-      if (!fal || !fal.subscribe || typeof fal.subscribe !== 'function') {
-        console.error('❌ FAL subscribe method not available');
-        throw new Error('FAL client subscribe method not available');
-      }
-      console.log('✅ FAL client ready for API call');
-
-      // Step 7: Call FAL Kling Video API
-      console.log('🚀 Making Kling Video API call...');
+      // Step 7: Call FAL Kling Video API via proxy
+      console.log('🚀 Making Kling Video API call via proxy...');
       let result;
       try {
-        result = await fal.subscribe(this.endpoint, requestPayload);
+        const klingApiResponse = await fetch(`/api/fal/${this.endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload.input)
+        });
+
+        if (!klingApiResponse.ok) {
+          throw new Error(`Kling API request failed: ${klingApiResponse.status}`);
+        }
+
+        result = await klingApiResponse.json();
 
         console.log('✅ Kling success:', result);
       } catch (error) {
@@ -827,7 +819,7 @@ export class DirectKlingAvatarService {
       description: 'Generate animated avatars directly from user photos using Kling Video',
       approach: 'Direct photo + measurements → Kling Video (bypasses Seedream)',
       endpoint: this.endpoint,
-      isConfigured: !!falApiKey,
+      isConfigured: true, // Using proxy, no API key needed in client
       capabilities: [
         'Direct photo-to-video animation',
         'Measurement-based motion prompts',

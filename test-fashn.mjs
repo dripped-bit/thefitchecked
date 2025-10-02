@@ -21,7 +21,9 @@ try {
   console.warn('⚠️ Could not read .env.local file, checking process.env...');
   FAL_API_KEY = process.env.VITE_FAL_KEY;
 }
-const FASHN_ENDPOINT = 'https://queue.fal.run/fal-ai/fashn/tryon';
+// NOTE: This test file uses direct FAL API access, not the proxy
+// For browser code, use /api/fal/fal-ai/fashn/tryon instead
+const FASHN_ENDPOINT = 'https://fal.run/fal-ai/fashn/tryon';
 
 console.log('🧪 [FASHN-TEST] Starting FASHN API integration test...');
 

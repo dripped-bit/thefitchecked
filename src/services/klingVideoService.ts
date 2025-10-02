@@ -4,7 +4,6 @@
  * Creates 5-second animations of avatars standing and waiting to get dressed
  */
 
-import { fal } from '@fal-ai/client';
 import { Measurements } from './seedreamV4AvatarService';
 
 console.log('🎬 Kling Video Service Configuration: Using /api/fal proxy');
@@ -142,20 +141,21 @@ export class KlingVideoService {
       // Validate request
       this.validateKlingRequest(request);
 
-      console.log('🚀 Sending request to Kling Video API...');
+      console.log('🚀 Sending request to Kling Video API via proxy...');
       console.log('⚙️ Request parameters:', JSON.stringify(request, null, 2));
 
-      // Call Kling Video API
-      const result = await fal.subscribe(this.endpoint, {
-        input: request,
-        logs: true,
-        onQueueUpdate: (update) => {
-          console.log(`🎬 Kling Queue Status: ${update.status}`);
-          if (update.status === 'IN_PROGRESS' && update.logs) {
-            update.logs.forEach((log) => console.log(`📝 Kling Log: ${log.message}`));
-          }
-        },
-      }) as KlingVideoResponse;
+      // Call Kling Video API via proxy
+      const klingResponse = await fetch(`/api/fal/${this.endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request)
+      });
+
+      if (!klingResponse.ok) {
+        throw new Error(`Kling Video API request failed: ${klingResponse.status}`);
+      }
+
+      const result = await klingResponse.json() as KlingVideoResponse;
 
       const processingTime = Date.now() - startTime;
 

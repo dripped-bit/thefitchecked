@@ -22,9 +22,11 @@ try {
   console.warn('⚠️ Could not read .env.local file');
 }
 
-const AVATAR_API_ENDPOINT = 'https://queue.fal.run/fal-ai/kling-video/v2.5-turbo/pro/image-to-video';
+// NOTE: This test file uses direct FAL API access, not the proxy
+// For browser code, use /api/fal/... endpoints instead
+const AVATAR_API_ENDPOINT = 'https://fal.run/fal-ai/kling-video/v2.5-turbo/pro/image-to-video';
 const FASHN_API_ENDPOINT = 'https://api.fashn.ai/v1/run';
-const BACKGROUND_REMOVAL_ENDPOINT = 'https://queue.fal.run/fal-ai/birefnet';
+const BACKGROUND_REMOVAL_ENDPOINT = 'https://fal.run/fal-ai/birefnet';
 
 console.log('🧪 [AVATAR-FASHN-TEST] Starting comprehensive Avatar + FASHN integration test...');
 console.log('🔑 [AVATAR-FASHN-TEST] API Keys available:', {

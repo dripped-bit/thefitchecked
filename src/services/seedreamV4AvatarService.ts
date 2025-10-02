@@ -3,7 +3,6 @@
  * Two-step avatar generation: body from measurements + face composition
  */
 
-import { fal } from '@fal-ai/client';
 import { environmentConfig } from './environmentConfig';
 import { faceAnalysisService, FaceAnalysis } from './faceAnalysisService';
 import { klingVideoService, AnimatedAvatar } from './klingVideoService';
@@ -334,17 +333,18 @@ export class SeedreamV4AvatarService {
       // Validate request parameters to prevent 422 errors
       this.validateSeedreamRequest(request);
 
-      console.log('🚀 Calling fal-ai/bytedance/seedream/v4/text-to-image...');
-      const result = await fal.subscribe('fal-ai/bytedance/seedream/v4/text-to-image', {
-        input: request,
-        logs: true,
-        onQueueUpdate: (update) => {
-          console.log(`🔄 Queue Status: ${update.status}`);
-          if (update.status === 'IN_PROGRESS' && update.logs) {
-            update.logs.forEach((log) => console.log(`📝 ${log.message}`));
-          }
-        },
+      console.log('🚀 Calling fal-ai/bytedance/seedream/v4/text-to-image via proxy...');
+      const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request)
       });
+
+      if (!response.ok) {
+        throw new Error(`Seedream API request failed: ${response.status}`);
+      }
+
+      const result = await response.json();
 
       const processingTime = Date.now() - startTime;
 
@@ -482,18 +482,20 @@ export class SeedreamV4AvatarService {
 
     try {
 
-      console.log('🚀 Calling fal-ai/bytedance/seedream/v4/edit...');
+      console.log('🚀 Calling fal-ai/bytedance/seedream/v4/edit via proxy...');
       console.log('📤 Edit request parameters:', JSON.stringify(request, null, 2));
 
-      const result = await fal.subscribe('fal-ai/bytedance/seedream/v4/edit', {
-        input: request,
-        logs: true,
-        onQueueUpdate: (update) => {
-          if (update.status === 'IN_PROGRESS') {
-            update.logs?.map((log) => log.message).forEach(console.log);
-          }
-        },
-      }) as SeedreamV4Response;
+      const editResponse = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request)
+      });
+
+      if (!editResponse.ok) {
+        throw new Error(`Seedream Edit API request failed: ${editResponse.status}`);
+      }
+
+      const result = await editResponse.json() as SeedreamV4Response;
 
       const processingTime = Date.now() - startTime;
 
@@ -946,16 +948,17 @@ export class SeedreamV4AvatarService {
 
       console.log('📤 Sending minimal test request:', JSON.stringify(testRequest, null, 2));
 
-      const result = await fal.subscribe('fal-ai/bytedance/seedream/v4/text-to-image', {
-        input: testRequest,
-        logs: true,
-        onQueueUpdate: (update) => {
-          console.log(`🔄 Test Queue Status: ${update.status}`);
-          if (update.status === 'IN_PROGRESS' && update.logs) {
-            update.logs.forEach((log) => console.log(`📝 Test Log: ${log.message}`));
-          }
-        },
+      const testResponse = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testRequest)
       });
+
+      if (!testResponse.ok) {
+        throw new Error(`Minimal test request failed: ${testResponse.status}`);
+      }
+
+      const result = await testResponse.json();
 
       console.log('✅ Minimal FAL test successful!', result);
 
@@ -1001,10 +1004,17 @@ export class SeedreamV4AvatarService {
 
       console.log('📤 Sending minimal test request:', testRequest);
 
-      const result = await fal.subscribe('fal-ai/bytedance/seedream/v4/text-to-image', {
-        input: testRequest,
-        logs: true
+      const apiTestResponse = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testRequest)
       });
+
+      if (!apiTestResponse.ok) {
+        throw new Error(`API test request failed: ${apiTestResponse.status}`);
+      }
+
+      const result = await apiTestResponse.json();
 
       console.log('✅ API test successful:', result);
 
