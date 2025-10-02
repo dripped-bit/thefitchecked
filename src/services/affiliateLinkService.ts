@@ -71,7 +71,11 @@ class AffiliateLinkService {
    * Convert a product URL to an affiliate link
    */
   convertToAffiliateLink(url: string, storeName: string): string {
-    if (!url) return url;
+    console.log('🔗 [AFFILIATE] convertToAffiliateLink CALLED', { url: url?.substring(0, 50), storeName });
+    if (!url) {
+      console.warn('⚠️ [AFFILIATE] No URL provided, returning empty');
+      return url;
+    }
 
     const storeNameLower = storeName.toLowerCase();
 
@@ -107,6 +111,7 @@ class AffiliateLinkService {
 
     // For all other stores, return original URL
     // You can add more affiliate networks here
+    console.log('⚠️ [AFFILIATE] No affiliate match for store:', storeName, '- returning original URL');
     return url;
   }
 
@@ -135,7 +140,9 @@ class AffiliateLinkService {
   private wrapRakutenLink(url: string): string {
     // Rakuten link format: https://www.rakuten.com/r/MEMBERID?eeid=EEID&u=ENCODED_URL
     const encodedUrl = encodeURIComponent(url);
-    return `https://www.rakuten.com/r/${this.config.rakutenId}?eeid=${this.config.rakutenEEID}&u=${encodedUrl}`;
+    const affiliateUrl = `https://www.rakuten.com/r/${this.config.rakutenId}?eeid=${this.config.rakutenEEID}&u=${encodedUrl}`;
+    console.log('✅ [AFFILIATE] Wrapped with Rakuten:', { original: url.substring(0, 50), affiliate: affiliateUrl.substring(0, 80) });
+    return affiliateUrl;
   }
 
   /**

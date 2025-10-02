@@ -944,11 +944,13 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                           rel="noopener noreferrer"
                           className="flex items-center text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
                           onClick={(e) => {
+                            console.log('🖱️ [CLICK] AvatarHomepage closet item clicked:', { url: item.url, store: item.store });
                             e.preventDefault();
                             const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
                               item.url,
                               item.store || 'unknown'
                             );
+                            console.log('🔗 [RESULT] Affiliate URL generated:', affiliateUrl);
                             affiliateLinkService.trackClick(affiliateUrl, undefined, item);
                             window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
                           }}

@@ -43,13 +43,17 @@ const ProductSearchResults: React.FC<ProductSearchResultsProps> = ({
   };
 
   const handleBuyProduct = (product: ProductSearchResult) => {
+    console.log('🖱️ [CLICK] ProductSearchResults buy clicked:', { url: product.url, store: product.store, title: product.title });
     if (product.url) {
       const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
         product.url,
         product.store || 'unknown'
       );
+      console.log('🔗 [RESULT] Affiliate URL generated:', affiliateUrl);
       affiliateLinkService.trackClick(affiliateUrl, undefined, product);
       window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      console.warn('⚠️ [CLICK] No URL found for product:', product.title);
     }
     onBuyProduct?.(product);
   };
