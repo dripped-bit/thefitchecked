@@ -152,7 +152,7 @@ export class FashnApiService {
         segmentation_free: options.segmentation_free !== false, // Default true
         moderation_level: options.moderation_level || 'none',
         garment_photo_type: options.garment_photo_type || 'auto',
-        mode: options.mode || 'balanced',
+        mode: options.mode || 'quality',
         seed: options.seed || Math.floor(Math.random() * 1000000),
         num_samples: options.num_samples || 1,
         output_format: options.output_format || 'png',

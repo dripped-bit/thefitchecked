@@ -1191,7 +1191,7 @@ class DirectFashnService {
         type: 'auto',
         fittingType: 'fitted',
         complexity: 'moderate',
-        recommendedMode: 'balanced',
+        recommendedMode: 'quality',
         recommendedSamples: 2,
         recommendedSegmentationFree: true
       };
