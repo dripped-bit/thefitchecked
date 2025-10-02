@@ -670,7 +670,7 @@ class DirectFashnService {
    * Poll for completion using native FASHN job ID
    */
   private async pollForCompletion(jobId: string): Promise<string> {
-    const maxPollTime = 60000; // 60 seconds max (allows 10s buffer before main timeout)
+    const maxPollTime = 90000; // 90 seconds max - FASHN typically takes 40-60s, need generous buffer
     const basePollInterval = 2000; // Base poll every 2 seconds for faster feedback
     const startTime = Date.now();
     const statusUrl = `${this.baseUrl}/status/${jobId}`;
