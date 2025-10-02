@@ -23,7 +23,6 @@ import SaveToClosetModal, { SavedItemData } from './SaveToClosetModal';
 import seamlessTryOnService, { SeamlessTryOnResult, TryOnProgress } from '../services/seamlessTryOnService';
 import AvatarClothingAnalysisService, { AvatarClothingAnalysis } from '../services/avatarClothingAnalysisService';
 import PerplexityService, { ProductSearchResult, ProductSearchOptions } from '../services/perplexityService';
-import FashionFeedDashboard from './FashionFeedDashboard';
 import affiliateLinkService from '../services/affiliateLinkService';
 
 interface AvatarHomepageProps {
@@ -117,7 +116,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
   // Wishlist state
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
-  const [activeView, setActiveView] = useState<'closet' | 'wishlist' | 'fashion-feed'>('closet');
+  const [activeView, setActiveView] = useState<'closet' | 'wishlist'>('closet');
 
   // Seamless try-on state
   const [isSeamlessTryOn, setIsSeamlessTryOn] = useState(false);
@@ -692,16 +691,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
     }
   };
 
-  // Show Fashion Feed if active
-  if (activeView === 'fashion-feed') {
-    return (
-      <FashionFeedDashboard
-        onBack={() => setActiveView('closet')}
-        userData={userData}
-      />
-    );
-  }
-
   return (
     <>
 
@@ -1109,38 +1098,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
           {/* Right Sidebar */}
           <div className="space-y-6">
-
-            {/* Fashion Feed Button */}
-            <div className="flex justify-center">
-              <button
-                onClick={() => setActiveView('fashion-feed')}
-                className="relative group transition-all duration-300 hover:scale-110"
-              >
-                <img
-                  src="/Untitled design.PNG"
-                  alt="FitChecked"
-                  className="w-32 h-32 object-contain drop-shadow-2xl hover:drop-shadow-3xl transition-all duration-300"
-                />
-
-                {/* Green Flickering Checkmark */}
-                <div className="absolute top-0 right-0">
-                  <img
-                    src="/Untitled design 2.png.PNG"
-                    alt="Active"
-                    className="w-8 h-8 animate-lightbulb-flicker"
-                    style={{
-                      filter: 'contrast(1.3) brightness(1.2)',
-                      mixBlendMode: 'screen'
-                    }}
-                  />
-                </div>
-
-                {/* Hover Tooltip */}
-                <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/80 text-white text-xs py-1 px-3 rounded-lg whitespace-nowrap">
-                  Join the Community
-                </div>
-              </button>
-            </div>
 
             {/* Today's Picks Section */}
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-200">
