@@ -1116,6 +1116,27 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
             </div>
           )}
 
+          {/* NEW FEATURE CALLOUT - Size Preferences */}
+          <div className="mt-4 max-w-2xl mx-auto bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-400 rounded-xl p-4 shadow-lg">
+            <div className="flex items-center justify-center space-x-3">
+              <Sparkles className="w-5 h-5 text-amber-600 animate-pulse" />
+              <div className="text-center">
+                <p className="text-sm font-bold text-amber-900">
+                  NEW: Clothing Size Preferences Added!
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Check out section 12 "Your Sizes" to add your measurements for better product recommendations
+                </p>
+              </div>
+              <button
+                onClick={() => setCurrentSection(11)}
+                className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md hover:scale-105 transition-all"
+              >
+                Go There →
+              </button>
+            </div>
+          </div>
+
           {/* Progress Bar */}
           <div className="mt-6 max-w-md mx-auto">
             <div className="flex justify-between text-xs text-gray-500 mb-2">
@@ -1138,13 +1159,27 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
             <button
               key={section}
               onClick={() => setCurrentSection(index)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+              className={`relative px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
                 currentSection === index
                   ? 'bg-white/20 backdrop-blur-sm text-black shadow-md border border-white/30 scale-110'
+                  : index === 11
+                  ? 'glass-beige-light text-gray-700 hover:glass-beige ring-2 ring-amber-400 shadow-lg'
                   : 'glass-beige-light text-gray-700 hover:glass-beige'
               }`}
             >
-              {index + 1}. {section}
+              <span className="flex items-center gap-1">
+                {index + 1}. {section}
+                {index === 11 && (
+                  <span className="ml-1">
+                    <Sparkles className="w-3 h-3 text-amber-500 inline" />
+                  </span>
+                )}
+              </span>
+              {index === 11 && (
+                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
+                  NEW
+                </span>
+              )}
             </button>
           ))}
         </div>
