@@ -42,8 +42,14 @@ class AffiliateLinkService {
 
     const urlLower = url.toLowerCase();
 
-    // Check for common store domains
+    // Priority fashion stores (user's preferred stores)
     if (urlLower.includes('shein.com')) return 'shein';
+    if (urlLower.includes('fashionnova.com')) return 'fashionnova';
+    if (urlLower.includes('whitefoxboutique.com')) return 'whitefox';
+    if (urlLower.includes('ohpolly.com')) return 'ohpolly';
+    if (urlLower.includes('princesspolly.com')) return 'princesspolly';
+
+    // Major retailers
     if (urlLower.includes('amazon.com')) return 'amazon';
     if (urlLower.includes('target.com')) return 'target';
     if (urlLower.includes('walmart.com')) return 'walmart';
@@ -150,6 +156,17 @@ class AffiliateLinkService {
    */
   private isRakutenPartner(storeName: string): boolean {
     const rakutenPartners = [
+      // Priority fashion stores (user's preferred stores)
+      'shein',
+      'fashion nova',
+      'fashionnova',
+      'white fox',
+      'whitefox',
+      'oh polly',
+      'ohpolly',
+      'princess polly',
+      'princesspolly',
+      // Major retailers
       'macy',
       'nordstrom',
       'sephora',
