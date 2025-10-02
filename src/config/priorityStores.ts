@@ -17,33 +17,39 @@ export interface PriorityStoreConfig {
  */
 export const PRIMARY_PRIORITY_STORES: PriorityStoreConfig[] = [
   {
+    name: "Amazon",
+    domain: "amazon.com",
+    priority: 1,
+    category: "primary"
+  },
+  {
     name: "Shein",
     domain: "shein.com",
-    priority: 1,
+    priority: 2,
     category: "primary"
   },
   {
     name: "Fashion Nova",
     domain: "fashionnova.com",
-    priority: 2,
+    priority: 3,
     category: "primary"
   },
   {
     name: "White Fox Boutique",
     domain: "whitefoxboutique.com",
-    priority: 3,
+    priority: 4,
     category: "primary"
   },
   {
     name: "House of CB",
     domain: "houseofcb.com",
-    priority: 4,
+    priority: 5,
     category: "primary"
   },
   {
     name: "Oh Polly",
     domain: "ohpolly.com",
-    priority: 5,
+    priority: 6,
     category: "primary"
   }
 ];
@@ -55,31 +61,31 @@ export const SECONDARY_PRIORITY_STORES: PriorityStoreConfig[] = [
   {
     name: "ASOS",
     domain: "asos.com",
-    priority: 6,
+    priority: 7,
     category: "secondary"
   },
   {
     name: "Zara",
     domain: "zara.com",
-    priority: 7,
+    priority: 8,
     category: "secondary"
   },
   {
     name: "H&M",
     domain: "hm.com",
-    priority: 8,
+    priority: 9,
     category: "secondary"
   },
   {
     name: "Nordstrom",
     domain: "nordstrom.com",
-    priority: 9,
+    priority: 10,
     category: "secondary"
   },
   {
     name: "Revolve",
     domain: "revolve.com",
-    priority: 10,
+    priority: 11,
     category: "secondary"
   }
 ];

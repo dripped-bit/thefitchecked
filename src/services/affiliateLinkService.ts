@@ -23,8 +23,8 @@ class AffiliateLinkService {
   private config: AffiliateConfig = {
     rakutenId: 'DRIPPE62',
     rakutenEEID: '28187',
-    // Add your Amazon Associates tag if you have one
-    // amazonAssociatesTag: 'yourtag-20',
+    // Amazon Associates tag for affiliate revenue
+    amazonAssociatesTag: 'thefitchecked-20',
   };
 
   private clickHistory: ClickTrackingData[] = [];
@@ -127,15 +127,22 @@ class AffiliateLinkService {
   private wrapAmazonLink(url: string): string {
     if (!this.config.amazonAssociatesTag) {
       // If no Amazon tag configured, try Rakuten
+      console.log('⚠️ [AFFILIATE] No Amazon tag configured, falling back to Rakuten');
       return this.wrapRakutenLink(url);
     }
 
     try {
       const urlObj = new URL(url);
       urlObj.searchParams.set('tag', this.config.amazonAssociatesTag);
-      return urlObj.toString();
+      const affiliateUrl = urlObj.toString();
+      console.log('✅ [AFFILIATE] Wrapped with Amazon tag:', {
+        original: url.substring(0, 50),
+        affiliate: affiliateUrl.substring(0, 80),
+        tag: this.config.amazonAssociatesTag
+      });
+      return affiliateUrl;
     } catch (error) {
-      console.error('[AFFILIATE] Error wrapping Amazon link:', error);
+      console.error('❌ [AFFILIATE] Error wrapping Amazon link:', error);
       return url;
     }
   }
