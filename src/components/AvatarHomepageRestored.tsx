@@ -18,6 +18,7 @@ import AchievementsService from '../services/achievementsService';
 import ClosetService, { ClothingCategory } from '../services/closetService';
 import webEnhancedPromptService, { PromptVariation } from '../services/webEnhancedPromptService';
 import WebEnhancedPromptModal from './WebEnhancedPromptModal';
+import ShareModal from './ShareModal';
 import SaveToClosetModal, { SavedItemData } from './SaveToClosetModal';
 import seamlessTryOnService, { SeamlessTryOnResult, TryOnProgress } from '../services/seamlessTryOnService';
 import AvatarClothingAnalysisService, { AvatarClothingAnalysis } from '../services/avatarClothingAnalysisService';
@@ -152,6 +153,16 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   // Avatar analysis state
   const [avatarAnalysis, setAvatarAnalysis] = useState<AvatarClothingAnalysis | null>(null);
   const [isAnalyzingAvatar, setIsAnalyzingAvatar] = useState(false);
+
+  // Settings modal state
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsCity, setSettingsCity] = useState(userData?.city || '');
+  const [settingsState, setSettingsState] = useState(userData?.state || '');
+  const [settingsTimezone, setSettingsTimezone] = useState(userData?.timezone || 'America/Los_Angeles');
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Refs
   const avatarRef = useRef<HTMLDivElement>(null);
@@ -742,7 +753,11 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
         </div>
 
         {/* Settings */}
-        <button className="p-2 text-slate-600 hover:text-slate-800 transition-colors">
+        <button
+          onClick={() => setShowSettingsModal(true)}
+          className="p-2 text-slate-600 hover:text-slate-800 transition-colors"
+          title="Location & Time Settings"
+        >
           <Settings className="w-5 h-5" />
         </button>
       </div>
@@ -753,45 +768,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
           {/* Workflow Panel - Left Column */}
           <div className="lg:col-span-1">
-            {/* Wishlist Prompt */}
-            {showWishlistPrompt && currentGeneratedItem && (
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6 mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <Heart className="w-5 h-5 mr-2 text-pink-500" />
-                  Save to Wishlist?
-                </h3>
-
-                <div className="mb-4">
-                  <img
-                    src={currentGeneratedItem.imageUrl}
-                    alt={currentGeneratedItem.description}
-                    className="w-full h-32 object-cover rounded-lg mb-3"
-                  />
-                  <p className="text-sm text-gray-600 mb-2">{currentGeneratedItem.description}</p>
-                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                    <Tag className="w-3 h-3 mr-1" />
-                    {currentGeneratedItem.category}
-                  </span>
-                </div>
-
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleWishlistDecision(true)}
-                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center"
-                  >
-                    <Check className="w-4 h-4 mr-1" />
-                    Yes, Save
-                  </button>
-                  <button
-                    onClick={() => handleWishlistDecision(false)}
-                    className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-700 transition-colors flex items-center justify-center"
-                  >
-                    <X className="w-4 h-4 mr-1" />
-                    No, Skip
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Shopping Prompt */}
             {showShoppingPrompt && currentGeneratedItem && (
@@ -1206,6 +1182,14 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                   )}
                 </button>
 
+                <button
+                  onClick={() => setShowShareModal(true)}
+                  className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Share Outfit</span>
+                </button>
+
               </div>
 
             </div>
@@ -1328,6 +1312,168 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
             // Don't close modal here - let the search prompt appear first
           }}
           avatarData={avatarData}
+        />
+      )}
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setShowSettingsModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+              <Settings className="w-6 h-6 mr-2 text-blue-600" />
+              Location & Time Settings
+            </h2>
+
+            <div className="space-y-4">
+              {/* City Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  City
+                </label>
+                <input
+                  type="text"
+                  value={settingsCity}
+                  onChange={(e) => setSettingsCity(e.target.value)}
+                  placeholder="e.g., San Francisco"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* State Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  State
+                </label>
+                <input
+                  type="text"
+                  value={settingsState}
+                  onChange={(e) => setSettingsState(e.target.value)}
+                  placeholder="e.g., CA or California"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Timezone Select */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Clock className="w-4 h-4 inline mr-1" />
+                  Timezone
+                </label>
+                <select
+                  value={settingsTimezone}
+                  onChange={(e) => setSettingsTimezone(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="America/New_York">Eastern (ET)</option>
+                  <option value="America/Chicago">Central (CT)</option>
+                  <option value="America/Denver">Mountain (MT)</option>
+                  <option value="America/Los_Angeles">Pacific (PT)</option>
+                  <option value="America/Phoenix">Arizona (MST)</option>
+                  <option value="America/Anchorage">Alaska (AKT)</option>
+                  <option value="Pacific/Honolulu">Hawaii (HST)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setIsSavingSettings(true);
+                  try {
+                    // Save to userData
+                    const updatedUserData = {
+                      ...userData,
+                      city: settingsCity,
+                      state: settingsState,
+                      timezone: settingsTimezone
+                    };
+
+                    // Save to localStorage
+                    localStorage.setItem('fitChecked_userData', JSON.stringify(updatedUserData));
+
+                    // Reload weather if city/state changed
+                    if (settingsCity) {
+                      setWeatherLoading(true);
+                      try {
+                        const newWeather = await weatherService.getWeatherByCity(
+                          settingsCity,
+                          settingsState || undefined
+                        );
+                        setWeather(newWeather);
+                        setWeatherError(null);
+                        console.log('✅ [SETTINGS] Weather updated for new location');
+                      } catch (error) {
+                        console.error('❌ [SETTINGS] Failed to load weather for new location:', error);
+                        setWeatherError('Failed to load weather');
+                      } finally {
+                        setWeatherLoading(false);
+                      }
+                    }
+
+                    setShowSettingsModal(false);
+                    console.log('✅ [SETTINGS] Settings saved successfully');
+                  } catch (error) {
+                    console.error('❌ [SETTINGS] Failed to save settings:', error);
+                  } finally {
+                    setIsSavingSettings(false);
+                  }
+                }}
+                disabled={isSavingSettings || !settingsCity}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isSavingSettings ? (
+                  <>
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Save Settings
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && avatarData && (
+        <ShareModal
+          outfitData={{
+            avatarImageUrl: avatarData.imageUrl || avatarData,
+            outfitImageUrl: currentGeneratedItem?.imageUrl,
+            outfitDetails: {
+              description: currentGeneratedItem?.description || 'My FitChecked Outfit',
+              occasion: 'casual',
+              category: currentGeneratedItem?.category,
+              formality: 'casual',
+              weather: weather ? `${weather.temperature}°F, ${weather.weatherDescription}` : undefined
+            },
+            generatedBy: 'ai'
+          }}
+          onClose={() => setShowShareModal(false)}
+          onDownload={async (shareId) => {
+            console.log('Download outfit:', shareId);
+            // TODO: Implement download functionality
+          }}
         />
       )}
       </div>

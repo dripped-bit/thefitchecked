@@ -1290,16 +1290,10 @@ class DirectFashnService {
    * Get recommended sample count based on complexity (official API parameter: 1-4)
    */
   private getRecommendedSamples(complexity: string): number {
-    // Generate multiple samples to ensure best quality result
-    // More samples = higher chance of perfect fit
-    switch (complexity) {
-      case 'simple':
-        return 2; // Simple garments: 2 samples for reliability
-      case 'complex':
-        return 3; // Complex garments: 3 samples for best quality selection
-      default:
-        return 2; // Moderate complexity: 2 samples as balanced default
-    }
+    // Always generate maximum samples (4) for best quality and highest success rate
+    // More samples = better chance of getting perfect fit and realistic clothing placement
+    // Trade-off: Slightly longer processing time (~5-10s) but much better results
+    return 4;
   }
 
   /**

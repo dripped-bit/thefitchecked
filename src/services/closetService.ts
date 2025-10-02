@@ -37,6 +37,10 @@ export interface DailyOutfit {
   items: ClothingItem[];
   notes?: string;
   createdAt?: string;
+  scheduledTime?: string; // Time in "HH:MM" format (e.g., "14:30")
+  needsPurchase?: boolean; // Flag if any item needs to be purchased
+  purchaseLink?: string; // URL to buy the item online
+  purchaseReminders?: string[]; // Array of ISO date strings for reminders
 }
 
 export interface WeeklyOutfitPlan {

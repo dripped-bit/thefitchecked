@@ -14,6 +14,7 @@ import PackingListGenerator from './PackingListGenerator';
 import WoreThisTodayTracker from './WoreThisTodayTracker';
 import CompleteFashnTryOn from './CompleteFashnTryOn';
 import CategorySelector from './CategorySelector';
+import ShareModal from './ShareModal';
 import { ClothingCategory } from '../services/closetService';
 import seamlessTryOnService from '../services/seamlessTryOnService';
 import backgroundRemovalService from '../services/backgroundRemovalService';
@@ -130,6 +131,10 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     itemData: Partial<ClothingItem>;
     metadata?: any;
   } | null>(null);
+
+  // Share state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedItemToShare, setSelectedItemToShare] = useState<ClothingItem | null>(null);
 
   // Try-on result state
   const [tryOnResults, setTryOnResults] = useState<{

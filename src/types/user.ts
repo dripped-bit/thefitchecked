@@ -7,6 +7,9 @@ export interface UserData {
   birthday: string; // ISO date string (YYYY-MM-DD)
   onboardingCompleted: boolean;
   createdAt: string; // ISO date string
+  city?: string; // User's city for weather
+  state?: string; // User's state for weather
+  timezone?: string; // User's timezone (e.g., "America/Los_Angeles")
 }
 
 export interface UserGreeting {

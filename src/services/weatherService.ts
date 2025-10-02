@@ -82,6 +82,60 @@ class WeatherService {
   }
 
   /**
+   * Geocode city/state to coordinates using Open-Meteo Geocoding API
+   */
+  async geocodeLocation(city: string, state?: string): Promise<{ latitude: number; longitude: number; displayName: string }> {
+    try {
+      const searchQuery = state ? `${city}, ${state}` : city;
+      console.log(`🌍 [WEATHER] Geocoding location: ${searchQuery}`);
+
+      const response = await fetch(
+        `${this.GEOCODING_BASE}/search?name=${encodeURIComponent(searchQuery)}&count=1&language=en&format=json`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Geocoding failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.results || data.results.length === 0) {
+        throw new Error(`Location not found: ${searchQuery}`);
+      }
+
+      const result = data.results[0];
+      console.log(`✅ [WEATHER] Location found: ${result.name}, ${result.admin1 || ''}`);
+
+      return {
+        latitude: result.latitude,
+        longitude: result.longitude,
+        displayName: `${result.name}${result.admin1 ? ', ' + result.admin1 : ''}`
+      };
+    } catch (error) {
+      console.error('❌ [WEATHER] Geocoding failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get weather by city/state name
+   */
+  async getWeatherByCity(city: string, state?: string): Promise<WeatherData> {
+    try {
+      const coords = await this.geocodeLocation(city, state);
+      const weather = await this.getCurrentWeather(coords.latitude, coords.longitude);
+
+      // Add city name to weather data
+      weather.location.city = coords.displayName;
+
+      return weather;
+    } catch (error) {
+      console.error('❌ [WEATHER] Failed to get weather by city:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get current weather data for user's location
    */
   async getCurrentWeather(latitude?: number, longitude?: number): Promise<WeatherData> {
