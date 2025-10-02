@@ -1340,11 +1340,10 @@ class OutfitGenerationService {
     const cleanPrompt = promptParts[0];
     const negativePrompt = promptParts[1] || '';
 
-    const response = await fetch('https://fal.run/fal-ai/flux/dev', {
+    const response = await fetch('/api/fal/fal-ai/flux/dev', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Key ${apiKey}`,
       },
       body: JSON.stringify({
         prompt: cleanPrompt,
@@ -1439,11 +1438,10 @@ class OutfitGenerationService {
     const negativePrompt = promptParts[1] || '';
 
     // Use optimized configuration
-    const response = await fetch('https://fal.run/fal-ai/flux/dev', {
+    const response = await fetch('/api/fal/fal-ai/flux/dev', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Key ${apiKey}`,
       },
       body: JSON.stringify({
         prompt: cleanPrompt,
@@ -1727,11 +1725,10 @@ class OutfitGenerationService {
       const requestStartTime = Date.now();
 
       // Call FAL.ai Bytedance Seedream 4.0 Text-to-Image API for pure garment generation
-      const response = await fetch('https://fal.run/fal-ai/flux/dev', {
+      const response = await fetch('/api/fal/fal-ai/flux/dev', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Key ${apiKey}`,
         },
         body: JSON.stringify(requestPayload),
       });
