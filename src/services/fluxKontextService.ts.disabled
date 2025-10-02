@@ -1,0 +1,340 @@
+// FLUX.1 Kontext [pro] service for avatar enhancement and editing
+
+export interface FluxKontextRequest {
+  prompt: string;
+  image_url: string;
+  seed?: number;
+  guidance_scale?: number;
+  sync_mode?: boolean;
+  num_images?: number;
+  output_format?: 'jpeg' | 'png';
+  safety_tolerance?: '1' | '2' | '3' | '4' | '5' | '6';
+  enhance_prompt?: boolean;
+  aspect_ratio?: '21:9' | '16:9' | '4:3' | '3:2' | '1:1' | '2:3' | '3:4' | '9:16' | '9:21';
+}
+
+export interface FluxKontextResponse {
+  images: Array<{
+    height: number;
+    url: string;
+    width: number;
+  }>;
+  timings: any;
+  seed: number;
+  has_nsfw_concepts: boolean[];
+  prompt: string;
+}
+
+export interface AvatarEditPreset {
+  id: string;
+  name: string;
+  prompt: string;
+  description: string;
+  category: 'style' | 'clothing' | 'background' | 'pose' | 'effects';
+  icon: string;
+}
+
+export class FluxKontextService {
+  private static instance: FluxKontextService;
+
+  public static getInstance(): FluxKontextService {
+    if (!FluxKontextService.instance) {
+      FluxKontextService.instance = new FluxKontextService();
+    }
+    return FluxKontextService.instance;
+  }
+
+  // Predefined avatar enhancement presets
+  getAvatarEditPresets(): AvatarEditPreset[] {
+    return [
+      // Style Enhancements
+      {
+        id: 'professional_style',
+        name: 'Professional',
+        prompt: 'Transform into a professional business portrait with clean, polished styling',
+        description: 'Business-ready professional look',
+        category: 'style',
+        icon: '👔'
+      },
+      {
+        id: 'casual_style',
+        name: 'Casual',
+        prompt: 'Make it more casual and relaxed with comfortable everyday styling',
+        description: 'Relaxed, everyday appearance',
+        category: 'style',
+        icon: '👕'
+      },
+      {
+        id: 'artistic_style',
+        name: 'Artistic',
+        prompt: 'Add artistic flair with creative styling and enhanced visual appeal',
+        description: 'Creative and artistic enhancement',
+        category: 'style',
+        icon: '🎨'
+      },
+
+      // Clothing Modifications
+      {
+        id: 'formal_suit',
+        name: 'Formal Suit',
+        prompt: 'Dress the person in an elegant formal suit with professional styling',
+        description: 'Add formal business attire',
+        category: 'clothing',
+        icon: '🤵'
+      },
+      {
+        id: 'casual_wear',
+        name: 'Casual Wear',
+        prompt: 'Put the person in comfortable casual clothing like jeans and a nice shirt',
+        description: 'Comfortable everyday clothing',
+        category: 'clothing',
+        icon: '👖'
+      },
+      {
+        id: 'sporty_outfit',
+        name: 'Sporty',
+        prompt: 'Dress in athletic wear and sporty clothing for an active look',
+        description: 'Athletic and sporty attire',
+        category: 'clothing',
+        icon: '🏃'
+      },
+
+      // Background Changes
+      {
+        id: 'studio_background',
+        name: 'Studio',
+        prompt: 'Place in a professional photography studio with clean lighting',
+        description: 'Professional studio setting',
+        category: 'background',
+        icon: '📸'
+      },
+      {
+        id: 'office_background',
+        name: 'Office',
+        prompt: 'Set the background to a modern professional office environment',
+        description: 'Modern office setting',
+        category: 'background',
+        icon: '🏢'
+      },
+      {
+        id: 'outdoor_background',
+        name: 'Outdoor',
+        prompt: 'Place in a beautiful outdoor setting with natural scenery',
+        description: 'Natural outdoor environment',
+        category: 'background',
+        icon: '🌿'
+      },
+
+      // Pose Adjustments
+      {
+        id: 'confident_pose',
+        name: 'Confident',
+        prompt: 'Adjust to a confident, authoritative pose with good posture',
+        description: 'Strong, confident stance',
+        category: 'pose',
+        icon: '💪'
+      },
+      {
+        id: 'friendly_pose',
+        name: 'Friendly',
+        prompt: 'Create a warm, approachable pose with a welcoming expression',
+        description: 'Approachable and friendly',
+        category: 'pose',
+        icon: '😊'
+      },
+
+      // Visual Effects
+      {
+        id: 'enhanced_lighting',
+        name: 'Enhanced Lighting',
+        prompt: 'Improve the lighting to be more flattering and professional',
+        description: 'Better lighting and shadows',
+        category: 'effects',
+        icon: '💡'
+      },
+      {
+        id: 'cinematic_look',
+        name: 'Cinematic',
+        prompt: 'Add cinematic quality with dramatic lighting and enhanced visual depth',
+        description: 'Movie-quality appearance',
+        category: 'effects',
+        icon: '🎬'
+      }
+    ];
+  }
+
+  // Generate enhanced avatar using FLUX.1 Kontext
+  async enhanceAvatar(
+    imageUrl: string,
+    prompt: string,
+    options: Partial<FluxKontextRequest> = {}
+  ): Promise<FluxKontextResponse> {
+    try {
+      const requestPayload: FluxKontextRequest = {
+        prompt,
+        image_url: imageUrl,
+        guidance_scale: options.guidance_scale || 3.5,
+        num_images: options.num_images || 1,
+        output_format: options.output_format || 'jpeg',
+        safety_tolerance: options.safety_tolerance || '2',
+        enhance_prompt: options.enhance_prompt !== false,
+        aspect_ratio: options.aspect_ratio || '1:1',
+        sync_mode: options.sync_mode || false,
+        ...options
+      };
+
+      console.log('Enhancing avatar with FLUX.1 Kontext:', {
+        prompt: requestPayload.prompt,
+        image_url: requestPayload.image_url,
+        settings: {
+          guidance_scale: requestPayload.guidance_scale,
+          num_images: requestPayload.num_images,
+          output_format: requestPayload.output_format
+        }
+      });
+
+      const { fal } = await import('@fal-ai/client');
+
+      const result = await fal.subscribe('fal-ai/flux-pro/kontext', {
+        input: requestPayload,
+        logs: true,
+        onQueueUpdate: (update) => {
+          if (update.status === 'IN_PROGRESS') {
+            update.logs?.map((log: any) => log.message).forEach(console.log);
+          }
+        }
+      });
+
+      console.log('FLUX.1 Kontext result:', result);
+
+      return {
+        images: result.data.images || [],
+        timings: result.data.timings || {},
+        seed: result.data.seed || 0,
+        has_nsfw_concepts: result.data.has_nsfw_concepts || [],
+        prompt: result.data.prompt || prompt
+      };
+
+    } catch (error) {
+      console.error('FLUX.1 Kontext enhancement error:', error);
+      throw new Error(`Avatar enhancement failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Apply preset enhancement
+  async applyPresetEnhancement(
+    imageUrl: string,
+    presetId: string,
+    customModifications?: string
+  ): Promise<FluxKontextResponse> {
+    const preset = this.getAvatarEditPresets().find(p => p.id === presetId);
+    if (!preset) {
+      throw new Error(`Preset not found: ${presetId}`);
+    }
+
+    let prompt = preset.prompt;
+    if (customModifications) {
+      prompt += ` ${customModifications}`;
+    }
+
+    return this.enhanceAvatar(imageUrl, prompt, {
+      guidance_scale: 4.0, // Slightly higher for presets
+      enhance_prompt: true
+    });
+  }
+
+  // Custom avatar editing with user prompt
+  async customEdit(
+    imageUrl: string,
+    userPrompt: string,
+    options: Partial<FluxKontextRequest> = {}
+  ): Promise<FluxKontextResponse> {
+    // Enhance the user prompt for better avatar editing
+    const enhancedPrompt = `${userPrompt}. Maintain the person's identity and facial features while making the requested changes. Ensure high quality and realistic results.`;
+
+    return this.enhanceAvatar(imageUrl, enhancedPrompt, {
+      guidance_scale: 3.5,
+      enhance_prompt: true,
+      ...options
+    });
+  }
+
+  // Batch processing for multiple enhancements
+  async batchEnhance(
+    imageUrl: string,
+    prompts: string[],
+    options: Partial<FluxKontextRequest> = {}
+  ): Promise<FluxKontextResponse[]> {
+    const results: FluxKontextResponse[] = [];
+
+    for (const prompt of prompts) {
+      try {
+        const result = await this.enhanceAvatar(imageUrl, prompt, options);
+        results.push(result);
+      } catch (error) {
+        console.error(`Failed to process prompt: ${prompt}`, error);
+        // Continue with other prompts even if one fails
+      }
+    }
+
+    return results;
+  }
+
+  // Validate image URL for FLUX processing
+  validateImageUrl(imageUrl: string): { isValid: boolean; error?: string } {
+    if (!imageUrl) {
+      return { isValid: false, error: 'Image URL is required' };
+    }
+
+    if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+      return { isValid: false, error: 'Image URL must be a valid HTTP/HTTPS URL' };
+    }
+
+    // Check if it's a fal.media URL (recommended) or other supported domains
+    const supportedDomains = ['fal.media', 'v3.fal.media', 'storage.googleapis.com', 'amazonaws.com'];
+    const isSupported = supportedDomains.some(domain => imageUrl.includes(domain));
+
+    if (!isSupported) {
+      console.warn('Image URL may not be from a supported domain. Proceeding anyway.');
+    }
+
+    return { isValid: true };
+  }
+
+  // Get enhancement suggestions based on avatar analysis
+  getSuggestedEnhancements(avatarData: any): AvatarEditPreset[] {
+    const suggestions: AvatarEditPreset[] = [];
+    const allPresets = this.getAvatarEditPresets();
+
+    // Smart suggestions based on avatar quality or type
+    if (avatarData.qualityScore && avatarData.qualityScore < 80) {
+      suggestions.push(allPresets.find(p => p.id === 'enhanced_lighting')!);
+      suggestions.push(allPresets.find(p => p.id === 'cinematic_look')!);
+    }
+
+    // Always suggest popular options
+    suggestions.push(
+      allPresets.find(p => p.id === 'professional_style')!,
+      allPresets.find(p => p.id === 'studio_background')!,
+      allPresets.find(p => p.id === 'confident_pose')!
+    );
+
+    return suggestions.filter(Boolean);
+  }
+}
+
+// Export singleton instance
+export const fluxKontextService = FluxKontextService.getInstance();
+
+// Helper function to create FLUX-compatible image URL from file
+export const prepareImageForFlux = async (file: File): Promise<string> => {
+  // In a real implementation, this would upload to fal.media storage
+  // For now, we'll use the existing fal storage upload
+  try {
+    const { fal } = await import('@fal-ai/client');
+    const uploadResult = await fal.storage.upload(file);
+    return typeof uploadResult === 'string' ? uploadResult : uploadResult.url;
+  } catch (error) {
+    throw new Error(`Failed to prepare image for FLUX: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};

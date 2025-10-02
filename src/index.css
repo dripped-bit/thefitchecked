@@ -1,0 +1,309 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Background */
+body {
+  background-image: url('/my-background.jpg/u8694755543_piece_of_textured_fabric_light_colors_.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/my-background.jpg/u8694755543_piece_of_textured_fabric_light_colors_.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: 0.15;
+  filter: brightness(1.4) contrast(0.4) saturate(0.3) blur(0.5px);
+  z-index: -2;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: -1;
+}
+
+/* Glassmorphism Utility Classes */
+@layer utilities {
+  .glass-beige {
+    background: rgba(245, 245, 220, 0.3); /* Beige with 30% opacity */
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(245, 245, 220, 0.2);
+  }
+
+  .glass-beige-dark {
+    background: rgba(222, 184, 135, 0.3); /* Darker beige with 30% opacity */
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(222, 184, 135, 0.2);
+  }
+
+  .glass-beige-light {
+    background: rgba(250, 240, 230, 0.3); /* Light beige with 30% opacity */
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(250, 240, 230, 0.2);
+  }
+}
+
+/* Avatar Animation Keyframes */
+@keyframes avatarBreathe {
+  0%, 100% { transform: scale(1) translateY(0px); }
+  50% { transform: scale(1.02) translateY(-2px); }
+}
+
+@keyframes avatarSway {
+  0%, 100% { transform: translateX(0px) rotate(0deg); }
+  25% { transform: translateX(1px) rotate(0.5deg); }
+  75% { transform: translateX(-1px) rotate(-0.5deg); }
+}
+
+@keyframes avatarPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+@keyframes avatarPose {
+  0% { transform: scale(1.1) rotate(0deg); }
+  50% { transform: scale(1.15) rotate(2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Enhanced Avatar Animations from avatarAnimationService */
+@keyframes avatarWave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  75% { transform: rotate(-15deg); }
+}
+
+@keyframes avatarNod {
+  0%, 100% { transform: rotateX(0deg); }
+  50% { transform: rotateX(10deg); }
+}
+
+@keyframes avatarWink {
+  0%, 85%, 100% {
+    filter: brightness(1);
+    transform: scaleY(1);
+  }
+  90%, 95% {
+    filter: brightness(0.8);
+    transform: scaleY(0.95);
+  }
+}
+
+@keyframes avatarArmSway {
+  0%, 100% { transform: rotate(0deg) translateX(0); }
+  25% { transform: rotate(2deg) translateX(-3px); }
+  75% { transform: rotate(-2deg) translateX(3px); }
+}
+
+@keyframes avatarFootTap {
+  0%, 70%, 100% { transform: translateY(0) rotateZ(0deg); }
+  15%, 35% { transform: translateY(-2px) rotateZ(1deg); }
+  50% { transform: translateY(-1px) rotateZ(-0.5deg); }
+}
+
+@keyframes avatarWaitingSequence {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    filter: brightness(1);
+  }
+  10% {
+    filter: brightness(0.9);
+    transform: scaleY(0.98);
+  }
+  25% {
+    transform: translateY(-1px) rotate(1deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(-1deg);
+  }
+  75% {
+    transform: translateY(-1px) rotate(0.5deg);
+  }
+  85% {
+    filter: brightness(0.85);
+    transform: scaleY(0.96);
+  }
+}
+
+/* Enhanced Avatar Animations for Natural Movement */
+@keyframes avatarFloatingBreath {
+  0%, 100% {
+    transform: scale(1) translateY(0px) rotate(0deg);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.01) translateY(-1px) rotate(0.2deg);
+    filter: brightness(1.02);
+  }
+}
+
+@keyframes avatarGentleSway {
+  0%, 100% { transform: translateX(0px) rotate(0deg); }
+  25% { transform: translateX(0.5px) rotate(0.3deg); }
+  75% { transform: translateX(-0.5px) rotate(-0.3deg); }
+}
+
+/* Animation utility classes */
+.animate-wave {
+  animation: avatarWave 2s ease-in-out;
+}
+
+.animate-nod {
+  animation: avatarNod 1s ease-in-out;
+}
+
+.animate-wink {
+  animation: avatarWink 3s ease-in-out infinite;
+}
+
+.animate-arm-sway {
+  animation: avatarArmSway 4s ease-in-out infinite;
+}
+
+.animate-foot-tap {
+  animation: avatarFootTap 2s ease-in-out infinite;
+}
+
+.animate-waiting-sequence {
+  animation: avatarWaitingSequence 8s ease-in-out infinite;
+}
+
+.animate-floating-breath {
+  animation: avatarFloatingBreath 4s ease-in-out infinite;
+}
+
+.animate-gentle-sway {
+  animation: avatarGentleSway 6s ease-in-out infinite;
+}
+
+.animate-sway {
+  animation: avatarSway 4s ease-in-out infinite;
+}
+
+.animate-breathing {
+  animation: avatarBreathe 3s ease-in-out infinite;
+}
+
+.animate-changing {
+  animation: avatarPulse 2s ease-in-out infinite;
+}
+
+.animate-posing {
+  animation: avatarPose 1s ease-in-out;
+}
+
+/* 3D Transform Utilities for Closet Doors */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.rotate-y-0 {
+  transform: rotateY(0deg);
+}
+
+.rotate-y-90 {
+  transform: rotateY(90deg);
+}
+
+.-rotate-y-90 {
+  transform: rotateY(-90deg);
+}
+
+.origin-left {
+  transform-origin: left center;
+}
+
+.origin-right {
+  transform-origin: right center;
+}
+
+/* Closet Interior Styling */
+.closet-interior {
+  background: linear-gradient(135deg, #f8f4f0 0%, #e8ddd4 50%, #d4c4b0 100%);
+  box-shadow: inset 0 0 100px rgba(0,0,0,0.1);
+}
+
+/* Achievement Animation */
+@keyframes achievement-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(147, 51, 234, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(147, 51, 234, 0.6); }
+}
+
+.achievement-glow {
+  animation: achievement-glow 2s ease-in-out infinite;
+}
+
+/* Drag and Drop Styling */
+.drag-item {
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.drag-item:active {
+  cursor: grabbing;
+  transform: scale(1.05);
+  z-index: 1000;
+}
+
+.drop-zone {
+  border: 2px dashed #cbd5e1;
+  transition: all 0.2s ease;
+}
+
+.drop-zone.drag-over {
+  border-color: #8b5cf6;
+  background-color: rgba(139, 92, 246, 0.1);
+}
+
+/* Category Grid Animation */
+@keyframes category-appear {
+  0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.category-item {
+  animation: category-appear 0.5s ease-out forwards;
+}
+
+/* Outfit Creator Animations */
+@keyframes outfit-slot-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.02); opacity: 1; }
+}
+
+.outfit-slot-empty {
+  animation: outfit-slot-pulse 2s ease-in-out infinite;
+}
+
+/* Fixed Upload Button Override */
+.upload-fixed-override {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  transform: none !important;
+  will-change: auto !important;
+  contain: none !important;
+  z-index: 9999 !important;
+}

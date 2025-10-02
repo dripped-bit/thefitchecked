@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .logs {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        img {
+            max-width: 100%;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 FAL API Test Page</h1>
+        <p>This page tests the FAL API connection directly.</p>
+
+        <button id="testBtn" onclick="testFalApi()">🧪 Test FAL API Connection</button>
+
+        <div id="loading" style="display: none;">
+            <p>🔄 Testing API connection...</p>
+        </div>
+
+        <div id="result"></div>
+        <div id="logs"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logsDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            console.log(message);
+        }
+
+        async function testFalApi() {
+            const testBtn = document.getElementById('testBtn');
+            const loading = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+            const logsDiv = document.getElementById('logs');
+
+            // Reset UI
+            testBtn.disabled = true;
+            loading.style.display = 'block';
+            resultDiv.innerHTML = '';
+            logsDiv.innerHTML = '';
+
+            log('🧪 Starting FAL API test...');
+
+            try {
+                const testRequest = {
+                    prompt: 'simple test image of a person standing',
+                    image_size: { width: 512, height: 512 },
+                    num_images: 1,
+                    enable_safety_checker: false
+                };
+
+                log('📤 Sending request to: /api/fal/fal-ai/bytedance/seedream/v4/text-to-image');
+                log('📋 Request data: ' + JSON.stringify(testRequest, null, 2));
+
+                const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testRequest)
+                });
+
+                log(`📊 Response status: ${response.status} ${response.statusText}`);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ API Error: ${errorText}`);
+                    throw new Error(`${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                log('✅ SUCCESS! Response received');
+                log('📋 Response data: ' + JSON.stringify(data, null, 2));
+
+                // Display success result
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <h3>✅ API Test Successful!</h3>
+                        <p><strong>Images generated:</strong> ${data.images ? data.images.length : 0}</p>
+                        ${data.images && data.images.length > 0 ? `
+                            <p><strong>First image URL:</strong></p>
+                            <p style="word-break: break-all; font-size: 12px;">${data.images[0].url}</p>
+                            <img src="${data.images[0].url}" alt="Generated test image" />
+                        ` : ''}
+                        <details>
+                            <summary>Full Response</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    </div>
+                `;
+
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`);
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ API Test Failed</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>Check the logs below and the browser console for more details.</p>
+                    </div>
+                `;
+            } finally {
+                testBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(npm run build:*)",
+      "Bash(lsof:*)",
+      "Bash(open http://localhost:5173/)",
+      "Bash(xargs kill:*)",
+      "WebFetch(domain:docs.fal.ai)",
+      "WebSearch",
+      "WebFetch(domain:avaturn.me)",
+      "WebFetch(domain:docs.avaturn.me)",
+      "Bash(cat:*)",
+      "Read(//Users/genevieguevara/Developer/avatar-app/src/app/**)",
+      "Read(//Users/genevieguevara/Developer/avatar-app/**)",
+      "Bash(open http://localhost:5176/)",
+      "Bash(npx tsc:*)",
+      "Bash(awk:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(node:*)",
+      "Bash(source:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:docs.perplexity.ai)",
+      "Bash(npm run:*)",
+      "Bash(open http://localhost:5174/)",
+      "Bash(git clone:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

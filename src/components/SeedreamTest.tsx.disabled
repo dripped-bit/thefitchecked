@@ -1,0 +1,275 @@
+import React, { useState } from 'react';
+import { seedreamService } from '../lib/seedream-service';
+import type { Seedream4Response, ProcessingState } from '../types/seedream';
+
+const SeedreamTest: React.FC = () => {
+  const [personImage, setPersonImage] = useState<File | null>(null);
+  const [garmentImage, setGarmentImage] = useState<File | null>(null);
+  const [prompt, setPrompt] = useState('');
+  const [selectedPreset, setSelectedPreset] = useState('basic');
+  const [result, setResult] = useState<Seedream4Response | null>(null);
+  const [processingState, setProcessingState] = useState<ProcessingState>({
+    isLoading: false,
+    progress: '',
+  });
+
+  const presets = seedreamService.getPresetPrompts();
+
+  const handlePersonImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPersonImage(file);
+      setProcessingState({ isLoading: false, progress: '' });
+    }
+  };
+
+  const handleGarmentImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setGarmentImage(file);
+      setProcessingState({ isLoading: false, progress: '' });
+    }
+  };
+
+  const handlePresetChange = (preset: string) => {
+    setSelectedPreset(preset);
+    setPrompt(presets[preset as keyof typeof presets]);
+  };
+
+  const runVirtualTryOn = async () => {
+    if (!personImage || !garmentImage) {
+      setProcessingState({
+        isLoading: false,
+        progress: '',
+        error: 'Please select both person and garment images'
+      });
+      return;
+    }
+
+    // Validate images
+    const validation = seedreamService.validateImages(personImage, garmentImage);
+    if (!validation.isValid) {
+      setProcessingState({
+        isLoading: false,
+        progress: '',
+        error: validation.error
+      });
+      return;
+    }
+
+    try {
+      setResult(null);
+      setProcessingState({ isLoading: true, progress: 'Starting...' });
+
+      const result = await seedreamService.virtualTryOn(
+        {
+          personImage,
+          garmentImage,
+          prompt: prompt || presets[selectedPreset as keyof typeof presets],
+          numImages: 1,
+        },
+        (state) => setProcessingState(state)
+      );
+
+      setResult(result);
+    } catch (error) {
+      const errorMessage = seedreamService.parseError(error);
+      setProcessingState({
+        isLoading: false,
+        progress: 'Failed',
+        error: errorMessage
+      });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-purple-600 mb-2">
+            🎨 Seedream 4 Virtual Try-On
+          </h1>
+          <p className="text-gray-600">
+            AI-powered image editing for virtual fashion try-ons
+          </p>
+        </div>
+
+        {/* Image Upload Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Person Image */}
+          <div className="bg-white/80 p-6 rounded-xl shadow-lg">
+            <h3 className="font-semibold text-lg mb-4 text-gray-800">👤 Person Image</h3>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePersonImageChange}
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors"
+            />
+            {personImage && (
+              <div className="mt-4">
+                <img
+                  src={URL.createObjectURL(personImage)}
+                  alt="Person"
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  {personImage.name} ({Math.round(personImage.size / 1024)}KB)
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Garment Image */}
+          <div className="bg-white/80 p-6 rounded-xl shadow-lg">
+            <h3 className="font-semibold text-lg mb-4 text-gray-800">👕 Garment Image</h3>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleGarmentImageChange}
+              className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors"
+            />
+            {garmentImage && (
+              <div className="mt-4">
+                <img
+                  src={URL.createObjectURL(garmentImage)}
+                  alt="Garment"
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  {garmentImage.name} ({Math.round(garmentImage.size / 1024)}KB)
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Prompt Section */}
+        <div className="bg-white/80 p-6 rounded-xl shadow-lg mb-6">
+          <h3 className="font-semibold text-lg mb-4 text-gray-800">✨ Style Instructions</h3>
+
+          {/* Preset Buttons */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+            {Object.keys(presets).map((preset) => (
+              <button
+                key={preset}
+                onClick={() => handlePresetChange(preset)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  selectedPreset === preset
+                    ? 'bg-purple-500 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {preset.charAt(0).toUpperCase() + preset.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Prompt Input */}
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe how you want the person to be dressed..."
+            className="w-full h-24 p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          <p className="text-sm text-gray-500 mt-2">
+            Tip: Be specific about the style, fit, and any additional details you want
+          </p>
+        </div>
+
+        {/* Generate Button */}
+        <div className="text-center mb-6">
+          <button
+            onClick={runVirtualTryOn}
+            disabled={processingState.isLoading || !personImage || !garmentImage}
+            className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl hover:from-purple-600 hover:to-pink-600 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            {processingState.isLoading ? (
+              <span className="flex items-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                {processingState.progress}
+              </span>
+            ) : (
+              '🎭 Generate Virtual Try-On'
+            )}
+          </button>
+        </div>
+
+        {/* Progress/Error Display */}
+        {(processingState.isLoading || processingState.error) && (
+          <div className={`p-4 rounded-lg mb-6 ${
+            processingState.error
+              ? 'bg-red-50 border border-red-200 text-red-700'
+              : 'bg-blue-50 border border-blue-200 text-blue-700'
+          }`}>
+            {processingState.error ? (
+              <div>
+                <strong>Error:</strong> {processingState.error}
+              </div>
+            ) : (
+              <div className="flex items-center">
+                <div className="animate-pulse mr-2">⏳</div>
+                <span>{processingState.progress}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Results Display */}
+        {result && result.images && result.images.length > 0 && (
+          <div className="bg-white/80 p-6 rounded-xl shadow-lg">
+            <h3 className="font-semibold text-lg mb-4 text-gray-800">🎉 Results</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {result.images.map((image, index) => (
+                <div key={index} className="bg-white rounded-lg overflow-hidden shadow-md">
+                  <img
+                    src={image.url}
+                    alt={`Virtual Try-On Result ${index + 1}`}
+                    className="w-full h-auto"
+                  />
+                  <div className="p-3">
+                    <p className="text-sm text-gray-600 mb-2">Seed: {result.seed}</p>
+                    <a
+                      href={image.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-600 hover:text-purple-800 underline text-sm"
+                    >
+                      View Full Size
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Info Section */}
+        <div className="mt-8 bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl">
+          <h3 className="font-semibold text-lg mb-3 text-gray-800">🚀 About Seedream 4</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+            <div>
+              <h4 className="font-medium mb-2">✨ Features:</h4>
+              <ul className="space-y-1">
+                <li>• AI-powered image editing</li>
+                <li>• Natural language prompts</li>
+                <li>• High-quality generation</li>
+                <li>• Multiple style presets</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">📋 Requirements:</h4>
+              <ul className="space-y-1">
+                <li>• Images: JPEG, PNG, or WebP</li>
+                <li>• Max size: 10MB per image</li>
+                <li>• Processing time: 30-60 seconds</li>
+                <li>• Internet connection required</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SeedreamTest;

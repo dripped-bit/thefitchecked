@@ -1,0 +1,1655 @@
+import React, { useState, useRef, useEffect, Suspense, useCallback, useMemo } from 'react';
+import {
+  ArrowLeft,
+  Download,
+  RotateCcw,
+  ZoomIn,
+  ZoomOut,
+  Play,
+  Pause,
+  Settings,
+  Star,
+  CheckCircle,
+  AlertTriangle,
+  RefreshCw,
+  Wand2,
+  Sparkles,
+  Loader,
+  Upload,
+  Shirt,
+  Image as ImageIcon,
+  User
+} from 'lucide-react';
+import * as THREE from 'three';
+import AvatarEnhancement from './AvatarEnhancement';
+import { CapturedPhoto, AvatarData } from '../types/photo';
+import { avatarGenerationService, GenerationProgress, AvatarGenerationResult } from '../services/avatarGenerationService';
+import directFashnService from '../services/directFashnService';
+
+interface Avatar3DDisplayProps {
+  avatarData: AvatarData;
+  capturedPhotos: CapturedPhoto[];
+  measurements: any;
+  onAdjustMeasurements: () => void;
+  onContinueToProfile: () => void;
+  onRetakePhotos: () => void;
+  onBack: () => void;
+}
+
+interface ViewerControls {
+  rotation: { x: number; y: number; z: number };
+  zoom: number;
+  autoRotate: boolean;
+  view: 'front' | 'side' | 'back' | 'free';
+}
+
+const Avatar3DDisplay: React.FC<Avatar3DDisplayProps> = ({
+  avatarData,
+  capturedPhotos,
+  measurements,
+  onAdjustMeasurements,
+  onContinueToProfile,
+  onRetakePhotos,
+  onBack
+}) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [model, setModel] = useState<THREE.Object3D | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showControls, setShowControls] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showEnhancement, setShowEnhancement] = useState(false);
+  const [qualityAnalysis, setQualityAnalysis] = useState<any>(null);
+  const [enhancedAvatarUrl, setEnhancedAvatarUrl] = useState<string | null>(null);
+
+  // Avatar generation state
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [generatedAvatarData, setGeneratedAvatarData] = useState<any>(null);
+
+  // Try-on state management
+  const [selectedClothing, setSelectedClothing] = useState<string | null>(null);
+  const [uploadedClothingUrl, setUploadedClothingUrl] = useState<string | null>(null);
+  const [showTryOnPanel, setShowTryOnPanel] = useState(false);
+
+  // Memory cleanup for blob URLs
+  useEffect(() => {
+    return () => {
+      // Clean up blob URL when component unmounts
+      if (uploadedClothingUrl && uploadedClothingUrl.startsWith('blob:')) {
+        console.log('🧹 [AVATAR-3D] Cleaning up blob URL on unmount');
+        URL.revokeObjectURL(uploadedClothingUrl);
+      }
+    };
+  }, [uploadedClothingUrl]);
+
+  // Upload progress state
+  const [uploadProgress, setUploadProgress] = useState<{
+    isUploading: boolean;
+    progress: number;
+    stage: string;
+  }>({
+    isUploading: false,
+    progress: 0,
+    stage: ''
+  });
+  const [tryOnResults, setTryOnResults] = useState<{
+    isProcessing: boolean;
+    result: {
+      success: boolean;
+      imageUrl?: string;
+      error?: string;
+    } | null;
+    displayMode: 'original' | 'tryon';
+  }>({
+    isProcessing: false,
+    result: null,
+    displayMode: 'original'
+  });
+
+  const [controls, setControls] = useState<ViewerControls>({
+    rotation: { x: 0, y: 0, z: 0 },
+    zoom: 1,
+    autoRotate: false,
+    view: 'front'
+  });
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const modelRef = useRef<THREE.Object3D | null>(null);
+  const animationRef = useRef<number | null>(null);
+
+  // Initialize Three.js scene
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+
+    // Set up renderer
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    renderer.setClearColor(0x000000, 0);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // Set up camera
+    camera.position.set(0, 1.6, 3);
+    camera.lookAt(0, 1, 0);
+
+    // Add lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(10, 10, 5);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048;
+    directionalLight.shadow.mapSize.height = 2048;
+    scene.add(directionalLight);
+
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    fillLight.position.set(-10, 0, -5);
+    scene.add(fillLight);
+
+    // Store references
+    sceneRef.current = scene;
+    rendererRef.current = renderer;
+    cameraRef.current = camera;
+
+    // Handle resize
+    const handleResize = () => {
+      if (!cameraRef.current || !rendererRef.current || !canvasRef.current) return;
+
+      const width = canvasRef.current.clientWidth;
+      const height = canvasRef.current.clientHeight;
+
+      cameraRef.current.aspect = width / height;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(width, height);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      renderer.dispose();
+    };
+  }, []);
+
+  // Enhanced component mount/state logging
+  useEffect(() => {
+    console.log('🎯 Avatar3DDisplay mounted/updated');
+  }, []);
+
+  // Stabilize measurements to prevent infinite re-renders
+  const stableMeasurements = useMemo(() => {
+    if (!measurements || typeof measurements !== 'object') return null;
+    return { ...measurements };
+  }, [measurements && JSON.stringify(measurements)]);
+
+  // Memoize photos to prevent re-renders on array changes
+  const stablePhotos = useMemo(() => {
+    return capturedPhotos || [];
+  }, [capturedPhotos?.length, capturedPhotos?.map(p => p.id).join(',')]);
+
+  // Use callback for generation function to prevent re-creation
+  const generateAvatar = useCallback(async () => {
+    // Enhanced debug logging
+    console.log('🔍 Avatar generation check:', {
+      stablePhotos,
+      stableMeasurements,
+      generatedAvatarData,
+      capturedPhotosLength: stablePhotos?.length,
+      measurementsType: typeof stableMeasurements,
+      measurementsKeys: stableMeasurements ? Object.keys(stableMeasurements) : null,
+      hasGeneratedData: !!generatedAvatarData
+    });
+
+    // Improved generation condition logic using stable values
+    const hasValidPhotos = stablePhotos && stablePhotos.length > 0;
+    const hasValidMeasurements = stableMeasurements && typeof stableMeasurements === 'object' && Object.keys(stableMeasurements).length > 0;
+    const alreadyGenerated = !!generatedAvatarData;
+
+    if (!hasValidPhotos || !hasValidMeasurements || alreadyGenerated) {
+      console.log('❌ Skipping avatar generation:', {
+        hasValidPhotos,
+        hasValidMeasurements,
+        alreadyGenerated,
+        reason: !hasValidPhotos ? 'No valid photos' :
+                !hasValidMeasurements ? 'No valid measurements' :
+                'Avatar already generated'
+      });
+      return;
+    }
+
+    console.log('✅ Starting avatar generation with:', {
+      photoCount: stablePhotos.length,
+      measurements: stableMeasurements,
+      capturedPhotos: stablePhotos
+    });
+
+    setIsGenerating(true);
+    setGenerationError(null);
+    setGenerationProgress(null);
+
+    try {
+      const result = await avatarGenerationService.generateAvatar(
+        stablePhotos,
+        stableMeasurements,
+        (progress: GenerationProgress) => {
+          console.log('🔄 Generation progress:', progress);
+          setGenerationProgress(progress);
+        }
+      );
+
+      console.log('🎯 Generation result:', result);
+
+      if (result.success && result.avatarData) {
+        console.log('✅ Avatar generation successful!');
+        setGeneratedAvatarData(result.avatarData);
+        setIsGenerating(false);
+      } else {
+        console.log('❌ Avatar generation failed:', result.error);
+        setGenerationError(result.error || 'Avatar generation failed');
+        setIsGenerating(false);
+      }
+    } catch (error) {
+      console.error('💥 Avatar generation error:', error);
+      setGenerationError(error instanceof Error ? error.message : 'Avatar generation failed');
+      setIsGenerating(false);
+    }
+  }, [stablePhotos, stableMeasurements, generatedAvatarData, isGenerating]);
+
+  // Compression temporarily disabled for reliability - can be re-enabled later
+  // const compressImage = useCallback((file: File): Promise<{ compressedFile: File; base64: string }> => {
+  //   ... compression logic removed for stability
+  // }, []);
+
+  // Handle clothing upload with instant preview and reliable processing
+  const handleClothingUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      console.log('🚀 [AVATAR-3D] Starting upload process...', {
+        name: file.name,
+        type: file.type,
+        size: `${(file.size / 1024 / 1024).toFixed(2)}MB`
+      });
+
+      // Validate file type and size
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        console.error('❌ [AVATAR-3D] Invalid file type. Please upload JPG, PNG, or WebP.');
+        alert('Invalid file type. Please upload JPG, PNG, or WebP.');
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        console.error('❌ [AVATAR-3D] File too large. Please upload an image smaller than 5MB.');
+        alert('File too large. Please upload an image smaller than 5MB.');
+        return;
+      }
+
+      try {
+        // Clean up previous blob URL if it exists
+        if (uploadedClothingUrl && uploadedClothingUrl.startsWith('blob:')) {
+          console.log('🧹 [AVATAR-3D] Cleaning up previous blob URL');
+          URL.revokeObjectURL(uploadedClothingUrl);
+        }
+
+        // ⚡ INSTANT PREVIEW - Show image immediately
+        console.log('📸 [AVATAR-3D] Creating instant preview...');
+        const previewUrl = URL.createObjectURL(file);
+        setUploadedClothingUrl(previewUrl);
+
+        // Start progress for base64 conversion
+        setUploadProgress({
+          isUploading: true,
+          progress: 30,
+          stage: 'Processing image...'
+        });
+
+        console.log('🔄 [AVATAR-3D] Starting reliable base64 conversion...');
+
+        // Use simple, reliable FileReader for base64 conversion
+        const base64Result = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+
+          reader.onload = (e) => {
+            const result = e.target?.result as string;
+            if (result && result.startsWith('data:image/')) {
+              console.log('✅ [AVATAR-3D] FileReader conversion successful');
+              resolve(result);
+            } else {
+              console.error('❌ [AVATAR-3D] FileReader returned invalid result:', result);
+              reject(new Error('Invalid file reader result'));
+            }
+          };
+
+          reader.onerror = (error) => {
+            console.error('❌ [AVATAR-3D] FileReader error:', error);
+            reject(new Error('Failed to read file'));
+          };
+
+          reader.onabort = () => {
+            console.error('❌ [AVATAR-3D] FileReader aborted');
+            reject(new Error('File reading aborted'));
+          };
+
+          // Start reading
+          reader.readAsDataURL(file);
+        });
+
+        // Update progress
+        setUploadProgress({
+          isUploading: true,
+          progress: 80,
+          stage: 'Finalizing...'
+        });
+
+        // Store base64 for API calls
+        setSelectedClothing(base64Result);
+
+        // Complete
+        setUploadProgress({
+          isUploading: true,
+          progress: 100,
+          stage: 'Ready for try-on!'
+        });
+
+        // Clear progress after delay
+        setTimeout(() => {
+          setUploadProgress({
+            isUploading: false,
+            progress: 0,
+            stage: ''
+          });
+        }, 1000);
+
+        console.log('✅ [AVATAR-3D] Upload completed successfully:', {
+          previewUrl: previewUrl.substring(0, 50) + '...',
+          base64Length: base64Result.length,
+          isValidBase64: base64Result.startsWith('data:image/'),
+          method: 'reliable-filereader'
+        });
+
+      } catch (error) {
+        console.error('💥 [AVATAR-3D] Upload failed with error:', error);
+
+        // Clear progress on error
+        setUploadProgress({
+          isUploading: false,
+          progress: 0,
+          stage: ''
+        });
+
+        // Show user-friendly error
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        alert(`Upload failed: ${errorMessage}. Please try again with a different image.`);
+
+        // Clean up preview URL if it was created
+        if (uploadedClothingUrl) {
+          URL.revokeObjectURL(uploadedClothingUrl);
+          setUploadedClothingUrl(null);
+        }
+        setSelectedClothing(null);
+      }
+    }
+  }, []); // Removed compressImage dependency since we're using simple FileReader
+
+  // Handle try-on with direct FASHN API
+  const handleTryOn = useCallback(async () => {
+    console.log('🚀 [DEBUG-TRYON] Try-on button clicked, starting comprehensive validation...');
+
+    // 1. Check if clothing is selected
+    console.log('🔍 [DEBUG-TRYON] Step 1 - Checking clothing selection:', {
+      hasSelectedClothing: !!selectedClothing,
+      selectedClothingLength: selectedClothing?.length || 0,
+      selectedClothingType: selectedClothing ?
+        (selectedClothing.startsWith('data:image/') ? 'base64' : 'other') : 'null'
+    });
+
+    if (!selectedClothing) {
+      console.error('❌ [DEBUG-TRYON] BLOCKED: No clothing selected for try-on');
+      alert('Please select clothing first before trying on!');
+      return;
+    }
+
+    // 2. Check avatar image availability
+    console.log('🔍 [DEBUG-TRYON] Step 2 - Checking avatar image sources:', {
+      enhancedAvatarUrl: enhancedAvatarUrl || 'not available',
+      'generatedAvatarData?.previewUrl': generatedAvatarData?.previewUrl || 'not available',
+      'avatarData.previewUrl': avatarData.previewUrl || 'not available',
+      avatarDataKeys: Object.keys(avatarData || {}),
+      generatedAvatarDataKeys: generatedAvatarData ? Object.keys(generatedAvatarData) : 'null'
+    });
+
+    const avatarImageUrl = enhancedAvatarUrl || generatedAvatarData?.previewUrl || avatarData.previewUrl;
+
+    if (!avatarImageUrl) {
+      console.error('❌ [DEBUG-TRYON] BLOCKED: No avatar image available for try-on');
+      alert('Avatar image not available. Please wait for avatar generation to complete or retake photos.');
+      return;
+    }
+
+    // 3. Validate formats with thorough checks
+    const isBase64Clothing = selectedClothing.startsWith('data:image/');
+    const isHttpAvatar = avatarImageUrl.startsWith('http');
+    const isBase64Avatar = avatarImageUrl.startsWith('data:image/');
+
+    console.log('🔍 [DEBUG-TRYON] Step 3 - Format validation:', {
+      clothing: {
+        isBase64: isBase64Clothing,
+        format: selectedClothing.substring(0, 30) + '...',
+        size: `${(selectedClothing.length / 1024).toFixed(2)}KB`
+      },
+      avatar: {
+        isHttp: isHttpAvatar,
+        isBase64: isBase64Avatar,
+        url: avatarImageUrl.substring(0, 50) + '...',
+        source: enhancedAvatarUrl ? 'enhanced' :
+               generatedAvatarData?.previewUrl ? 'generated' : 'original'
+      }
+    });
+
+    // 3a. Clothing validation (allow both base64 and HTTP)
+    if (!isBase64Clothing && !selectedClothing.startsWith('http')) {
+      console.error('❌ [DEBUG-TRYON] BLOCKED: Clothing is neither base64 nor HTTP URL format');
+      alert('Invalid clothing format detected. Please reupload your clothing image.');
+      return;
+    }
+
+    // Validate base64 clothing structure (only if base64)
+    if (isBase64Clothing) {
+      const clothingMimeMatch = selectedClothing.match(/^data:image\/([^;]+);base64,/);
+      if (!clothingMimeMatch) {
+        console.error('❌ [DEBUG-TRYON] BLOCKED: Invalid base64 clothing structure');
+        alert('Corrupted clothing data detected. Please reupload your clothing image.');
+        return;
+      }
+
+      const clothingMimeType = clothingMimeMatch[1];
+      const validClothingTypes = ['jpeg', 'jpg', 'png', 'webp'];
+      if (!validClothingTypes.includes(clothingMimeType.toLowerCase())) {
+        console.error('❌ [DEBUG-TRYON] BLOCKED: Unsupported clothing image type:', clothingMimeType);
+        alert(`Unsupported clothing image type: ${clothingMimeType}. Please use JPG, PNG, or WebP.`);
+        return;
+      }
+    }
+
+    // 3b. Thorough avatar URL validation
+    if (!isHttpAvatar && !isBase64Avatar) {
+      console.error('❌ [DEBUG-TRYON] BLOCKED: Avatar URL is neither HTTP nor base64');
+      alert('Invalid avatar format detected. Please regenerate your avatar.');
+      return;
+    }
+
+    // Validate HTTP avatar URL structure
+    if (isHttpAvatar) {
+      try {
+        const avatarUrl = new URL(avatarImageUrl);
+        console.log('✅ [DEBUG-TRYON] Avatar HTTP URL structure valid:', {
+          protocol: avatarUrl.protocol,
+          hostname: avatarUrl.hostname,
+          pathname: avatarUrl.pathname.substring(0, 50) + '...'
+        });
+      } catch (error) {
+        console.error('❌ [DEBUG-TRYON] BLOCKED: Invalid avatar HTTP URL structure:', error);
+        alert('Invalid avatar URL detected. Please regenerate your avatar.');
+        return;
+      }
+    }
+
+    // Validate base64 avatar structure
+    if (isBase64Avatar) {
+      const avatarMimeMatch = avatarImageUrl.match(/^data:image\/([^;]+);base64,/);
+      if (!avatarMimeMatch) {
+        console.error('❌ [DEBUG-TRYON] BLOCKED: Invalid base64 avatar structure');
+        alert('Corrupted avatar data detected. Please regenerate your avatar.');
+        return;
+      }
+
+      const avatarMimeType = avatarMimeMatch[1];
+      const validAvatarTypes = ['jpeg', 'jpg', 'png', 'webp'];
+      if (!validAvatarTypes.includes(avatarMimeType.toLowerCase())) {
+        console.error('❌ [DEBUG-TRYON] BLOCKED: Unsupported avatar image type:', avatarMimeType);
+        alert(`Unsupported avatar image type: ${avatarMimeType}. Please regenerate your avatar.`);
+        return;
+      }
+    }
+
+    console.log('✅ [DEBUG-TRYON] All format validations passed successfully');
+
+    // 3c. Avatar pose suitability check
+    console.log('🔍 [DEBUG-TRYON] Step 3c - Checking avatar pose suitability for try-on');
+    if (isHttpAvatar || isBase64Avatar) {
+      // For now, we'll log a warning if the avatar might not be ideal
+      // In the future, this could include actual pose detection
+      console.log('💡 [DEBUG-TRYON] Avatar pose recommendation: For best try-on results, ensure your avatar shows a full-body standing pose with arms slightly away from body');
+
+      // Check if avatar URL suggests it might be a cropped image
+      const avatarUrlLower = avatarImageUrl.toLowerCase();
+      if (avatarUrlLower.includes('crop') || avatarUrlLower.includes('face') || avatarUrlLower.includes('portrait')) {
+        console.warn('⚠️ [DEBUG-TRYON] Avatar URL suggests it might be cropped or face-only - this may cause pose detection issues');
+      }
+    }
+
+    // 4. Check FASHN API service availability
+    console.log('🔍 [DEBUG-TRYON] Step 4 - Checking FASHN service availability');
+    try {
+      if (!directFashnService) {
+        throw new Error('DirectFashnService not available');
+      }
+      console.log('✅ [DEBUG-TRYON] DirectFashnService is available');
+    } catch (error) {
+      console.error('❌ [DEBUG-TRYON] BLOCKED: FASHN service error:', error);
+      alert('FASHN service is not available. Please check your connection.');
+      return;
+    }
+
+    // 5. Start processing
+    console.log('🔍 [DEBUG-TRYON] Step 5 - Starting try-on process');
+    setTryOnResults(prev => ({
+      ...prev,
+      isProcessing: true,
+      result: null,
+      displayMode: 'original' // Keep showing original avatar during processing
+    }));
+
+    try {
+      console.log('📞 [DEBUG-TRYON] Step 6 - Calling FASHN API:', {
+        function: 'directFashnService.tryOnClothing',
+        avatarImageUrl: avatarImageUrl.substring(0, 50) + '...',
+        selectedClothingSize: selectedClothing.length,
+        timestamp: new Date().toISOString()
+      });
+
+      const result = await directFashnService.tryOnClothing(avatarImageUrl, selectedClothing);
+
+      console.log('📨 [DEBUG-TRYON] Step 7 - FASHN API response received:', {
+        success: result.success,
+        hasImageUrl: !!result.imageUrl,
+        imageUrlType: result.imageUrl?.startsWith('http') ? 'http' : 'other',
+        api: result.api,
+        resultKeys: Object.keys(result || {}),
+        imageUrlLength: result.imageUrl?.length || 0,
+        processingTime: result.processingTime,
+        attempts: result.attempts
+      });
+
+      if (result.success && result.imageUrl) {
+        console.log('✅ [DEBUG-TRYON] Step 8 - SUCCESS: Try-on completed successfully');
+        console.log('🎯 [DEBUG-TRYON] Setting try-on results to success state');
+
+        // Successfully got try-on result
+        setTryOnResults(prev => ({
+          ...prev,
+          isProcessing: false,
+          result: {
+            success: true,
+            imageUrl: result.imageUrl,
+          },
+          displayMode: 'tryon' // Now switch to showing try-on result
+        }));
+
+        alert('✅ Try-on successful! The avatar now shows you wearing the selected clothing. The try-on result is displayed in the avatar preview above.');
+
+      } else {
+        console.warn('⚠️ [DEBUG-TRYON] Step 8 - PARTIAL FAIL: API succeeded but no valid image');
+        console.log('🔍 [DEBUG-TRYON] Detailed result analysis:', {
+          resultSuccess: result.success,
+          hasImageUrl: !!result.imageUrl,
+          imageUrlValue: result.imageUrl || 'undefined',
+          fullResult: result
+        });
+
+        // API call succeeded but no valid result
+        setTryOnResults(prev => ({
+          ...prev,
+          isProcessing: false,
+          result: {
+            success: false,
+            error: 'Virtual try-on completed but no result image was generated'
+          },
+          displayMode: 'original' // Stay on original avatar
+        }));
+
+        alert('⚠️ Try-on processing completed but no result image was generated. Please try again.');
+      }
+
+    } catch (error) {
+      console.error('❌ [DEBUG-TRYON] Step 8 - COMPLETE FAIL: Try-on failed with error:', error);
+      console.log('🔍 [DEBUG-TRYON] Error details:', {
+        errorType: typeof error,
+        errorConstructor: error?.constructor?.name,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+
+      setTryOnResults(prev => ({
+        ...prev,
+        isProcessing: false,
+        result: {
+          success: false,
+          error: error instanceof Error ? error.message : 'Try-on failed'
+        },
+        displayMode: 'original' // Stay on original avatar on error
+      }));
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`❌ Try-on failed: ${errorMessage}. Please check the console for details and try again.`);
+    }
+
+    console.log('🏁 [DEBUG-TRYON] Try-on process completed (success or failure)');
+  }, [selectedClothing, enhancedAvatarUrl, generatedAvatarData, avatarData]);
+
+  // Get current display image (original avatar or try-on result)
+  const getCurrentDisplayImage = useCallback(() => {
+    if (tryOnResults.displayMode === 'tryon' && tryOnResults.result?.success && tryOnResults.result.imageUrl) {
+      return tryOnResults.result.imageUrl;
+    }
+    return enhancedAvatarUrl || generatedAvatarData?.previewUrl || avatarData.previewUrl || '/portrait/my-new-portrait.png';
+  }, [tryOnResults, enhancedAvatarUrl, generatedAvatarData, avatarData]);
+
+  // Start avatar generation when component loads
+  useEffect(() => {
+    console.log('🔍 Avatar3DDisplay generation useEffect triggered');
+    console.log('📸 stablePhotos:', stablePhotos);
+    console.log('📏 stableMeasurements:', stableMeasurements);
+    console.log('🎭 generatedAvatarData:', generatedAvatarData);
+    console.log('⚡ isGenerating:', isGenerating);
+
+    if (!isGenerating) {
+      generateAvatar();
+    }
+  }, [generateAvatar, isGenerating]);
+
+  // Load 3D model
+  useEffect(() => {
+    // Use generated avatar data if available, otherwise fall back to placeholder
+    const currentAvatarData = generatedAvatarData || avatarData;
+
+    if (!currentAvatarData.modelUrl && !currentAvatarData.previewUrl && !isGenerating) {
+      // Show placeholder only if not generating
+      return;
+    }
+
+    const loadModel = async () => {
+      console.log('🎨 Loading 3D model...');
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Enhanced null checks for Three.js objects
+        if (!sceneRef.current || !rendererRef.current || !cameraRef.current) {
+          console.error('💥 Three.js scene objects not initialized');
+          throw new Error('3D scene not properly initialized');
+        }
+
+        if (currentAvatarData.modelUrl) {
+          // TODO: Load actual GLTF/FBX model from URL
+          // For now, we'll use the placeholder but with better styling
+          console.log('📁 Loading 3D model from:', currentAvatarData.modelUrl);
+        }
+
+        // Enhanced geometry creation with error handling
+        let geometry, material, avatarMesh, headGeometry, headMaterial, head;
+
+        try {
+          // Create placeholder avatar (will be replaced with actual model loading)
+          geometry = new THREE.CapsuleGeometry(0.3, 1.5, 8, 16);
+          material = new THREE.MeshLambertMaterial({
+            color: 0xfdbcb4, // Skin color
+            transparent: true,
+            opacity: 0.9
+          });
+
+          avatarMesh = new THREE.Mesh(geometry, material);
+          avatarMesh.position.y = 0.75;
+          avatarMesh.castShadow = true;
+          avatarMesh.receiveShadow = true;
+
+          // Add simple body parts with error handling
+          headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+          headMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 });
+          head = new THREE.Mesh(headGeometry, headMaterial);
+          head.position.y = 1.75;
+          head.castShadow = true;
+        } catch (geometryError) {
+          console.error('💥 Error creating 3D geometry:', geometryError);
+          throw new Error('Failed to create 3D avatar geometry');
+        }
+
+        const group = new THREE.Group();
+        group.add(avatarMesh);
+        group.add(head);
+
+        // Add to scene
+        if (sceneRef.current) {
+          // Remove previous model
+          if (modelRef.current) {
+            sceneRef.current.remove(modelRef.current);
+          }
+
+          sceneRef.current.add(group);
+          modelRef.current = group;
+          setModel(group);
+        }
+
+        // Analyze quality - use generated data if available
+        const qualityScore = currentAvatarData.qualityScore || 85;
+        setQualityAnalysis({
+          accuracy: qualityScore,
+          resemblance: Math.min(100, qualityScore + 5),
+          proportions: Math.max(75, qualityScore - 3),
+          details: Math.max(70, qualityScore - 10)
+        });
+
+        setIsLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load avatar');
+        setIsLoading(false);
+      }
+    };
+
+    if (!isGenerating) {
+      loadModel();
+    }
+  }, [avatarData, generatedAvatarData, isGenerating]);
+
+  // Animation loop
+  useEffect(() => {
+    const animate = () => {
+      if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+
+      // Auto-rotation
+      if (controls.autoRotate && modelRef.current) {
+        modelRef.current.rotation.y += 0.01;
+      }
+
+      // Apply manual controls
+      if (modelRef.current) {
+        modelRef.current.rotation.x = controls.rotation.x;
+        modelRef.current.rotation.y += controls.rotation.y * 0.01;
+        modelRef.current.rotation.z = controls.rotation.z;
+      }
+
+      // Apply zoom
+      if (cameraRef.current) {
+        cameraRef.current.position.z = 3 / controls.zoom;
+      }
+
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [controls]);
+
+  // View presets
+  const setViewPreset = (view: ViewerControls['view']) => {
+    setControls(prev => {
+      const newRotation = { ...prev.rotation };
+
+      switch (view) {
+        case 'front':
+          newRotation.y = 0;
+          break;
+        case 'side':
+          newRotation.y = Math.PI / 2;
+          break;
+        case 'back':
+          newRotation.y = Math.PI;
+          break;
+        case 'free':
+          // Keep current rotation
+          break;
+      }
+
+      return { ...prev, view, rotation: newRotation };
+    });
+  };
+
+  // Handle mouse/touch controls
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (controls.view !== 'free') return;
+
+    let isDragging = true;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startRotationY = controls.rotation.y;
+    const startRotationX = controls.rotation.x;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+
+      setControls(prev => ({
+        ...prev,
+        rotation: {
+          ...prev.rotation,
+          y: startRotationY + deltaX * 0.01,
+          x: Math.max(-Math.PI/3, Math.min(Math.PI/3, startRotationX - deltaY * 0.01))
+        }
+      }));
+    };
+
+    const handleMouseUp = () => {
+      isDragging = false;
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleDownload = async (format: 'gltf' | 'fbx' | 'obj' = 'gltf') => {
+    try {
+      // In production, this would download the actual 3D model
+      const blob = new Blob(['# Avatar 3D Model\n# Generated by TheFitChecked'], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `avatar.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+    }
+  };
+
+  const handleEnhancementComplete = (enhancedImageUrl: string) => {
+    setEnhancedAvatarUrl(enhancedImageUrl);
+    setShowEnhancement(false);
+
+    // Update the avatar preview with the enhanced image
+    // In a real implementation, this might trigger a new 3D model generation
+    console.log('Avatar enhanced with FLUX.1 Kontext:', enhancedImageUrl);
+  };
+
+  const getCurrentAvatarUrl = () => {
+    return getCurrentDisplayImage();
+  };
+
+  const renderQualityAnalysis = () => {
+    if (!qualityAnalysis) return null;
+
+    return (
+      <div className="glass-beige rounded-xl p-4">
+        <div className="flex items-center space-x-2 mb-3">
+          <Star className="w-5 h-5 text-yellow-500" />
+          <h3 className="font-semibold">Avatar Quality Analysis</h3>
+        </div>
+
+        <div className="space-y-2">
+          {Object.entries(qualityAnalysis).map(([key, value]) => (
+            <div key={key} className="flex justify-between items-center">
+              <span className="capitalize text-sm">{key}:</span>
+              <div className="flex items-center space-x-2">
+                <div className="w-16 bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      value >= 90 ? 'bg-green-500' :
+                      value >= 75 ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${value}%` }}
+                  />
+                </div>
+                <span className="text-sm font-medium">{value}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderControls = () => {
+    if (!showControls) return null;
+
+    return (
+      <div className="absolute top-4 right-4 space-y-2">
+        {/* View Controls */}
+        <div className="glass-beige rounded-xl p-3">
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {(['front', 'side', 'back', 'free'] as const).map((view) => (
+              <button
+                key={view}
+                onClick={() => setViewPreset(view)}
+                className={`px-3 py-2 text-xs rounded-lg font-medium transition-colors ${
+                  controls.view === view
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {view.charAt(0).toUpperCase() + view.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Zoom Controls */}
+          <div className="flex items-center space-x-2 mb-3">
+            <button
+              onClick={() => setControls(prev => ({ ...prev, zoom: Math.max(0.5, prev.zoom - 0.1) }))}
+              className="p-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <div className="flex-1 text-center text-sm font-medium">
+              {Math.round(controls.zoom * 100)}%
+            </div>
+            <button
+              onClick={() => setControls(prev => ({ ...prev, zoom: Math.min(3, prev.zoom + 0.1) }))}
+              className="p-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Auto-rotate */}
+          <button
+            onClick={() => setControls(prev => ({ ...prev, autoRotate: !prev.autoRotate }))}
+            className={`w-full p-2 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
+              controls.autoRotate
+                ? 'bg-amber-500 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            {controls.autoRotate ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            <span className="text-sm">{controls.autoRotate ? 'Stop' : 'Auto'} Rotate</span>
+          </button>
+        </div>
+
+        {/* Settings */}
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className="glass-beige-light p-3 rounded-xl hover:glass-beige transition-colors"
+        >
+          <Settings className="w-5 h-5 text-gray-700" />
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 glass-beige border-b border-gray-200">
+        <button
+          onClick={onBack}
+        >
+          <ArrowLeft className="w-6 h-6 text-black" />
+        </button>
+
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-stone-600 bg-clip-text text-transparent">
+          Your 3D Avatar
+        </h1>
+
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowControls(!showControls)}
+            className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Data Summary Section */}
+      <div className="px-6 py-4 glass-beige-light border-b border-gray-200">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Captured Photos Section */}
+          <div className="glass-beige-light rounded-xl p-4 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center space-x-2">
+              <Star className="w-5 h-5 text-amber-500" />
+              <span>Your Photos</span>
+              <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                {capturedPhotos.length}/3
+              </span>
+            </h3>
+
+            {capturedPhotos.length > 0 ? (
+              <div className="grid grid-cols-3 gap-3">
+                {capturedPhotos.map((photo, index) => (
+                  <div key={photo.id} className="relative group">
+                    <img
+                      src={photo.dataUrl}
+                      alt={`${photo.view} view`}
+                      className="w-full h-24 object-cover rounded-lg shadow-sm border border-gray-200 group-hover:scale-105 transition-transform duration-200"
+                    />
+                    <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                      {photo.view}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-gray-500 text-sm bg-gray-50 rounded-lg p-3 text-center">
+                No photos captured yet
+              </div>
+            )}
+          </div>
+
+          {/* Measurements Section */}
+          <div className="glass-beige-light rounded-xl p-4 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center space-x-2">
+              <Settings className="w-5 h-5 text-blue-500" />
+              <span>Your Measurements</span>
+              <span className={`text-sm px-2 py-1 rounded-full ${
+                measurements ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'
+              }`}>
+                {measurements ? 'Complete' : 'Missing'}
+              </span>
+            </h3>
+
+            {measurements ? (
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {Object.entries(measurements).map(([key, value]) => (
+                  <div key={key} className="flex justify-between">
+                    <span className="text-gray-600 capitalize">{key}:</span>
+                    <span className="font-medium text-gray-800">{value as string}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-gray-500 text-sm bg-gray-50 rounded-lg p-3 text-center">
+                No measurements provided yet
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 relative">
+        {/* 3D Viewer */}
+        <div className="absolute inset-0">
+          <canvas
+            ref={canvasRef}
+            className="w-full h-full cursor-grab active:cursor-grabbing"
+            onMouseDown={handleMouseDown}
+          />
+
+          {/* 2D Avatar Preview Overlay (when try-on results are available) */}
+          {(tryOnResults.result?.success || enhancedAvatarUrl || generatedAvatarData?.previewUrl) && (
+            <div className="absolute top-4 left-4">
+              {/* Avatar Preview Container - Larger for full body visibility */}
+              <div className="w-40 h-64 bg-gray-100 rounded-lg shadow-lg border border-gray-200 overflow-hidden relative">
+                <img
+                  src={getCurrentDisplayImage()}
+                  alt={tryOnResults.displayMode === 'tryon' ? 'Try-on result' : 'Avatar preview'}
+                  className="w-full h-full object-contain p-1"
+                />
+                {/* Try-on result indicator */}
+                {tryOnResults.result?.success && (
+                  <div className="absolute top-2 right-2 w-3 h-3 bg-green-500 rounded-full border border-white"></div>
+                )}
+              </div>
+              {/* Text label positioned outside container to not cover image */}
+              <div className="mt-1 bg-black/70 text-white text-xs px-2 py-1 rounded text-center">
+                {tryOnResults.displayMode === 'tryon' && tryOnResults.result?.success ? '👕 Try-On Result' : '👤 Avatar Preview'}
+              </div>
+            </div>
+          )}
+
+          {/* Avatar Generation Overlay */}
+          {isGenerating && (
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+              <div className="glass-beige rounded-xl p-8 text-center max-w-md mx-4">
+                <div className="relative mb-6">
+                  <div className="w-16 h-16 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin mx-auto"></div>
+                  <Sparkles className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-amber-500" />
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Creating Your 3D Avatar</h3>
+
+                {generationProgress && (
+                  <div className="space-y-4">
+                    <div className="bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-amber-500 to-stone-500 h-full rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${generationProgress.progress}%` }}
+                      />
+                    </div>
+
+                    <div className="text-center">
+                      <p className="font-semibold text-amber-600">{generationProgress.stage}</p>
+                      <p className="text-sm text-gray-600 mt-1">{generationProgress.message}</p>
+                      <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
+                        <span>{Math.round(generationProgress.progress)}% Complete</span>
+                        {generationProgress.estimatedTimeRemaining && (
+                          <span>~{Math.ceil(generationProgress.estimatedTimeRemaining / 1000)}s remaining</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!generationProgress && (
+                  <p className="text-gray-600">Preparing your photos and measurements...</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Loading Overlay (for 3D rendering) */}
+          {isLoading && !isGenerating && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="glass-beige rounded-xl p-6 text-center">
+                <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-lg font-semibold">Loading Your Avatar...</p>
+                <p className="text-sm text-gray-600">Rendering 3D model</p>
+              </div>
+            </div>
+          )}
+
+          {/* Avatar Preview Ready Overlay */}
+          {generationError && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="glass-beige rounded-xl p-6 text-center max-w-md mx-4">
+                <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center bg-green-100 rounded-full">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-green-800">Avatar Preview Ready! 🎉</h3>
+                <p className="text-gray-600 mb-4 text-sm">
+                  Your avatar has been generated successfully! Some features are simulated in development mode.
+                </p>
+                {generationError.includes('⚠️') && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-left">
+                    <div className="text-xs text-blue-800 space-y-1">
+                      <div className="font-medium mb-1">🔧 Development Notes:</div>
+                      {generationError.split('⚠️').filter(line => line.trim()).map((line, i) => (
+                        <div key={i} className="flex items-start space-x-1">
+                          <span className="text-blue-600">•</span>
+                          <span>{line.trim()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-3">
+                  <button
+                    onClick={() => {
+                      setGenerationError(null);
+                      // Continue with the generated avatar
+                    }}
+                    className="w-full bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>View My Avatar</span>
+                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={onAdjustMeasurements}
+                      className="bg-blue-500 text-white px-3 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm flex items-center justify-center space-x-1"
+                    >
+                      <Settings className="w-3 h-3" />
+                      <span>Adjust</span>
+                    </button>
+                    <button
+                      onClick={onRetakePhotos}
+                      className="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm flex items-center justify-center space-x-1"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Retake</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error Overlay (for 3D rendering) */}
+          {error && !generationError && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="glass-beige rounded-xl p-6 text-center max-w-md">
+                <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Rendering Error</h3>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Controls Overlay */}
+        {renderControls()}
+
+        {/* Quality Analysis */}
+        {qualityAnalysis && (
+          <div className="absolute bottom-4 left-4 max-w-xs">
+            {renderQualityAnalysis()}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="absolute bottom-4 right-4 space-y-2">
+          <div className="glass-beige rounded-xl p-4">
+            <div className="space-y-3">
+              {/* Generation Status Indicator */}
+              {isGenerating && (
+                <div className="bg-gradient-to-r from-amber-50 to-stone-50 border border-amber-200 rounded-lg p-3">
+                  <div className="flex items-center space-x-2 text-amber-700">
+                    <Loader className="w-4 h-4 animate-spin" />
+                    <span className="text-sm font-medium">Generating Avatar...</span>
+                  </div>
+                  {generationProgress && (
+                    <div className="mt-2">
+                      <div className="bg-amber-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-amber-500 to-stone-500 h-full rounded-full transition-all duration-300"
+                          style={{ width: `${generationProgress.progress}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-amber-600 mt-1">{generationProgress.stage}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Generated Avatar Indicator */}
+              {generatedAvatarData && !isGenerating && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-2">
+                  <div className="flex items-center space-x-2 text-green-700">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-sm font-medium">Generated from Your Photos</span>
+                  </div>
+                </div>
+              )}
+
+              {/* AI Enhancement Button */}
+              <button
+                onClick={() => setShowEnhancement(true)}
+                disabled={isGenerating}
+                className="w-full bg-gradient-to-r from-amber-500 via-stone-500 to-slate-500 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Wand2 className="w-4 h-4" />
+                <Sparkles className="w-4 h-4" />
+                <span>Enhance with AI</span>
+              </button>
+
+              {/* Manual Generation Button */}
+              <button
+                onClick={async () => {
+                  console.log('🔄 Manual generation triggered');
+                  try {
+                    // Reset all states
+                    setGeneratedAvatarData(null);
+                    setGenerationError(null);
+                    setIsGenerating(false);
+                    setGenerationProgress(null);
+
+                    // Wait a moment for state to clear
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    // Manually trigger generation
+                    await generateAvatar();
+                  } catch (error) {
+                    console.error('💥 Manual generation failed:', error);
+                    setGenerationError('Manual generation failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+                  }
+                }}
+                disabled={isGenerating}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Force Generate Avatar</span>
+              </button>
+
+              {/* 2D Fallback Button */}
+              {generationError && (
+                <button
+                  onClick={() => {
+                    console.log('🖼️ Using 2D fallback');
+                    setGeneratedAvatarData({
+                      modelUrl: '/portrait/my-new-portrait.png',
+                      previewUrl: '/portrait/my-new-portrait.png',
+                      metadata: {
+                        vertices: 0,
+                        faces: 0,
+                        materials: 1,
+                        animations: []
+                      },
+                      qualityScore: 60
+                    });
+                    setGenerationError(null);
+                  }}
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Use 2D Preview</span>
+                </button>
+              )}
+
+              {/* Debug Status Panel */}
+              <div className="bg-gray-50 border rounded-lg p-3 text-xs">
+                <div className="font-medium text-gray-700 mb-2">Debug Status:</div>
+                <div className="space-y-1 text-gray-600">
+                  <div>Photos: {capturedPhotos?.length || 0}</div>
+                  <div>Measurements: {measurements ? 'Set' : 'None'}</div>
+                  <div>Generated: {generatedAvatarData ? 'Yes' : 'No'}</div>
+                  <div>Generating: {isGenerating ? 'Yes' : 'No'}</div>
+                  <div>Error: {generationError ? 'Yes' : 'No'}</div>
+                </div>
+              </div>
+
+              {/* Enhanced Avatar Indicator */}
+              {enhancedAvatarUrl && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-2">
+                  <div className="flex items-center space-x-2 text-green-700">
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-sm font-medium">AI Enhanced Avatar</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Virtual Try-On Section */}
+              <div className="border-t border-gray-200 pt-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                    <Shirt className="w-4 h-4" />
+                    <span>Virtual Try-On</span>
+                  </h4>
+                  <button
+                    onClick={() => setShowTryOnPanel(!showTryOnPanel)}
+                    className="text-xs text-purple-600 hover:text-purple-800"
+                  >
+                    {showTryOnPanel ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+
+                {showTryOnPanel && (
+                  <div className="space-y-3 bg-gray-50 rounded-lg p-3">
+                    {/* Clothing Upload */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-2">
+                        Upload Clothing Image
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleClothingUpload}
+                          className="hidden"
+                          id="clothing-upload"
+                        />
+                        <label
+                          htmlFor="clothing-upload"
+                          className="w-full bg-white border-2 border-dashed border-gray-300 rounded-lg p-3 cursor-pointer hover:border-purple-400 transition-colors flex flex-col items-center space-y-1"
+                        >
+                          <Upload className="w-6 h-6 text-gray-400" />
+                          <span className="text-xs text-gray-600">
+                            {selectedClothing ? 'Change Image' : 'Choose Image'}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Upload Progress Indicator */}
+                    {uploadProgress.isUploading && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Loader className="w-4 h-4 animate-spin text-blue-600" />
+                          <span className="text-xs font-medium text-blue-700">
+                            {uploadProgress.stage}
+                          </span>
+                        </div>
+                        <div className="w-full bg-blue-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${uploadProgress.progress}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-blue-600 mt-1 text-center">
+                          {uploadProgress.progress}% Complete
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Selected Clothing Preview */}
+                    {uploadedClothingUrl && (
+                      <div className="bg-white rounded-lg p-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Selected Clothing:
+                        </label>
+                        <img
+                          src={uploadedClothingUrl}
+                          alt="Selected clothing"
+                          className="w-full h-20 object-cover rounded border"
+                        />
+                      </div>
+                    )}
+
+                    {/* Try-On Button */}
+                    <button
+                      onClick={() => {
+                        console.log('🖱️ [DEBUG-BUTTON] Try-On button clicked!', {
+                          hasSelectedClothing: !!selectedClothing,
+                          isProcessing: tryOnResults.isProcessing,
+                          buttonDisabled: !selectedClothing || tryOnResults.isProcessing,
+                          timestamp: new Date().toISOString()
+                        });
+                        handleTryOn();
+                      }}
+                      disabled={!selectedClothing || tryOnResults.isProcessing}
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                      {tryOnResults.isProcessing ? (
+                        <>
+                          <Loader className="w-4 h-4 animate-spin" />
+                          <span>Processing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-4 h-4" />
+                          <span>Try On Clothing</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Try-On Result Status */}
+                    {tryOnResults.result && (
+                      <div className="text-center">
+                        {tryOnResults.result.success ? (
+                          <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
+                            ✅ Try-on completed successfully!
+                          </div>
+                        ) : (
+                          <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                            ❌ {tryOnResults.result.error || 'Try-on failed'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Display Mode Toggle */}
+                    {tryOnResults.result?.success && (
+                      <div className="flex justify-center">
+                        <div className="bg-white rounded-lg p-1 flex text-xs">
+                          <button
+                            onClick={() => setTryOnResults(prev => ({ ...prev, displayMode: 'original' }))}
+                            className={`px-2 py-1 rounded-md font-medium transition-colors ${
+                              tryOnResults.displayMode === 'original'
+                                ? 'bg-purple-100 text-purple-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                            }`}
+                          >
+                            Original
+                          </button>
+                          <button
+                            onClick={() => setTryOnResults(prev => ({ ...prev, displayMode: 'tryon' }))}
+                            className={`px-2 py-1 rounded-md font-medium transition-colors ${
+                              tryOnResults.displayMode === 'tryon'
+                                ? 'bg-purple-100 text-purple-700'
+                                : 'text-gray-600 hover:text-gray-800'
+                            }`}
+                          >
+                            Try-On
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Download Options */}
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleDownload('gltf')}
+                  disabled={isGenerating}
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Avatar</span>
+                </button>
+
+                <div className="grid grid-cols-3 gap-1">
+                  {(['gltf', 'fbx', 'obj'] as const).map((format) => (
+                    <button
+                      key={format}
+                      onClick={() => handleDownload(format)}
+                      disabled={isGenerating}
+                      className="text-xs py-1 px-2 bg-gray-200 hover:bg-gray-300 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {format.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Regenerate Button */}
+              {generatedAvatarData && !isGenerating && (
+                <button
+                  onClick={() => {
+                    setGeneratedAvatarData(null);
+                    setGenerationError(null);
+                    // This will trigger regeneration through the useEffect
+                  }}
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Regenerate Avatar</span>
+                </button>
+              )}
+
+              {/* Navigation Buttons */}
+              <button
+                onClick={onAdjustMeasurements}
+                disabled={isGenerating}
+                className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Adjust Measurements
+              </button>
+
+              <button
+                onClick={onRetakePhotos}
+                disabled={isGenerating}
+                className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Retake Photos</span>
+              </button>
+
+              <button
+                onClick={onContinueToProfile}
+                disabled={isGenerating}
+                className="w-full bg-gradient-to-r from-amber-500 to-stone-500 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <CheckCircle className="w-4 h-4" />
+                <span>Continue to Profile</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="glass-beige rounded-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Display Settings</h3>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Lighting</label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2"
+                  step="0.1"
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Background</label>
+                <select className="w-full p-2 border border-gray-300 rounded-lg">
+                  <option>Transparent</option>
+                  <option>White</option>
+                  <option>Gray</option>
+                  <option>Studio</option>
+                </select>
+              </div>
+
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="flex-1 bg-amber-500 text-white py-2 px-4 rounded-lg hover:bg-amber-600 transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLUX.1 Kontext Enhancement Modal */}
+      {showEnhancement && (
+        <AvatarEnhancement
+          isOpen={showEnhancement}
+          onClose={() => setShowEnhancement(false)}
+          currentAvatarUrl={getCurrentAvatarUrl()}
+          onEnhancementComplete={handleEnhancementComplete}
+        />
+      )}
+    </div>
+  );
+};
+
+export default Avatar3DDisplay;

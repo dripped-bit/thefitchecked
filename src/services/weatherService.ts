@@ -1,0 +1,392 @@
+/**
+ * Weather Service - Integrates with Open-Meteo API for real-time weather data
+ * Used by the personalized fashion algorithm to suggest weather-appropriate outfits
+ */
+
+export interface WeatherData {
+  temperature: number;
+  feelsLike: number;
+  humidity: number;
+  windSpeed: number;
+  weatherCode: number;
+  weatherDescription: string;
+  isDay: boolean;
+  precipitation: number;
+  uvIndex: number;
+  location: {
+    latitude: number;
+    longitude: number;
+    city?: string;
+  };
+  timestamp: string;
+}
+
+export interface WeatherConditions {
+  temperature: 'hot' | 'warm' | 'mild' | 'cool' | 'cold' | 'freezing';
+  precipitation: 'none' | 'light' | 'moderate' | 'heavy';
+  wind: 'calm' | 'breezy' | 'windy' | 'very_windy';
+  humidity: 'low' | 'moderate' | 'high';
+  uv: 'low' | 'moderate' | 'high' | 'very_high';
+  overall: 'sunny' | 'cloudy' | 'rainy' | 'snowy' | 'stormy' | 'foggy';
+}
+
+export interface ClothingRecommendations {
+  layers: 'single' | 'light_layering' | 'heavy_layering';
+  materials: string[];
+  colors: 'light' | 'dark' | 'neutral' | 'any';
+  coverage: 'minimal' | 'moderate' | 'full';
+  accessories: string[];
+  avoid: string[];
+}
+
+export interface GeolocationCoords {
+  latitude: number;
+  longitude: number;
+}
+
+class WeatherService {
+  private readonly OPEN_METEO_BASE = 'https://api.open-meteo.com/v1';
+  private readonly GEOCODING_BASE = 'https://geocoding-api.open-meteo.com/v1';
+  private weatherCache = new Map<string, { data: WeatherData; expiry: number }>();
+  private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
+  /**
+   * Get user's current location using geolocation API
+   */
+  private async getUserLocation(): Promise<{ latitude: number; longitude: number }> {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        // Default to San Francisco coordinates
+        resolve({ latitude: 37.7749, longitude: -122.4194 });
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.warn('🌍 [WEATHER] Geolocation failed, using default location:', error);
+          // Default to San Francisco coordinates
+          resolve({ latitude: 37.7749, longitude: -122.4194 });
+        },
+        {
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
+        }
+      );
+    });
+  }
+
+  /**
+   * Get current weather data for user's location
+   */
+  async getCurrentWeather(latitude?: number, longitude?: number): Promise<WeatherData> {
+    try {
+      // Get user location if not provided
+      if (!latitude || !longitude) {
+        const coords = await this.getUserLocation();
+        latitude = coords.latitude;
+        longitude = coords.longitude;
+      }
+
+      // Check cache first
+      const cacheKey = `${latitude},${longitude}`;
+      const cached = this.weatherCache.get(cacheKey);
+      if (cached && cached.expiry > Date.now()) {
+        console.log('🌤️ [WEATHER] Using cached weather data');
+        return cached.data;
+      }
+
+      console.log('🌤️ [WEATHER] Fetching fresh weather data...');
+
+      const response = await fetch(
+        `${this.OPEN_METEO_BASE}/forecast?` +
+        `latitude=${latitude}&longitude=${longitude}&` +
+        `current=temperature_2m,apparent_temperature,relative_humidity_2m,` +
+        `wind_speed_10m,weather_code,is_day,precipitation,uv_index&` +
+        `timezone=auto&forecast_days=1`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Weather API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const current = data.current;
+
+      const weatherData: WeatherData = {
+        temperature: Math.round(current.temperature_2m),
+        feelsLike: Math.round(current.apparent_temperature),
+        humidity: current.relative_humidity_2m,
+        windSpeed: current.wind_speed_10m,
+        weatherCode: current.weather_code,
+        weatherDescription: this.getWeatherDescription(current.weather_code),
+        isDay: current.is_day === 1,
+        precipitation: current.precipitation || 0,
+        uvIndex: current.uv_index || 0,
+        location: {
+          latitude,
+          longitude
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      // Cache the result
+      this.weatherCache.set(cacheKey, {
+        data: weatherData,
+        expiry: Date.now() + this.CACHE_DURATION
+      });
+
+      console.log('✅ [WEATHER] Weather data retrieved successfully');
+      return weatherData;
+
+    } catch (error) {
+      console.error('❌ [WEATHER] Failed to get weather data:', error);
+      // Return fallback weather data
+      return this.getFallbackWeather(latitude, longitude);
+    }
+  }
+
+  /**
+   * Convert weather code to human-readable description
+   */
+  private getWeatherDescription(code: number): string {
+    const weatherCodes: { [key: number]: string } = {
+      0: 'Clear sky',
+      1: 'Mainly clear',
+      2: 'Partly cloudy',
+      3: 'Overcast',
+      45: 'Fog',
+      48: 'Depositing rime fog',
+      51: 'Light drizzle',
+      53: 'Moderate drizzle',
+      55: 'Dense drizzle',
+      56: 'Light freezing drizzle',
+      57: 'Dense freezing drizzle',
+      61: 'Slight rain',
+      63: 'Moderate rain',
+      65: 'Heavy rain',
+      66: 'Light freezing rain',
+      67: 'Heavy freezing rain',
+      71: 'Slight snow fall',
+      73: 'Moderate snow fall',
+      75: 'Heavy snow fall',
+      77: 'Snow grains',
+      80: 'Slight rain showers',
+      81: 'Moderate rain showers',
+      82: 'Violent rain showers',
+      85: 'Slight snow showers',
+      86: 'Heavy snow showers',
+      95: 'Thunderstorm',
+      96: 'Thunderstorm with slight hail',
+      99: 'Thunderstorm with heavy hail'
+    };
+
+    return weatherCodes[code] || 'Unknown weather';
+  }
+
+  /**
+   * Get fallback weather data when API fails
+   */
+  private getFallbackWeather(latitude?: number, longitude?: number): WeatherData {
+    return {
+      temperature: 70,
+      feelsLike: 72,
+      humidity: 50,
+      windSpeed: 5,
+      weatherCode: 1,
+      weatherDescription: 'Mainly clear',
+      isDay: true,
+      precipitation: 0,
+      uvIndex: 4,
+      location: {
+        latitude: latitude || 37.7749,
+        longitude: longitude || -122.4194,
+        city: 'Unknown'
+      },
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Analyze weather conditions for clothing recommendations
+   */
+  analyzeWeatherConditions(weather: WeatherData): WeatherConditions {
+    const temp = weather.temperature;
+    const feelsLike = weather.feelsLike;
+
+    // Temperature analysis (using feels-like temperature)
+    let temperature: WeatherConditions['temperature'];
+    if (feelsLike >= 80) temperature = 'hot';
+    else if (feelsLike >= 70) temperature = 'warm';
+    else if (feelsLike >= 60) temperature = 'mild';
+    else if (feelsLike >= 45) temperature = 'cool';
+    else if (feelsLike >= 32) temperature = 'cold';
+    else temperature = 'freezing';
+
+    // Precipitation analysis
+    let precipitation: WeatherConditions['precipitation'];
+    if (weather.precipitation === 0) precipitation = 'none';
+    else if (weather.precipitation < 0.1) precipitation = 'light';
+    else if (weather.precipitation < 0.5) precipitation = 'moderate';
+    else precipitation = 'heavy';
+
+    // Wind analysis
+    let wind: WeatherConditions['wind'];
+    if (weather.windSpeed < 5) wind = 'calm';
+    else if (weather.windSpeed < 15) wind = 'breezy';
+    else if (weather.windSpeed < 25) wind = 'windy';
+    else wind = 'very_windy';
+
+    // Humidity analysis
+    let humidity: WeatherConditions['humidity'];
+    if (weather.humidity < 40) humidity = 'low';
+    else if (weather.humidity < 70) humidity = 'moderate';
+    else humidity = 'high';
+
+    // UV analysis
+    let uv: WeatherConditions['uv'];
+    if (weather.uvIndex < 3) uv = 'low';
+    else if (weather.uvIndex < 6) uv = 'moderate';
+    else if (weather.uvIndex < 8) uv = 'high';
+    else uv = 'very_high';
+
+    // Overall weather analysis
+    let overall: WeatherConditions['overall'];
+    if (weather.weatherCode === 0 || weather.weatherCode === 1) overall = 'sunny';
+    else if (weather.weatherCode <= 3) overall = 'cloudy';
+    else if (weather.weatherCode >= 61 && weather.weatherCode <= 82) overall = 'rainy';
+    else if (weather.weatherCode >= 71 && weather.weatherCode <= 86) overall = 'snowy';
+    else if (weather.weatherCode >= 95) overall = 'stormy';
+    else if (weather.weatherCode === 45 || weather.weatherCode === 48) overall = 'foggy';
+    else overall = 'cloudy';
+
+    return {
+      temperature,
+      precipitation,
+      wind,
+      humidity,
+      uv,
+      overall
+    };
+  }
+
+  /**
+   * Get clothing recommendations based on weather conditions
+   */
+  getClothingRecommendations(conditions: WeatherConditions): ClothingRecommendations {
+    const recommendations: ClothingRecommendations = {
+      layers: 'single',
+      materials: [],
+      colors: 'any',
+      coverage: 'moderate',
+      accessories: [],
+      avoid: []
+    };
+
+    // Temperature-based recommendations
+    switch (conditions.temperature) {
+      case 'hot':
+        recommendations.layers = 'single';
+        recommendations.materials = ['cotton', 'linen', 'bamboo', 'light_fabrics'];
+        recommendations.colors = 'light';
+        recommendations.coverage = 'minimal';
+        recommendations.accessories = ['sunglasses', 'hat', 'light_scarf'];
+        recommendations.avoid = ['heavy_fabrics', 'dark_colors', 'layers'];
+        break;
+
+      case 'warm':
+        recommendations.layers = 'single';
+        recommendations.materials = ['cotton', 'light_fabrics'];
+        recommendations.colors = 'light';
+        recommendations.coverage = 'moderate';
+        recommendations.accessories = ['sunglasses'];
+        recommendations.avoid = ['heavy_fabrics', 'wool'];
+        break;
+
+      case 'mild':
+        recommendations.layers = 'light_layering';
+        recommendations.materials = ['cotton', 'light_wool', 'denim'];
+        recommendations.colors = 'neutral';
+        recommendations.coverage = 'moderate';
+        recommendations.accessories = ['light_jacket'];
+        break;
+
+      case 'cool':
+        recommendations.layers = 'light_layering';
+        recommendations.materials = ['wool', 'cotton', 'fleece'];
+        recommendations.colors = 'dark';
+        recommendations.coverage = 'full';
+        recommendations.accessories = ['jacket', 'scarf'];
+        recommendations.avoid = ['shorts', 'sandals'];
+        break;
+
+      case 'cold':
+        recommendations.layers = 'heavy_layering';
+        recommendations.materials = ['wool', 'fleece', 'insulated_fabrics'];
+        recommendations.colors = 'dark';
+        recommendations.coverage = 'full';
+        recommendations.accessories = ['coat', 'scarf', 'gloves', 'hat'];
+        recommendations.avoid = ['light_fabrics', 'open_shoes'];
+        break;
+
+      case 'freezing':
+        recommendations.layers = 'heavy_layering';
+        recommendations.materials = ['wool', 'down', 'heavy_insulation'];
+        recommendations.colors = 'dark';
+        recommendations.coverage = 'full';
+        recommendations.accessories = ['heavy_coat', 'warm_scarf', 'gloves', 'warm_hat', 'boots'];
+        recommendations.avoid = ['light_fabrics', 'open_shoes', 'thin_materials'];
+        break;
+    }
+
+    // Weather-specific adjustments
+    if (conditions.precipitation !== 'none') {
+      recommendations.accessories.push('umbrella', 'waterproof_jacket');
+      recommendations.materials.push('waterproof', 'quick_dry');
+      recommendations.avoid.push('suede', 'light_colors');
+    }
+
+    if (conditions.wind !== 'calm') {
+      recommendations.accessories.push('windbreaker');
+      recommendations.avoid.push('loose_clothing', 'light_scarves');
+    }
+
+    if (conditions.uv === 'high' || conditions.uv === 'very_high') {
+      recommendations.accessories.push('sunglasses', 'hat', 'long_sleeves');
+      recommendations.coverage = 'full';
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Clear weather cache
+   */
+  clearCache(): void {
+    this.weatherCache.clear();
+    console.log('🧹 [WEATHER] Cache cleared');
+  }
+
+  /**
+   * Get cached weather data if available
+   */
+  getCachedWeather(latitude: number, longitude: number): WeatherData | null {
+    const cacheKey = `${latitude},${longitude}`;
+    const cached = this.weatherCache.get(cacheKey);
+
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data;
+    }
+
+    return null;
+  }
+}
+
+// Singleton instance
+export const weatherService = new WeatherService();
+export default weatherService;

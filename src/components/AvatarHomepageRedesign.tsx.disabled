@@ -1,0 +1,1120 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Sun, Cloud, CloudRain, Snowflake, ArrowLeft, RefreshCw,
+  Edit, Settings, Thermometer, Wind, Eye, Calendar,
+  Shirt, Palette, User, AlertCircle, Loader, MapPin, Clock,
+  TrendingUp, Sparkles, Camera, Share2
+} from 'lucide-react';
+import { weatherService, WeatherData } from '../services/weatherService';
+import { outfitGenerationService, OutfitSuggestion, StyleProfile } from '../services/outfitGenerationService';
+import { avatarAnimationService, AnimationType } from '../services/avatarAnimationService';
+
+interface AvatarHomepageProps {
+  onBack: () => void;
+  onNavigateToOutfitChange?: () => void;
+  onNavigateToMeasurements?: () => void;
+  onNavigateToStyleProfile?: () => void;
+  avatarData?: any;
+  styleProfile?: StyleProfile;
+}
+
+const AvatarHomepageRedesign: React.FC<AvatarHomepageProps> = ({
+  onBack,
+  onNavigateToOutfitChange,
+  onNavigateToMeasurements,
+  onNavigateToStyleProfile,
+  avatarData,
+  styleProfile
+}) => {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [isGeneratingOutfits, setIsGeneratingOutfits] = useState(false);
+  const [outfitSuggestions, setOutfitSuggestions] = useState<OutfitSuggestion[]>([]);
+  const [selectedOutfit, setSelectedOutfit] = useState<number | null>(null);
+  const [avatarAnimation, setAvatarAnimation] = useState<AnimationType>('breathing');
+  const [applyingOutfit, setApplyingOutfit] = useState(false);
+  const avatarRef = useRef<HTMLDivElement>(null);
+
+  // Update time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Fetch real weather data
+  useEffect(() => {
+    const fetchWeather = async () => {
+      setWeatherLoading(true);
+      setWeatherError(null);
+
+      try {
+        const weatherData = await weatherService.getCurrentWeather();
+        setWeather(weatherData);
+      } catch (error) {
+        setWeatherError('Failed to load weather data');
+        console.error('Weather fetch error:', error);
+        // Set fallback weather data
+        setWeather({
+          temperature: 70,
+          condition: 'rainy',
+          humidity: 60,
+          windSpeed: 5,
+          location: 'Los Angeles, CA'
+        });
+      } finally {
+        setWeatherLoading(false);
+      }
+    };
+
+    fetchWeather();
+    const weatherTimer = setInterval(fetchWeather, 10 * 60 * 1000);
+    return () => clearInterval(weatherTimer);
+  }, []);
+
+  // Generate outfit suggestions based on weather and style
+  useEffect(() => {
+    if (weather) {
+      generateOutfitSuggestions().catch(error => {
+        console.warn('Outfit generation failed, using fallback data:', error);
+      });
+    }
+  }, [weather, styleProfile]);
+
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const getWeatherIcon = () => {
+    if (!weather) return <Sun className="w-6 h-6 text-yellow-500" />;
+
+    switch (weather.condition) {
+      case 'sunny': return <Sun className="w-6 h-6 text-yellow-500" />;
+      case 'cloudy': return <Cloud className="w-6 h-6 text-slate-500" />;
+      case 'rainy': return <CloudRain className="w-6 h-6 text-blue-500" />;
+      case 'snowy': return <Snowflake className="w-6 h-6 text-blue-300" />;
+      default: return <Sun className="w-6 h-6 text-yellow-500" />;
+    }
+  };
+
+  const getWeatherGradient = () => {
+    if (!weather) return 'from-blue-400 to-blue-600';
+
+    switch (weather.condition) {
+      case 'sunny': return 'from-yellow-400 to-orange-500';
+      case 'cloudy': return 'from-slate-400 to-slate-600';
+      case 'rainy': return 'from-blue-400 to-blue-600';
+      case 'snowy': return 'from-blue-300 to-blue-500';
+      default: return 'from-blue-400 to-blue-600';
+    }
+  };
+
+  const generateOutfitSuggestions = async () => {
+    if (!weather) return;
+
+    setIsGeneratingOutfits(true);
+
+    try {
+      const suggestions = await outfitGenerationService.generateOutfitSuggestions({
+        weather,
+        styleProfile: styleProfile || {},
+        avatarImageUrl: avatarData?.imageUrl || avatarData,
+        numberOfSuggestions: 3,
+      });
+
+      setOutfitSuggestions(suggestions);
+    } catch (error) {
+      console.error('Failed to generate outfit suggestions:', error);
+      // Fallback to simple suggestions
+      setOutfitSuggestions([
+        {
+          id: 1,
+          name: 'Weather-Perfect Look',
+          description: `Ideal for ${weather.temperature}°F ${weather.condition} weather`,
+          weatherAppropriate: true,
+          styleMatch: 95,
+          pieces: weather.temperature > 70 ? ['Light Top', 'Comfortable Bottoms', 'Casual Shoes'] : ['Warm Layer', 'Jeans', 'Boots'],
+          colors: ['Navy', 'White', 'Camel'],
+          style: 'Smart Casual',
+          occasion: 'Daily wear',
+          temperature_range: { min: weather.temperature - 10, max: weather.temperature + 10 }
+        },
+        {
+          id: 2,
+          name: 'Trendy Choice',
+          description: 'On-trend pieces for a stylish day',
+          weatherAppropriate: true,
+          styleMatch: 87,
+          pieces: ['Designer Top', 'Tailored Pants', 'Statement Accessories'],
+          colors: ['Black', 'Gold', 'Cream'],
+          style: 'Contemporary',
+          occasion: 'Social',
+          temperature_range: { min: weather.temperature - 5, max: weather.temperature + 5 }
+        }
+      ]);
+    } finally {
+      setIsGeneratingOutfits(false);
+    }
+  };
+
+  const applyOutfitToAvatar = async (outfitId: number) => {
+    const outfit = outfitSuggestions.find(o => o.id === outfitId);
+    if (!outfit) return;
+
+    setApplyingOutfit(true);
+    setSelectedOutfit(outfitId);
+
+    // Apply outfit transition animation
+    if (avatarRef.current) {
+      const transition = avatarAnimationService.createOutfitTransition();
+
+      // Pre-transition glow
+      avatarRef.current.className = `${avatarRef.current.className} ${transition.preTransition}`;
+
+      setTimeout(() => {
+        // Main transition
+        if (avatarRef.current) {
+          avatarRef.current.className = avatarRef.current.className.replace(transition.preTransition, transition.transition);
+        }
+      }, 500);
+
+      setTimeout(() => {
+        // Post-transition bounce
+        if (avatarRef.current) {
+          avatarRef.current.className = avatarRef.current.className.replace(transition.transition, transition.postTransition);
+        }
+      }, 1500);
+
+      setTimeout(() => {
+        // Return to breathing animation
+        if (avatarRef.current) {
+          avatarAnimationService.clearAnimations(avatarRef.current);
+          avatarAnimationService.applyAnimation(avatarRef.current, 'breathing', 'subtle');
+        }
+        setApplyingOutfit(false);
+      }, 2500);
+    }
+
+    // Try to apply outfit using fal.ai if avatar image is available
+    if (avatarData?.imageUrl || avatarData) {
+      try {
+        const newAvatarImage = await outfitGenerationService.applyOutfitToAvatar(
+          avatarData?.imageUrl || avatarData,
+          outfit
+        );
+        console.log('New avatar with outfit:', newAvatarImage);
+      } catch (error) {
+        console.error('Failed to apply outfit to avatar:', error);
+      }
+    }
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      {/* Animation Keyframes */}
+      <style>{`
+        ${avatarAnimationService.getAnimationKeyframes()}
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+
+        @keyframes glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+          50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
+        }
+
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+
+        @keyframes pixelFloat {
+          0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
+          50% { transform: translateY(-15px) translateX(10px); opacity: 0.8; }
+        }
+
+        @keyframes pixelDrift {
+          0% { transform: translateX(-20px); opacity: 0; }
+          50% { opacity: 0.6; }
+          100% { transform: translateX(200px); opacity: 0; }
+        }
+
+        @keyframes pixelPulse {
+          0%, 100% { opacity: 0.2; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        @keyframes pixelDiagonal {
+          0% { transform: translateX(-15px) translateY(15px); opacity: 0; }
+          50% { opacity: 0.5; }
+          100% { transform: translateX(150px) translateY(-15px); opacity: 0; }
+        }
+
+        .float-animation {
+          animation: float 6s ease-in-out infinite;
+        }
+
+        .glow-animation {
+          animation: glow 3s ease-in-out infinite;
+        }
+
+
+        .shimmer-text {
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+          background-size: 200% 100%;
+          animation: shimmer 2s infinite;
+        }
+
+        .pixel {
+          position: absolute;
+          width: 6px;
+          height: 6px;
+          border-radius: 2px;
+          pointer-events: none;
+          z-index: 50;
+          box-shadow: 0 0 4px rgba(0,0,0,0.2);
+        }
+
+        .pixel-1 {
+          background-color: #0ea5e9;
+          animation: pixelFloat 4s ease-in-out infinite;
+          animation-delay: 0s;
+        }
+
+        .pixel-2 {
+          background-color: #06b6d4;
+          animation: pixelDrift 6s linear infinite;
+          animation-delay: 1s;
+        }
+
+        .pixel-3 {
+          background-color: #10b981;
+          animation: pixelPulse 3s ease-in-out infinite;
+          animation-delay: 0.5s;
+        }
+
+        .pixel-4 {
+          background-color: #8b5cf6;
+          animation: pixelDiagonal 5s linear infinite;
+          animation-delay: 2s;
+        }
+
+        .pixel-5 {
+          background-color: #0ea5e9;
+          animation: pixelFloat 4.5s ease-in-out infinite;
+          animation-delay: 1.5s;
+        }
+
+        .pixel-6 {
+          background-color: #f59e0b;
+          animation: pixelDrift 7s linear infinite;
+          animation-delay: 0.2s;
+        }
+
+        .pixel-7 {
+          background-color: #8b5cf6;
+          animation: pixelPulse 3.5s ease-in-out infinite;
+          animation-delay: 2.5s;
+        }
+
+        .pixel-8 {
+          background-color: #10b981;
+          animation: pixelDiagonal 5.5s linear infinite;
+          animation-delay: 0.8s;
+        }
+
+        @keyframes organicFlow {
+          0%, 100% {
+            clip-path: path("M0,0 C120,30 280,10 400,40 C520,70 680,20 800,50 L800,0 Z");
+          }
+          50% {
+            clip-path: path("M0,0 C140,20 260,50 420,25 C540,5 660,45 800,35 L800,0 Z");
+          }
+        }
+
+        @keyframes organicFlow2 {
+          0%, 100% {
+            clip-path: path("M0,20 C100,5 200,45 350,15 C500,35 650,10 800,30 L800,0 L0,0 Z");
+          }
+          50% {
+            clip-path: path("M0,35 C150,15 250,50 380,20 C520,40 680,5 800,25 L800,0 L0,0 Z");
+          }
+        }
+
+        @keyframes organicPulse {
+          0%, 100% {
+            transform: scale(1) translateY(0px);
+            opacity: 0.8;
+          }
+          50% {
+            transform: scale(1.02) translateY(-2px);
+            opacity: 0.9;
+          }
+        }
+
+        .organic-header {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .organic-shape-1 {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 120%;
+          background: linear-gradient(135deg,
+            rgba(59, 130, 246, 0.25) 0%,
+            rgba(139, 92, 246, 0.2) 30%,
+            rgba(16, 185, 129, 0.22) 60%,
+            rgba(6, 182, 212, 0.18) 100%);
+          clip-path: path("M0,0 C120,30 280,10 400,40 C520,70 680,20 800,50 L800,0 Z");
+          animation: organicFlow 8s ease-in-out infinite;
+          z-index: 1;
+        }
+
+        .organic-shape-2 {
+          position: absolute;
+          top: -10px;
+          left: 0;
+          width: 100%;
+          height: 110%;
+          background: linear-gradient(45deg,
+            rgba(168, 85, 247, 0.15) 0%,
+            rgba(59, 130, 246, 0.18) 40%,
+            rgba(16, 185, 129, 0.16) 80%,
+            rgba(251, 191, 36, 0.12) 100%);
+          clip-path: path("M0,20 C100,5 200,45 350,15 C500,35 650,10 800,30 L800,0 L0,0 Z");
+          animation: organicFlow2 12s ease-in-out infinite reverse;
+          z-index: 2;
+        }
+
+        .organic-shape-3 {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(255, 255, 255, 0.5);
+          backdrop-filter: blur(25px);
+          animation: organicPulse 6s ease-in-out infinite;
+          z-index: 3;
+        }
+
+        .organic-content {
+          position: relative;
+          z-index: 10;
+        }
+
+
+
+        @keyframes origamiUnfold {
+          /* Phase 1: Shirt (0-20%) */
+          0%, 20% {
+            clip-path: polygon(25% 20%, 75% 20%, 80% 25%, 85% 30%, 85% 35%, 82% 40%, 78% 45%, 75% 50%, 70% 55%, 65% 60%, 60% 65%, 55% 70%, 50% 75%, 45% 70%, 40% 65%, 35% 60%, 30% 55%, 25% 50%, 22% 45%, 18% 40%, 15% 35%, 15% 30%, 20% 25%);
+            transform: rotateY(0deg) scale(1);
+            filter: hue-rotate(0deg);
+          }
+
+          /* Transition to Pants */
+          21% {
+            clip-path: polygon(20% 25%, 80% 25%, 82% 30%, 85% 35%, 87% 40%, 85% 45%, 82% 50%, 78% 55%, 75% 60%, 70% 65%, 65% 70%, 60% 75%, 55% 80%, 45% 80%, 40% 75%, 35% 70%, 30% 65%, 25% 60%, 22% 55%, 18% 50%, 15% 45%, 13% 40%, 15% 35%, 18% 30%);
+            transform: rotateY(5deg) scale(1.02);
+            filter: hue-rotate(20deg);
+          }
+
+          /* Phase 2: Pants (22-40%) */
+          22%, 40% {
+            clip-path: polygon(30% 25%, 70% 25%, 72% 30%, 75% 35%, 77% 40%, 75% 45%, 73% 50%, 70% 55%, 68% 60%, 65% 75%, 63% 85%, 62% 95%, 60% 100%, 40% 100%, 38% 95%, 37% 85%, 35% 75%, 32% 60%, 30% 55%, 27% 50%, 25% 45%, 23% 40%, 25% 35%, 28% 30%);
+            transform: rotateY(0deg) scale(1);
+            filter: hue-rotate(60deg);
+          }
+
+          /* Transition to Shoes */
+          41% {
+            clip-path: polygon(25% 30%, 75% 30%, 78% 35%, 82% 40%, 85% 45%, 87% 50%, 85% 55%, 80% 60%, 75% 65%, 70% 70%, 65% 75%, 55% 80%, 45% 85%, 35% 88%, 25% 85%, 20% 80%, 18% 75%, 15% 70%, 13% 65%, 12% 60%, 15% 55%, 18% 50%, 22% 45%, 25% 40%);
+            transform: rotateY(-5deg) scale(1.02);
+            filter: hue-rotate(120deg);
+          }
+
+          /* Phase 3: Shoes (42-60%) */
+          42%, 60% {
+            clip-path: polygon(15% 60%, 85% 60%, 90% 65%, 92% 70%, 90% 75%, 87% 80%, 82% 85%, 75% 90%, 65% 92%, 55% 93%, 45% 93%, 35% 92%, 25% 90%, 18% 85%, 13% 80%, 10% 75%, 8% 70%, 10% 65%);
+            transform: rotateY(0deg) scale(1);
+            filter: hue-rotate(180deg);
+          }
+
+          /* Transition to Tie */
+          61% {
+            clip-path: polygon(40% 15%, 60% 15%, 65% 20%, 68% 25%, 70% 30%, 68% 35%, 65% 40%, 62% 45%, 60% 50%, 58% 55%, 55% 60%, 52% 65%, 50% 70%, 48% 65%, 45% 60%, 42% 55%, 40% 50%, 38% 45%, 35% 40%, 32% 35%, 30% 30%, 32% 25%, 35% 20%);
+            transform: rotateY(3deg) scale(1.01);
+            filter: hue-rotate(240deg);
+          }
+
+          /* Phase 4: Tie (62-80%) */
+          62%, 80% {
+            clip-path: polygon(42% 10%, 58% 10%, 62% 15%, 65% 20%, 67% 25%, 65% 30%, 62% 35%, 60% 40%, 58% 45%, 56% 50%, 54% 55%, 52% 60%, 50% 85%, 48% 60%, 46% 55%, 44% 50%, 42% 45%, 40% 40%, 38% 35%, 35% 30%, 33% 25%, 35% 20%, 38% 15%);
+            transform: rotateY(0deg) scale(1);
+            filter: hue-rotate(300deg);
+          }
+
+          /* Transition to Hat */
+          81% {
+            clip-path: polygon(20% 35%, 80% 35%, 85% 40%, 88% 45%, 90% 50%, 88% 55%, 85% 60%, 80% 65%, 70% 70%, 65% 72%, 60% 74%, 55% 75%, 45% 75%, 40% 74%, 35% 72%, 30% 70%, 20% 65%, 15% 60%, 12% 55%, 10% 50%, 12% 45%, 15% 40%);
+            transform: rotateY(-3deg) scale(1.01);
+            filter: hue-rotate(360deg);
+          }
+
+          /* Phase 5: Hat (82-100%) */
+          82%, 100% {
+            clip-path: polygon(25% 40%, 75% 40%, 80% 45%, 85% 50%, 87% 55%, 85% 60%, 80% 65%, 75% 70%, 70% 72%, 65% 74%, 60% 75%, 55% 76%, 45% 76%, 40% 75%, 35% 74%, 30% 72%, 25% 70%, 20% 65%, 15% 60%, 13% 55%, 15% 50%, 20% 45%);
+            transform: rotateY(0deg) scale(1);
+            filter: hue-rotate(0deg);
+          }
+        }
+
+        @keyframes origamiFoldLines {
+          0%, 20% {
+            background-position: 0% 30%, 100% 70%, 30% 0%, 70% 100%;
+            opacity: 0.3;
+          }
+          21%, 40% {
+            background-position: 20% 50%, 80% 50%, 50% 20%, 50% 80%;
+            opacity: 0.4;
+          }
+          41%, 60% {
+            background-position: 10% 80%, 90% 20%, 80% 10%, 20% 90%;
+            opacity: 0.5;
+          }
+          61%, 80% {
+            background-position: 50% 10%, 50% 90%, 10% 50%, 90% 50%;
+            opacity: 0.3;
+          }
+          81%, 100% {
+            background-position: 25% 40%, 75% 60%, 40% 25%, 60% 75%;
+            opacity: 0.2;
+          }
+        }
+
+        @keyframes origamiPaperTexture {
+          0%, 100% {
+            background-color: rgba(255, 255, 255, 0.1);
+            box-shadow:
+              0 8px 25px rgba(59, 130, 246, 0.3),
+              0 3px 12px rgba(139, 69, 19, 0.1),
+              inset 0 1px 3px rgba(255, 255, 255, 0.4),
+              inset 0 -1px 3px rgba(0, 0, 0, 0.1);
+          }
+          25% {
+            background-color: rgba(255, 248, 220, 0.15);
+            box-shadow:
+              0 10px 30px rgba(34, 197, 94, 0.3),
+              0 4px 15px rgba(139, 69, 19, 0.15),
+              inset 0 1px 4px rgba(255, 255, 255, 0.5),
+              inset 0 -1px 4px rgba(0, 0, 0, 0.15);
+          }
+          50% {
+            background-color: rgba(245, 245, 220, 0.2);
+            box-shadow:
+              0 12px 35px rgba(168, 85, 247, 0.3),
+              0 5px 18px rgba(139, 69, 19, 0.2),
+              inset 0 2px 5px rgba(255, 255, 255, 0.6),
+              inset 0 -2px 5px rgba(0, 0, 0, 0.2);
+          }
+          75% {
+            background-color: rgba(255, 239, 213, 0.15);
+            box-shadow:
+              0 10px 30px rgba(239, 68, 68, 0.3),
+              0 4px 15px rgba(139, 69, 19, 0.15),
+              inset 0 1px 4px rgba(255, 255, 255, 0.5),
+              inset 0 -1px 4px rgba(0, 0, 0, 0.15);
+          }
+        }
+
+        @keyframes organicButtonGlow {
+          0%, 100% {
+            box-shadow:
+              0 8px 25px rgba(59, 130, 246, 0.3),
+              0 3px 12px rgba(59, 130, 246, 0.2),
+              inset 0 1px 3px rgba(255, 255, 255, 0.3);
+          }
+          50% {
+            box-shadow:
+              0 12px 35px rgba(59, 130, 246, 0.4),
+              0 6px 20px rgba(59, 130, 246, 0.3),
+              inset 0 2px 5px rgba(255, 255, 255, 0.4);
+          }
+        }
+
+        .organic-button {
+          position: relative;
+          background: linear-gradient(135deg,
+            #3b82f6 0%,
+            #2563eb 30%,
+            #1d4ed8 70%,
+            #1e40af 100%);
+          clip-path: polygon(25% 20%, 75% 20%, 80% 25%, 85% 30%, 85% 35%, 82% 40%, 78% 45%, 75% 50%, 70% 55%, 65% 60%, 60% 65%, 55% 70%, 50% 75%, 45% 70%, 40% 65%, 35% 60%, 30% 55%, 25% 50%, 22% 45%, 18% 40%, 15% 35%, 15% 30%, 20% 25%);
+          animation: origamiUnfold 20s ease-in-out infinite, origamiPaperTexture 20s ease-in-out infinite;
+          border: none;
+          transition: all 0.3s ease;
+          overflow: visible;
+          will-change: clip-path, filter, transform;
+        }
+
+        .organic-button::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background:
+            linear-gradient(45deg, transparent 48%, rgba(139, 69, 19, 0.3) 49%, rgba(139, 69, 19, 0.3) 51%, transparent 52%),
+            linear-gradient(-45deg, transparent 48%, rgba(139, 69, 19, 0.2) 49%, rgba(139, 69, 19, 0.2) 51%, transparent 52%),
+            linear-gradient(90deg, transparent 48%, rgba(210, 180, 140, 0.4) 49%, rgba(210, 180, 140, 0.4) 51%, transparent 52%),
+            linear-gradient(0deg, transparent 48%, rgba(210, 180, 140, 0.3) 49%, rgba(210, 180, 140, 0.3) 51%, transparent 52%);
+          background-size: 40px 40px, 40px 40px, 60px 60px, 60px 60px;
+          animation: origamiFoldLines 20s ease-in-out infinite;
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        .organic-button::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(1px);
+          pointer-events: none;
+          z-index: 2;
+        }
+
+        .organic-button:hover {
+          background: linear-gradient(135deg,
+            #2563eb 0%,
+            #1d4ed8 30%,
+            #1e40af 70%,
+            #1e3a8a 100%);
+          transform: scale(1.05);
+          animation-duration: 12s, 12s;
+          animation-play-state: paused;
+        }
+
+        .organic-button:hover::before {
+          animation-play-state: paused;
+          opacity: 0.8;
+        }
+
+        .organic-button:active {
+          transform: scale(0.98);
+          animation-play-state: running;
+          animation-duration: 2s, 2s;
+        }
+
+        .organic-button:active::before {
+          animation-duration: 2s;
+        }
+
+        .origami-icon-container {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .origami-icon-container::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background:
+            linear-gradient(45deg, transparent 48%, rgba(255, 255, 255, 0.1) 49%, rgba(255, 255, 255, 0.1) 51%, transparent 52%),
+            linear-gradient(-45deg, transparent 48%, rgba(255, 255, 255, 0.05) 49%, rgba(255, 255, 255, 0.05) 51%, transparent 52%);
+          background-size: 20px 20px, 20px 20px;
+          animation: origamiIconFold 8s ease-in-out infinite;
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        .origami-icon-container .lucide {
+          position: relative;
+          z-index: 2;
+          animation: origamiIconTransform 8s ease-in-out infinite;
+        }
+
+        @keyframes origamiIconFold {
+          0%, 20% {
+            background-position: 0% 0%, 100% 100%;
+            opacity: 0.3;
+          }
+          21%, 40% {
+            background-position: 20% 20%, 80% 80%;
+            opacity: 0.4;
+          }
+          41%, 60% {
+            background-position: 40% 40%, 60% 60%;
+            opacity: 0.5;
+          }
+          61%, 80% {
+            background-position: 60% 60%, 40% 40%;
+            opacity: 0.3;
+          }
+          81%, 100% {
+            background-position: 80% 80%, 20% 20%;
+            opacity: 0.2;
+          }
+        }
+
+        @keyframes origamiIconTransform {
+          0%, 20% {
+            transform: rotate(0deg) scale(1);
+          }
+          21%, 40% {
+            transform: rotate(5deg) scale(1.05);
+          }
+          41%, 60% {
+            transform: rotate(-3deg) scale(0.95);
+          }
+          61%, 80% {
+            transform: rotate(2deg) scale(1.02);
+          }
+          81%, 100% {
+            transform: rotate(0deg) scale(1);
+          }
+        }
+
+        .avatar-styling {
+          position: relative;
+          border: 2px solid transparent;
+          background:
+            linear-gradient(135deg,
+              rgba(255, 255, 255, 0.8) 0%,
+              rgba(255, 255, 255, 0.4) 30%,
+              rgba(0, 0, 0, 0.05) 70%,
+              rgba(0, 0, 0, 0.1) 100%),
+            linear-gradient(to bottom right, #f0f8ff, #e6f3ff);
+          background-clip: padding-box;
+          box-shadow:
+            0 0 20px rgba(59, 130, 246, 0.3),
+            0 8px 16px rgba(0, 0, 0, 0.15),
+            0 16px 32px rgba(0, 0, 0, 0.1),
+            inset 0 1px 3px rgba(255, 255, 255, 0.4),
+            inset 0 -1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .avatar-styling::before {
+          content: '';
+          position: absolute;
+          top: -3px;
+          left: -3px;
+          right: -3px;
+          bottom: -3px;
+          background: linear-gradient(135deg,
+            rgba(255, 255, 255, 0.6) 0%,
+            rgba(255, 255, 255, 0.2) 50%,
+            rgba(0, 0, 0, 0.1) 100%);
+          border-radius: inherit;
+          z-index: -1;
+        }
+      `}</style>
+
+      {/* Header */}
+      <header className="relative z-10 organic-header min-h-[120px]">
+        {/* Organic Background Shapes */}
+        <div className="organic-shape-1"></div>
+        <div className="organic-shape-2"></div>
+        <div className="organic-shape-3"></div>
+
+        <div className="max-w-7xl mx-auto px-6 py-8 organic-content">
+          <div className="flex items-center justify-start">
+            {/* Back Button */}
+            <button
+              onClick={onBack}
+              className="group flex items-center space-x-3 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"
+            >
+              <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
+              <span className="font-medium">Back</span>
+            </button>
+
+            {/* Title & Greeting */}
+            <div className="text-left ml-6">
+              <div className="relative inline-block py-4 px-2" style={{minWidth: '350px', minHeight: '60px'}}>
+                <h1 className="text-3xl font-bold text-black mb-1 relative z-20">
+                  Your Digital Self
+                </h1>
+                {/* Moving Pixels */}
+                <div className="pixel pixel-1" style={{top: '-5px', left: '10px'}}></div>
+                <div className="pixel pixel-2" style={{top: '15px', left: '40px'}}></div>
+                <div className="pixel pixel-3" style={{top: '5px', left: '110px'}}></div>
+                <div className="pixel pixel-4" style={{top: '35px', left: '160px'}}></div>
+                <div className="pixel pixel-5" style={{top: '8px', left: '210px'}}></div>
+                <div className="pixel pixel-6" style={{top: '25px', left: '70px'}}></div>
+                <div className="pixel pixel-7" style={{top: '-2px', left: '180px'}}></div>
+                <div className="pixel pixel-8" style={{top: '30px', left: '120px'}}></div>
+              </div>
+              <p className="text-slate-600 flex items-center space-x-2">
+                <span>{getGreeting()}!</span>
+                <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
+                <span>{formatDate(currentTime)}</span>
+              </p>
+            </div>
+
+            {/* Time & Weather */}
+            <div className="flex items-center space-x-4 ml-auto">
+              {/* Current Time */}
+              <div className="text-right">
+                <div className="text-2xl font-mono font-bold text-slate-800">
+                  {formatTime(currentTime)}
+                </div>
+                <div className="text-sm text-slate-500">
+                  Local time
+                </div>
+              </div>
+
+              {/* Weather Widget */}
+              <div className={`relative bg-gradient-to-br ${getWeatherGradient()} text-white p-4 rounded-3xl shadow-lg min-w-[180px]`}>
+                {weatherLoading ? (
+                  <div className="flex items-center space-x-3">
+                    <Loader className="w-6 h-6 animate-spin" />
+                    <div>
+                      <div className="text-lg font-semibold">Loading...</div>
+                      <div className="text-sm opacity-80">Weather data</div>
+                    </div>
+                  </div>
+                ) : weatherError ? (
+                  <div className="flex items-center space-x-3">
+                    <AlertCircle className="w-6 h-6" />
+                    <div>
+                      <div className="text-lg font-semibold">Offline</div>
+                      <div className="text-sm opacity-80">Using cached data</div>
+                    </div>
+                  </div>
+                ) : weather ? (
+                  <>
+                    <div className="flex items-center space-x-3 mb-2">
+                      {getWeatherIcon()}
+                      <div>
+                        <div className="text-2xl font-bold">
+                          {weather.temperature}°F
+                        </div>
+                        <div className="text-sm opacity-90 capitalize">
+                          {weather.condition}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1 text-sm opacity-80">
+                      <MapPin className="w-3 h-3" />
+                      <span className="truncate">{weather.location}</span>
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+        <div className="grid lg:grid-cols-3 gap-8">
+
+          {/* Avatar Section */}
+          <div className="lg:col-span-2">
+            <div className="overflow-hidden">
+              {/* Avatar and Action Buttons - Horizontal Layout */}
+              <div className="px-8 py-4">
+                <div className="flex flex-row items-center gap-8">
+
+                  {/* Avatar Display */}
+                  <div className="flex-shrink-0">
+                    <div className="relative inline-block">
+                      <div
+                        ref={avatarRef}
+                        className={`relative float-animation ${avatarAnimationService.getAnimationClass(avatarAnimation, 'subtle')}`}
+                      >
+                        <div className="w-72 aspect-[3/4] rounded-3xl flex items-center justify-center overflow-hidden relative avatar-styling">
+                          {avatarData ? (
+                            <img
+                              src={avatarData.imageUrl || avatarData}
+                              alt="Your Digital Avatar"
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center space-y-6">
+                              <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center">
+                                <User className="w-12 h-12 text-white" />
+                              </div>
+                              <div className="text-center">
+                                <h3 className="text-xl font-semibold text-slate-700 mb-2">Your Avatar</h3>
+                                <p className="text-slate-500">Personalized digital representation</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Loading Overlay */}
+                          {applyingOutfit && (
+                            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                              <div className="bg-white/90 text-slate-800 px-6 py-3 rounded-2xl flex items-center space-x-3 shadow-lg">
+                                <Loader className="w-5 h-5 animate-spin text-blue-600" />
+                                <span className="font-medium">Styling your look...</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Success Indicator */}
+                          {selectedOutfit && !applyingOutfit && (
+                            <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1 shadow-lg">
+                              <Sparkles className="w-4 h-4" />
+                              <span>Styled!</span>
+                            </div>
+                          )}
+
+                          {/* Weather Indicator */}
+                          {weather && (
+                            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm text-slate-700 px-3 py-2 rounded-full text-sm font-medium flex items-center space-x-2 shadow-sm">
+                              {getWeatherIcon()}
+                              <span>
+                                {weather.temperature > 75 ? 'Summer Ready' :
+                                 weather.temperature > 60 ? 'Perfect Weather' :
+                                 'Cozy & Warm'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons - Vertical Stack */}
+                  <div className="flex flex-col space-y-1 flex-1 max-w-xs">
+                  <div
+                    onClick={() => {
+                      if (onNavigateToOutfitChange) {
+                        onNavigateToOutfitChange();
+                      } else {
+                        console.log('Navigate to outfit change');
+                      }
+                    }}
+                    className="text-center cursor-pointer hover:text-gray-600 transition-colors"
+                  >
+                    <img
+                      src="/gifs/change-outfit.gif"
+                      alt="Change Outfit Animation"
+                      className="w-64 h-64 mx-auto object-contain"
+                      style={{ marginBottom: '1px', backgroundColor: 'transparent' }}
+                    />
+                    <div className="font-semibold text-gray-800">Change Outfit</div>
+                    <div className="text-sm text-gray-600">Try new styles</div>
+                  </div>
+
+                  <div
+                    onClick={() => {
+                      if (onNavigateToMeasurements) {
+                        onNavigateToMeasurements();
+                      } else {
+                        console.log('Navigate to measurements');
+                      }
+                    }}
+                    className="text-center cursor-pointer hover:text-gray-600 transition-colors"
+                  >
+                    <div className="font-semibold text-gray-800">Update Measurements</div>
+                    <div className="text-sm text-gray-600">Perfect fit</div>
+                  </div>
+
+                  <div
+                    onClick={() => {
+                      if (onNavigateToStyleProfile) {
+                        onNavigateToStyleProfile();
+                      } else {
+                        console.log('Navigate to style profile');
+                      }
+                    }}
+                    className="text-center cursor-pointer hover:text-gray-600 transition-colors"
+                  >
+                    <div className="font-semibold text-gray-800">Edit Style Profile</div>
+                    <div className="text-sm text-gray-600">Your preferences</div>
+                  </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recommendations Panel */}
+          <div className="space-y-6">
+
+            {/* Today's Recommendations */}
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+              <div className="p-6 border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center space-x-2">
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                      <span>Today's Picks</span>
+                    </h3>
+                    <p className="text-sm text-slate-600 mt-1">Curated for you</p>
+                  </div>
+                  <button
+                    onClick={generateOutfitSuggestions}
+                    disabled={isGeneratingOutfits}
+                    className="flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isGeneratingOutfits ? 'animate-spin' : ''}`} />
+                    <span className="text-sm font-medium">Refresh</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {isGeneratingOutfits ? (
+                  <div className="space-y-4">
+                    {[1, 2].map(i => (
+                      <div key={i} className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-2xl p-4 animate-pulse">
+                        <div className="h-4 bg-slate-200 rounded w-3/4 mb-3"></div>
+                        <div className="h-3 bg-slate-200 rounded w-1/2 mb-2"></div>
+                        <div className="flex space-x-2">
+                          <div className="h-6 bg-slate-200 rounded-full w-16"></div>
+                          <div className="h-6 bg-slate-200 rounded-full w-16"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {outfitSuggestions.map(outfit => (
+                      <div
+                        key={outfit.id}
+                        className={`group relative p-5 rounded-2xl cursor-pointer transition-all duration-300 hover:scale-105 ${
+                          selectedOutfit === outfit.id
+                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-lg'
+                            : 'bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 hover:border-blue-200 hover:shadow-md'
+                        }`}
+                        onClick={() => applyOutfitToAvatar(outfit.id)}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h4 className="font-bold text-slate-800 text-lg">
+                                {outfit.name}
+                              </h4>
+                              {outfit.weatherAppropriate && (
+                                <span className="inline-flex items-center space-x-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                                  <span>Weather Perfect</span>
+                                  <span>🌤️</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-slate-600 mb-4 leading-relaxed">
+                              {outfit.description}
+                            </p>
+
+                            {/* Style Tags */}
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {outfit.pieces.slice(0, 3).map((piece, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
+                                >
+                                  {piece}
+                                </span>
+                              ))}
+                            </div>
+
+                            {/* Colors */}
+                            {outfit.colors && outfit.colors.length > 0 && (
+                              <div className="flex items-center space-x-2 mb-3">
+                                <span className="text-sm text-slate-500 font-medium">Colors:</span>
+                                <div className="flex space-x-1">
+                                  {outfit.colors.map((color, index) => (
+                                    <span
+                                      key={index}
+                                      className="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-xs font-medium"
+                                    >
+                                      {color}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Match Score */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <Eye className="w-4 h-4 text-slate-400" />
+                                <span className="text-sm text-slate-500">
+                                  {outfit.styleMatch}% style match
+                                </span>
+                              </div>
+
+                              <div className="flex items-center space-x-1 text-blue-600 group-hover:translate-x-1 transition-transform">
+                                <span className="text-sm font-medium">Try it</span>
+                                <Sparkles className="w-4 h-4" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Style Insights */}
+                {weather && !isGeneratingOutfits && (
+                  <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
+                    <h4 className="font-bold text-slate-800 mb-3 flex items-center space-x-2">
+                      <Eye className="w-5 h-5 text-blue-600" />
+                      <span>Style Insights</span>
+                    </h4>
+                    <div className="space-y-2 text-sm text-slate-600">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                        <span>Perfect weather for {weather.condition} at {weather.temperature}°F</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <span>Your style: {styleProfile?.fashionPersonality?.archetypes?.[0] || 'Classic'} with {styleProfile?.fashionPersonality?.colorPalette?.[0] || 'neutral tones'}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span>Comfort level: Optimal for outdoor activities</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default AvatarHomepageRedesign;

@@ -1,0 +1,402 @@
+/**
+ * ByteDance Seedream 4.0 Service for Photo-to-CGI Transformation
+ * Provides personalized 3D CGI avatar generation while preserving human likeness
+ */
+
+import { environmentConfig } from './environmentConfig';
+
+export interface ByteDanceSeedreamRequest {
+  image_urls: string[];
+  prompt: string;
+  image_size?: {
+    width: number;
+    height: number;
+  };
+  num_images?: number;
+  max_images?: number;
+  sync_mode?: boolean;
+  enable_safety_checker?: boolean;
+  seed?: number;
+  face_preservation_strength?: number;
+  guidance_scale?: number;
+  num_inference_steps?: number;
+  face_detection_threshold?: number;
+  controlnet_conditioning_scale?: number;
+}
+
+export interface ByteDanceSeedreamResponse {
+  images: Array<{
+    url: string;
+    width: number;
+    height: number;
+    content_type: string;
+  }>;
+  timings: {
+    inference: number;
+  };
+  seed: number;
+  has_nsfw_concepts: boolean[];
+}
+
+export interface CGIMeasurements {
+  height: number | string;
+  bust: number;
+  waist: number;
+  hips: number;
+  shoulders: number;
+  chest: number;
+  inseam: number;
+  neck: number;
+  bicep: number;
+  forearm: number;
+  thigh: number;
+  calf: number;
+}
+
+class ByteDanceSeedreamService {
+  private config = environmentConfig.getByteDanceSeedreamConfig();
+
+  constructor() {
+    // FAL initialization will be done dynamically when needed
+  }
+
+  /**
+   * Generate 3D CGI human from photo with body measurements
+   */
+  async generateCGIFromPhoto(
+    imageUrls: string | string[],
+    measurements?: Partial<CGIMeasurements>,
+    style: 'realistic' | 'artistic' | 'professional' | 'cinematic' = 'realistic',
+    perspective: 'portrait' | 'bust' | 'full' = 'full'
+  ): Promise<ByteDanceSeedreamResponse> {
+    console.log('🎨 Generating 3D CGI avatar from photo with ByteDance Seedream...');
+
+    // Convert single URL to array if needed
+    const imageUrlArray = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+
+    const prompt = this.generateCGIPrompt(measurements, style, perspective);
+
+    const request: ByteDanceSeedreamRequest = {
+      image_urls: imageUrlArray,
+      prompt,
+      image_size: {
+        width: this.config.imageWidth,
+        height: this.config.imageHeight
+      },
+      sync_mode: true,
+      face_preservation_strength: 0.95,
+      guidance_scale: 8.5,
+      num_inference_steps: 75,
+      face_detection_threshold: 0.85,
+      controlnet_conditioning_scale: 0.9,
+      enable_safety_checker: false
+    };
+
+    console.log('📊 ByteDance Request Details:', {
+      modelId: this.config.modelId,
+      imageSize: `${this.config.imageWidth}x${this.config.imageHeight}`,
+      aspectRatio: '18:32',
+      imageCount: imageUrlArray.length,
+      style,
+      perspective,
+      hasMeasurements: !!measurements,
+      promptLength: prompt.length,
+      prompt: prompt.substring(0, 100) + '...', // Show first 100 chars of prompt
+      facePreservationStrength: 0.95,
+      guidanceScale: 8.5,
+      numInferenceSteps: 75,
+      faceDetectionThreshold: 0.85,
+      controlnetConditioningScale: 0.9,
+      safetyChecker: false
+    });
+
+    console.log('🎯 Clean API Request Structure:', {
+      image_urls: imageUrlArray.map(url => url.substring(0, 50) + '...'),
+      prompt: prompt,
+      image_size: {
+        width: this.config.imageWidth,
+        height: this.config.imageHeight
+      },
+      sync_mode: true,
+      face_preservation_strength: 0.95,
+      guidance_scale: 8.5,
+      num_inference_steps: 75,
+      face_detection_threshold: 0.85,
+      controlnet_conditioning_scale: 0.9,
+      enable_safety_checker: false
+    });
+
+    if (!environmentConfig.shouldUseProductionApi()) {
+      throw new Error('ByteDance Seedream API is not available in development mode. Please ensure production API is enabled.');
+    }
+
+    try {
+      // Dynamically import fal only when needed
+      const { fal } = await import('@fal-ai/client');
+      fal.config({
+        credentials: environmentConfig.getConfig().falKey!
+      });
+
+      const result = await fal.subscribe(this.config.modelId, {
+        input: request,
+        logs: true,
+        onQueueUpdate: (update) => {
+          if (update.status === 'IN_PROGRESS') {
+            console.log('⏳ ByteDance generation in progress...');
+          }
+        }
+      });
+
+      console.log('✅ ByteDance Seedream generation completed');
+      console.log('🔍 Full ByteDance API Response:', result);
+
+      // FAL API returns data in result.data property
+      if (result.data) {
+        return result.data as ByteDanceSeedreamResponse;
+      } else {
+        return result as ByteDanceSeedreamResponse;
+      }
+    } catch (error) {
+      console.error('❌ ByteDance Seedream generation failed:', error);
+      console.error('❌ Full error details:', {
+        error,
+        modelId: this.config.modelId,
+        requestDetails: {
+          imageUrls: request.image_urls?.map(url => url.substring(0, 50) + '...'),
+          imageSize: request.image_size,
+          prompt: request.prompt?.substring(0, 200) + '...'
+        }
+      });
+      throw new Error(`ByteDance generation failed: ${error}`);
+    }
+  }
+
+  /**
+   * Generate enhanced prompt for ByteDance Seedream API with dynamic measurements
+   */
+  private generateCGIPrompt(
+    measurements?: Partial<CGIMeasurements>,
+    style: string = 'realistic',
+    perspective: string = 'full'
+  ): string {
+    // Enhanced prompt template with measurement placeholders for 4K quality
+    const promptTemplate = "Generate a high-quality 4K resolution COMPLETE FULL-BODY image of the person from the uploaded reference images, showing them standing upright in a natural T-pose or relaxed standing pose with arms slightly away from body for optimal pose detection, wearing a clean white fitted t-shirt and blue fitted shorts that resemble comfortable sleepwear, positioned against a pure white background with professional studio lighting that eliminates shadows and provides even illumination across the ENTIRE BODY FROM HEAD TO FEET. The image must show the COMPLETE FIGURE with NO CROPPING - include the person's head, torso, arms, hands, hips, legs, and feet with appropriate footwear, ensuring perfect anatomical accuracy and clear body landmarks for virtual try-on pose detection. The person must maintain their original facial features, complete face visibility, exact body proportions, skin tone, and physical characteristics while presenting them in a clear, front-facing view suitable for virtual try-on applications with detectable body pose. Body specifications: height {HEIGHT}, weight {WEIGHT}, chest/bust {CHEST}, waist {WAIST}, hips {HIPS}, shoulder width {SHOULDER_WIDTH}, with proportions matching these exact measurements. Requirements: FULL BODY VISIBLE, no cropping at any edge, complete figure from head to toe, standing pose with clear body landmarks, arms positioned for pose detection, hyper-realistic skin textures, professional studio lighting setup with soft diffused illumination, 4K ultra-high definition detail, photographic realism, anatomically correct proportions, and zero facial distortion or mutation from the original reference images.";
+
+    // Interpolate measurements into the template
+    const finalPrompt = this.interpolateMeasurements(promptTemplate, measurements);
+
+    console.log('🎯 Enhanced Prompt with Measurements:', finalPrompt);
+    return finalPrompt;
+  }
+
+  /**
+   * Generate virtual try-on specific measurement prompt
+   */
+  private generateVirtualTryOnMeasurementPrompt(measurements: Partial<CGIMeasurements>): string {
+    let measurementPrompt = 'Apply precise body measurements for accurate virtual clothing fit: ';
+
+    if (measurements.height) {
+      measurementPrompt += `Height: ${measurements.height}cm for proper clothing length scaling, `;
+    }
+
+    if (measurements.bust) {
+      measurementPrompt += `Chest/bust circumference: ${measurements.bust}cm for accurate top sizing, `;
+    }
+
+    if (measurements.waist) {
+      measurementPrompt += `Waist circumference: ${measurements.waist}cm for proper garment fit, `;
+    }
+
+    if (measurements.hips) {
+      measurementPrompt += `Hip circumference: ${measurements.hips}cm for accurate bottom sizing, `;
+    }
+
+    if (measurements.shoulders) {
+      measurementPrompt += `Shoulder width: ${measurements.shoulders}cm for proper shoulder fit, `;
+    }
+
+    if (measurements.inseam) {
+      measurementPrompt += `Inseam length: ${measurements.inseam}cm for accurate pant length, `;
+    }
+
+    if (measurements.neck) {
+      measurementPrompt += `Neck circumference: ${measurements.neck}cm for collar fit, `;
+    }
+
+    if (measurements.bicep) {
+      measurementPrompt += `Arm circumference: ${measurements.bicep}cm for sleeve fit, `;
+    }
+
+    // Add body type analysis for clothing recommendations
+    if (measurements.bust && measurements.waist && measurements.hips) {
+      const bodyType = this.categorizeBodyType(measurements.bust, measurements.waist, measurements.hips);
+      measurementPrompt += `Body type: ${bodyType} shape for optimal clothing fit recommendations, `;
+    }
+
+    measurementPrompt += 'Ensure all measurements are precisely reflected in avatar body structure for accurate virtual clothing simulation. ';
+    return measurementPrompt;
+  }
+
+  /**
+   * Interpolate measurement values into prompt template
+   */
+  private interpolateMeasurements(template: string, measurements?: Partial<CGIMeasurements>): string {
+    if (!measurements) {
+      // Return template with placeholder replacements for "not specified"
+      return template
+        .replace('{HEIGHT}', 'not specified')
+        .replace('{WEIGHT}', 'not specified')
+        .replace('{CHEST}', 'not specified')
+        .replace('{WAIST}', 'not specified')
+        .replace('{HIPS}', 'not specified')
+        .replace('{SHOULDER_WIDTH}', 'not specified');
+    }
+
+    return template
+      .replace('{HEIGHT}', this.formatHeight(measurements.height))
+      .replace('{WEIGHT}', this.formatWeight(measurements.chest)) // Using chest as weight proxy if needed
+      .replace('{CHEST}', this.formatMeasurement(measurements.bust || measurements.chest, 'inches'))
+      .replace('{WAIST}', this.formatMeasurement(measurements.waist, 'inches'))
+      .replace('{HIPS}', this.formatMeasurement(measurements.hips, 'inches'))
+      .replace('{SHOULDER_WIDTH}', this.formatMeasurement(measurements.shoulders, 'inches'));
+  }
+
+  /**
+   * Format height measurement for prompt
+   */
+  private formatHeight(height?: number | string): string {
+    if (!height) return 'not specified';
+
+    // Handle string format like "4'11"
+    if (typeof height === 'string') {
+      if (height.includes("'")) {
+        const parts = height.split("'");
+        const feet = parseInt(parts[0]);
+        const inches = parts[1] ? parseInt(parts[1].replace('"', '')) : 0;
+        return `${feet} feet ${inches} inches`;
+      }
+      // Try to parse as number
+      const parsed = parseFloat(height);
+      if (!isNaN(parsed)) {
+        height = parsed;
+      } else {
+        return height; // Return as-is if can't parse
+      }
+    }
+
+    // Handle numeric height
+    if (typeof height === 'number') {
+      // Convert cm to feet and inches if needed
+      if (height > 50) {
+        // Assume cm
+        const totalInches = height / 2.54;
+        const feet = Math.floor(totalInches / 12);
+        const inches = Math.round(totalInches % 12);
+        return `${feet} feet ${inches} inches`;
+      } else {
+        // Assume already in feet (decimal)
+        const feet = Math.floor(height);
+        const inches = Math.round((height - feet) * 12);
+        return `${feet} feet ${inches} inches`;
+      }
+    }
+
+    return 'not specified';
+  }
+
+  /**
+   * Format weight measurement for prompt
+   */
+  private formatWeight(measurement?: number): string {
+    // Since weight isn't in our measurements, return not specified
+    return 'not specified';
+  }
+
+  /**
+   * Format measurement with units
+   */
+  private formatMeasurement(measurement?: number, unit: string = 'inches'): string {
+    if (!measurement) return 'not specified';
+    return `${measurement} ${unit}`;
+  }
+
+  /**
+   * Categorize height for prompt generation
+   */
+  private categorizeHeight(height: number): string {
+    if (height < 160) return 'petite';
+    if (height < 170) return 'average';
+    if (height < 180) return 'tall';
+    return 'very tall';
+  }
+
+  /**
+   * Categorize body type based on measurements
+   */
+  private categorizeBodyType(bust: number, waist: number, hips: number): string {
+    const bustWaistRatio = bust / waist;
+    const hipWaistRatio = hips / waist;
+
+    if (bustWaistRatio > 1.3 && hipWaistRatio < 1.2) return 'inverted triangle';
+    if (hipWaistRatio > 1.3 && bustWaistRatio < 1.2) return 'pear shape';
+    if (bustWaistRatio > 1.2 && hipWaistRatio > 1.2) return 'hourglass';
+    if (Math.abs(bustWaistRatio - hipWaistRatio) < 0.1) return 'rectangular';
+    return 'balanced';
+  }
+
+  /**
+   * Categorize shoulder structure
+   */
+  private categorizeShoulders(shoulders: number, bust: number): string {
+    const shoulderBustRatio = shoulders / bust;
+
+    if (shoulderBustRatio > 1.1) return 'broad';
+    if (shoulderBustRatio < 0.95) return 'narrow';
+    return 'proportional';
+  }
+
+
+  /**
+   * Generate measurement-integrated CGI avatar for virtual try-on
+   */
+  async generateVirtualTryOnAvatar(
+    imageUrls: string | string[],
+    measurements: CGIMeasurements
+  ): Promise<ByteDanceSeedreamResponse> {
+    console.log('👕 Generating virtual try-on avatar with measurements...');
+
+    return this.generateCGIFromPhoto(
+      imageUrls,
+      measurements,
+      'professional',
+      'full'
+    );
+  }
+
+  /**
+   * Check if ByteDance Seedream service is available
+   */
+  isAvailable(): boolean {
+    return environmentConfig.shouldUseByteDanceSeedream() &&
+           environmentConfig.shouldUseProductionApi();
+  }
+
+  /**
+   * Get service configuration
+   */
+  getConfiguration() {
+    return {
+      modelId: this.config.modelId,
+      imageSize: {
+        width: this.config.imageWidth,
+        height: this.config.imageHeight
+      },
+      cgiQualityPreset: this.config.cgiQualityPreset,
+      enableCGIEnhancement: this.config.enableCGIEnhancement,
+      isAvailable: this.isAvailable()
+    };
+  }
+}
+
+export const byteDanceSeedreamService = new ByteDanceSeedreamService();
+export default byteDanceSeedreamService;
