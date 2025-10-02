@@ -1300,20 +1300,18 @@ class DirectFashnService {
    * Get recommended segmentation setting based on garment type
    */
   private getRecommendedSegmentation(fittingType: string, complexity: string): boolean {
-    // Adaptive segmentation for optimal results:
-    // - Fitted/simple garments: segmentation_free = true (cleaner results)
-    // - Loose/layered/complex: segmentation_free = true (better for complex shapes)
-    // Default to segmentation-free as it generally produces better, more realistic results
+    // Per FASHN documentation:
+    // - segmentation_free: false (default) - Uses segmentation to properly remove original clothes
+    // - segmentation_free: true - For bulkier garments, better body/skin preservation but may not remove original clothes
 
-    if (fittingType === 'fitted' || complexity === 'simple') {
-      return true; // Segmentation-free works great for fitted and simple garments
+    // Only use segmentation_free=true for very bulky/oversized items where preservation is critical
+    if (fittingType === 'oversized' || complexity === 'very-complex') {
+      return true; // Use segmentation-free for bulky items like oversized jackets, coats
     }
 
-    if (fittingType === 'loose' || fittingType === 'layered' || complexity === 'complex') {
-      return true; // Segmentation-free handles complex shapes better
-    }
-
-    return true; // Default to segmentation-free for best overall quality
+    // For most cases (fitted, loose, layered, simple, moderate, complex), use segmentation
+    // This ensures original clothes are properly removed during try-on
+    return false; // Default to false - use segmentation to remove original garments
   }
 
   /**

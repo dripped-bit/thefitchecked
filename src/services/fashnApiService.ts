@@ -149,7 +149,7 @@ export class FashnApiService {
         model_image,
         garment_image,
         category: options.category || 'auto',
-        segmentation_free: options.segmentation_free !== false, // Default true
+        segmentation_free: options.segmentation_free || false, // Default false - use segmentation to remove original clothes
         moderation_level: options.moderation_level || 'none',
         garment_photo_type: options.garment_photo_type || 'auto',
         mode: options.mode || 'quality',

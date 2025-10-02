@@ -45,7 +45,7 @@ const ClothingUploadComponent: React.FC<ClothingUploadProps> = ({
     mode: 'balanced',
     moderation_level: 'none',
     garment_photo_type: 'auto',
-    segmentation_free: true,
+    segmentation_free: false, // Default false - uses segmentation to properly remove original clothes
     num_samples: 1,
     output_format: 'png',
     return_base64: false,
