@@ -71,6 +71,17 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
     console.log('👗 Closet loaded:', stats);
   }, []);
 
+  // Reload closet data whenever component becomes visible
+  useEffect(() => {
+    const reloadCloset = () => {
+      const freshCloset = ClosetService.getUserCloset();
+      setCloset(freshCloset);
+      console.log('🔄 [CLOSET] Reloaded closet data from storage');
+    };
+
+    reloadCloset();
+  }, []);
+
   const getCategoryItems = (category: ClothingCategory): ClothingItem[] => {
     let items = closet[category] || [];
 

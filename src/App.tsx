@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw } from 'lucide-react';
 import useDevMode from './hooks/useDevMode';
 import WelcomeScreen from './components/WelcomeScreen';
+import LoadingScreen from './components/LoadingScreen';
 import PhotoCaptureFlow from './components/PhotoCaptureFlow';
 import AvatarGeneration from './components/AvatarGeneration';
 import AvatarMeasurementsPage from './components/AvatarMeasurementsPage';
@@ -31,7 +32,7 @@ import './utils/testFashnCredits';
 // import './utils/directApiTest';
 // import './utils/keyChecker';
 
-type Screen = 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest';
+type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest';
 
 interface AppData {
   capturedPhotos: CapturedPhoto[];
@@ -165,7 +166,7 @@ function App() {
     setUserData(loadedUserData);
   }, []);
 
-  // Load saved avatar on app initialization
+  // Load saved avatar and determine initial screen on app initialization
   useEffect(() => {
     const checkAndLoadSavedAvatar = () => {
       console.log('🔍 [APP] Checking for saved avatars on initialization...');
@@ -178,8 +179,14 @@ function App() {
 
       // Try to load the default avatar
       const defaultAvatar = avatarManagementService.getDefaultAvatar();
-      if (defaultAvatar) {
-        console.log('🎭 [APP] Found default avatar, loading:', defaultAvatar.name);
+      const hasOnboarding = UserService.hasShownOnboarding();
+
+      if (defaultAvatar && hasOnboarding) {
+        console.log('🎭 [APP] Found default avatar and completed onboarding - showing loading screen');
+        console.log('🎭 [APP] Loading avatar:', defaultAvatar.name);
+
+        // Set to loading screen
+        setCurrentScreen('loading');
 
         // Convert saved avatar to app data format
         const restoredAvatarData = {
@@ -210,14 +217,48 @@ function App() {
         // Load avatar into management service
         avatarManagementService.loadAvatarFromLibrary(defaultAvatar.id);
 
+        // Transition to avatar homepage after loading delay
+        setTimeout(() => {
+          console.log('✅ [APP] Loading complete, navigating to Avatar Homepage');
+          setCurrentScreen('avatarHomepage');
+        }, 1800); // 1.8 second loading screen
+
         console.log('✅ [APP] Default avatar restored successfully');
+      } else if (defaultAvatar && !hasOnboarding) {
+        // Has avatar but hasn't completed onboarding yet
+        console.log('🎭 [APP] Found default avatar but onboarding not complete - loading avatar only');
+
+        const restoredAvatarData = {
+          imageUrl: defaultAvatar.imageUrl,
+          animatedVideoUrl: defaultAvatar.animatedVideoUrl,
+          metadata: {
+            demoMode: defaultAvatar.metadata.source === 'demo',
+            quality: defaultAvatar.metadata.quality,
+            source: defaultAvatar.metadata.source
+          }
+        };
+
+        setAppData(prev => ({
+          ...prev,
+          generatedAvatar: restoredAvatarData,
+          avatarData: {
+            imageUrl: defaultAvatar.imageUrl,
+            qualityScore: defaultAvatar.metadata.quality === 'high' ? 90 :
+                         defaultAvatar.metadata.quality === 'medium' ? 70 : 50,
+            metadata: {
+              style: 'realistic',
+              quality: defaultAvatar.metadata.quality
+            }
+          }
+        }));
+
+        avatarManagementService.loadAvatarFromLibrary(defaultAvatar.id);
       } else {
-        // Check for any saved avatars (even if not default)
+        // No avatar or no onboarding - start at welcome screen
+        console.log('📭 [APP] No saved avatar or incomplete setup - starting at welcome screen');
         const savedAvatars = avatarManagementService.getSavedAvatars();
         if (savedAvatars.length > 0) {
           console.log(`📚 [APP] Found ${savedAvatars.length} saved avatar(s), but none set as default`);
-        } else {
-          console.log('📭 [APP] No saved avatars found, starting fresh');
         }
       }
     };
@@ -298,8 +339,9 @@ function App() {
     console.log('Onboarding skipped');
   };
 
-  const screens: Screen[] = ['welcome', 'photoCapture', 'avatarGeneration', 'appFace', 'styleProfile', 'avatarHomepage', 'closet', 'apiTest'];
+  const screens: Screen[] = ['loading', 'welcome', 'photoCapture', 'avatarGeneration', 'appFace', 'styleProfile', 'avatarHomepage', 'closet', 'apiTest'];
   const screenLabels = {
+    loading: 'L',
     welcome: '1',
     photoCapture: '2',
     avatarGeneration: '3', // This is the measurements page
@@ -603,6 +645,9 @@ function App() {
     });
 
     switch (currentScreen) {
+      case 'loading':
+        return <LoadingScreen message="Loading your wardrobe..." />;
+
       case 'welcome':
         return (
           <WelcomeScreen
@@ -804,7 +849,8 @@ function App() {
 
             {/* Current Screen Label */}
             <div className="text-xs text-gray-400 mt-2 text-center capitalize">
-              {currentScreen === 'avatarGeneration' ? 'Measurements & Avatar Generation' :
+              {currentScreen === 'loading' ? 'Loading...' :
+               currentScreen === 'avatarGeneration' ? 'Measurements & Avatar Generation' :
                currentScreen === 'measurements' ? 'Alternative Measurements Page' :
                currentScreen === 'styleProfile' ? 'Style Personalization' :
                currentScreen === 'appFace' ? 'Try On Outfits' :

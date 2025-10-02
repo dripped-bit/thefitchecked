@@ -150,7 +150,7 @@ export class FashnApiService {
         garment_image,
         category: options.category || 'auto',
         segmentation_free: options.segmentation_free !== false, // Default true
-        moderation_level: options.moderation_level || 'permissive',
+        moderation_level: options.moderation_level || 'none',
         garment_photo_type: options.garment_photo_type || 'auto',
         mode: options.mode || 'balanced',
         seed: options.seed || Math.floor(Math.random() * 1000000),

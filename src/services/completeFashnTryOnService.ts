@@ -9,7 +9,7 @@ export interface FashnRequest {
   inputs: {
     model_image: string;
     garment_image: string;
-    moderation_level: 'strict' | 'permissive';
+    moderation_level: 'strict' | 'permissive' | 'none';
     category: 'auto' | 'upper' | 'lower' | 'dress' | 'full';
   };
 }
@@ -164,7 +164,7 @@ class CompleteFashnTryOnService {
         inputs: {
           model_image: avatarUrl,
           garment_image: clothingUrl,
-          moderation_level: 'permissive',
+          moderation_level: 'none',
           category: this.detectCategory(clothingType)
         }
       };
@@ -336,7 +336,7 @@ class CompleteFashnTryOnService {
       inputs: {
         model_image: avatarUrl,
         garment_image: jewelryUrl,
-        moderation_level: 'permissive',
+        moderation_level: 'none',
         category: 'auto'
       }
     };
@@ -361,7 +361,7 @@ class CompleteFashnTryOnService {
       inputs: {
         model_image: avatarUrl,
         garment_image: hatUrl,
-        moderation_level: 'permissive',
+        moderation_level: 'none',
         category: 'upper'
       }
     };

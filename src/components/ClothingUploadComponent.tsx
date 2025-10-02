@@ -43,7 +43,7 @@ const ClothingUploadComponent: React.FC<ClothingUploadProps> = ({
   const [settings, setSettings] = useState<TryOnSettings>({
     category: 'auto',
     mode: 'balanced',
-    moderation_level: 'permissive',
+    moderation_level: 'none',
     garment_photo_type: 'auto',
     segmentation_free: true,
     num_samples: 1,

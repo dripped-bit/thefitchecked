@@ -84,6 +84,7 @@ class DirectFashnService {
   private circuitBreakerUntil: number = 0;
   private readonly MAX_CIRCUIT_BREAKER_TIME = 300000; // 5 minutes max circuit breaker
   private activeRequest: Promise<string> | null = null; // Single request queue
+  private minRequestInterval = 1000; // 1 second between requests
 
   /**
    * Calculate exponential backoff delay: 10s → 30s → 60s → 120s (max)
@@ -327,7 +328,6 @@ class DirectFashnService {
     console.warn('   • Good lighting and contrast');
     console.warn('   • Person should be facing camera');
   }
-  private minRequestInterval = 1000; // 1 second between requests
 
   constructor() {
     console.log('🔧 [NATIVE-FASHN] Service initialized:', {
@@ -423,7 +423,7 @@ class DirectFashnService {
         garment_image: processedGarment.processedImageUrl,
         category: garmentAnalysis.type,
         segmentation_free: garmentAnalysis.recommendedSegmentationFree, // Adaptive segmentation based on garment type
-        moderation_level: 'permissive',  // Allow wider range of clothing
+        moderation_level: 'none',  // No content moderation
         garment_photo_type: 'auto',      // Auto-detect garment photo type
         mode: garmentAnalysis.recommendedMode, // Use analyzed mode based on garment complexity
         num_samples: validatedSamples,   // Generate multiple samples for best quality selection

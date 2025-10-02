@@ -427,8 +427,15 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
       if (fashnResult.success && fashnResult.imageUrl) {
         setProcessingStep('Finalizing virtual try-on...');
 
+        // Add cache-bust to ensure browser loads fresh FASHN result
+        const cacheBustedUrl = `${fashnResult.imageUrl}?fashn=${Date.now()}`;
+        console.log('🎨 [FASHN-DISPLAY] Setting avatar with cache-bust:', {
+          original: fashnResult.imageUrl.substring(0, 80) + '...',
+          cacheBusted: cacheBustedUrl.substring(0, 80) + '...'
+        });
+
         // Update displayed avatar with outfit applied
-        setDisplayedAvatar(fashnResult.imageUrl);
+        setDisplayedAvatar(cacheBustedUrl);
         setOutfitApplied(true);
         setIsSpinning(true);
 
@@ -442,12 +449,12 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
         // Notify parent component about avatar update
         if (onAvatarUpdate) {
           console.log('👔 Calling onAvatarUpdate with FASHN result:', {
-            imageUrl: fashnResult.imageUrl,
+            imageUrl: cacheBustedUrl,
             withOutfit: true,
             outfitDetails: 'Outfit applied with FASHN AI'
           });
           onAvatarUpdate({
-            imageUrl: fashnResult.imageUrl,
+            imageUrl: cacheBustedUrl,
             withOutfit: true,
             outfitDetails: 'Outfit applied with FASHN AI'
           });
@@ -487,7 +494,14 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
 
   const tryAnotherOutfit = () => {
     resetToDefault();
-    fileInputRef.current?.click();
+    // Reset file input to allow selecting the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    // Small delay to ensure state reset completes
+    setTimeout(() => {
+      fileInputRef.current?.click();
+    }, 100);
   };
 
   const handleShareOutfit = () => {
@@ -622,16 +636,18 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
               <div className="relative aspect-[9/16] glass-beige rounded-2xl border-2 border-stone-200/30 shadow-lg overflow-hidden">
                 {(() => {
                   const avatarUrl = getAvatarUrl();
-                  const cacheBustUrl = avatarUrl && outfitApplied ? `${avatarUrl}?t=${Date.now()}` : avatarUrl;
+                  // Cache-bust already added when FASHN result was set, just use the URL directly
+                  const displayUrl = avatarUrl;
 
                   return avatarUrl ? (
                     <img
-                      src={cacheBustUrl}
+                      key={displayUrl} // Force re-render when URL changes
+                      src={displayUrl}
                       alt={outfitApplied ? "Avatar with applied outfit" : "CGI 3D Avatar with photorealistic quality"}
                       className={`w-full h-full object-cover ${!isProcessing ? (isSpinning ? 'avatar-spin' : 'avatar-breathing') : ''}`}
                       onError={(e) => {
                         console.error('❌ [AVATAR-DISPLAY] Avatar image failed to load:', {
-                          url: cacheBustUrl,
+                          url: displayUrl,
                           outfitApplied,
                           displayedAvatar: !!displayedAvatar,
                           error: e
@@ -639,9 +655,10 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
                       }}
                       onLoad={() => {
                         console.log('✅ [AVATAR-DISPLAY] Avatar image loaded successfully:', {
-                          url: cacheBustUrl?.substring(0, 50) + '...',
+                          url: displayUrl?.substring(0, 80) + '...',
                           outfitApplied,
-                          hasDisplayedAvatar: !!displayedAvatar
+                          hasDisplayedAvatar: !!displayedAvatar,
+                          isFashnResult: displayUrl?.includes('fashn=')
                         });
                       }}
                     />

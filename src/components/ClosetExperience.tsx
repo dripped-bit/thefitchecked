@@ -12,10 +12,9 @@ import ClosetPage from './ClosetPage';
 import SmartCalendarDashboard from './SmartCalendarDashboard';
 import PackingListGenerator from './PackingListGenerator';
 import WoreThisTodayTracker from './WoreThisTodayTracker';
-import CompleteFashnTryOn from './CompleteFashnTryOn';
 import CategorySelector from './CategorySelector';
 import ShareModal from './ShareModal';
-import { ClothingCategory } from '../services/closetService';
+import ClosetService, { ClothingCategory } from '../services/closetService';
 import seamlessTryOnService from '../services/seamlessTryOnService';
 import backgroundRemovalService from '../services/backgroundRemovalService';
 
@@ -78,7 +77,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   initialView = 'doors'
 }) => {
   // Main state
-  const [currentView, setCurrentView] = useState<'doors' | 'interior' | 'outfit-creator' | 'try-on' | 'monthly-planner' | 'smart-calendar' | 'complete-fashn'>(initialView);
+  const [currentView, setCurrentView] = useState<'doors' | 'interior' | 'outfit-creator' | 'try-on' | 'monthly-planner' | 'smart-calendar'>(initialView);
   const [doorsOpen, setDoorsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all' | 'wishlist'>('all');
   const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
@@ -252,6 +251,19 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     ]);
   }, []);
 
+  // Load clothing items from closet service on mount
+  useEffect(() => {
+    const loadClothingItems = () => {
+      const items = ClosetService.getAllClothingItems();
+      if (items.length > 0) {
+        setClothingItems(items);
+        console.log('👗 [CLOSET] Loaded items from storage:', items.length);
+      }
+    };
+
+    loadClothingItems();
+  }, []);
+
   // Calculate closet statistics
   useEffect(() => {
     const totalValue = clothingItems.reduce((sum, item) => sum + (item.price || 0), 0);
@@ -362,11 +374,18 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
         await new Promise(resolve => setTimeout(resolve, 800));
 
+        // Convert file to base64 for persistent storage
+        const fallbackImageUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+
         // Fallback item data (without category)
         const fallbackItemData = {
           id: Date.now().toString(),
           name: file.name.replace(/\.[^/.]+$/, ""),
-          imageUrl: URL.createObjectURL(file),
+          imageUrl: fallbackImageUrl,
           dateAdded: new Date().toISOString(),
           timesWorn: 0,
           season: 'all' as const
@@ -374,7 +393,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
         // Store pending item and show category selector
         setPendingItem({
-          imageUrl: URL.createObjectURL(file),
+          imageUrl: fallbackImageUrl,
           itemData: fallbackItemData,
           metadata: { backgroundRemoved: false }
         });
@@ -410,8 +429,12 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       category: category
     };
 
-    // Add to closet
+    // Add to closet state
     setClothingItems(prev => [...prev, newItem]);
+
+    // Save to localStorage via ClosetService
+    ClosetService.addClothingItem(newItem);
+    console.log('💾 [CLOSET] Item saved to localStorage');
 
     // Award experience
     const baseXP = 10;
@@ -527,10 +550,17 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     if (!selectedDate) return;
 
     try {
+      // Convert file to base64 for persistent storage
+      const imageUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
       const newPiece = {
         id: Date.now().toString(),
         name: file.name.replace(/\.[^/.]+$/, ""),
-        imageUrl: URL.createObjectURL(file),
+        imageUrl: imageUrl,
         category: 'clothing'
       };
 
@@ -896,14 +926,6 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                 <Sparkles className="w-4 h-4" />
                 <span>Smart Calendar</span>
               </button>
-
-              <button
-                onClick={() => setCurrentView('complete-fashn')}
-                className="w-full flex items-center space-x-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-violet-600 hover:to-purple-700 transition-all"
-              >
-                <Zap className="w-4 h-4" />
-                <span>Complete Try-On</span>
-              </button>
             </div>
           </div>
 
@@ -1194,21 +1216,6 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
             <SmartCalendarDashboard
               onBack={() => setCurrentView('interior')}
               clothingItems={clothingItems}
-            />
-          )}
-
-          {currentView === 'complete-fashn' && (
-            <CompleteFashnTryOn
-              onBack={() => setCurrentView('interior')}
-              avatarData={avatarData}
-              clothingItems={clothingItems.map(item => ({
-                ...item,
-                clothingType: item.category === 'shirts' ? 'top' :
-                             item.category === 'pants' ? 'bottom' :
-                             item.category === 'dresses' ? 'dress' :
-                             item.category === 'shoes' ? 'shoes' :
-                             item.category === 'accessories' ? 'jewelry' : 'top'
-              }))}
             />
           )}
 

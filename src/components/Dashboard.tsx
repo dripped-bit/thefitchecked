@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sun, Cloud, Camera, Plus, Sparkles, TrendingUp, Star, Clock, ShoppingBag, ExternalLink } from 'lucide-react';
 import { UserProfile } from '../types';
+import affiliateLinkService from '../services/affiliateLinkService';
 
 interface DashboardProps {
   user: any;
@@ -115,6 +116,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, userProfile }) => {
           target="_blank"
           rel="noopener noreferrer"
           className="block bg-gradient-to-br from-green-50 to-emerald-100 border border-green-200 rounded-2xl p-6 hover:shadow-lg hover:shadow-green-500/30 hover:scale-105 transition-all duration-300"
+          onClick={(e) => {
+            e.preventDefault();
+            const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
+              'https://tapto.shop/dripped',
+              'dripped'
+            );
+            affiliateLinkService.trackClick(affiliateUrl);
+            window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+          }}
         >
           <div className="flex items-center justify-between">
             <div>

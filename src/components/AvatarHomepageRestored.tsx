@@ -24,6 +24,7 @@ import seamlessTryOnService, { SeamlessTryOnResult, TryOnProgress } from '../ser
 import AvatarClothingAnalysisService, { AvatarClothingAnalysis } from '../services/avatarClothingAnalysisService';
 import PerplexityService, { ProductSearchResult, ProductSearchOptions } from '../services/perplexityService';
 import FashionFeedDashboard from './FashionFeedDashboard';
+import affiliateLinkService from '../services/affiliateLinkService';
 
 interface AvatarHomepageProps {
   onBack: () => void;
@@ -955,6 +956,15 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
+                              item.url,
+                              item.store || 'unknown'
+                            );
+                            affiliateLinkService.trackClick(affiliateUrl, undefined, item);
+                            window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+                          }}
                         >
                           <ExternalLink className="w-3 h-3 mr-1" />
                           View Item
@@ -1231,6 +1241,15 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
+                      'https://tapto.shop/dripped',
+                      'dripped'
+                    );
+                    affiliateLinkService.trackClick(affiliateUrl);
+                    window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+                  }}
                 >
                   <ShoppingBag className="w-5 h-5 text-green-600" />
                   <span className="font-medium text-slate-800">Dripped Shop</span>

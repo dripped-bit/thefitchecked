@@ -184,10 +184,11 @@ class BackgroundRemovalService {
     try {
       console.log('📁 [UPLOAD] Processing clothing upload...');
 
-      // Step 1: Create initial image URL
-      const originalImageUrl = URL.createObjectURL(file);
+      // Step 1: Convert to base64 for persistent storage
+      const base64Data = await this.fileToBase64(file);
+      const originalImageUrl = `data:${file.type};base64,${base64Data}`;
 
-      // Step 2: Upload to a temporary storage (for processing)
+      // Step 2: Upload to a temporary storage (for processing) - uses same base64
       const uploadedImageUrl = await this.uploadToTempStorage(file);
 
       // Step 3: Remove background
@@ -269,9 +270,12 @@ class BackgroundRemovalService {
    */
   private async uploadToTempStorage(file: File): Promise<string> {
     try {
-      // TEMPORARY: Storage upload proxy not configured, using local object URL
-      console.log('⚠️ [UPLOAD] FAL storage upload disabled (404 endpoint), using local object URL');
-      return URL.createObjectURL(file);
+      // Convert to base64 data URL for persistent localStorage storage
+      console.log('📦 [UPLOAD] Converting to base64 for persistent storage...');
+      const base64Data = await this.fileToBase64(file);
+      const dataUrl = `data:${file.type};base64,${base64Data}`;
+      console.log('✅ [UPLOAD] File converted to base64 data URL');
+      return dataUrl;
 
       /* TODO: Re-enable when /api/fal/fal-ai/storage/upload proxy endpoint is configured
       console.log('☁️ [UPLOAD] Uploading to fal.ai storage...');
@@ -308,9 +312,16 @@ class BackgroundRemovalService {
       */
 
     } catch (error) {
-      console.warn('⚠️ [UPLOAD] Upload failed, using local object URL:', error);
-      // Always fallback to object URL to ensure upload continues
-      return URL.createObjectURL(file);
+      console.warn('⚠️ [UPLOAD] Upload failed, using base64 fallback:', error);
+      // Always fallback to base64 to ensure upload continues with persistent storage
+      try {
+        const base64Data = await this.fileToBase64(file);
+        return `data:${file.type};base64,${base64Data}`;
+      } catch (fallbackError) {
+        console.error('❌ [UPLOAD] Base64 conversion also failed:', fallbackError);
+        // Last resort: blob URL (non-persistent)
+        return URL.createObjectURL(file);
+      }
     }
   }
 
