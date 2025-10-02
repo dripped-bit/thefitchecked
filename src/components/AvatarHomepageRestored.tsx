@@ -1114,13 +1114,15 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
             <div className="flex justify-center">
               <button
                 onClick={() => setActiveView('fashion-feed')}
-                className="relative group w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-600 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-700 rounded-full shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 hover:scale-110 animate-pulse"
+                className="relative group w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-600 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-700 rounded-full shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 hover:scale-110 animate-pulse overflow-hidden"
               >
                 <div className="absolute inset-0 bg-white/20 rounded-full animate-ping"></div>
-                <div className="relative flex flex-col items-center justify-center text-white">
-                  <Users className="w-6 h-6 mb-1" />
-                  <span className="text-xs font-bold">Fashion</span>
-                  <span className="text-xs font-bold">Feed</span>
+                <div className="relative flex items-center justify-center w-full h-full p-2">
+                  <img
+                    src="/Untitled design.PNG"
+                    alt="FitChecked"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
 
                 {/* Notification Badge */}
