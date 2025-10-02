@@ -7,7 +7,7 @@
 // Perfect Prompt Templates
 export const PERFECT_PROMPT_TEMPLATE = {
   // Main prompt structure that preserves facial identity and shows full body
-  BASE: `FACIAL IDENTITY PRIORITY: Preserve exact facial features, eye shape, nose structure, mouth shape, jawline, and skin tone from uploaded photo. ULTRA WIDE SHOT. Person standing 3 meters from camera. FULL LENGTH PORTRAIT showing complete body from head to toes. Feet MUST be visible at bottom of frame with floor showing. Camera pulled back for complete figure.`,
+  BASE: `Professional full-body portrait photograph of person with natural facial features exactly matching the reference photo, natural standing pose showing complete figure from head to feet, neutral indoor background, soft natural lighting, photorealistic high-quality image, natural skin texture and realistic proportions, full-length view with feet visible`,
 
   // Additional elements that can be appended
   EXTENSIONS: {
@@ -21,20 +21,17 @@ export const PERFECT_PROMPT_TEMPLATE = {
 // Perfect Negative Prompt Structure
 export const PERFECT_NEGATIVE_PROMPT = {
   // Facial preservation - highest priority
-  FACIAL_PRESERVATION: `FACIAL PRESERVATION PRIORITY: face modification, facial changes, different facial structure, altered eye shape, nose reshaping, mouth alteration, identity drift, face swap, identity change, wrong person entirely, facial feature changes, eye color change, nose modification, jaw reshaping, skin tone shift, different person, wrong face, changed facial features, different eye color, wrong eye shape, wrong nose shape, altered nose, different mouth, wrong mouth shape, changed lips, different jawline, wrong chin, modified cheekbones, changed face shape, facial modifications, different skin tone, wrong hair color, changed hair texture, modified facial structure, face distortion, identity corruption, wrong individual`,
-
-  // Ultra-strict identity protection
-  ULTRA_STRICT: `ULTRA-STRICT: any facial changes, any identity modifications, any feature alterations`,
+  FACIAL_PRESERVATION: `wrong face, different person, face swap, identity change, wrong person entirely, facial distortion, different eye color, wrong eye shape, wrong nose shape, different mouth, wrong mouth shape, different skin tone`,
 
   // Anti-cropping for full body visibility
-  ANTI_CROPPING: `ANTI-CROPPING: cropped legs, cropped feet, cut off legs, cut off feet, knee-level crop, partial body, close-up framing, zoomed in, truncated figure, missing feet, missing legs, lower body cropped, body parts cut off, tight framing, portrait crop, cropped, close-up, partial body, knees only, torso only, headshot, medium shot, cut off at knees, cut off at thighs`,
+  ANTI_CROPPING: `cropped legs, cropped feet, cut off legs, cut off feet, missing feet, missing legs, partial body, close-up framing, zoomed in, body parts cut off, tight framing, cropped, headshot only, torso only, cut off at knees`,
 
   // General quality issues
-  GENERAL_ISSUES: `GENERAL ISSUES: animated, blurry, distorted, poor framing, bad positioning, off center, misaligned, artificial, CGI, 3D render, digital art, cartoon, anime, illustration, painting, synthetic skin, plastic appearance, fake skin, artificial lighting, over-processed, digital enhancement, perfect skin, airbrushed, unnatural smoothness, doll-like, mannequin, robotic, fake textures, digital manipulation`,
+  GENERAL_ISSUES: `blurry, distorted, deformed, bad anatomy, extra limbs, missing limbs, doll-like, mannequin, cartoon, anime, illustration, painting, drawing, low quality, mutation, disfigured`,
 
   // Complete combined negative prompt
   get COMPLETE() {
-    return `${this.FACIAL_PRESERVATION}, ${this.ULTRA_STRICT}, ${this.ANTI_CROPPING}, ${this.GENERAL_ISSUES}`;
+    return `${this.FACIAL_PRESERVATION}, ${this.ANTI_CROPPING}, ${this.GENERAL_ISSUES}`;
   }
 };
 
@@ -43,8 +40,8 @@ export const PERFECT_GENERATION_PARAMS = {
   // Optimal parameters for quality and facial preservation
   OPTIMAL: {
     num_inference_steps: 100,        // Increased for better facial detail processing
-    guidance_scale: 6.5,             // Gentler transformations for facial preservation
-    strength: 0.75,                  // Balanced for facial identity preservation with full-body generation
+    guidance_scale: 5.5,             // Gentler transformations for more natural results
+    strength: 0.65,                  // Lower strength for better facial identity preservation
     image_size: { width: 1152, height: 2048 }, // 9:16 aspect ratio for full body
     enable_safety_checker: false,
     get seed() { return Date.now(); } // Timestamp seed to prevent caching
@@ -53,8 +50,8 @@ export const PERFECT_GENERATION_PARAMS = {
   // Faster parameters for development/testing
   FAST: {
     num_inference_steps: 50,
-    guidance_scale: 6.5,
-    strength: 0.75,
+    guidance_scale: 5.5,
+    strength: 0.65,
     image_size: { width: 1152, height: 2048 },
     enable_safety_checker: false,
     get seed() { return Date.now(); }
@@ -63,8 +60,8 @@ export const PERFECT_GENERATION_PARAMS = {
   // Ultra-quality parameters for final generation
   ULTRA: {
     num_inference_steps: 150,
-    guidance_scale: 6.0,             // Even gentler for maximum preservation
-    strength: 0.70,                  // Lower strength for maximum facial fidelity
+    guidance_scale: 5.0,             // Gentler for maximum natural appearance
+    strength: 0.60,                  // Lowest strength for maximum facial fidelity
     image_size: { width: 1152, height: 2048 },
     enable_safety_checker: false,
     get seed() { return Date.now(); }
@@ -156,8 +153,8 @@ export const PerfectAvatarConfig = {
     }
 
     // Check strength range
-    if (currentConfig.strength > 0.8) {
-      issues.push('Strength too high - may compromise facial identity');
+    if (currentConfig.strength > 0.7) {
+      issues.push('Strength too high - may compromise facial identity (recommended: 0.60-0.65)');
     }
 
     // Check inference steps
