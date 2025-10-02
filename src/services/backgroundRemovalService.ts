@@ -92,8 +92,8 @@ class BackgroundRemovalService {
     try {
       console.log('🤖 [CATEGORIZATION] Starting AI categorization...');
 
-      // Use Claude API for image analysis
-      const response = await fetch('/v1/messages', {
+      // Use Claude API for image analysis via proxy
+      const response = await fetch('/api/claude', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -269,6 +269,11 @@ class BackgroundRemovalService {
    */
   private async uploadToTempStorage(file: File): Promise<string> {
     try {
+      // TEMPORARY: Storage upload proxy not configured, using local object URL
+      console.log('⚠️ [UPLOAD] FAL storage upload disabled (404 endpoint), using local object URL');
+      return URL.createObjectURL(file);
+
+      /* TODO: Re-enable when /api/fal/fal-ai/storage/upload proxy endpoint is configured
       console.log('☁️ [UPLOAD] Uploading to fal.ai storage...');
 
       // Convert file to base64 for fal.ai upload
@@ -300,6 +305,7 @@ class BackgroundRemovalService {
       } else {
         throw new Error('No upload URL returned');
       }
+      */
 
     } catch (error) {
       console.warn('⚠️ [UPLOAD] Upload failed, using local object URL:', error);

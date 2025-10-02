@@ -374,14 +374,13 @@ class OutfitGenerationService {
       const enhancedPrompt = `${outfitPrompt}, product photography, fashion flat lay, isolated clothing items, clean white background, studio lighting, high resolution, detailed textures, professional fashion photography, clothing only, no person, no model, no human, no body, garment display, fashion catalog style, apparel showcase, full garment view, complete clothing item, no cropping, entire outfit visible, uncut garment edges, complete clothing piece, full item showcase, perfect garment framing, whole garment in frame, complete outfit display, FASHN-ready garment image, virtual try-on optimized`;
 
       console.log('🚀 Enhanced garment prompt:', enhancedPrompt);
-      console.log('🔗 Calling FAL.ai API:', 'https://fal.run/fal-ai/flux/dev');
+      console.log('🔗 Calling FAL.ai API via proxy:', '/api/fal/fal-ai/flux/dev');
 
-      // Call FAL.ai Bytedance Seedream 4.0 Text-to-Image API (pure text-to-image, no reference image)
-      const response = await fetch('https://fal.run/fal-ai/flux/dev', {
+      // Call FAL.ai Flux API via proxy (avoids 401 errors)
+      const response = await fetch('/api/fal/fal-ai/flux/dev', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Key ${import.meta.env.VITE_FAL_KEY || 'YOUR_FAL_API_KEY_HERE'}`,
         },
         body: JSON.stringify({
           prompt: enhancedPrompt,

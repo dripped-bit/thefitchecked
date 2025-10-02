@@ -295,7 +295,7 @@ export class EnhancedTwoStepService {
    */
   private async enhancePromptWithLLM(userPrompt: string, style: string): Promise<string> {
     try {
-      const response = await fetch('/v1/messages', {
+      const response = await fetch('/api/claude', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
