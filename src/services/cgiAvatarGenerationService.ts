@@ -160,7 +160,7 @@ export class CGIAvatarGenerationService {
   }
 
   /**
-   * Transform user photo to hyperrealistic CGI avatar using enhanced CGI prompts
+   * Transform user photo to hyperrealistic CGI avatar using Perfect Avatar Config
    */
   private async transformPhotoToCGIAvatar(
     headPhotoUrl: string,
@@ -169,22 +169,24 @@ export class CGIAvatarGenerationService {
   ): Promise<CGIGenerationStep> {
     const startTime = Date.now();
 
-    // Generate hyperrealistic CGI transformation prompt
-    const cgiPrompt = CGIPromptGenerator.generateHyperrealisticCGIPrompt(measurements);
-    console.log('📝 Generated hyperrealistic CGI prompt:', cgiPrompt);
+    // Create minimal custom content for Perfect Avatar Config
+    // Only add measurement-specific details, let Perfect Avatar Config handle facial preservation
+    const measurementDetails = `Body measurements: chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm, height ${measurements.height}cm. Wearing form-fitting white tank top and blue athletic shorts. Professional studio photography with clean white background.`;
+    console.log('📝 [PERFECT-AVATAR] Using Perfect Avatar Config with minimal measurement details:', measurementDetails);
 
     // Process head photo URL for Seedream v4 compatibility
     const processedHeadPhotoUrl = await this.prepareImageUrlForSeedream(headPhotoUrl, 'user photo for CGI');
 
     // Use Perfect Avatar Configuration for optimal results
-    console.log('✨ [PERFECT-CONFIG] Using Perfect Avatar Configuration for CGI generation');
+    console.log('✨ [PERFECT-CONFIG] Using Perfect Avatar Configuration (OPTIMAL quality: 100 steps, 6.5 guidance, 0.75 strength)');
     const request = PerfectAvatarConfig.createSeedreamRequest(
       [processedHeadPhotoUrl],
-      cgiPrompt,
+      measurementDetails,
       {
         quality: 'OPTIMAL',
         extensions: {
-          BODY_MEASUREMENTS: 'applied from measurements'
+          BODY_MEASUREMENTS: `chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm`,
+          POSE: 'standing naturally with arms at sides, FASHN-compatible pose'
         },
         paramOverrides: {
           num_images: options?.numImages || 1,
@@ -235,8 +237,8 @@ export class CGIAvatarGenerationService {
       });
 
       return {
-        stepName: 'Hyperrealistic CGI Avatar Transformation',
-        prompt: cgiPrompt,
+        stepName: 'Hyperrealistic CGI Avatar Transformation (Perfect Avatar Config)',
+        prompt: `Perfect Avatar Config BASE + ${measurementDetails}`,
         processingTime,
         success: true,
         imageUrl
@@ -247,8 +249,8 @@ export class CGIAvatarGenerationService {
       console.error('❌ [CGI-TRANSFORM] CGI transformation failed:', error);
 
       return {
-        stepName: 'Hyperrealistic CGI Avatar Transformation',
-        prompt: cgiPrompt,
+        stepName: 'Hyperrealistic CGI Avatar Transformation (Perfect Avatar Config)',
+        prompt: `Perfect Avatar Config BASE + ${measurementDetails}`,
         processingTime,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error in CGI transformation'
@@ -377,22 +379,24 @@ export class CGIAvatarGenerationService {
   ): Promise<CGIGenerationStep> {
     const startTime = Date.now();
 
-    // Generate photo-based transformation prompt
-    const transformPrompt = CGIPromptGenerator.generatePhotoBasedAvatarPrompt(measurements);
-    console.log('📝 Generated photo transformation prompt:', transformPrompt);
+    // Create minimal custom content for Perfect Avatar Config
+    // Only add measurement-specific details, let Perfect Avatar Config handle facial preservation
+    const measurementDetails = `Body measurements: chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm, height ${measurements.height}cm. Wearing form-fitting white tank top and blue athletic shorts. Professional studio photography with clean white background.`;
+    console.log('📝 [PERFECT-AVATAR] Using Perfect Avatar Config with minimal measurement details:', measurementDetails);
 
     // Process head photo URL for Seedream v4 compatibility
     const processedHeadPhotoUrl = await this.prepareImageUrlForSeedream(headPhotoUrl, 'user photo');
 
     // Use Perfect Avatar Configuration for optimal results
-    console.log('✨ [PERFECT-CONFIG] Using Perfect Avatar Configuration for photo transformation');
+    console.log('✨ [PERFECT-CONFIG] Using Perfect Avatar Configuration (OPTIMAL quality: 100 steps, 6.5 guidance, 0.75 strength)');
     const request = PerfectAvatarConfig.createSeedreamRequest(
       [processedHeadPhotoUrl],
-      transformPrompt,
+      measurementDetails,
       {
         quality: 'OPTIMAL',
         extensions: {
-          BODY_MEASUREMENTS: 'applied from measurements'
+          BODY_MEASUREMENTS: `chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm`,
+          POSE: 'standing naturally with arms at sides, FASHN-compatible pose'
         },
         paramOverrides: {
           num_images: options?.numImages || 1,
@@ -443,8 +447,8 @@ export class CGIAvatarGenerationService {
       });
 
       return {
-        stepName: 'Photo-Based Avatar Transformation',
-        prompt: transformPrompt,
+        stepName: 'Photo-Based Avatar Transformation (Perfect Avatar Config)',
+        prompt: `Perfect Avatar Config BASE + ${measurementDetails}`,
         processingTime,
         success: true,
         imageUrl
@@ -455,8 +459,8 @@ export class CGIAvatarGenerationService {
       console.error('❌ [PHOTO-TRANSFORM] Photo transformation failed:', error);
 
       return {
-        stepName: 'Photo-Based Avatar Transformation',
-        prompt: transformPrompt,
+        stepName: 'Photo-Based Avatar Transformation (Perfect Avatar Config)',
+        prompt: `Perfect Avatar Config BASE + ${measurementDetails}`,
         processingTime,
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error in photo transformation'
