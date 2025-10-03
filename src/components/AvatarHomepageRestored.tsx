@@ -5,7 +5,7 @@ import {
   Shirt, Palette, User, AlertCircle, Loader, MapPin, Clock,
   TrendingUp, Camera, Share2, ShoppingCart, ShoppingBag, Heart,
   RotateCcw, Trash2, ArrowRightCircle, X, Check, DollarSign,
-  Search, ExternalLink, Tag, Package, Users, MessageCircle
+  Search, ExternalLink, Tag, Package, Users, MessageCircle, BookOpen
 } from 'lucide-react';
 import { weatherService, WeatherData } from '../services/weatherService';
 import { outfitGenerationService, OutfitSuggestion, StyleProfile } from '../services/outfitGenerationService';
@@ -24,6 +24,8 @@ import seamlessTryOnService, { SeamlessTryOnResult, TryOnProgress } from '../ser
 import AvatarClothingAnalysisService, { AvatarClothingAnalysis } from '../services/avatarClothingAnalysisService';
 import PerplexityService, { ProductSearchResult, ProductSearchOptions } from '../services/perplexityService';
 import affiliateLinkService from '../services/affiliateLinkService';
+import SavedPromptsModal from './SavedPromptsModal';
+import { CURRENT_PERFECT_PROMPT } from '../config/bestavatargenerated.js';
 
 interface AvatarHomepageProps {
   onBack: () => void;
@@ -161,6 +163,9 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
   // Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
+
+  // Saved prompts modal state
+  const [showPromptsModal, setShowPromptsModal] = useState(false);
 
   // Refs
   const avatarRef = useRef<HTMLDivElement>(null);
@@ -1179,6 +1184,13 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                   <RotateCcw className="w-5 h-5 text-red-600" />
                   <span className="font-medium text-slate-800">Reset Avatar</span>
                 </button>
+                <button
+                  onClick={() => setShowPromptsModal(true)}
+                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  <BookOpen className="w-5 h-5 text-purple-600" />
+                  <span className="font-medium text-slate-800">Avatar Prompts</span>
+                </button>
               </div>
             </div>
 
@@ -1455,6 +1467,18 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
           }}
         />
       )}
+
+      {/* Saved Prompts Modal */}
+      <SavedPromptsModal
+        isOpen={showPromptsModal}
+        onClose={() => setShowPromptsModal(false)}
+        currentPromptData={{
+          prompt: CURRENT_PERFECT_PROMPT.prompt,
+          negativePrompt: CURRENT_PERFECT_PROMPT.negativePrompt,
+          parameters: CURRENT_PERFECT_PROMPT.parameters,
+          quality: CURRENT_PERFECT_PROMPT.quality
+        }}
+      />
       </div>
     </>
   );

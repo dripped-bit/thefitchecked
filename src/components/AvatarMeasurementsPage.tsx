@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowRight, User, Ruler, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, User, Ruler, Sparkles, BookOpen } from 'lucide-react';
 import { cgiAvatarGenerationService } from '../services/cgiAvatarGenerationService';
 import { CGIAvatarRequest, CGIAvatarResult } from '../types/cgiAvatar';
+import SavedPromptsModal from './SavedPromptsModal';
+import { CURRENT_PERFECT_PROMPT } from '../config/bestavatargenerated.js';
 
 interface MeasurementData {
   heightFeet: string;
@@ -27,6 +29,7 @@ const AvatarMeasurementsPage: React.FC<AvatarMeasurementsPageProps> = ({ uploade
   const [isGeneratingCGI, setIsGeneratingCGI] = useState(false);
   const [cgiProgress, setCgiProgress] = useState('');
   const [cgiError, setCgiError] = useState('');
+  const [showPromptsModal, setShowPromptsModal] = useState(false);
   const [measurements, setMeasurements] = useState<MeasurementData>({
     heightFeet: '',
     heightInches: '',
@@ -297,6 +300,13 @@ const AvatarMeasurementsPage: React.FC<AvatarMeasurementsPageProps> = ({ uploade
             Body Measurements
           </h1>
         </div>
+        <button
+          onClick={() => setShowPromptsModal(true)}
+          className="glass-beige-light p-2 hover:glass-beige rounded-full transition-colors"
+          title="View/Save Avatar Prompts"
+        >
+          <BookOpen className="w-6 h-6 text-purple-600" />
+        </button>
         {/* Debug Tools - Development Only */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mb-4">
@@ -546,6 +556,18 @@ const AvatarMeasurementsPage: React.FC<AvatarMeasurementsPageProps> = ({ uploade
           </div>
         </div>
       )}
+
+      {/* Saved Prompts Modal */}
+      <SavedPromptsModal
+        isOpen={showPromptsModal}
+        onClose={() => setShowPromptsModal(false)}
+        currentPromptData={{
+          prompt: CURRENT_PERFECT_PROMPT.prompt,
+          negativePrompt: CURRENT_PERFECT_PROMPT.negativePrompt,
+          parameters: CURRENT_PERFECT_PROMPT.parameters,
+          quality: CURRENT_PERFECT_PROMPT.quality
+        }}
+      />
     </div>
   );
 };
