@@ -16,6 +16,7 @@ import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
 import GlobalDemoModeToggle from './components/GlobalDemoModeToggle';
 import SharedOutfit from './components/SharedOutfit';
+import DevPromptPanel from './components/DevPromptPanel';
 import { CapturedPhoto, AvatarData } from './types/photo';
 import { UserData, OnboardingFormData } from './types/user';
 import UserService from './services/userService';
@@ -28,6 +29,7 @@ import localStorageMigrationService from './services/localStorageMigrationServic
 import './utils/testApiConnection';
 import './utils/testCgiPrompts';
 import './utils/testFashnCredits';
+import clearCacheUtil from './utils/clearCache';
 // import './utils/debugApis';
 // import './utils/directApiTest';
 // import './utils/keyChecker';
@@ -88,6 +90,47 @@ function App() {
     return () => window.removeEventListener('error', handleError);
   }, []);
 
+  // Developer Prompt Debug Panel - Keyboard shortcut (Ctrl+Shift+D / Cmd+Shift+D)
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Ctrl+Shift+D (Windows/Linux) or Cmd+Shift+D (Mac)
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'D') {
+        event.preventDefault();
+        setShowDevPromptPanel(prev => {
+          const newState = !prev;
+          console.log(`🔍 [DEV-PANEL] Prompt Debug Panel ${newState ? 'opened' : 'closed'}`);
+          return newState;
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Setup global cache clearing functions for console access
+  React.useEffect(() => {
+    // Add global functions to window for easy console access
+    (window as any).clearAppCache = clearCacheUtil.clearAppCacheWithConfirmation;
+    (window as any).clearAppCacheForce = clearCacheUtil.clearAppCache;
+    (window as any).getCacheStats = clearCacheUtil.getCacheStats;
+    (window as any).logCacheStats = clearCacheUtil.logCacheStats;
+
+    console.log('🧹 [CACHE-UTIL] Global cache functions available:');
+    console.log('  • clearAppCache() - Clear all cache with confirmation');
+    console.log('  • clearAppCacheForce() - Clear all cache without confirmation');
+    console.log('  • getCacheStats() - Get cache statistics');
+    console.log('  • logCacheStats() - Log detailed cache statistics');
+
+    return () => {
+      // Cleanup on unmount (though App rarely unmounts)
+      delete (window as any).clearAppCache;
+      delete (window as any).clearAppCacheForce;
+      delete (window as any).getCacheStats;
+      delete (window as any).logCacheStats;
+    };
+  }, []);
+
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome'); // DEBUG: Back to normal flow with debug logging enabled
   const [isDevelopment] = useState(true);
   const [showDevPanel, setShowDevPanel] = useState(true);
@@ -97,6 +140,7 @@ function App() {
   const [useAutoFillUserData, setUseAutoFillUserData] = useState(false);
   const [useAutoFillClothingPrompts, setUseAutoFillClothingPrompts] = useState(false);
   const [useAutoFillOutfitNames, setUseAutoFillOutfitNames] = useState(false);
+  const [showDevPromptPanel, setShowDevPromptPanel] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [showOnboardingPopup, setShowOnboardingPopup] = useState(false);
   const [showDoorTransition, setShowDoorTransition] = useState(false);
@@ -649,7 +693,7 @@ function App() {
           <ClosetExperience
             onBack={handleNavigateFromCloset}
             avatarData={appData.avatarData}
-            initialView="closet"
+            initialView="interior"
           />
         );
 
@@ -979,6 +1023,12 @@ function App() {
           isVisible={showExitDoorTransition}
           direction="closing"
           onComplete={handleExitDoorTransitionComplete}
+        />
+
+        {/* Developer Prompt Debug Panel */}
+        <DevPromptPanel
+          isOpen={showDevPromptPanel}
+          onClose={() => setShowDevPromptPanel(false)}
         />
       </div>
       </>
