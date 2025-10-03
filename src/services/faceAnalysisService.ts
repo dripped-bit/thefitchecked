@@ -37,11 +37,23 @@ export class FaceAnalysisService {
   /**
    * Analyze uploaded photo for face detection and characteristics
    */
-  async analyzePhoto(imageDataUrl: string): Promise<FaceAnalysis> {
+  async analyzePhoto(
+    imageDataUrl: string,
+    options?: { required?: boolean; resize?: boolean }
+  ): Promise<FaceAnalysis> {
     try {
-      console.log('👤 Starting face analysis...');
+      console.log('👤 Starting face analysis...', {
+        required: options?.required ?? true,
+        resize: options?.resize ?? true
+      });
 
-      const image = await this.loadImageFromDataUrl(imageDataUrl);
+      // Resize image if needed
+      let processedImageUrl = imageDataUrl;
+      if (options?.resize !== false) {
+        processedImageUrl = await this.resizeIfNeeded(imageDataUrl);
+      }
+
+      const image = await this.loadImageFromDataUrl(processedImageUrl);
 
       // Basic image quality assessment
       const quality = this.assessImageQuality(image);
@@ -72,7 +84,13 @@ export class FaceAnalysisService {
     } catch (error) {
       console.error('❌ Face analysis failed:', error);
 
-      // Return fallback analysis
+      // If face detection is required, throw the error
+      if (options?.required === true) {
+        throw error;
+      }
+
+      // Return fallback analysis for optional detection
+      console.warn('⚠️ Face detection is optional, using fallback values');
       return {
         hasFace: true, // Assume face is present for fallback
         confidence: 0.5,
@@ -94,9 +112,12 @@ export class FaceAnalysisService {
   /**
    * Validate photo quality for avatar generation
    */
-  async validatePhoto(imageDataUrl: string): Promise<PhotoValidation> {
+  async validatePhoto(
+    imageDataUrl: string,
+    options?: { required?: boolean; resize?: boolean }
+  ): Promise<PhotoValidation> {
     try {
-      const analysis = await this.analyzePhoto(imageDataUrl);
+      const analysis = await this.analyzePhoto(imageDataUrl, options);
 
       const issues: string[] = [];
       const recommendations: string[] = [];
@@ -218,13 +239,88 @@ export class FaceAnalysisService {
   }
 
   /**
-   * Load image from data URL
+   * Resize image if it exceeds size or dimension limits
    */
-  private loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+  private async resizeIfNeeded(dataUrl: string): Promise<string> {
+    try {
+      // Check data URL size (5MB limit)
+      const sizeInBytes = (dataUrl.length * 3) / 4; // Approximate base64 size
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      if (sizeInBytes < maxSize) {
+        // Check dimensions
+        const image = await this.loadImageFromDataUrl(dataUrl);
+        const maxDimension = 1024;
+
+        if (image.width <= maxDimension && image.height <= maxDimension) {
+          console.log('✅ Image size OK, no resize needed');
+          return dataUrl;
+        }
+      }
+
+      console.log('🔄 Resizing image to reduce size/dimensions...');
+
+      // Load and resize
+      const image = await this.loadImageFromDataUrl(dataUrl);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        throw new Error('Cannot get canvas context');
+      }
+
+      // Calculate new dimensions
+      const maxDimension = 1024;
+      let newWidth = image.width;
+      let newHeight = image.height;
+
+      if (newWidth > maxDimension || newHeight > maxDimension) {
+        const scale = Math.min(maxDimension / newWidth, maxDimension / newHeight);
+        newWidth = Math.floor(newWidth * scale);
+        newHeight = Math.floor(newHeight * scale);
+      }
+
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      ctx.drawImage(image, 0, 0, newWidth, newHeight);
+
+      // Convert to data URL with quality reduction if needed
+      const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      console.log(`✅ Image resized: ${image.width}x${image.height} → ${newWidth}x${newHeight}`);
+
+      return resizedDataUrl;
+
+    } catch (error) {
+      console.warn('⚠️ Image resize failed, using original:', error);
+      return dataUrl;
+    }
+  }
+
+  /**
+   * Load image from data URL with timeout and CORS handling
+   */
+  private loadImageFromDataUrl(dataUrl: string, timeout = 10000): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = reject;
+
+      // Enable CORS for cross-origin images
+      image.crossOrigin = 'anonymous';
+
+      // Set up timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`Image load timeout after ${timeout}ms`));
+      }, timeout);
+
+      image.onload = () => {
+        clearTimeout(timeoutId);
+        resolve(image);
+      };
+
+      image.onerror = (event) => {
+        clearTimeout(timeoutId);
+        reject(new Error('Image failed to load'));
+      };
+
       image.src = dataUrl;
     });
   }
@@ -457,6 +553,94 @@ export class FaceAnalysisService {
         skinTone: 'medium',
         estimatedAge: 'adult',
         gender: 'neutral'
+      };
+    }
+  }
+
+  /**
+   * Debug helper - get detailed face analysis information
+   */
+  async debugAnalysis(imageDataUrl: string): Promise<{
+    imageInfo: {
+      sizeBytes: number;
+      sizeMB: number;
+      width?: number;
+      height?: number;
+      format?: string;
+    };
+    analysis: FaceAnalysis;
+    processingTime: number;
+    errors: string[];
+  }> {
+    const errors: string[] = [];
+    const startTime = Date.now();
+
+    try {
+      // Get image size
+      const sizeBytes = (imageDataUrl.length * 3) / 4;
+      const sizeMB = sizeBytes / (1024 * 1024);
+
+      // Detect format
+      const formatMatch = imageDataUrl.match(/^data:image\/(\w+);base64,/);
+      const format = formatMatch ? formatMatch[1] : 'unknown';
+
+      // Load image to get dimensions
+      let width: number | undefined;
+      let height: number | undefined;
+
+      try {
+        const image = await this.loadImageFromDataUrl(imageDataUrl);
+        width = image.width;
+        height = image.height;
+      } catch (error) {
+        errors.push(`Image load failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      // Run analysis
+      const analysis = await this.analyzePhoto(imageDataUrl, { required: false, resize: false });
+
+      const processingTime = Date.now() - startTime;
+
+      console.log('🔍 [DEBUG] Face Analysis Report:', {
+        imageInfo: { sizeBytes, sizeMB, width, height, format },
+        analysis,
+        processingTime,
+        errors
+      });
+
+      return {
+        imageInfo: { sizeBytes, sizeMB, width, height, format },
+        analysis,
+        processingTime,
+        errors
+      };
+
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      errors.push(`Analysis failed: ${error instanceof Error ? error.message : String(error)}`);
+
+      return {
+        imageInfo: {
+          sizeBytes: 0,
+          sizeMB: 0
+        },
+        analysis: {
+          hasFace: false,
+          confidence: 0,
+          characteristics: {
+            skinTone: 'medium',
+            estimatedAge: 'adult',
+            gender: 'neutral'
+          },
+          quality: {
+            resolution: 'low',
+            lighting: 'poor',
+            clarity: 'blurry',
+            overall: 0
+          }
+        },
+        processingTime,
+        errors
       };
     }
   }

@@ -74,50 +74,107 @@ class AffiliateLinkService {
   }
 
   /**
+   * Check if URL is a specific product page (not collection/category)
+   */
+  isProductUrl(url: string): boolean {
+    const productPatterns = [
+      '/dp/',        // Amazon
+      '/gp/product/', // Amazon alternate
+      '/products/',  // Fashion Nova, Shopify stores
+      '/goods',      // SHEIN
+      '-p-',         // SHEIN product code
+      '-p[0-9]+',    // Zara
+      '/s/',         // Nordstrom
+      '/shop/',      // Nordstrom alternate
+      '/item/',      // Generic
+      '/p/',         // Target, Neiman Marcus
+      'sku=',        // SKU parameter
+      'product_id=', // Product ID parameter
+      '/A-'          // Target product code
+    ];
+
+    return productPatterns.some(pattern =>
+      url.match(new RegExp(pattern))
+    );
+  }
+
+  /**
    * Convert a product URL to an affiliate link
    */
   convertToAffiliateLink(url: string, storeName: string): string {
-    console.log('🔗 [AFFILIATE] convertToAffiliateLink CALLED', { url: url?.substring(0, 50), storeName });
+    console.log('🔗 [AFFILIATE] ========== CONVERSION START ==========');
+    console.log('📥 [AFFILIATE] INPUT:', {
+      url: url,
+      storeName: storeName,
+      urlLength: url?.length || 0
+    });
+
     if (!url) {
       console.warn('⚠️ [AFFILIATE] No URL provided, returning empty');
       return url;
     }
 
+    // Validate it's a product page
+    if (!this.isProductUrl(url)) {
+      console.warn('⚠️ [AFFILIATE] Not a product page URL:', url.substring(0, 60));
+      console.warn('⚠️ [AFFILIATE] This may be a collection/category page - affiliate link may not convert');
+    }
+
     const storeNameLower = storeName.toLowerCase();
+    let affiliateUrl: string;
 
     // Amazon links
     if (url.includes('amazon.com') || storeNameLower.includes('amazon')) {
-      return this.wrapAmazonLink(url);
+      affiliateUrl = this.wrapAmazonLink(url);
+      console.log('📤 [AFFILIATE] OUTPUT (Amazon):', affiliateUrl);
+      console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
+      return affiliateUrl;
     }
 
     // Rakuten partner stores - redirect through Rakuten
     if (this.isRakutenPartner(storeNameLower)) {
-      return this.wrapRakutenLink(url);
+      affiliateUrl = this.wrapRakutenLink(url);
+      console.log('📤 [AFFILIATE] OUTPUT (Rakuten Partner):', affiliateUrl);
+      console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
+      return affiliateUrl;
     }
 
     // Target
     if (url.includes('target.com') || storeNameLower.includes('target')) {
-      return this.wrapRakutenLink(url);
+      affiliateUrl = this.wrapRakutenLink(url);
+      console.log('📤 [AFFILIATE] OUTPUT (Target):', affiliateUrl);
+      console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
+      return affiliateUrl;
     }
 
     // Walmart
     if (url.includes('walmart.com') || storeNameLower.includes('walmart')) {
-      return this.wrapRakutenLink(url);
+      affiliateUrl = this.wrapRakutenLink(url);
+      console.log('📤 [AFFILIATE] OUTPUT (Walmart):', affiliateUrl);
+      console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
+      return affiliateUrl;
     }
 
     // Macy's
     if (url.includes('macys.com') || storeNameLower.includes('macy')) {
-      return this.wrapRakutenLink(url);
+      affiliateUrl = this.wrapRakutenLink(url);
+      console.log('📤 [AFFILIATE] OUTPUT (Macys):', affiliateUrl);
+      console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
+      return affiliateUrl;
     }
 
     // Nordstrom
     if (url.includes('nordstrom.com') || storeNameLower.includes('nordstrom')) {
-      return this.wrapRakutenLink(url);
+      affiliateUrl = this.wrapRakutenLink(url);
+      console.log('📤 [AFFILIATE] OUTPUT (Nordstrom):', affiliateUrl);
+      console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
+      return affiliateUrl;
     }
 
     // For all other stores, return original URL
-    // You can add more affiliate networks here
-    console.log('⚠️ [AFFILIATE] No affiliate match for store:', storeName, '- returning original URL');
+    console.warn('⚠️ [AFFILIATE] No affiliate match for store:', storeName);
+    console.log('📤 [AFFILIATE] OUTPUT (No Match - Original URL):', url);
+    console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
     return url;
   }
 
@@ -154,7 +211,12 @@ class AffiliateLinkService {
     // Rakuten link format: https://www.rakuten.com/r/MEMBERID?eeid=EEID&u=ENCODED_URL
     const encodedUrl = encodeURIComponent(url);
     const affiliateUrl = `https://www.rakuten.com/r/${this.config.rakutenId}?eeid=${this.config.rakutenEEID}&u=${encodedUrl}`;
-    console.log('✅ [AFFILIATE] Wrapped with Rakuten:', { original: url.substring(0, 50), affiliate: affiliateUrl.substring(0, 80) });
+    console.log('✅ [AFFILIATE] Wrapped with Rakuten:', {
+      original: url,
+      affiliate: affiliateUrl,
+      rakutenId: this.config.rakutenId,
+      eeid: this.config.rakutenEEID
+    });
     return affiliateUrl;
   }
 

@@ -48,7 +48,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   const [shoppingSections, setShoppingSections] = useState<ShoppingSection[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchProgress, setSearchProgress] = useState('');
-  const [selectedBudget, setSelectedBudget] = useState<'all' | 'budget' | 'mid' | 'luxury'>('all');
+  const [selectedBudget, setSelectedBudget] = useState<'all' | 'budget' | 'mid' | 'luxury' | null>(null);
   const [savedToCalendar, setSavedToCalendar] = useState(false);
 
   useEffect(() => {
@@ -99,18 +99,21 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
         console.log(`✅ [PHASE 2] Found ${secondaryResults.length} products from secondary stores`);
       }
 
-      // PHASE 3: If still not enough, do general search
+      // PHASE 3: If still not enough, search ALL priority stores (primary + secondary)
       if (allProducts.length < SEARCH_STRATEGY.MIN_RESULTS_SECONDARY && SEARCH_STRATEGY.PHASE_3_GENERAL_SEARCH) {
-        console.log('🔍 [PHASE 3] Still not enough, doing general search...');
-        setSearchProgress('Searching additional retailers...');
+        console.log('🔍 [PHASE 3] Still not enough, searching all priority stores...');
+        setSearchProgress('Searching all available retailers...');
 
-        const generalResults = await perplexityService.searchSimilarProducts(
-          baseQuery,
+        const allStoresQuery = buildPriorityStoreQuery(baseQuery, 11, true, true);
+        console.log('🎯 [ALL-STORES-SEARCH] Query:', allStoresQuery);
+
+        const allStoresResults = await perplexityService.searchSimilarProducts(
+          allStoresQuery,
           { maxResults: 10 }
         );
 
-        allProducts.push(...generalResults);
-        console.log(`✅ [PHASE 3] Found ${generalResults.length} products from general search`);
+        allProducts.push(...allStoresResults);
+        console.log(`✅ [PHASE 3] Found ${allStoresResults.length} products from all priority stores`);
       }
 
       console.log('✅ [SHOPPING] Total products found:', allProducts.length);
@@ -120,16 +123,27 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
         index === self.findIndex((p) => p.url === product.url)
       );
 
+      // Filter out YouTube URLs (backup filter in case they slip through)
+      const nonYouTubeProducts = uniqueProducts.filter(product => {
+        const isYouTube = product.url.includes('youtube.com') || product.url.includes('youtu.be');
+        if (isYouTube) {
+          console.log('🚫 [FILTER] Removed YouTube result:', product.title);
+        }
+        return !isYouTube;
+      });
+
+      console.log(`✅ [FILTER] Filtered products: ${uniqueProducts.length} → ${nonYouTubeProducts.length} (removed ${uniqueProducts.length - nonYouTubeProducts.length} YouTube results)`);
+
       // Categorize products into sections
-      const sections = categorizeBySimilarity(uniqueProducts);
+      const sections = categorizeBySimilarity(nonYouTubeProducts);
       setShoppingSections(sections);
 
       const priorityStores = getPriorityStoreDomains(true, false);
-      const priorityCount = uniqueProducts.filter(p =>
+      const priorityCount = nonYouTubeProducts.filter(p =>
         priorityStores.some(domain => p.url.includes(domain))
       ).length;
 
-      setSearchProgress(`Found ${uniqueProducts.length} products (${priorityCount} from priority stores)!`);
+      setSearchProgress(`Found ${nonYouTubeProducts.length} products (${priorityCount} from priority stores)!`);
       setTimeout(() => setSearchProgress(''), 3000);
 
     } catch (error) {
@@ -246,15 +260,14 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
   const handleSaveToCalendar = () => {
     setSavedToCalendar(true);
+    // Trigger the parent callback which opens the SaveToCalendarModal
     onSaveToCalendar?.();
-
-    // Mock calendar save - in real implementation, this would integrate with calendar APIs
-    setTimeout(() => {
-      alert(`✅ Added to calendar: ${occasion.occasion} with ${selectedOutfit.personality.name} outfit reminder`);
-    }, 500);
   };
 
   const getBudgetFilteredSections = () => {
+    // If no budget selected, return empty array (hide products)
+    if (selectedBudget === null) return [];
+
     if (selectedBudget === 'all') return shoppingSections;
 
     return shoppingSections.map(section => ({
@@ -302,89 +315,83 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
         {/* Header Section */}
         <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-2xl p-6">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                  <ShoppingBag className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-gray-900">Shop This Look</h3>
-                  <p className="text-gray-600">
-                    {selectedOutfit.personality.name} style for your {occasion.occasion}
-                  </p>
-                </div>
-              </div>
-
-              {/* Context Tags */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
-                  <MapPin className="w-3 h-3 mr-1" />
-                  {occasion.location || 'Location-appropriate'}
-                </span>
-                {occasion.weather && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
-                    <Tag className="w-3 h-3 mr-1" />
-                    {occasion.weather.temperature}°F weather
-                  </span>
-                )}
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-purple-100 text-purple-700">
-                  <Clock className="w-3 h-3 mr-1" />
-                  {occasion.formality}
-                </span>
-              </div>
-
-              {/* Why These Products */}
-              <div className="bg-white rounded-lg p-4 border border-green-200">
-                <h4 className="font-medium text-gray-900 mb-2">Smart matching based on:</h4>
-                <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                    {occasion.occasion} occasion
-                  </div>
-                  <div className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                    {selectedOutfit.personality.name} personality
-                  </div>
-                  {occasion.weather && (
-                    <div className="flex items-center">
-                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                      {occasion.weather.temperature}°F weather
-                    </div>
-                  )}
-                  <div className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                    {occasion.formality} dress code
-                  </div>
-                </div>
-              </div>
+          <div className="flex items-center space-x-3 mb-3">
+            <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+              <ShoppingBag className="w-5 h-5 text-white" />
             </div>
-
-            {/* Calendar Save Button */}
-            <div className="ml-6">
-              <button
-                onClick={handleSaveToCalendar}
-                disabled={savedToCalendar}
-                className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                  savedToCalendar
-                    ? 'bg-green-100 text-green-700 border border-green-300'
-                    : 'bg-purple-600 text-white hover:bg-purple-700'
-                }`}
-              >
-                {savedToCalendar ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 inline mr-2" />
-                    Saved to Calendar
-                  </>
-                ) : (
-                  <>
-                    <Calendar className="w-4 h-4 inline mr-2" />
-                    Save to Calendar
-                  </>
-                )}
-              </button>
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">Shop This Look</h3>
+              <p className="text-gray-600">
+                {selectedOutfit.personality.name} style for your {occasion.occasion}
+              </p>
             </div>
           </div>
+
+          {/* Context Tags */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+              <MapPin className="w-3 h-3 mr-1" />
+              {occasion.location || 'Location-appropriate'}
+            </span>
+            {occasion.weather && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
+                <Tag className="w-3 h-3 mr-1" />
+                {occasion.weather.temperature}°F weather
+              </span>
+            )}
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-purple-100 text-purple-700">
+              <Clock className="w-3 h-3 mr-1" />
+              {occasion.formality}
+            </span>
+          </div>
+
+          {/* Why These Products */}
+          <div className="bg-white rounded-lg p-4 border border-green-200 mb-4">
+            <h4 className="font-medium text-gray-900 mb-2">Smart matching based on:</h4>
+            <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
+              <div className="flex items-center">
+                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                {occasion.occasion} occasion
+              </div>
+              <div className="flex items-center">
+                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                {selectedOutfit.personality.name} personality
+              </div>
+              {occasion.weather && (
+                <div className="flex items-center">
+                  <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                  {occasion.weather.temperature}°F weather
+                </div>
+              )}
+              <div className="flex items-center">
+                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                {occasion.formality} dress code
+              </div>
+            </div>
+          </div>
+
+          {/* Calendar Save Button - Now Prominent and Always Visible */}
+          <button
+            onClick={handleSaveToCalendar}
+            disabled={savedToCalendar}
+            className={`w-full px-6 py-3 rounded-xl font-medium transition-all shadow-md ${
+              savedToCalendar
+                ? 'bg-green-100 text-green-700 border border-green-300'
+                : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
+            }`}
+          >
+            {savedToCalendar ? (
+              <>
+                <CheckCircle className="w-5 h-5 inline mr-2" />
+                <span className="font-semibold">Saved to Calendar</span>
+              </>
+            ) : (
+              <>
+                <Calendar className="w-5 h-5 inline mr-2" />
+                <span className="font-semibold">Save to Calendar</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Budget Filter */}
@@ -413,6 +420,23 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
             ))}
           </div>
         </div>
+
+        {/* Select Budget Prompt (shown when no budget selected) */}
+        {selectedBudget === null && shoppingSections.length > 0 && (
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-2xl p-12 text-center">
+            <div className="max-w-md mx-auto space-y-4">
+              <div className="text-6xl mb-4">💰</div>
+              <h3 className="text-2xl font-bold text-gray-900">Select Your Budget First</h3>
+              <p className="text-gray-600 text-lg">
+                Choose a budget range above to see matching products
+              </p>
+              <div className="flex items-center justify-center space-x-2 text-sm text-purple-600 mt-6">
+                <span>👆</span>
+                <span className="font-medium">Pick a budget filter to view options</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Shopping Sections */}
         <div className="space-y-8">
@@ -488,10 +512,22 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
                       <button
                         onClick={() => {
+                          console.log('🛍️ [INTEGRATED-SHOPPING] Shop button clicked');
+                          console.log('📦 [INTEGRATED-SHOPPING] Product data:', {
+                            title: product.title,
+                            store: product.store,
+                            originalUrl: product.url,
+                            price: product.price
+                          });
+
                           const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
                             product.url,
                             product.store || 'unknown'
                           );
+
+                          console.log('🎯 [INTEGRATED-SHOPPING] Final URL to open:', affiliateUrl);
+                          console.log('✅ [INTEGRATED-SHOPPING] Opening in new tab...');
+
                           affiliateLinkService.trackClick(affiliateUrl, undefined, product);
                           window.open(affiliateUrl, '_blank');
                         }}

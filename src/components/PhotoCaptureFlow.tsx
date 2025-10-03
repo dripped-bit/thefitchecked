@@ -70,7 +70,10 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
 
         try {
           console.log('🔍 Validating photo quality and face detection...');
-          const validation = await faceAnalysisService.validatePhoto(imageData);
+          const validation = await faceAnalysisService.validatePhoto(imageData, {
+            required: false,  // Don't block avatar creation if face detection fails
+            resize: true      // Automatically resize large images
+          });
           setPhotoValidation(validation);
           console.log('✅ Photo validation completed:', validation);
         } catch (error) {
@@ -78,8 +81,8 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
           // Set a fallback validation result
           setPhotoValidation({
             isValid: true,
-            issues: [],
-            recommendations: [],
+            issues: ['Face detection unavailable - continuing with avatar creation'],
+            recommendations: ['Your avatar will still be created successfully'],
             quality: {
               resolution: 'medium',
               lighting: 'fair',

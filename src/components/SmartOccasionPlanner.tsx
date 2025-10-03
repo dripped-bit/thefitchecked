@@ -4,7 +4,9 @@ import SmartOccasionInput, { ParsedOccasion, SmartSuggestion } from './SmartOcca
 import TripleOutfitGenerator, { GeneratedOutfit } from './TripleOutfitGenerator';
 import IntegratedShopping from './IntegratedShopping';
 import ExternalTryOnModal from './ExternalTryOnModal';
+import SaveToCalendarModal, { CalendarSaveData } from './SaveToCalendarModal';
 import { ProductSearchResult } from '../services/perplexityService';
+import ClosetService, { ClothingItem } from '../services/closetService';
 
 interface SmartOccasionPlannerProps {
   onOutfitGenerate?: (outfitData: any) => void;
@@ -31,6 +33,9 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
   // Try-on modal state
   const [showTryOnModal, setShowTryOnModal] = useState(false);
   const [tryOnProduct, setTryOnProduct] = useState<ProductSearchResult | null>(null);
+
+  // Save to calendar modal state
+  const [showSaveToCalendarModal, setShowSaveToCalendarModal] = useState(false);
 
   const handleOccasionParsed = (occasion: ParsedOccasion) => {
     setParsedOccasion(occasion);
@@ -129,14 +134,56 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
   };
 
   const handleSaveToCalendar = () => {
-    // Mock calendar integration
-    console.log('Saving to calendar:', {
-      occasion: parsedOccasion?.occasion,
-      outfit: selectedOutfit?.personality.name,
-      date: parsedOccasion?.date,
-      time: parsedOccasion?.time,
-      location: parsedOccasion?.location
+    // Open the save to calendar modal
+    setShowSaveToCalendarModal(true);
+  };
+
+  const handleCalendarSaveComplete = (data: CalendarSaveData) => {
+    if (!selectedOutfit) {
+      console.error('No outfit selected');
+      return;
+    }
+
+    // Create a placeholder clothing item representing the generated outfit
+    // In the future, this could be enhanced to save individual items if they exist in the closet
+    const outfitPlaceholder: ClothingItem = {
+      id: `generated-outfit-${Date.now()}`,
+      name: `${selectedOutfit.personality.name} outfit`,
+      imageUrl: selectedOutfit.imageUrl,
+      category: 'other',
+      dateAdded: new Date().toISOString(),
+      description: `${selectedOutfit.personality.name} style for ${data.occasion}`,
+      isUserGenerated: true,
+      source: 'occasion-planner'
+    };
+
+    // Save outfit to calendar using ClosetService
+    const success = ClosetService.saveDailyOutfit(data.date, [outfitPlaceholder], {
+      notes: `${selectedOutfit.personality.name} outfit for ${data.occasion}`,
+      needsPurchase: data.needsPurchaseReminder,
+      purchaseLink: data.purchaseLink,
+      purchaseReminders: data.needsPurchaseReminder ? [data.date] : []
     });
+
+    if (success) {
+      console.log('✅ [CALENDAR] Outfit saved successfully:', {
+        date: data.date,
+        occasion: data.occasion,
+        outfit: selectedOutfit.personality.name,
+        needsPurchase: data.needsPurchaseReminder,
+        purchaseLink: data.purchaseLink
+      });
+
+      setShowSaveToCalendarModal(false);
+
+      // Show success message
+      setTimeout(() => {
+        alert(`✅ Outfit saved to calendar for ${data.occasion} on ${new Date(data.date).toLocaleDateString()}!`);
+      }, 100);
+    } else {
+      console.error('❌ [CALENDAR] Failed to save outfit');
+      alert('Failed to save outfit to calendar. Please try again.');
+    }
   };
 
   const handleStartOver = () => {
@@ -285,6 +332,19 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
           product={tryOnProduct}
           avatarData={avatarData}
           onTryOnComplete={handleTryOnComplete}
+        />
+      )}
+
+      {/* Save to Calendar Modal */}
+      {showSaveToCalendarModal && (
+        <SaveToCalendarModal
+          isOpen={showSaveToCalendarModal}
+          onClose={() => setShowSaveToCalendarModal(false)}
+          onSave={handleCalendarSaveComplete}
+          defaultOccasion={parsedOccasion?.occasion || ''}
+          defaultDate={parsedOccasion?.date || ''}
+          outfitImageUrl={selectedOutfit?.imageUrl || ''}
+          outfitName={selectedOutfit ? `${selectedOutfit.personality.name} outfit` : ''}
         />
       )}
     </div>

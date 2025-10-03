@@ -6,6 +6,7 @@
 import { WeatherData } from './weatherService';
 import ClosetService, { ClothingItem } from './closetService';
 import enhancedPromptGenerationService, { EnhancedPromptResult, PromptGenerationRequest } from './enhancedPromptGenerationService';
+import promptDebugService from './promptDebugService';
 
 export interface OutfitSuggestion {
   id: number;
@@ -383,6 +384,20 @@ class OutfitGenerationService {
 
       console.log('🚀 Enhanced garment prompt:', enhancedPrompt);
       console.log('🔗 Calling FAL.ai API via proxy:', '/api/fal/fal-ai/flux/dev');
+
+      // Log prompt to debug service
+      promptDebugService.logPrompt({
+        type: 'outfit',
+        serviceName: 'Outfit Generation - FAL Flux',
+        prompt: enhancedPrompt,
+        parameters: {
+          image_size: { width: 1024, height: 1024 },
+          num_inference_steps: 40,
+          guidance_scale: 9.0,
+          num_images: 1,
+          enable_safety_checker: false
+        }
+      });
 
       // Call FAL.ai Flux API via proxy (avoids 401 errors)
       const response = await fetch('/api/fal/fal-ai/flux/dev', {

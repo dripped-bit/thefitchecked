@@ -25,7 +25,8 @@
       "WebFetch(domain:docs.perplexity.ai)",
       "Bash(npm run:*)",
       "Bash(open http://localhost:5174/)",
-      "Bash(git clone:*)"
+      "Bash(git clone:*)",
+      "Bash(vercel:*)"
     ],
     "deny": [],
     "ask": []

@@ -43,17 +43,27 @@ const ProductSearchResults: React.FC<ProductSearchResultsProps> = ({
   };
 
   const handleBuyProduct = (product: ProductSearchResult) => {
-    console.log('🖱️ [CLICK] ProductSearchResults buy clicked:', { url: product.url, store: product.store, title: product.title });
+    console.log('🛍️ [PRODUCT-SEARCH-RESULTS] Buy button clicked');
+    console.log('📦 [PRODUCT-SEARCH-RESULTS] Product data:', {
+      title: product.title,
+      store: product.store,
+      originalUrl: product.url,
+      price: product.price
+    });
+
     if (product.url) {
       const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
         product.url,
         product.store || 'unknown'
       );
-      console.log('🔗 [RESULT] Affiliate URL generated:', affiliateUrl);
+
+      console.log('🎯 [PRODUCT-SEARCH-RESULTS] Final URL to open:', affiliateUrl);
+      console.log('✅ [PRODUCT-SEARCH-RESULTS] Opening in new tab...');
+
       affiliateLinkService.trackClick(affiliateUrl, undefined, product);
       window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
     } else {
-      console.warn('⚠️ [CLICK] No URL found for product:', product.title);
+      console.warn('⚠️ [PRODUCT-SEARCH-RESULTS] No URL found for product:', product.title);
     }
     onBuyProduct?.(product);
   };

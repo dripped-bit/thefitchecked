@@ -18,6 +18,7 @@ import {
 } from '../types/cgiAvatar';
 import CGIPromptGenerator from '../utils/cgiPromptGenerator';
 import { PerfectAvatarConfig, AVATAR_PRESETS } from '../config/perfectAvatarConfig.js';
+import promptDebugService from './promptDebugService';
 
 console.log('🎨 [CGI-AVATAR] Service Configuration:');
 console.log('- Using proxy endpoints for FAL API calls');
@@ -169,24 +170,24 @@ export class CGIAvatarGenerationService {
   ): Promise<CGIGenerationStep> {
     const startTime = Date.now();
 
-    // Create minimal custom content for Perfect Avatar Config
-    // Only add measurement-specific details, let Perfect Avatar Config handle facial preservation
-    const measurementDetails = `Body measurements: chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm, height ${measurements.height}cm. Wearing form-fitting white tank top and blue athletic shorts. Professional studio photography with clean white background.`;
-    console.log('📝 [PERFECT-AVATAR] Using Perfect Avatar Config with minimal measurement details:', measurementDetails);
+    // Prepare measurements for extension (CGI doesn't add custom content like age/gender/build)
+    const measurementDetails = `Body measurements: chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm, height ${measurements.height}cm`;
+    console.log('📝 [PERFECT-AVATAR] Using Perfect Avatar Config BASE template + user measurements:', measurementDetails);
 
     // Process head photo URL for Seedream v4 compatibility
     const processedHeadPhotoUrl = await this.prepareImageUrlForSeedream(headPhotoUrl, 'user photo for CGI');
 
-    // Use Perfect Avatar Configuration for optimal results
-    console.log('✨ [PERFECT-CONFIG] Using Perfect Avatar Configuration (OPTIMAL quality: 100 steps, 6.5 guidance, 0.75 strength)');
-    const request = PerfectAvatarConfig.createSeedreamRequest(
+    // Use Perfect Avatar Configuration with user's best prompt
+    console.log('✨ [PERFECT-CONFIG] Using Perfect Avatar Configuration with best user prompt');
+    console.log('✨ [PERFECT-CONFIG] Will check for user saved prompts, fallback to default if none exist');
+    const request = await PerfectAvatarConfig.createSeedreamRequestWithBestPrompt(
       [processedHeadPhotoUrl],
-      measurementDetails,
+      '', // No custom content needed for CGI - only measurements via extension
       {
         quality: 'OPTIMAL',
         extensions: {
-          BODY_MEASUREMENTS: `chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm`,
-          POSE: 'standing naturally with arms at sides, FASHN-compatible pose'
+          BODY_MEASUREMENTS: measurementDetails
+          // NOTE: POSE, CLOTHING_STYLE, ENVIRONMENT are already in BASE template - no need to add here
         },
         paramOverrides: {
           num_images: options?.numImages || 1,
@@ -196,6 +197,20 @@ export class CGIAvatarGenerationService {
         }
       }
     );
+
+    // Log prompt to debug service
+    promptDebugService.logPrompt({
+      type: 'avatar',
+      serviceName: 'CGI Avatar Generation',
+      prompt: request.prompt,
+      parameters: {
+        image_urls_count: request.image_urls.length,
+        num_images: request.num_images,
+        image_size: request.image_size,
+        enable_safety_checker: request.enable_safety_checker,
+        seed: request.seed
+      }
+    });
 
     try {
       // Validate request parameters
@@ -387,9 +402,9 @@ export class CGIAvatarGenerationService {
     // Process head photo URL for Seedream v4 compatibility
     const processedHeadPhotoUrl = await this.prepareImageUrlForSeedream(headPhotoUrl, 'user photo');
 
-    // Use Perfect Avatar Configuration for optimal results
-    console.log('✨ [PERFECT-CONFIG] Using Perfect Avatar Configuration (OPTIMAL quality: 100 steps, 6.5 guidance, 0.75 strength)');
-    const request = PerfectAvatarConfig.createSeedreamRequest(
+    // Use Perfect Avatar Configuration with user's best prompt
+    console.log('✨ [PERFECT-CONFIG] Using Perfect Avatar Configuration with best user prompt');
+    const request = await PerfectAvatarConfig.createSeedreamRequestWithBestPrompt(
       [processedHeadPhotoUrl],
       measurementDetails,
       {
@@ -406,6 +421,20 @@ export class CGIAvatarGenerationService {
         }
       }
     );
+
+    // Log prompt to debug service
+    promptDebugService.logPrompt({
+      type: 'avatar',
+      serviceName: 'CGI Avatar Generation',
+      prompt: request.prompt,
+      parameters: {
+        image_urls_count: request.image_urls.length,
+        num_images: request.num_images,
+        image_size: request.image_size,
+        enable_safety_checker: request.enable_safety_checker,
+        seed: request.seed
+      }
+    });
 
     try {
       // Validate request parameters
@@ -738,9 +767,9 @@ export class CGIAvatarGenerationService {
       isProcessedDifferent: processedHeadPhotoUrl !== headPhotoUrl
     });
 
-    // Use Perfect Avatar Configuration for optimal head composition
-    console.log('✨ [PERFECT-CONFIG] Using Perfect Avatar Configuration for head composition');
-    const request = PerfectAvatarConfig.createSeedreamRequest(
+    // Use Perfect Avatar Configuration with user's best prompt for head composition
+    console.log('✨ [PERFECT-CONFIG] Using Perfect Avatar Configuration with best user prompt for head composition');
+    const request = await PerfectAvatarConfig.createSeedreamRequestWithBestPrompt(
       [bodyImageUrl, processedHeadPhotoUrl],
       compositionPrompt,
       {
@@ -762,6 +791,20 @@ export class CGIAvatarGenerationService {
         }
       }
     );
+
+    // Log prompt to debug service
+    promptDebugService.logPrompt({
+      type: 'avatar',
+      serviceName: 'CGI Avatar Generation',
+      prompt: request.prompt,
+      parameters: {
+        image_urls_count: request.image_urls.length,
+        num_images: request.num_images,
+        image_size: request.image_size,
+        enable_safety_checker: request.enable_safety_checker,
+        seed: request.seed
+      }
+    });
 
     try {
       // Validate request parameters

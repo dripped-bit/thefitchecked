@@ -1,9 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, Settings, Download, Save, Zap, Image, ChevronDown, ChevronRight, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, Settings, Download, Save, Zap, Image, ChevronDown, ChevronRight, Loader2, CheckCircle, AlertCircle, Layers } from 'lucide-react';
 import { fashnApiService, FashnTryOnParams, FashnResponse, FashnBatchResult } from '../services/fashnApiService';
+import multiGarmentDetectionService, { MultiGarmentDetectionResult, DetectedGarment } from '../services/multiGarmentDetectionService';
+import { virtualTryOnService } from '../services/virtualTryOnService';
 
 interface ClothingUploadProps {
   avatarImage?: string | File; // The user's avatar/model image
+  avatarGender?: 'male' | 'female' | 'unspecified'; // User's gender for better garment detection
   onTryOnComplete?: (result: FashnResponse) => void;
   onError?: (error: string) => void;
   className?: string;
@@ -24,6 +27,7 @@ interface TryOnSettings {
 
 const ClothingUploadComponent: React.FC<ClothingUploadProps> = ({
   avatarImage,
+  avatarGender,
   onTryOnComplete,
   onError,
   className = ''
@@ -38,6 +42,12 @@ const ClothingUploadComponent: React.FC<ClothingUploadProps> = ({
   const [results, setResults] = useState<FashnResponse[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Multi-garment detection state
+  const [isDetectingGarments, setIsDetectingGarments] = useState(false);
+  const [detectionResult, setDetectionResult] = useState<MultiGarmentDetectionResult | null>(null);
+  const [showMultiGarmentConfirmation, setShowMultiGarmentConfirmation] = useState(false);
+  const [selectedGarments, setSelectedGarments] = useState<DetectedGarment[]>([]);
 
   // Settings state
   const [settings, setSettings] = useState<TryOnSettings>({
@@ -79,7 +89,7 @@ const ClothingUploadComponent: React.FC<ClothingUploadProps> = ({
   }, [onError]);
 
   // File selection handler
-  const handleFileSelection = useCallback((file: File) => {
+  const handleFileSelection = useCallback(async (file: File) => {
     // Validate file
     const validation = fashnApiService['validateImageFile']?.(file);
     if (validation && !validation.valid) {
@@ -91,8 +101,12 @@ const ClothingUploadComponent: React.FC<ClothingUploadProps> = ({
 
     // Create preview
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setClothingPreview(e.target?.result as string);
+    reader.onload = async (e) => {
+      const previewUrl = e.target?.result as string;
+      setClothingPreview(previewUrl);
+
+      // Automatically detect multiple garments
+      await detectGarmentsInImage(previewUrl);
     };
     reader.readAsDataURL(file);
 
@@ -135,8 +149,181 @@ const ClothingUploadComponent: React.FC<ClothingUploadProps> = ({
     setClothingImage(null);
     setClothingPreview(null);
     setResults([]);
+    setDetectionResult(null);
+    setShowMultiGarmentConfirmation(false);
+    setSelectedGarments([]);
     resetFileInput();
   }, [resetFileInput]);
+
+  // Detect multiple garments in uploaded image
+  const detectGarmentsInImage = async (imageUrl: string) => {
+    setIsDetectingGarments(true);
+    console.log('🔍 Analyzing image for multiple garments...', {
+      userGender: avatarGender || 'unspecified'
+    });
+
+    try {
+      const result = await multiGarmentDetectionService.detectMultipleGarments(
+        imageUrl,
+        avatarGender
+      );
+      setDetectionResult(result);
+
+      if (result.success && result.garmentCount > 1) {
+        // Multiple garments detected - show confirmation
+        setSelectedGarments(result.garments); // Pre-select all detected garments
+        setShowMultiGarmentConfirmation(true);
+        console.log(`✅ Detected ${result.garmentCount} garments:`, result.garments);
+      } else if (result.success && result.garmentCount === 1) {
+        // Single garment - auto-set category
+        const singleGarment = result.garments[0];
+        updateSetting('category', singleGarment.category);
+        console.log(`✅ Single garment detected: ${singleGarment.name} (${singleGarment.category})`);
+      }
+    } catch (error) {
+      console.error('❌ Garment detection failed:', error);
+      // Silent fail - user can still manually try on
+    } finally {
+      setIsDetectingGarments(false);
+    }
+  };
+
+  // Perform multi-garment batch try-on
+  const performMultiGarmentTryOn = async () => {
+    if (!clothingImage || !avatarImage || !clothingPreview) {
+      onError?.('Avatar and clothing images are required');
+      return;
+    }
+
+    if (!detectionResult || selectedGarments.length === 0) {
+      onError?.('No garments selected for try-on');
+      return;
+    }
+
+    setIsProcessing(true);
+    setShowMultiGarmentConfirmation(false);
+    setResults([]);
+
+    try {
+      const isSuit = detectionResult.isSuit;
+      const isFormalWear = selectedGarments.some(g => g.isFormalWear);
+
+      console.log(`🎨 Starting multi-garment try-on for ${selectedGarments.length} items...`, {
+        isSuit,
+        isFormalWear,
+        garments: selectedGarments.map(g => `${g.name} (${g.category})`)
+      });
+
+      // For SUITS: Apply sequentially (jacket then pants) with explicit categories
+      // For CASUAL: Use auto-detection in single call
+      if (isSuit || (isFormalWear && selectedGarments.length === 2)) {
+        console.log('🎩 [SUIT-MODE] Detected formal suit - using sequential application');
+
+        // Get avatar image URL
+        let currentAvatarUrl: string;
+        if (typeof avatarImage === 'string') {
+          currentAvatarUrl = avatarImage;
+        } else {
+          currentAvatarUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL(avatarImage);
+          });
+        }
+
+        // Determine optimal garment_photo_type for formal wear
+        const photoType: 'auto' | 'flat-lay' | 'model' = 'flat-lay';
+
+        // Sort garments by suggested order (tops before bottoms)
+        const sortedGarments = [...selectedGarments].sort((a, b) => {
+          const order = detectionResult.suggestedOrder;
+          return order.indexOf(a.category) - order.indexOf(b.category);
+        });
+
+        const tryOnResults: FashnResponse[] = [];
+
+        // Apply each piece with explicit category
+        for (let i = 0; i < sortedGarments.length; i++) {
+          const garment = sortedGarments[i];
+          setProcessingStatus(`Applying ${garment.name} (${i + 1}/${sortedGarments.length})...`);
+
+          console.log(`👔 [SUIT-MODE] Applying piece ${i + 1}/${sortedGarments.length}: ${garment.name} (${garment.category})`);
+
+          const tryOnOptions: Partial<FashnTryOnParams> = {
+            category: garment.category, // Explicit category for each piece
+            mode: settings.mode,
+            moderation_level: settings.moderation_level,
+            garment_photo_type: photoType,
+            segmentation_free: false,
+            num_samples: 1,
+            output_format: settings.output_format,
+            return_base64: settings.return_base64
+          };
+
+          const result = await fashnApiService.virtualTryOn(
+            currentAvatarUrl,
+            clothingImage,
+            tryOnOptions
+          );
+
+          tryOnResults.push(result);
+
+          // Use result as avatar for next piece
+          if (result.url || result.images?.[0]?.url) {
+            currentAvatarUrl = result.url || result.images![0].url;
+            console.log(`✅ [SUIT-MODE] ${garment.name} applied, using result for next piece`);
+          }
+        }
+
+        setResults(tryOnResults);
+        const finalResult = tryOnResults[tryOnResults.length - 1];
+        onTryOnComplete?.(finalResult);
+        setProcessingStatus('Complete! Suit applied.');
+
+        console.log(`✅ [SUIT-MODE] Completed suit application (${sortedGarments.length} pieces)`);
+
+      } else {
+        // Casual outfit - use auto-detection
+        console.log('👕 [CASUAL-MODE] Using auto-detection for casual outfit');
+
+        setProcessingStatus(`Applying complete outfit (${selectedGarments.map(g => g.name).join(' + ')})...`);
+
+        const tryOnOptions: Partial<FashnTryOnParams> = {
+          category: 'auto',
+          mode: settings.mode,
+          moderation_level: settings.moderation_level,
+          garment_photo_type: 'auto',
+          segmentation_free: false,
+          num_samples: 1,
+          output_format: settings.output_format,
+          return_base64: settings.return_base64
+        };
+
+        const result = await fashnApiService.virtualTryOn(
+          avatarImage,
+          clothingImage,
+          tryOnOptions
+        );
+
+        setResults([result]);
+        setProcessingStatus('Complete! All garments applied.');
+        onTryOnComplete?.(result);
+
+        console.log(`✅ [CASUAL-MODE] Completed casual outfit with auto-detection`);
+      }
+
+    } catch (error) {
+      console.error('❌ Multi-garment try-on failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Multi-garment try-on failed';
+      onError?.(errorMessage);
+      setProcessingStatus('Failed');
+    } finally {
+      setIsProcessing(false);
+      setTimeout(() => {
+        setProcessingStatus('');
+      }, 3000);
+    }
+  };
 
   // Settings updaters
   const updateSetting = useCallback(<K extends keyof TryOnSettings>(
@@ -605,6 +792,141 @@ const ClothingUploadComponent: React.FC<ClothingUploadProps> = ({
           </div>
         </div>
       )}
+
+      {/* Multi-Garment Detection Progress */}
+      {isDetectingGarments && (
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-3">
+            <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+            <span className="text-sm text-blue-700">Analyzing image for multiple garments...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Multi-Garment Confirmation Modal */}
+      {showMultiGarmentConfirmation && detectionResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Layers className="w-6 h-6 text-purple-600" />
+                <h3 className="text-xl font-bold text-gray-900">Multiple Garments Detected</h3>
+              </div>
+              <button
+                onClick={() => setShowMultiGarmentConfirmation(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <AlertCircle className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4">
+              {detectionResult.isSuit ? (
+                <>
+                  We detected a <strong>formal suit/tuxedo</strong> with {detectionResult.garmentCount} pieces.
+                  Both the jacket and pants will be applied sequentially for the best fit.
+                </>
+              ) : (
+                <>
+                  We detected {detectionResult.garmentCount} clothing items in this image.
+                  Would you like to apply all of them to your avatar?
+                </>
+              )}
+            </p>
+
+            {/* Detected Garments List */}
+            <div className="space-y-2 mb-6">
+              {detectionResult.garments.map((garment, index) => {
+                const isSelected = selectedGarments.includes(garment);
+                return (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedGarments(prev => prev.filter(g => g !== garment));
+                      } else {
+                        setSelectedGarments(prev => [...prev, garment]);
+                      }
+                    }}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-semibold text-gray-900">{garment.name}</span>
+                          <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                            {garment.category}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">{garment.description}</p>
+                        <div className="flex items-center space-x-1 mt-1">
+                          <span className="text-xs text-gray-500">Confidence:</span>
+                          <div className="flex-1 max-w-[100px] bg-gray-200 rounded-full h-1.5">
+                            <div
+                              className="bg-green-500 h-1.5 rounded-full"
+                              style={{ width: `${garment.confidence * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-500">{Math.round(garment.confidence * 100)}%</span>
+                        </div>
+                      </div>
+                      <div className="ml-3">
+                        {isSelected ? (
+                          <CheckCircle className="w-5 h-5 text-purple-600" />
+                        ) : (
+                          <div className="w-5 h-5 border-2 border-gray-300 rounded-full" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Estimated Time */}
+            <div className={`border rounded-lg p-3 mb-4 ${
+              detectionResult.isSuit ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'
+            }`}>
+              <div className="flex items-center space-x-2">
+                <CheckCircle className={`w-4 h-4 ${detectionResult.isSuit ? 'text-purple-600' : 'text-blue-600'}`} />
+                <span className={`text-xs ${detectionResult.isSuit ? 'text-purple-800' : 'text-blue-800'}`}>
+                  {detectionResult.isSuit ? (
+                    <>
+                      Formal suit mode: Each piece will be applied sequentially (~{selectedGarments.length * 10} seconds total)
+                    </>
+                  ) : (
+                    <>
+                      Using smart auto-detection: All {selectedGarments.length} items will be applied together in ~10 seconds
+                    </>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowMultiGarmentConfirmation(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={performMultiGarmentTryOn}
+                disabled={selectedGarments.length === 0}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Apply {selectedGarments.length} Item{selectedGarments.length !== 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Processing Status */}
       {processingStatus && !isProcessing && (

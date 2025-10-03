@@ -7,13 +7,14 @@
 // Perfect Prompt Templates
 export const PERFECT_PROMPT_TEMPLATE = {
   // Main prompt structure that preserves facial identity and shows full body
-  BASE: `Professional full-body portrait photograph of person with natural facial features exactly matching the reference photo, natural standing pose showing complete figure from head to feet, neutral indoor background, soft natural lighting, photorealistic high-quality image, natural skin texture and realistic proportions, full-length view with feet visible`,
+  BASE: `Professional full-body portrait photograph of person with natural facial features exactly matching the reference photo, natural standing pose showing complete figure from head to feet, professional studio photography with clean white background, soft natural lighting, photorealistic high-quality image, natural skin texture and realistic proportions, full-length view with feet visible. Wearing form-fitting white tank top and blue athletic shorts. Pose: standing naturally with arms at sides, FASHN-compatible pose`,
 
   // Additional elements that can be appended
+  // NOTE: Placeholder names must match the lowercase version of the key name
   EXTENSIONS: {
-    BODY_MEASUREMENTS: `Apply body measurements: {measurements}`,
-    CLOTHING_STYLE: `Wearing: {clothing}`,
-    ENVIRONMENT: `Background: {background}`,
+    BODY_MEASUREMENTS: `{body_measurements}`,
+    CLOTHING_STYLE: `Wearing: {clothing_style}`,
+    ENVIRONMENT: `Background: {environment}`,
     POSE: `Pose: {pose}`
   }
 };
@@ -71,10 +72,39 @@ export const PERFECT_GENERATION_PARAMS = {
 // Utility Functions
 export const PerfectAvatarConfig = {
   /**
-   * Build complete prompt with custom content
+   * Get the best prompt to use for generation (user's saved prompt or default)
    */
-  buildPrompt(customContent = '', extensions = {}) {
-    let prompt = PERFECT_PROMPT_TEMPLATE.BASE;
+  async getBestPromptConfig() {
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { getBestPromptForGeneration } = await import('./bestavatargenerated.js');
+      const bestPrompt = await getBestPromptForGeneration();
+
+      console.log(`🌟 [PERFECT-CONFIG] Using ${bestPrompt.source} prompt:`, bestPrompt.name || 'Default');
+
+      return {
+        basePrompt: bestPrompt.prompt,
+        negativePrompt: bestPrompt.negativePrompt,
+        parameters: bestPrompt.parameters,
+        source: bestPrompt.source
+      };
+    } catch (error) {
+      console.error('❌ [PERFECT-CONFIG] Error loading best prompt, using defaults:', error);
+      return {
+        basePrompt: PERFECT_PROMPT_TEMPLATE.BASE,
+        negativePrompt: PERFECT_NEGATIVE_PROMPT.COMPLETE,
+        parameters: PERFECT_GENERATION_PARAMS.OPTIMAL,
+        source: 'fallback'
+      };
+    }
+  },
+
+  /**
+   * Build complete prompt with custom content
+   * Can optionally use a custom base prompt (e.g., from user's saved prompts)
+   */
+  buildPrompt(customContent = '', extensions = {}, basePrompt = null) {
+    let prompt = basePrompt || PERFECT_PROMPT_TEMPLATE.BASE;
 
     // Add custom content
     if (customContent) {
@@ -137,6 +167,43 @@ export const PerfectAvatarConfig = {
       prompt: this.buildPrompt(customContent, extensions),
       negative_prompt: this.getNegativePrompt(additionalNegatives),
       ...this.getParams(quality, paramOverrides),
+      ...otherOptions
+    };
+  },
+
+  /**
+   * Create complete Seedream request config using best user prompt
+   * Async version that checks for user's saved prompts first
+   */
+  async createSeedreamRequestWithBestPrompt(imageUrls, customContent = '', options = {}) {
+    const {
+      quality = 'OPTIMAL',
+      extensions = {},
+      additionalNegatives = [],
+      paramOverrides = {},
+      ...otherOptions
+    } = options;
+
+    // Get best prompt configuration
+    const bestPrompt = await this.getBestPromptConfig();
+
+    console.log(`🎯 [PERFECT-CONFIG] Creating Seedream request with ${bestPrompt.source} prompt`);
+
+    // Use user's saved parameters if available, otherwise use specified quality
+    const userParams = bestPrompt.parameters || {};
+    const qualityParams = this.getParams(quality, paramOverrides);
+
+    return {
+      image_urls: Array.isArray(imageUrls) ? imageUrls : [imageUrls],
+      prompt: this.buildPrompt(customContent, extensions, bestPrompt.basePrompt),
+      negative_prompt: bestPrompt.negativePrompt || this.getNegativePrompt(additionalNegatives),
+      // Merge user parameters with quality parameters, preferring user's saved params
+      ...qualityParams,
+      ...(userParams.num_inference_steps && { num_inference_steps: userParams.num_inference_steps }),
+      ...(userParams.guidance_scale && { guidance_scale: userParams.guidance_scale }),
+      ...(userParams.strength && { strength: userParams.strength }),
+      ...(userParams.image_size && { image_size: userParams.image_size }),
+      ...paramOverrides, // Final overrides take highest priority
       ...otherOptions
     };
   },

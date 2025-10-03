@@ -26,6 +26,7 @@ import PerplexityService, { ProductSearchResult, ProductSearchOptions } from '..
 import affiliateLinkService from '../services/affiliateLinkService';
 import SavedPromptsModal from './SavedPromptsModal';
 import { CURRENT_PERFECT_PROMPT } from '../config/bestavatargenerated.js';
+import stylePreferencesService from '../services/stylePreferencesService';
 
 interface AvatarHomepageProps {
   onBack: () => void;
@@ -164,6 +165,9 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   // Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
 
+  // User's fashion rule from style preferences
+  const [fashionRule, setFashionRule] = useState<string>('Today TheFitChecked');
+
   // Saved prompts modal state
   const [showPromptsModal, setShowPromptsModal] = useState(false);
 
@@ -208,6 +212,28 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
     } catch (error) {
       console.error('Failed to load wishlist:', error);
     }
+  }, []);
+
+  // Load user's fashion rule from style preferences
+  useEffect(() => {
+    const loadFashionRule = async () => {
+      try {
+        const styleProfile = await stylePreferencesService.loadStyleProfile();
+
+        if (styleProfile?.descriptions?.alwaysFollow && styleProfile.descriptions.alwaysFollow.trim() !== '') {
+          setFashionRule(styleProfile.descriptions.alwaysFollow);
+          console.log('✅ Loaded fashion rule:', styleProfile.descriptions.alwaysFollow);
+        } else {
+          setFashionRule('Today TheFitChecked'); // Default fallback
+          console.log('📋 No fashion rule found - using default');
+        }
+      } catch (error) {
+        console.error('❌ Failed to load fashion rule:', error);
+        setFashionRule('Today TheFitChecked'); // Fallback on error
+      }
+    };
+
+    loadFashionRule();
   }, []);
 
   // Generate random pose when avatar changes
@@ -708,7 +734,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
             {getTimeBasedGreeting()} {getUserFirstName()}
           </h1>
           <p className="text-sm text-slate-600 tracking-wide">
-            Today TheFitChecked
+            {fashionRule}
           </p>
         </div>
 

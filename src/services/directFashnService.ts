@@ -6,6 +6,7 @@
  */
 
 import { fashnLibraryService, LibraryGarment, FashnLibraryResponse } from './fashnLibraryService';
+import { debugLog } from '../utils/debugConfig';
 
 interface FashnTryOnRequest {
   model_name: string;
@@ -69,6 +70,9 @@ interface RetryAttempt {
 class DirectFashnService {
   private baseUrl = '/api/fashn'; // Use proxy route instead of direct API
   private modelVersion = 'tryon-v1.6';
+
+  // Warning suppression flag (static to persist across instances)
+  private static fashnWarningShown = false;
 
   // Performance optimization and caching
   private parameterCache = new Map<string, GarmentAnalysis>();
@@ -321,12 +325,15 @@ class DirectFashnService {
       }
     });
 
-    // Add warning about common issues
-    console.warn('⚠️ [FASHN-VALIDATION] If clothes don\'t appear, check avatar quality:');
-    console.warn('   • Arms must be at sides (not behind back or crossed)');
-    console.warn('   • Full body must be visible');
-    console.warn('   • Good lighting and contrast');
-    console.warn('   • Person should be facing camera');
+    // Only show warning once per session to reduce console noise
+    if (!DirectFashnService.fashnWarningShown) {
+      console.warn('⚠️ [FASHN-VALIDATION] Avatar requirements for best results:');
+      console.warn('   • Arms at sides (not behind back or crossed)');
+      console.warn('   • Full body visible');
+      console.warn('   • Good lighting and contrast');
+      console.warn('   • Person facing camera');
+      DirectFashnService.fashnWarningShown = true;
+    }
   }
 
   constructor() {
@@ -1376,8 +1383,12 @@ class DirectFashnService {
             console.warn(`⚠️ [SAMPLE-${index}] Invalid URL format`);
           }
 
+          // Check if FASHN CDN URL (these are naturally short)
+          const isFashnCdn = url && (url.includes('cdn.fashn.ai') || url.includes('fal.media'));
+
           // Check URL length (longer URLs often indicate more data)
-          if (url.length < 100) {
+          // Skip this check for FASHN CDN URLs which are legitimately short
+          if (!isFashnCdn && url.length < 100) {
             score -= 20;
             console.warn(`⚠️ [SAMPLE-${index}] Suspiciously short URL`);
           }
@@ -1385,10 +1396,10 @@ class DirectFashnService {
           // Prefer URLs with certain quality indicators
           if (url.includes('_hq') || url.includes('high') || url.includes('quality')) {
             score += 10;
-            console.log(`✅ [SAMPLE-${index}] Quality indicator in URL`);
+            debugLog.sample(`✅ [SAMPLE-${index}] Quality indicator in URL`);
           }
 
-          console.log(`📊 [SAMPLE-${index}] Quality score: ${score}`);
+          debugLog.sample(`📊 [SAMPLE-${index}] Quality score: ${score}`);
 
           return {
             url,
@@ -1402,7 +1413,7 @@ class DirectFashnService {
       scoredSamples.sort((a, b) => b.score - a.score);
 
       const bestSample = scoredSamples[0];
-      console.log('🏆 [SAMPLE-SELECTION] Best sample selected:', {
+      debugLog.sample('🏆 [SAMPLE-SELECTION] Best sample selected:', {
         index: bestSample.index,
         score: bestSample.score,
         totalSamples: sampleUrls.length

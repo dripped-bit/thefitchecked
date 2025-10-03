@@ -15,6 +15,9 @@ export interface ClothingItem {
   description?: string;
   isUserGenerated?: boolean;
   source?: string;
+  status?: 'processing' | 'categorized' | 'uncategorized'; // Added for async categorization tracking
+  categorizationMethod?: 'ai' | 'heuristic' | 'default'; // Track how item was categorized
+  confidence?: number; // Categorization confidence score
 }
 
 export type ClothingCategory = 'shirts' | 'pants' | 'skirts' | 'dresses' | 'shoes' | 'accessories' | 'outerwear' | 'tops' | 'jackets' | 'other';
@@ -716,6 +719,134 @@ export class ClosetService {
       currentWeekPlannedDays,
       mostUsedItems
     };
+  }
+
+  // ===== ASYNC CATEGORIZATION METHODS =====
+
+  /**
+   * Save item with "processing" status for async categorization
+   * Allows immediate save while categorization happens in background
+   */
+  static async saveClothingItemProcessing(
+    imageUrl: string,
+    name?: string,
+    description?: string
+  ): Promise<ClothingItem> {
+    const closet = this.getUserCloset();
+
+    // Save with temporary 'other' category and 'processing' status
+    const newItem: ClothingItem = {
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: name || `Item ${Date.now()}`,
+      imageUrl,
+      category: 'other', // Temporary category
+      uploadDate: new Date().toISOString(),
+      description: description || '',
+      favorite: false,
+      tags: [],
+      status: 'processing', // Mark as processing
+      categorizationMethod: 'default',
+      confidence: 0
+    };
+
+    closet.other.push(newItem);
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(closet));
+      console.log('✅ Saved item with processing status:', newItem.name);
+      return newItem;
+    } catch (error) {
+      console.error('Failed to save processing item:', error);
+      throw new Error('Unable to save clothing item to closet');
+    }
+  }
+
+  /**
+   * Update item with categorization results
+   * Moves item to correct category and updates status
+   */
+  static async updateItemCategorizationResult(
+    itemId: string,
+    category: ClothingCategory,
+    metadata: {
+      subcategory?: string;
+      color?: string;
+      style?: string;
+      season?: string;
+      confidence?: number;
+      method?: 'ai' | 'heuristic' | 'default';
+    }
+  ): Promise<boolean> {
+    try {
+      const closet = this.getUserCloset();
+      let item: ClothingItem | undefined;
+      let sourceCategory: ClothingCategory | undefined;
+
+      // Find the item in any category
+      Object.keys(closet).forEach(categoryKey => {
+        const cat = categoryKey as ClothingCategory;
+        const foundItem = closet[cat].find(i => i.id === itemId);
+        if (foundItem) {
+          item = foundItem;
+          sourceCategory = cat;
+        }
+      });
+
+      if (!item || !sourceCategory) {
+        console.error(`Item ${itemId} not found in closet`);
+        return false;
+      }
+
+      // Remove from old category
+      closet[sourceCategory] = closet[sourceCategory].filter(i => i.id !== itemId);
+
+      // Update item with categorization results
+      item.category = category;
+      item.status = 'categorized';
+      item.categorizationMethod = metadata.method || 'ai';
+      item.confidence = metadata.confidence || 0.5;
+
+      // Update description if subcategory provided
+      if (metadata.subcategory) {
+        item.description = `${metadata.subcategory}${item.description ? ' - ' + item.description : ''}`;
+      }
+
+      // Add to new category
+      if (!closet[category]) {
+        closet[category] = [];
+      }
+      closet[category].push(item);
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(closet));
+      console.log(`✅ Updated item ${itemId} categorization:`, {
+        category,
+        method: metadata.method,
+        confidence: metadata.confidence
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Failed to update item categorization:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get items that are still processing
+   */
+  static getProcessingItems(): ClothingItem[] {
+    return this.getAllClothingItems().filter(item => item.status === 'processing');
+  }
+
+  /**
+   * Mark item as uncategorized (categorization failed)
+   */
+  static async markItemUncategorized(itemId: string): Promise<boolean> {
+    return this.updateClothingItem(itemId, {
+      status: 'uncategorized',
+      categorizationMethod: 'default',
+      confidence: 0
+    });
   }
 }
 

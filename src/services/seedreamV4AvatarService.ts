@@ -8,6 +8,7 @@ import { environmentConfig } from './environmentConfig';
 import { faceAnalysisService, FaceAnalysis } from './faceAnalysisService';
 import { klingVideoService, AnimatedAvatar } from './klingVideoService';
 import { PerfectAvatarConfig, PERFECT_GENERATION_PARAMS } from '../config/perfectAvatarConfig.js';
+import promptDebugService from './promptDebugService';
 
 console.log('🔧 FAL Client Configuration: Using /api/fal proxy');
 
@@ -330,6 +331,19 @@ export class SeedreamV4AvatarService {
       enable_safety_checker: request.enable_safety_checker
     });
 
+    // Log prompt to debug service
+    promptDebugService.logPrompt({
+      type: 'avatar',
+      serviceName: 'Seedream V4 - Body Generation',
+      prompt: bodyPrompt,
+      parameters: {
+        num_images: request.num_images,
+        image_size: request.image_size,
+        enable_safety_checker: request.enable_safety_checker,
+        seed: request.seed
+      }
+    });
+
     try {
 
       // Enhanced logging before API call
@@ -493,6 +507,20 @@ export class SeedreamV4AvatarService {
 
     console.log('✨ [PERFECT-AVATAR] Face composition using Perfect Avatar Config');
 
+    // Log prompt to debug service
+    promptDebugService.logPrompt({
+      type: 'avatar',
+      serviceName: 'Seedream V4 - Face Composition',
+      prompt: request.prompt,
+      parameters: {
+        num_images: request.num_images,
+        image_size: request.image_size,
+        enable_safety_checker: request.enable_safety_checker,
+        seed: request.seed,
+        image_count: request.image_urls.length
+      }
+    });
+
     try {
 
       console.log('🚀 Calling fal-ai/bytedance/seedream/v4/edit via proxy...');
@@ -652,26 +680,32 @@ export class SeedreamV4AvatarService {
       else customContent += 'balanced proportions, ';
     }
 
-    // Detailed measurements integration
-    const measurementDetails = `chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm, shoulder width ${measurements.shoulders}cm`;
-    customContent += measurementDetails;
+    // Detailed measurements - will be added via extension, not in customContent
+    const measurementDetails = `Body measurements: chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm, height ${height}cm`;
+
+    if (measurements.shoulders) {
+      customContent += `, shoulder width ${measurements.shoulders}cm`;
+    }
 
     if (measurements.inseam) {
       customContent += `, inseam ${measurements.inseam}cm for proportional legs`;
     }
 
-    customContent += '. Wearing form-fitting white tank top and short fitted blue lounge shorts. ';
-    customContent += 'Professional fashion photography quality, detailed anatomy, natural skin texture, ';
-    customContent += 'clean white background, high resolution, photorealistic rendering, ';
-    customContent += 'optimized for virtual try-on applications, proper scale and proportions.';
+    customContent += '. '; // End custom content with period
 
     // BUILD COMPLETE PROMPT USING PERFECT AVATAR CONFIG
+    // BASE template already includes: white tank top, blue athletic shorts, FASHN-compatible pose,
+    // clean white background, full-body with feet visible, 9:16 aspect ratio
+    // Measurements are added via extension to avoid duplication
     const perfectPrompt = PerfectAvatarConfig.buildPrompt(customContent, {
-      BODY_MEASUREMENTS: measurementDetails,
-      POSE: 'standing naturally with arms at sides'
+      BODY_MEASUREMENTS: measurementDetails
+      // NOTE: POSE, CLOTHING_STYLE, ENVIRONMENT are already in BASE template
     });
 
-    console.log('✨ [PERFECT-AVATAR] Using Perfect Avatar Config prompt');
+    console.log('✨ [PERFECT-AVATAR] Using Perfect Avatar Config BASE template');
+    console.log('✨ [PERFECT-AVATAR] BASE includes: white tank top, blue athletic shorts, FASHN-compatible pose, clean white background, 9:16 aspect ratio');
+    console.log('✨ [PERFECT-AVATAR] User-specific details: age, gender, skin tone, build type');
+    console.log('✨ [PERFECT-AVATAR] Body measurements:', measurementDetails);
     return perfectPrompt;
   }
 

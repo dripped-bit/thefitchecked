@@ -107,6 +107,30 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
     }
   }, [autoFillData]);
 
+  // Load saved preferences on component mount
+  useEffect(() => {
+    const loadSavedPreferences = async () => {
+      // Don't auto-load if we already have autoFillData
+      if (autoFillData) {
+        console.log('⏭️ Skipping auto-load - using autoFillData prop instead');
+        return;
+      }
+
+      console.log('🔍 Checking for saved style preferences...');
+      const savedProfile = await stylePreferencesService.loadStyleProfile();
+
+      if (savedProfile) {
+        console.log('✅ Loaded saved style preferences from IndexedDB:', savedProfile);
+        setUserProfile(savedProfile as UserProfile);
+        setIsAutoFilled(true); // Mark as auto-filled so user knows data was loaded
+      } else {
+        console.log('📋 No saved style preferences found - starting with fresh form');
+      }
+    };
+
+    loadSavedPreferences();
+  }, []); // Empty dependency array = run once on mount
+
   const sections = [
     'Lifestyle & Daily Rhythm',
     'Fashion Personality',

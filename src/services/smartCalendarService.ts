@@ -476,6 +476,124 @@ class SmartCalendarService {
   }
 
   // =====================
+  // Shopping Link Management
+  // =====================
+
+  /**
+   * Check if URL is a specific product page (not collection/category)
+   */
+  isProductUrl(url: string): boolean {
+    const productPatterns = [
+      '/dp/',        // Amazon
+      '/gp/product/', // Amazon alternate
+      '/products/',  // Fashion Nova, Shopify stores
+      '/goods',      // SHEIN
+      '-p-',         // SHEIN product code
+      '-p[0-9]+',    // Zara
+      '/s/',         // Nordstrom
+      '/shop/',      // Nordstrom alternate
+      '/item/',      // Generic
+      '/p/',         // Target, Neiman Marcus
+      'sku=',        // SKU parameter
+      'product_id=', // Product ID parameter
+      '/A-'          // Target product code
+    ];
+
+    return productPatterns.some(pattern =>
+      url.match(new RegExp(pattern))
+    );
+  }
+
+  /**
+   * Save outfit to calendar with validated shopping links
+   */
+  async saveOutfitToCalendar(outfitData: {
+    date: Date;
+    occasion: string;
+    outfit: any;
+    shoppingLinks: Array<{ url: string; store: string; [key: string]: any }>;
+  }): Promise<void> {
+    const { date, occasion, outfit, shoppingLinks } = outfitData;
+
+    // Import affiliate service dynamically to avoid circular dependency
+    const { affiliateLinkService } = await import('./affiliateLinkService');
+
+    // Process shopping links to ensure they're product-specific
+    const processedLinks = shoppingLinks.map(link => {
+      // Validate it's a product page
+      if (!this.isProductUrl(link.url)) {
+        console.warn('⚠️ [CALENDAR] Invalid product URL:', link.url);
+        return null;
+      }
+
+      // Convert to affiliate link while maintaining deep link
+      const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
+        link.url,
+        link.store
+      );
+
+      return {
+        ...link,
+        originalUrl: link.url,
+        affiliateUrl: affiliateUrl,
+        isDirectProduct: true,
+        validatedAt: Date.now()
+      };
+    }).filter(Boolean);
+
+    console.log(`✅ [CALENDAR] Validated ${processedLinks.length}/${shoppingLinks.length} shopping links`);
+
+    // Create calendar entry with validated links
+    const calendarEntry = {
+      date,
+      occasion,
+      outfit,
+      shoppingLinks: processedLinks,
+      reminder: outfit.reminderDate,
+      id: Date.now(),
+      createdAt: Date.now()
+    };
+
+    // Save to localStorage (in future, sync with actual calendar provider)
+    const existingEntries = this.getCalendarEntries();
+    existingEntries.push(calendarEntry);
+    localStorage.setItem('calendar_outfit_entries', JSON.stringify(existingEntries));
+
+    console.log('✅ [CALENDAR] Saved to calendar with validated shopping links');
+  }
+
+  /**
+   * Get all calendar outfit entries
+   */
+  getCalendarEntries(): any[] {
+    try {
+      const stored = localStorage.getItem('calendar_outfit_entries');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('❌ [CALENDAR] Failed to load entries:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get calendar entry by ID
+   */
+  getCalendarEntry(id: number): any | null {
+    const entries = this.getCalendarEntries();
+    return entries.find(entry => entry.id === id) || null;
+  }
+
+  /**
+   * Remove calendar entry
+   */
+  removeCalendarEntry(id: number): void {
+    const entries = this.getCalendarEntries();
+    const filtered = entries.filter(entry => entry.id !== id);
+    localStorage.setItem('calendar_outfit_entries', JSON.stringify(filtered));
+    console.log('✅ [CALENDAR] Removed entry:', id);
+  }
+
+  // =====================
   // Public API Methods
   // =====================
 

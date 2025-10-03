@@ -11,6 +11,7 @@
 import { environmentConfig } from './environmentConfig';
 import enhancedPromptGenerationService from './enhancedPromptGenerationService';
 import { virtualTryOnService } from './virtualTryOnService';
+import promptDebugService from './promptDebugService';
 
 export interface SeamlessTryOnRequest {
   clothingDescription: string;
@@ -199,6 +200,21 @@ class SeamlessTryOnService {
           finalPrompt = `${description}, clothing item, white background, high quality, detailed`;
         }
       }
+
+      // Log prompt to debug service
+      promptDebugService.logPrompt({
+        type: 'outfit',
+        serviceName: 'Seamless Try-On - Clothing Generation',
+        prompt: finalPrompt,
+        negativePrompt: 'blurry, low quality, distorted, multiple items, background clutter, watermark, text, bad anatomy',
+        parameters: {
+          image_size: { width: 512, height: 768 },
+          num_inference_steps: 30,
+          guidance_scale: 8.0,
+          num_images: 1,
+          scheduler: 'DPM++ 2M Karras'
+        }
+      });
 
       // Generate clothing using Seedream text-to-image
       const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
