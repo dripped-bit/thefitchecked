@@ -12,12 +12,14 @@ import {
   Check,
   ChevronDown,
   Eye,
-  Share2
+  Share2,
+  X
 } from 'lucide-react';
 import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import { ParsedOccasion } from './SmartOccasionInput';
 import ShareModal from './ShareModal';
+import CalendarEntryModal from './CalendarEntryModal';
 import imageExporter from '../utils/imageExporter';
 
 export interface OutfitPersonality {
@@ -65,6 +67,10 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   const [styleSummary, setStyleSummary] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareOutfit, setShareOutfit] = useState<GeneratedOutfit | null>(null);
+  const [showImageZoom, setShowImageZoom] = useState(false);
+  const [zoomOutfit, setZoomOutfit] = useState<GeneratedOutfit | null>(null);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [outfitToSave, setOutfitToSave] = useState<any>(null);
 
   const personalities: OutfitPersonality[] = [
     {
@@ -174,12 +180,114 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   };
 
   const createCleanSearchPrompt = (): string => {
-    // Clean prompt for Perplexity search - just the core outfit description
+    // Enhanced search prompt with context
     const basePrompt = occasion.occasion;
     const formalityContext = occasion.formality ? `${occasion.formality}` : '';
 
-    // Return clean search prompt without technical instructions or style preferences
-    return `${basePrompt} ${formalityContext}`.trim();
+    // Add weather context for better matching
+    let weatherContext = '';
+    if (occasion.weather) {
+      const temp = occasion.weather.temperature;
+      if (temp < 60) {
+        weatherContext = 'warm layers';
+      } else if (temp > 80) {
+        weatherContext = 'breathable summer';
+      } else {
+        weatherContext = 'comfortable';
+      }
+    }
+
+    // Return enhanced search prompt
+    return `${weatherContext} ${basePrompt} ${formalityContext}`.trim();
+  };
+
+  /**
+   * Analyze generated outfit image to extract colors, styles, and garment types
+   * This creates much more specific search queries for better product matching
+   */
+  const analyzeOutfitImage = async (imageUrl: string, personalityName: string): Promise<string> => {
+    try {
+      console.log('🔍 [IMAGE-ANALYSIS] Analyzing outfit image for better search matching...');
+
+      // Convert image to base64 for Claude Vision API
+      const base64Image = await imageToBase64(imageUrl);
+
+      const response = await fetch('/api/claude/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 300,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: 'image/jpeg',
+                    data: base64Image
+                  }
+                },
+                {
+                  type: 'text',
+                  text: `Analyze this ${personalityName} outfit for ${occasion.occasion} and extract:
+1. PRIMARY COLORS (2-3 main colors)
+2. GARMENT TYPE (dress/skirt/top/pants/jumpsuit)
+3. STYLE ATTRIBUTES (flowy/fitted/bohemian/structured/casual)
+4. PATTERN/TEXTURE (floral/solid/striped/lace)
+
+Return ONLY as a shopping search query like: "coral pink flowy maxi dress bohemian floral"
+NO explanations, just the search keywords.`
+                }
+              ]
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Claude API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const searchQuery = result.content?.[0]?.text?.trim() || '';
+
+      console.log('✅ [IMAGE-ANALYSIS] Extracted search query:', searchQuery);
+      return searchQuery;
+
+    } catch (error) {
+      console.error('❌ [IMAGE-ANALYSIS] Failed:', error);
+      // Fallback to basic prompt
+      return createCleanSearchPrompt();
+    }
+  };
+
+  /**
+   * Convert image URL to base64
+   */
+  const imageToBase64 = async (imageUrl: string): Promise<string> => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          const base64Data = base64.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('❌ Image to base64 conversion failed:', error);
+      throw error;
+    }
   };
 
   const generateReasoning = (personality: OutfitPersonality): string[] => {
@@ -245,7 +353,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
           },
           body: JSON.stringify({
             prompt,
-            image_size: { height: 1024, width: 1024 },
+            image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true
           })
@@ -267,7 +375,8 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
         const priceRange = personality.id === 'elegant' ? '$120-$200' :
                           personality.id === 'romantic' ? '$89-$150' : '$95-$180';
 
-        const searchPrompt = createCleanSearchPrompt();
+        // Analyze the generated outfit image to create intelligent search prompts
+        const searchPrompt = await analyzeOutfitImage(result.images[0].url, personality.name);
 
         return {
           personality,
@@ -363,6 +472,41 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     }
   };
 
+  const handleImagePreview = (outfit: GeneratedOutfit) => {
+    console.log('🔍 [PREVIEW] Preview button clicked for outfit:', outfit.personality.name);
+    console.log('🖼️ [PREVIEW] Opening zoom modal with image:', outfit.imageUrl);
+    setZoomOutfit(outfit);
+    setShowImageZoom(true);
+    console.log('✅ [PREVIEW] Zoom modal state set to true');
+  };
+
+  const handleAddToCalendar = (outfit: GeneratedOutfit) => {
+    console.log('📅 [CALENDAR] Opening calendar modal for outfit:', outfit.personality.name);
+
+    // Prepare outfit data for calendar
+    setOutfitToSave({
+      outfit: outfit,
+      occasion: occasion.occasion,
+      image: outfit.imageUrl,
+      avatarUrl: outfit.imageUrl,
+      imageUrl: outfit.imageUrl,
+      description: `${outfit.personality.name} outfit for ${occasion.occasion}`,
+      personality: outfit.personality,
+      searchPrompt: outfit.searchPrompt,
+      originalPrompt: outfit.originalPrompt
+    });
+
+    // Open the modal
+    setShowCalendarModal(true);
+    console.log('✅ [CALENDAR] Calendar modal opened');
+  };
+
+  const handleCalendarSave = (calendarEntry: any) => {
+    console.log('💾 [CALENDAR] Calendar entry saved:', calendarEntry);
+    // Modal will be closed by CalendarEntryModal component
+    setShowCalendarModal(false);
+  };
+
   if (isGenerating) {
     return (
       <div className={`triple-outfit-generator ${className}`}>
@@ -427,11 +571,11 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
         </div>
 
         {/* Triple Outfit Display */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="space-y-6">
           {outfits.map((outfit) => (
             <div
               key={outfit.personality.id}
-              className={`relative bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-lg ${
+              className={`block w-full relative bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-lg ${
                 outfit.isSelected ? 'border-purple-500 shadow-lg ring-4 ring-purple-100' : 'border-gray-200'
               }`}
             >
@@ -456,16 +600,16 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
               </div>
 
               {/* Outfit Image */}
-              <div className="p-4">
-                <div className="relative aspect-square bg-gray-100 rounded-xl overflow-hidden mb-4">
+              <div className="p-6">
+                <div className="relative aspect-[2/3] min-h-[500px] bg-gray-100 rounded-xl overflow-hidden mb-4">
                   <img
                     src={outfit.imageUrl}
                     alt={`${outfit.personality.name} outfit`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-opacity duration-200 flex items-center justify-center">
                     <button
-                      onClick={() => handleOutfitSelect(outfit)}
+                      onClick={() => handleImagePreview(outfit)}
                       className="opacity-0 hover:opacity-100 bg-white text-gray-900 px-4 py-2 rounded-lg font-medium transition-opacity duration-200"
                     >
                       <Eye className="w-4 h-4 inline mr-2" />
@@ -538,6 +682,15 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
                     </button>
                   )}
 
+                  {/* Calendar Button */}
+                  <button
+                    onClick={() => handleAddToCalendar(outfit)}
+                    className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    <span>Add to Calendar</span>
+                  </button>
+
                   {/* Share Button */}
                   <button
                     onClick={() => handleShareOutfit(outfit)}
@@ -571,6 +724,15 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
         )}
       </div>
 
+      {/* Calendar Modal */}
+      {showCalendarModal && outfitToSave && (
+        <CalendarEntryModal
+          outfit={outfitToSave}
+          onSave={handleCalendarSave}
+          onClose={() => setShowCalendarModal(false)}
+        />
+      )}
+
       {/* Share Modal */}
       {showShareModal && shareOutfit && (
         <ShareModal
@@ -596,6 +758,46 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
           }}
           onDownload={handleDownloadOutfit}
         />
+      )}
+
+      {/* Image Zoom Modal */}
+      {showImageZoom && zoomOutfit && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowImageZoom(false)}
+        >
+          <div className="relative max-w-4xl w-full">
+            <button
+              onClick={() => setShowImageZoom(false)}
+              className="absolute -top-12 right-0 p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="bg-white rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {zoomOutfit.personality.name} Outfit
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {occasion.occasion}
+                  </p>
+                </div>
+                <div className={`px-3 py-1 rounded-full text-xs font-medium ${zoomOutfit.personality.bgColor}`}>
+                  {zoomOutfit.personality.description}
+                </div>
+              </div>
+              <div className="bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center min-h-[600px]">
+                <img
+                  src={zoomOutfit.imageUrl}
+                  alt={`${zoomOutfit.personality.name} outfit`}
+                  className="w-full h-auto max-h-[85vh] max-w-[700px] object-contain mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

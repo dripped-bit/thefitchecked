@@ -3,6 +3,8 @@
  * Uses fal.ai background removal models for clean, transparent clothing images
  */
 
+import clothingCategorizationService, { CategorizationResult } from './clothingCategorizationService';
+
 interface BackgroundRemovalResult {
   success: boolean;
   imageUrl?: string;
@@ -87,82 +89,28 @@ class BackgroundRemovalService {
 
   /**
    * Smart AI-powered categorization of clothing items
+   * Now delegates to the dedicated categorization service with multi-level fallback
    */
-  async categorizeClothing(imageUrl: string): Promise<SmartCategorizationResult> {
+  async categorizeClothing(imageUrl: string, filename?: string): Promise<SmartCategorizationResult> {
     try {
-      console.log('🤖 [CATEGORIZATION] Starting AI categorization...');
+      // Use new dedicated categorization service with fallback support
+      const result: CategorizationResult = await clothingCategorizationService.categorizeClothing(imageUrl, filename);
 
-      // Use Claude API for image analysis via proxy
-      const response = await fetch('/api/claude', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 300,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: {
-                    type: 'base64',
-                    media_type: 'image/jpeg',
-                    data: await this.imageToBase64(imageUrl)
-                  }
-                },
-                {
-                  type: 'text',
-                  text: `Analyze this clothing item and provide categorization in JSON format:
-                  {
-                    "category": "shirts|pants|dresses|shoes|accessories",
-                    "type": "specific type (e.g., t-shirt, jeans, sneakers)",
-                    "color": "primary color",
-                    "season": "spring|summer|fall|winter|all",
-                    "confidence": 0.95
-                  }
-
-                  Only respond with valid JSON, no additional text.`
-                }
-              ]
-            }
-          ]
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Categorization failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      const content = result.content?.[0]?.text;
-
-      if (content) {
-        try {
-          const parsed = JSON.parse(content);
-          console.log('✅ [CATEGORIZATION] Item categorized:', parsed);
-
-          return {
-            success: true,
-            category: parsed.category,
-            color: parsed.color,
-            type: parsed.type,
-            season: parsed.season,
-            confidence: parsed.confidence
-          };
-        } catch (parseError) {
-          throw new Error('Failed to parse categorization response');
-        }
-      } else {
-        throw new Error('No categorization result returned');
-      }
+      // Convert to legacy format for backward compatibility
+      return {
+        success: result.success,
+        category: result.category,
+        color: result.color,
+        type: result.subcategory,
+        season: result.season,
+        confidence: result.confidence,
+        error: result.error
+      };
 
     } catch (error) {
-      console.error('❌ [CATEGORIZATION] Error:', error);
+      console.error('❌ [CATEGORIZATION] Unexpected error:', error);
 
-      // Fallback to basic categorization based on filename or default
+      // Return default on unexpected error
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -172,6 +120,8 @@ class BackgroundRemovalService {
 
   /**
    * Enhanced upload with automatic processing
+   * Now uses improved categorization service with fallback support
+   * CRITICAL: Always succeeds - categorization failures don't break uploads
    */
   async processClothingUpload(file: File): Promise<{
     success: boolean;
@@ -182,29 +132,76 @@ class BackgroundRemovalService {
     error?: string;
   }> {
     try {
-      console.log('📁 [UPLOAD] Processing clothing upload...');
+      console.log('📁 [UPLOAD] Processing clothing upload for:', file.name);
+      console.log('📏 [UPLOAD] File size:', (file.size / 1024).toFixed(2), 'KB');
 
       // Step 1: Convert to base64 for persistent storage
       const base64Data = await this.fileToBase64(file);
       const originalImageUrl = `data:${file.type};base64,${base64Data}`;
+      console.log('✅ [UPLOAD] Image converted to base64, length:', originalImageUrl.length);
 
       // Step 2: Upload to a temporary storage (for processing) - uses same base64
       const uploadedImageUrl = await this.uploadToTempStorage(file);
+      console.log('✅ [UPLOAD] Image uploaded to temp storage');
 
-      // Step 3: Remove background
-      const backgroundRemovalResult = await this.removeBackground(uploadedImageUrl);
+      // Step 3: Remove background (optional, doesn't break upload if fails)
+      let backgroundRemovalResult;
+      try {
+        backgroundRemovalResult = await this.removeBackground(uploadedImageUrl);
+        console.log('✅ [UPLOAD] Background removal:', backgroundRemovalResult.success ? 'success' : 'skipped');
+      } catch (bgError) {
+        console.warn('⚠️ [UPLOAD] Background removal failed, using original image:', bgError);
+        backgroundRemovalResult = { success: false, imageUrl: originalImageUrl };
+      }
 
-      // Step 4: Categorize the item
-      const categorizationResult = await this.categorizeClothing(uploadedImageUrl);
+      // Step 4: Categorize the item (CRITICAL: Must not break upload)
+      let categorizationResult;
+      try {
+        console.log('🔍 [UPLOAD] Starting categorization...');
+        categorizationResult = await this.categorizeClothing(uploadedImageUrl, file.name);
+        console.log('✅ [UPLOAD] Categorization result:', {
+          success: categorizationResult.success,
+          category: categorizationResult.category,
+          confidence: categorizationResult.confidence
+        });
+      } catch (catError) {
+        console.error('❌ [UPLOAD] Categorization failed completely:', catError);
+        // Use safe fallback
+        categorizationResult = {
+          success: true, // Mark as success to avoid breaking upload
+          category: 'other',
+          type: 'uncategorized',
+          color: 'unknown',
+          season: 'all',
+          confidence: 0
+        };
+        console.log('⚠️ [UPLOAD] Using fallback category:', categorizationResult.category);
+      }
 
-      // Step 5: Extract additional metadata
-      const metadata = await this.extractMetadata(file);
+      // Step 5: Extract additional metadata (optional, doesn't break upload)
+      let metadata;
+      try {
+        metadata = await this.extractMetadata(file);
+      } catch (metaError) {
+        console.warn('⚠️ [UPLOAD] Metadata extraction failed:', metaError);
+        metadata = { originalName: file.name };
+      }
+
+      // FINAL RESULT: Always successful with valid imageUrl and category
+      const finalImageUrl = backgroundRemovalResult.success ? backgroundRemovalResult.imageUrl : originalImageUrl;
+      const finalCategory = categorizationResult.success && categorizationResult.category ? categorizationResult.category : 'other';
+
+      console.log('✅ [UPLOAD] Upload complete!', {
+        imageUrl: finalImageUrl.substring(0, 50) + '...',
+        category: finalCategory,
+        backgroundRemoved: backgroundRemovalResult.success
+      });
 
       return {
         success: true,
         imageUrl: originalImageUrl,
-        processedImageUrl: backgroundRemovalResult.success ? backgroundRemovalResult.imageUrl : originalImageUrl,
-        category: categorizationResult.success ? categorizationResult.category : 'accessories',
+        processedImageUrl: finalImageUrl,
+        category: finalCategory,
         metadata: {
           ...metadata,
           type: categorizationResult.type,
@@ -216,10 +213,17 @@ class BackgroundRemovalService {
       };
 
     } catch (error) {
-      console.error('❌ [UPLOAD] Processing failed:', error);
+      console.error('❌ [UPLOAD] Critical processing error:', {
+        error: error,
+        message: error instanceof Error ? error.message : String(error),
+        file: file.name,
+        timestamp: new Date().toISOString()
+      });
+
+      // Even on critical error, try to return something usable
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Upload processing failed'
+        error: error instanceof Error ? error.message : 'Upload processing failed - please try again'
       };
     }
   }

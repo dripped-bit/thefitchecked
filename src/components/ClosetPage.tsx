@@ -17,7 +17,8 @@ import {
   Sparkles,
   Trophy,
   Calendar,
-  ShoppingBag
+  ShoppingBag,
+  RefreshCw
 } from 'lucide-react';
 import ClosetService, { ClothingItem, ClothingCategory, UserCloset } from '../services/closetService';
 import AchievementsPage from './AchievementsPage';
@@ -71,22 +72,73 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
     console.log('👗 Closet loaded:', stats);
   }, []);
 
-  // Reload closet data whenever component becomes visible
+  // Reload closet data whenever component becomes visible or storage changes
   useEffect(() => {
     const reloadCloset = () => {
       const freshCloset = ClosetService.getUserCloset();
       setCloset(freshCloset);
       console.log('🔄 [CLOSET] Reloaded closet data from storage');
+
+      // Log category counts for debugging
+      Object.keys(freshCloset).forEach(cat => {
+        const count = freshCloset[cat as ClothingCategory]?.length || 0;
+        if (count > 0) {
+          console.log(`  📦 ${cat}: ${count} items`);
+        }
+      });
     };
 
+    // Initial load
     reloadCloset();
+
+    // Reload when window gains focus (user returns to tab)
+    const handleFocus = () => {
+      console.log('👀 [CLOSET] Window focused - reloading closet data');
+      reloadCloset();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    // Listen for storage changes (items added from other components/tabs)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'userCloset') {
+        console.log('💾 [CLOSET] Storage changed - reloading closet data');
+        reloadCloset();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Listen for custom closet update events (same-tab updates from ClosetExperience)
+    const handleClosetUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      console.log('🔔 [CLOSET] Closet updated event received:', customEvent.detail);
+      reloadCloset();
+    };
+
+    window.addEventListener('closetUpdated', handleClosetUpdate);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('closetUpdated', handleClosetUpdate);
+    };
   }, []);
 
   const getCategoryItems = (category: ClothingCategory): ClothingItem[] => {
     let items = closet[category] || [];
 
+    console.log(`🔍 [CLOSET] Getting items for category "${category}":`, {
+      totalInCategory: items.length,
+      showFavoritesOnly,
+      searchQuery,
+      categoryExists: !!closet[category]
+    });
+
     if (showFavoritesOnly) {
       items = items.filter(item => item.favorite);
+      console.log(`  ⭐ After favorites filter: ${items.length} items`);
     }
 
     if (searchQuery) {
@@ -95,6 +147,13 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
         item.name.toLowerCase().includes(query) ||
         item.description?.toLowerCase().includes(query)
       );
+      console.log(`  🔎 After search filter: ${items.length} items`);
+    }
+
+    if (items.length > 0) {
+      console.log(`  ✅ Returning ${items.length} items for display`);
+    } else {
+      console.log(`  ⚠️ No items to display for category "${category}"`);
     }
 
     return items;
@@ -175,6 +234,18 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
   const renderClothingGrid = () => {
     const items = getCategoryItems(activeCategory);
 
+    console.log(`🎨 [RENDER-GRID] Rendering grid for "${activeCategory}":`, {
+      itemCount: items.length,
+      items: items.map(i => ({
+        id: i.id,
+        name: i.name,
+        hasImageUrl: !!i.imageUrl,
+        imageUrlType: i.imageUrl?.startsWith('data:') ? 'data-url' : 'other',
+        imageUrlLength: i.imageUrl?.length,
+        imageUrlPrefix: i.imageUrl?.substring(0, 50) + '...'
+      }))
+    });
+
     if (items.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-64 text-gray-500">
@@ -200,11 +271,29 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
             className="group relative bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-105"
           >
             {/* Image */}
-            <div className="aspect-square overflow-hidden">
+            <div className="aspect-square overflow-hidden bg-gray-100 flex items-center justify-center">
               <img
                 src={item.imageUrl}
                 alt={item.name}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                onError={(e) => {
+                  console.error(`❌ [IMAGE-LOAD-ERROR] Failed to load image for "${item.name}":`, {
+                    itemId: item.id,
+                    hasImageUrl: !!item.imageUrl,
+                    imageUrlType: item.imageUrl?.startsWith('data:') ? 'data-url' : item.imageUrl?.startsWith('http') ? 'http' : 'other',
+                    imageUrlLength: item.imageUrl?.length,
+                    imageUrlPrefix: item.imageUrl?.substring(0, 100)
+                  });
+                  // Set fallback placeholder
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  const parent = (e.target as HTMLImageElement).parentElement;
+                  if (parent && !parent.querySelector('.fallback-icon')) {
+                    parent.innerHTML = '<div class="fallback-icon flex flex-col items-center justify-center w-full h-full text-gray-400"><svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span class="text-xs mt-2">Image unavailable</span></div>';
+                  }
+                }}
+                onLoad={() => {
+                  console.log(`✅ [IMAGE-LOAD-SUCCESS] Image loaded for "${item.name}"`);
+                }}
               />
             </div>
 
@@ -321,6 +410,25 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
                 <span className="text-sm">Favorites</span>
               </button>
 
+              <button
+                onClick={() => {
+                  const freshCloset = ClosetService.getUserCloset();
+                  setCloset(freshCloset);
+                  console.log('🔄 [REFRESH] Manually refreshed closet data');
+                  Object.keys(freshCloset).forEach(cat => {
+                    const count = freshCloset[cat as ClothingCategory]?.length || 0;
+                    if (count > 0) {
+                      console.log(`  📦 ${cat}: ${count} items`);
+                    }
+                  });
+                }}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 transition-colors"
+                title="Refresh closet data"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span className="text-sm">Refresh</span>
+              </button>
+
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -399,7 +507,16 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
                   return (
                     <button
                       key={category.key}
-                      onClick={() => setActiveCategory(category.key)}
+                      onClick={() => {
+                        console.log(`📂 [CATEGORY-CLICK-PAGE] Selected category:`, {
+                          key: category.key,
+                          label: category.label,
+                          count,
+                          previousCategory: activeCategory,
+                          itemsInCategory: closet[category.key]?.map(i => i.name) || []
+                        });
+                        setActiveCategory(category.key);
+                      }}
                       className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
                         isActive
                           ? `bg-${category.color}-100 text-${category.color}-700 border-2 border-${category.color}-200 shadow-sm scale-105`
@@ -441,11 +558,19 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
       {selectedItem && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
-            <div className="aspect-square overflow-hidden">
+            <div className="aspect-square overflow-hidden bg-gray-100 flex items-center justify-center">
               <img
                 src={selectedItem.imageUrl}
                 alt={selectedItem.name}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.error(`❌ [IMAGE-LOAD-ERROR-MODAL] Failed to load image for "${selectedItem.name}"`);
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  const parent = (e.target as HTMLImageElement).parentElement;
+                  if (parent && !parent.querySelector('.fallback-icon')) {
+                    parent.innerHTML = '<div class="fallback-icon flex flex-col items-center justify-center w-full h-full text-gray-400"><svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span class="text-xs mt-2">Image unavailable</span></div>';
+                  }
+                }}
               />
             </div>
             <div className="p-6">

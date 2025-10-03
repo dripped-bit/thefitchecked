@@ -71,6 +71,68 @@ interface ClosetExperienceProps {
   initialView?: 'doors' | 'interior';
 }
 
+/**
+ * Check localStorage usage and quota
+ * Returns usage statistics and warnings if approaching limits
+ */
+const checkLocalStorageQuota = (): {
+  used: number;
+  total: number;
+  percentage: number;
+  isNearLimit: boolean;
+  formattedUsed: string;
+  formattedTotal: string;
+} => {
+  try {
+    // Estimate localStorage usage by measuring all stored data
+    let totalSize = 0;
+    for (const key in localStorage) {
+      if (localStorage.hasOwnProperty(key)) {
+        totalSize += localStorage[key].length + key.length;
+      }
+    }
+
+    // Most browsers have 5-10MB limit, we'll use 5MB as conservative estimate
+    const estimatedLimit = 5 * 1024 * 1024; // 5MB in bytes
+    const percentage = (totalSize / estimatedLimit) * 100;
+    const isNearLimit = percentage > 80; // Warn at 80% usage
+
+    const formatSize = (bytes: number): string => {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    };
+
+    const result = {
+      used: totalSize,
+      total: estimatedLimit,
+      percentage: Math.round(percentage * 10) / 10,
+      isNearLimit,
+      formattedUsed: formatSize(totalSize),
+      formattedTotal: formatSize(estimatedLimit)
+    };
+
+    console.log('💾 [LOCALSTORAGE-QUOTA]', {
+      used: result.formattedUsed,
+      total: result.formattedTotal,
+      percentage: `${result.percentage}%`,
+      isNearLimit: result.isNearLimit
+    });
+
+    return result;
+  } catch (error) {
+    console.error('❌ [LOCALSTORAGE-QUOTA] Failed to check quota:', error);
+    return {
+      used: 0,
+      total: 0,
+      percentage: 0,
+      isNearLimit: false,
+      formattedUsed: '0 B',
+      formattedTotal: '0 B'
+    };
+  }
+};
+
 const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   onBack,
   avatarData,
@@ -251,17 +313,49 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     ]);
   }, []);
 
-  // Load clothing items from closet service on mount
+  // Load clothing items from closet service on mount and when storage changes
   useEffect(() => {
     const loadClothingItems = () => {
       const items = ClosetService.getAllClothingItems();
-      if (items.length > 0) {
-        setClothingItems(items);
-        console.log('👗 [CLOSET] Loaded items from storage:', items.length);
+      setClothingItems(items);
+      console.log('👗 [CLOSET-EXP] Loaded items from storage:', items.length);
+
+      // Log items by category for debugging
+      const closet = ClosetService.getUserCloset();
+      Object.keys(closet).forEach(cat => {
+        const count = closet[cat as ClothingCategory]?.length || 0;
+        if (count > 0) {
+          console.log(`  📦 ${cat}: ${count} items`);
+        }
+      });
+    };
+
+    // Initial load
+    loadClothingItems();
+
+    // Reload when window gains focus
+    const handleFocus = () => {
+      console.log('👀 [CLOSET-EXP] Window focused - reloading items');
+      loadClothingItems();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    // Listen for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'userCloset') {
+        console.log('💾 [CLOSET-EXP] Storage changed - reloading items');
+        loadClothingItems();
       }
     };
 
-    loadClothingItems();
+    window.addEventListener('storage', handleStorageChange);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // Calculate closet statistics
@@ -421,40 +515,122 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   };
 
   const handleCategoryConfirm = async (category: ClothingCategory, imageUrl: string) => {
-    if (!pendingItem) return;
-
-    // Create the complete item with user-selected category
-    const newItem: ClothingItem = {
-      ...(pendingItem.itemData as ClothingItem),
-      category: category
-    };
-
-    // Add to closet state
-    setClothingItems(prev => [...prev, newItem]);
-
-    // Save to localStorage via ClosetService (fix: pass category and itemData separately)
-    await ClosetService.addClothingItem(newItem.category, newItem);
-    console.log('💾 [CLOSET] Item saved to localStorage:', newItem.category);
-
-    // Award experience
-    const baseXP = 10;
-    const bonusXP = pendingItem.metadata?.backgroundRemoved ? 5 : 0;
-    const confidenceBonus = pendingItem.metadata?.confidence > 0.9 ? 5 : 0;
-    const totalXP = baseXP + bonusXP + confidenceBonus;
-    setExperience(prev => prev + totalXP);
-
-    // Show success notification
-    console.log(`✅ [CLOSET] Item added: ${newItem.name} (${newItem.category}) +${totalXP} XP`);
-    if (pendingItem.metadata?.backgroundRemoved) {
-      console.log('🎨 Background automatically removed!');
+    if (!pendingItem) {
+      console.error('❌ [CLOSET] No pending item to save');
+      return;
     }
 
-    // Check for achievements
-    checkAchievements();
+    try {
+      console.log('💾 [CLOSET] Starting item save process...', {
+        category,
+        hasImageUrl: !!imageUrl,
+        imageUrlLength: imageUrl?.length,
+        itemData: pendingItem.itemData
+      });
 
-    // Reset state
-    setShowCategorySelector(false);
-    setPendingItem(null);
+      // Check localStorage quota BEFORE saving
+      const quotaBefore = checkLocalStorageQuota();
+      if (quotaBefore.isNearLimit) {
+        console.warn(`⚠️ [CLOSET] localStorage is at ${quotaBefore.percentage}% capacity (${quotaBefore.formattedUsed} / ${quotaBefore.formattedTotal})`);
+        console.warn('⚠️ [CLOSET] Consider deleting old items or reducing image sizes');
+      }
+
+      // Defensive: Ensure we have a valid imageUrl
+      const finalImageUrl = imageUrl || pendingItem.imageUrl;
+      if (!finalImageUrl) {
+        console.error('❌ [CLOSET] No imageUrl available for item');
+        alert('Error: Image URL is missing. Please try uploading again.');
+        return;
+      }
+
+      // Log image size
+      const imageSizeKB = Math.round(finalImageUrl.length / 1024);
+      console.log(`📏 [CLOSET] Image size: ${imageSizeKB} KB (${finalImageUrl.length} bytes)`);
+
+      if (imageSizeKB > 1024) {
+        console.warn(`⚠️ [CLOSET] Large image detected (${imageSizeKB} KB). Consider compressing for better performance.`);
+      }
+
+      // Create the complete item with user-selected category
+      const newItem: ClothingItem = {
+        ...(pendingItem.itemData as ClothingItem),
+        category: category,
+        imageUrl: finalImageUrl // Ensure imageUrl is set
+      };
+
+      console.log('📋 [CLOSET] Item to save:', {
+        id: newItem.id,
+        name: newItem.name,
+        category: newItem.category,
+        hasImageUrl: !!newItem.imageUrl,
+        imageUrlPrefix: newItem.imageUrl.substring(0, 50)
+      });
+
+      // Save to localStorage via ClosetService
+      await ClosetService.addClothingItem(newItem.category, newItem);
+      console.log('✅ [CLOSET] Item saved to localStorage:', newItem.category);
+
+      // Verify it was saved
+      const savedItems = ClosetService.getUserCloset();
+      const categoryItems = savedItems[newItem.category];
+      const savedItem = categoryItems?.find(item => item.id === newItem.id);
+
+      if (savedItem) {
+        console.log('✅ [CLOSET] Verified item in storage:', {
+          id: savedItem.id,
+          name: savedItem.name,
+          hasImageUrl: !!savedItem.imageUrl,
+          imageUrlLength: savedItem.imageUrl?.length
+        });
+      } else {
+        console.error('❌ [CLOSET] Item not found in storage after save!');
+      }
+
+      // Check localStorage quota AFTER saving
+      const quotaAfter = checkLocalStorageQuota();
+      if (quotaAfter.isNearLimit) {
+        console.warn(`⚠️ [CLOSET] localStorage usage increased to ${quotaAfter.percentage}% (${quotaAfter.formattedUsed} / ${quotaAfter.formattedTotal})`);
+        if (quotaAfter.percentage > 90) {
+          alert('Warning: Your closet storage is almost full! Consider deleting some items or using smaller images.');
+        }
+      }
+
+      // Dispatch custom event to notify ClosetPage of update (same-tab communication)
+      window.dispatchEvent(new CustomEvent('closetUpdated', {
+        detail: { category: newItem.category, action: 'add', itemName: newItem.name }
+      }));
+      console.log('🔔 [CLOSET] Dispatched closetUpdated event for:', newItem.category);
+
+      // Reload all items from storage to ensure fresh data
+      const allItems = ClosetService.getAllClothingItems();
+      setClothingItems(allItems);
+      console.log('🔄 [CLOSET] Reloaded all items after save:', allItems.length);
+
+      // Award experience
+      const baseXP = 10;
+      const bonusXP = pendingItem.metadata?.backgroundRemoved ? 5 : 0;
+      const confidenceBonus = pendingItem.metadata?.confidence > 0.9 ? 5 : 0;
+      const totalXP = baseXP + bonusXP + confidenceBonus;
+      setExperience(prev => prev + totalXP);
+
+      // Show success notification
+      console.log(`✅ [CLOSET] Item added: ${newItem.name} (${newItem.category}) +${totalXP} XP`);
+      if (pendingItem.metadata?.backgroundRemoved) {
+        console.log('🎨 Background automatically removed!');
+      }
+
+      // Check for achievements
+      checkAchievements();
+
+      // Reset state
+      setShowCategorySelector(false);
+      setPendingItem(null);
+
+    } catch (error) {
+      console.error('❌ [CLOSET] Failed to save item:', error);
+      alert('Failed to save item to closet. Please try again.');
+      // Don't reset state on error so user can retry
+    }
   };
 
   const handleCategoryCancel = () => {
@@ -880,7 +1056,15 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
               {categories.map((category) => (
                 <button
                   key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
+                  onClick={() => {
+                    console.log(`📂 [CATEGORY-CLICK] Selected category:`, {
+                      id: category.id,
+                      name: category.name,
+                      count: category.count,
+                      previousCategory: selectedCategory
+                    });
+                    setSelectedCategory(category.id);
+                  }}
                   className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
                     selectedCategory === category.id
                       ? 'bg-purple-100 text-purple-800 border border-purple-300'
@@ -1709,9 +1893,19 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
               {/* Clothing Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {clothingItems
-                  .filter(item => selectedCategory === 'all' || item.category === selectedCategory)
-                  .map((item, index) => (
+                {(() => {
+                  const filteredItems = clothingItems.filter(item =>
+                    selectedCategory === 'all' || selectedCategory === 'wishlist' || item.category === selectedCategory
+                  );
+
+                  console.log(`🖼️ [CLOSET-GRID] Rendering grid for "${selectedCategory}":`, {
+                    totalItems: clothingItems.length,
+                    filteredItems: filteredItems.length,
+                    selectedCategory,
+                    itemCategories: clothingItems.map(i => i.category).filter((v, i, a) => a.indexOf(v) === i)
+                  });
+
+                  return filteredItems.map((item, index) => (
                     <div
                       key={item.id}
                       className="category-item bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group"
@@ -1758,7 +1952,8 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                         </div>
                       </div>
                     </div>
-                  ))}
+                  ));
+                })()}
 
                 {/* Add new item placeholder */}
                 <div

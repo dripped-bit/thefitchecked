@@ -36,11 +36,97 @@ export interface ProductSearchOptions {
   maxResults?: number;
 }
 
+/**
+ * Product page URL patterns for major retailers
+ * These patterns identify genuine product pages vs collection/category pages
+ */
+const PRODUCT_URL_PATTERNS: Record<string, string[]> = {
+  'amazon.com': ['/dp/', '/gp/product/'],
+  'fashionnova.com': ['/products/'],
+  'nordstrom.com': ['/s/', '/shop/'],
+  'shein.com': ['-p-'],
+  'zara.com': ['-p', '/product/'],
+  'hm.com': ['/product/', '/en_us/productpage'],
+  'asos.com': ['/prd/', '/product/'],
+  'revolve.com': ['/dp/', '/r/'],
+  'target.com': ['/p/', '/A-'],
+  'walmart.com': ['/ip/'],
+  'macys.com': ['/shop/product/'],
+  'bloomingdales.com': ['/shop/product/'],
+  'saks.com': ['/product/'],
+  'neimanmarcus.com': ['/p/'],
+  'whitefoxboutique.com': ['/products/'],
+  'ohpolly.com': ['/products/'],
+  'houseofcb.com': ['/products/']
+};
+
+/**
+ * Banned domains - never return these
+ * Includes social media AND affiliate networks (we want direct product links only)
+ */
+const BANNED_DOMAINS = [
+  // Social Media
+  'youtube.com',
+  'youtu.be',
+  'pinterest.com',
+  'instagram.com',
+  'tiktok.com',
+  'facebook.com',
+  'twitter.com',
+  'reddit.com',
+  // Affiliate Networks (we want DIRECT product links, not affiliate redirects)
+  'rakuten.com',
+  'shareasale.com',
+  'avantlink.com',
+  'pepperjam.com',
+  'linksynergy.com',
+  'anrdoezrs.net', // Commission Junction
+  'jdoqocy.com',   // Commission Junction alternate
+  'dpbolvw.net',   // Commission Junction alternate
+  'awin1.com',     // Awin affiliate network
+  'go2cloud.org'   // Generic affiliate redirect
+];
+
+/**
+ * Banned URL patterns - these indicate non-product pages
+ */
+const BANNED_URL_PATTERNS = [
+  '/collection',
+  '/collections',
+  '/category',
+  '/categories',
+  '/search',
+  '/browse',
+  '/sale',
+  '/clearance',
+  '/new-arrivals',
+  '/trending'
+];
+
 class PerplexityService {
-  private readonly API_BASE_URL = '/api/perplexity/search'; // Use proxy
+  private readonly API_BASE_URL = '/api/perplexity/chat/completions'; // Use proper Perplexity endpoint
+  private readonly SHOPPING_DOMAINS = [
+    'amazon.com',
+    'shein.com',
+    'fashionnova.com',
+    'nordstrom.com',
+    'target.com',
+    'walmart.com',
+    'macys.com',
+    'zara.com',
+    'hm.com',
+    'asos.com',
+    'whitefoxboutique.com',
+    'ohpolly.com',
+    'houseofcb.com',
+    'revolve.com',
+    'bloomingdales.com',
+    'saks.com',
+    'neimanmarcus.com'
+  ];
 
   constructor() {
-    console.log('🔍 [PERPLEXITY] Perplexity Service initialized - using proxy');
+    console.log('🔍 [PERPLEXITY] Perplexity Service initialized - using /chat/completions endpoint');
   }
 
   /**
@@ -50,17 +136,90 @@ class PerplexityService {
     console.log('🔍 [PERPLEXITY] Searching via proxy:', query);
 
     try {
+      const requestBody = {
+        model: 'sonar',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a shopping assistant that finds ONLY DIRECT product purchase links from the actual retail stores.
+
+CRITICAL RULES - NEVER BREAK THESE:
+1. Return DIRECT store URLs only (amazon.com, fashionnova.com, shein.com, etc.)
+2. ABSOLUTELY NO affiliate redirect links (rakuten.com, shareasale.com, linksynergy.com, etc.)
+3. ABSOLUTELY NO social media (YouTube, Pinterest, TikTok, Instagram, Facebook, Twitter, Reddit)
+4. ONLY return URLs where users can directly purchase products with "Add to Cart" button
+5. ONLY return INDIVIDUAL PRODUCT PAGES with SKU/Product ID in URL - NOT collection/category pages
+6. NEVER include video links, blog posts, or review sites
+7. Each product MUST be a SINGLE SPECIFIC ITEM you can buy, NOT a category of items
+
+REQUIRED: Valid product page patterns (MUST match one of these):
+- amazon.com/dp/[PRODUCTID] ✓
+- amazon.com/gp/product/[PRODUCTID] ✓
+- shein.com/[product-name]-p-[ID].html ✓
+- fashionnova.com/products/[specific-product-name] ✓
+- nordstrom.com/s/[specific-product-name] ✓
+- target.com/p/[product-name] ✓
+- walmart.com/ip/[product-name] ✓
+- macys.com/shop/product/[specific-product-name] ✓
+- whitefoxboutique.com/products/[specific-product-name] ✓
+- ohpolly.com/products/[specific-product-name] ✓
+
+FORBIDDEN: These patterns indicate collection/category pages (NEVER RETURN):
+- /collections ❌
+- /collection/ ❌
+- /category ❌
+- /categories ❌
+- /browse ❌
+- /search ❌
+- /sale ❌
+- /new-arrivals ❌
+- /trending ❌
+- URLs without product SKU/ID ❌
+
+VALIDATION TEST: Ask yourself "Can I add THIS SPECIFIC ITEM to cart?"
+- If YES → Valid product page ✓
+- If NO → Category/collection page ❌
+
+Return ONLY direct shopping website URLs for INDIVIDUAL PRODUCTS with Add to Cart buttons!`
+          },
+          {
+            role: 'user',
+            content: `Find SPECIFIC product pages where I can buy: ${query}
+
+REQUIREMENTS:
+✓ DIRECT product pages with "Add to Cart" button
+✓ Individual products with SKU/Product ID in URL
+✓ From retail stores: amazon.com, fashionnova.com, shein.com, nordstrom.com, etc.
+
+FORBIDDEN:
+❌ NO collection/category pages (/collections, /category, /sale)
+❌ NO affiliate networks (rakuten.com, shareasale.com)
+❌ NO social media (YouTube, Pinterest, Instagram, TikTok)
+❌ NO generic browse/search pages
+
+Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
+          }
+        ],
+        search_domain_filter: this.SHOPPING_DOMAINS,
+        search_recency_filter: 'month',
+        return_citations: true,
+        max_tokens: 1000
+      };
+
+      console.log('📤 [PERPLEXITY] Request:', {
+        endpoint: this.API_BASE_URL,
+        model: requestBody.model,
+        query: query,
+        domainFilter: this.SHOPPING_DOMAINS.length + ' stores'
+      });
+
       const response = await fetch(this.API_BASE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           // Authorization header handled by Vite proxy
         },
-        body: JSON.stringify({
-          query: query,
-          max_results: maxResults,
-          max_tokens_per_page: 100 // Limit content per result for efficiency
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -69,16 +228,187 @@ class PerplexityService {
         throw new Error(`Perplexity API failed: ${response.status} ${errorText}`);
       }
 
-      const data: PerplexityResponse = await response.json();
+      const data = await response.json();
 
-      console.log('✅ [PERPLEXITY] Search results:', data.results?.length || 0, 'items');
+      console.log('📥 [PERPLEXITY] Raw response received:', {
+        hasChoices: !!data.choices,
+        choicesLength: data.choices?.length,
+        hasCitations: !!data.citations
+      });
 
-      return data.results || [];
+      // Extract search results from Perplexity response
+      const results = this.extractSearchResults(data);
+
+      // CRITICAL: Filter out any non-shopping URLs immediately
+      const filteredResults = this.filterNonShoppingUrls(results);
+
+      console.log('✅ [PERPLEXITY] Search results:', {
+        total: results.length,
+        afterFiltering: filteredResults.length,
+        filtered: results.length - filteredResults.length
+      });
+
+      return filteredResults;
 
     } catch (error) {
       console.error('❌ [PERPLEXITY] Search failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Extract search results from Perplexity chat completion response
+   */
+  private extractSearchResults(data: any): PerplexitySearchResult[] {
+    const results: PerplexitySearchResult[] = [];
+
+    // Extract from citations if available
+    if (data.citations && Array.isArray(data.citations)) {
+      data.citations.forEach((citation: any, index: number) => {
+        if (citation.url && citation.url.trim()) {
+          results.push({
+            title: citation.title || `Product ${index + 1}`,
+            url: citation.url,
+            snippet: citation.snippet || citation.text || '',
+            date: citation.date
+          });
+        }
+      });
+    }
+
+    // Also parse URLs from response content as fallback
+    const content = data.choices?.[0]?.message?.content || '';
+    const urlRegex = /https?:\/\/[^\s<>"]+/g;
+    const urls = content.match(urlRegex) || [];
+
+    urls.forEach((url: string, index: number) => {
+      // Avoid duplicates
+      if (!results.some(r => r.url === url)) {
+        results.push({
+          title: `Product ${results.length + 1}`,
+          url: url,
+          snippet: '',
+        });
+      }
+    });
+
+    console.log('📊 [PERPLEXITY] Extracted results:', results.length);
+    return results;
+  }
+
+  /**
+   * Unwrap affiliate redirect URLs to get the real product URL
+   */
+  private unwrapAffiliateUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.replace('www.', '');
+
+      // Check if it's a Rakuten redirect
+      if (hostname.includes('rakuten.com') && urlObj.pathname.includes('/r/')) {
+        const realUrl = urlObj.searchParams.get('u');
+        if (realUrl) {
+          const unwrapped = decodeURIComponent(realUrl);
+          console.log('🔓 [UNWRAP] Rakuten redirect unwrapped:', {
+            original: url.substring(0, 50) + '...',
+            unwrapped: unwrapped.substring(0, 50) + '...'
+          });
+          return unwrapped;
+        }
+      }
+
+      // Check for ShareASale redirects
+      if (hostname.includes('shareasale.com')) {
+        const target = urlObj.searchParams.get('urllink') || urlObj.searchParams.get('u');
+        if (target) {
+          const unwrapped = decodeURIComponent(target);
+          console.log('🔓 [UNWRAP] ShareASale redirect unwrapped:', {
+            original: url.substring(0, 50) + '...',
+            unwrapped: unwrapped.substring(0, 50) + '...'
+          });
+          return unwrapped;
+        }
+      }
+
+      // Check for other affiliate networks with common redirect parameters
+      if (BANNED_DOMAINS.some(banned => hostname.includes(banned))) {
+        const commonParams = ['url', 'u', 'link', 'target', 'goto', 'redirect'];
+        for (const param of commonParams) {
+          const target = urlObj.searchParams.get(param);
+          if (target && target.startsWith('http')) {
+            const unwrapped = decodeURIComponent(target);
+            console.log('🔓 [UNWRAP] Affiliate redirect unwrapped:', {
+              network: hostname,
+              original: url.substring(0, 50) + '...',
+              unwrapped: unwrapped.substring(0, 50) + '...'
+            });
+            return unwrapped;
+          }
+        }
+        console.warn('⚠️ [UNWRAP] Unable to unwrap affiliate URL:', url.substring(0, 60));
+      }
+
+      // Not an affiliate URL or unable to unwrap
+      return url;
+    } catch (error) {
+      console.error('❌ [UNWRAP] Error unwrapping URL:', error);
+      return url;
+    }
+  }
+
+  /**
+   * Filter out non-shopping URLs with strict validation
+   */
+  private filterNonShoppingUrls(results: PerplexitySearchResult[]): PerplexitySearchResult[] {
+    return results.filter(result => {
+      // FIRST: Try to unwrap any affiliate redirects to get the real product URL
+      const unwrappedUrl = this.unwrapAffiliateUrl(result.url);
+
+      // If URL was unwrapped, update the result to use the direct product URL
+      if (unwrappedUrl !== result.url) {
+        result.url = unwrappedUrl;
+        console.log('✅ [FILTER] Using unwrapped URL for validation');
+      }
+
+      const url = unwrappedUrl.toLowerCase();
+      let urlObj: URL;
+
+      try {
+        urlObj = new URL(unwrappedUrl);
+      } catch (error) {
+        console.error('❌ [FILTER] Invalid URL after unwrapping:', unwrappedUrl);
+        return false;
+      }
+
+      const hostname = urlObj.hostname.replace('www.', '');
+
+      // CRITICAL: Check for banned domains (should catch any remaining affiliate networks)
+      for (const banned of BANNED_DOMAINS) {
+        if (hostname.includes(banned) || url.includes(banned)) {
+          console.error('🚫❌ [FILTER] BANNED DOMAIN DETECTED:', hostname, '→', url.substring(0, 60));
+          return false;
+        }
+      }
+
+      // Check if it's from a whitelisted shopping domain
+      const isWhitelisted = this.SHOPPING_DOMAINS.some(domain => hostname.includes(domain));
+
+      if (!isWhitelisted) {
+        console.warn('⚠️ [FILTER] Not a whitelisted store:', hostname);
+        return false;
+      }
+
+      // Additional validation for product page patterns
+      const hasProductPattern = BANNED_URL_PATTERNS.every(pattern => !url.includes(pattern));
+
+      if (!hasProductPattern) {
+        console.warn('⚠️ [FILTER] Contains banned pattern (collection/category):', unwrappedUrl.substring(0, 60));
+        return false;
+      }
+
+      console.log('✅ [FILTER] Valid shopping URL:', hostname);
+      return true;
+    });
   }
 
   /**
@@ -146,8 +476,8 @@ class PerplexityService {
 
     console.log('🛍️ [PERPLEXITY] Searching for similar products:', clothingDescription);
 
-    // Build targeted shopping query
-    let query = `${clothingDescription} buy online shopping`;
+    // Build targeted shopping query with specific product page patterns
+    let query = `${clothingDescription} buy online`;
 
     // Add budget constraints
     if (budgetMin || budgetMax) {
@@ -160,9 +490,33 @@ class PerplexityService {
       }
     }
 
-    // Add store preferences
+    // Add store preferences with specific product page paths
     if (stores && stores.length > 0) {
-      query += ` site:${stores.join(' OR site:')}`;
+      // Build site-specific queries targeting product pages
+      const storeQueries = stores.map(store => {
+        const storeLower = store.toLowerCase();
+        if (storeLower.includes('amazon')) {
+          return 'site:amazon.com/dp/ OR site:amazon.com/gp/product/';
+        } else if (storeLower.includes('fashionnova') || storeLower.includes('fashion nova')) {
+          return 'site:fashionnova.com/products/';
+        } else if (storeLower.includes('shein')) {
+          return 'site:shein.com inurl:-p-';
+        } else if (storeLower.includes('nordstrom')) {
+          return 'site:nordstrom.com/s/ OR site:nordstrom.com/shop/';
+        } else if (storeLower.includes('whitefox') || storeLower.includes('white fox')) {
+          return 'site:whitefoxboutique.com/products/';
+        } else if (storeLower.includes('ohpolly') || storeLower.includes('oh polly')) {
+          return 'site:ohpolly.com/products/';
+        } else if (storeLower.includes('houseofcb')) {
+          return 'site:houseofcb.com/products/';
+        } else {
+          return `site:${store}`;
+        }
+      });
+      query += ` (${storeQueries.join(' OR ')})`;
+    } else {
+      // No specific stores - target major retailers with product page patterns
+      query += ` (site:amazon.com/dp/ OR site:fashionnova.com/products/ OR site:shein.com OR site:nordstrom.com OR site:target.com/p/)`;
     }
 
     // Add size/color filters
@@ -173,9 +527,24 @@ class PerplexityService {
       query += ` ${colors.join(' OR ')} color`;
     }
 
+    // CRITICAL: Exclude social media, affiliate networks, and non-product pages
+    query += ` -site:youtube.com -site:youtu.be -site:pinterest.com -site:instagram.com`;
+    query += ` -site:rakuten.com -site:shareasale.com -site:linksynergy.com -site:avantlink.com`;
+    query += ` -inurl:/collection -inurl:/collections -inurl:/category -inurl:/search`;
+
+    console.log('🔍 [PERPLEXITY] Enhanced query (with affiliate exclusions):', query);
+
     try {
       const searchResults = await this.searchWeb(query, maxResults);
       const products = this.parseProductResults(searchResults);
+
+      // MANDATORY: Use direct store links if no products found
+      if (products.length === 0) {
+        console.log('⚠️ [PERPLEXITY] No products found, using direct store fallback...');
+        const directStoreLinks = this.searchStoresDirectly(clothingDescription);
+        products.push(...directStoreLinks);
+        console.log('✅ [FALLBACK] Added direct store search links:', directStoreLinks.length);
+      }
 
       console.log('✅ [PERPLEXITY] Found products:', products.length);
       return products;
@@ -220,10 +589,69 @@ class PerplexityService {
   }
 
   /**
+   * Validate if a URL is a genuine product page (not collection/category/social media)
+   */
+  private isProductPage(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.replace('www.', '');
+      const pathname = urlObj.pathname.toLowerCase();
+
+      // Check banned domains (YouTube, Pinterest, etc.)
+      for (const banned of BANNED_DOMAINS) {
+        if (hostname.includes(banned)) {
+          console.log('🚫 [FILTER] Banned domain:', hostname, '→', url.substring(0, 60));
+          return false;
+        }
+      }
+
+      // Check banned URL patterns (collections, categories, etc.)
+      for (const pattern of BANNED_URL_PATTERNS) {
+        if (pathname.includes(pattern)) {
+          console.log('🚫 [FILTER] Banned URL pattern:', pattern, '→', url.substring(0, 60));
+          return false;
+        }
+      }
+
+      // Check if URL matches known product page patterns for this store
+      for (const [domain, patterns] of Object.entries(PRODUCT_URL_PATTERNS)) {
+        if (hostname.includes(domain)) {
+          const isProduct = patterns.some(pattern => pathname.includes(pattern));
+          if (!isProduct) {
+            console.log('🚫 [FILTER] Not a product page for', domain, '→', url.substring(0, 60));
+          }
+          return isProduct;
+        }
+      }
+
+      // If store not in our patterns list, check if it's at least whitelisted
+      // This prevents affiliate networks from slipping through
+      const isWhitelisted = this.SHOPPING_DOMAINS.some(domain => hostname.includes(domain));
+      if (isWhitelisted) {
+        console.log('⚠️ [FILTER] Whitelisted store but no specific product pattern (allowing):', hostname);
+        return true;
+      }
+
+      // Unknown store not in whitelist - reject to be safe
+      console.warn('🚫 [FILTER] Unknown store not in whitelist (rejecting):', hostname);
+      return false;
+
+    } catch (error) {
+      console.error('❌ [FILTER] Invalid URL:', url);
+      return false;
+    }
+  }
+
+  /**
    * Parse Perplexity search results to extract product information
    */
   private parseProductResults(results: PerplexitySearchResult[]): ProductSearchResult[] {
-    return results.map((result, index) => {
+    // Filter to only genuine product pages
+    const validResults = results.filter(result => this.isProductPage(result.url));
+
+    console.log(`✅ [FILTER] Product page validation: ${validResults.length}/${results.length} valid products`);
+
+    return validResults.map((result, index) => {
       const product: ProductSearchResult = {
         id: `product_${Date.now()}_${index}`,
         title: result.title,
@@ -439,11 +867,27 @@ class PerplexityService {
   }
 
   /**
+   * Check if a product is from Amazon
+   */
+  private isAmazonProduct(product: ProductSearchResult): boolean {
+    return product.store.toLowerCase().includes('amazon') ||
+           product.url.toLowerCase().includes('amazon.com');
+  }
+
+  /**
    * Sort products by relevance, price, rating
+   * PRIORITY: Amazon products first (up to 2), then other stores
    */
   private sortProducts(products: ProductSearchResult[], options: ProductSearchOptions): ProductSearchResult[] {
     return products.sort((a, b) => {
-      // Filter by budget first
+      const isAmazonA = this.isAmazonProduct(a);
+      const isAmazonB = this.isAmazonProduct(b);
+
+      // PRIORITY 1: Amazon products first (ensures 2 Amazon results appear at top)
+      if (isAmazonA && !isAmazonB) return -1;
+      if (!isAmazonA && isAmazonB) return 1;
+
+      // PRIORITY 2: Filter by budget compliance
       const priceA = parseFloat(a.price.replace('$', ''));
       const priceB = parseFloat(b.price.replace('$', ''));
 
@@ -452,12 +896,12 @@ class PerplexityService {
         if (priceB > options.budgetMax && priceA <= options.budgetMax) return -1;
       }
 
-      // Sort by rating (higher first)
+      // PRIORITY 3: Sort by rating (higher first, within same store type)
       if (a.rating && b.rating && a.rating !== b.rating) {
         return b.rating - a.rating;
       }
 
-      // Sort by price (lower first within budget)
+      // PRIORITY 4: Sort by price (lower first within budget)
       if (options.budgetMax && priceA <= options.budgetMax && priceB <= options.budgetMax) {
         return priceA - priceB;
       }
@@ -465,6 +909,59 @@ class PerplexityService {
       // Default: maintain original order (relevance from search)
       return 0;
     });
+  }
+
+  /**
+   * Fallback: Search stores directly when Perplexity fails or returns no results
+   */
+  searchStoresDirectly(query: string): ProductSearchResult[] {
+    console.log('🔄 [FALLBACK] Searching stores directly for:', query);
+
+    const encodedQuery = encodeURIComponent(query);
+    const directStoreResults: ProductSearchResult[] = [];
+
+    // Amazon
+    directStoreResults.push({
+      id: `direct_amazon_${Date.now()}`,
+      title: `Search "${query}" on Amazon`,
+      url: `https://www.amazon.com/s?k=${encodedQuery}`,
+      store: 'Amazon',
+      price: 'Varies',
+      inStock: true
+    });
+
+    // SHEIN
+    directStoreResults.push({
+      id: `direct_shein_${Date.now() + 1}`,
+      title: `Search "${query}" on SHEIN`,
+      url: `https://us.shein.com/pdsearch/${encodedQuery}/`,
+      store: 'SHEIN',
+      price: 'Varies',
+      inStock: true
+    });
+
+    // Fashion Nova
+    directStoreResults.push({
+      id: `direct_fashionnova_${Date.now() + 2}`,
+      title: `Search "${query}" on Fashion Nova`,
+      url: `https://www.fashionnova.com/search?q=${encodedQuery}`,
+      store: 'Fashion Nova',
+      price: 'Varies',
+      inStock: true
+    });
+
+    // Nordstrom
+    directStoreResults.push({
+      id: `direct_nordstrom_${Date.now() + 3}`,
+      title: `Search "${query}" on Nordstrom`,
+      url: `https://www.nordstrom.com/sr?keyword=${encodedQuery}`,
+      store: 'Nordstrom',
+      price: 'Varies',
+      inStock: true
+    });
+
+    console.log('✅ [FALLBACK] Generated direct store links:', directStoreResults.length);
+    return directStoreResults;
   }
 
   /**
