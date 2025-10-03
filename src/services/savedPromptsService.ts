@@ -185,6 +185,41 @@ class SavedPromptsService {
   }
 
   /**
+   * Get the user's best saved prompt (highest rated, most recent if tied)
+   * Returns null if no prompts are saved
+   */
+  getBestUserPrompt(): SavedAvatarPrompt | null {
+    const allPrompts = this.getAllPrompts();
+
+    if (allPrompts.length === 0) {
+      console.log('📋 [SAVED-PROMPTS] No saved prompts found');
+      return null;
+    }
+
+    // Get prompts with ratings, sorted by rating (highest first), then by timestamp (most recent first)
+    const ratedPrompts = allPrompts
+      .filter(p => p.rating !== undefined && p.rating > 0)
+      .sort((a, b) => {
+        // First sort by rating
+        if ((b.rating || 0) !== (a.rating || 0)) {
+          return (b.rating || 0) - (a.rating || 0);
+        }
+        // If ratings are equal, sort by timestamp (most recent first)
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+
+    if (ratedPrompts.length > 0) {
+      console.log(`✅ [SAVED-PROMPTS] Found best user prompt: "${ratedPrompts[0].name}" (Rating: ${ratedPrompts[0].rating})`);
+      return ratedPrompts[0];
+    }
+
+    // If no rated prompts, return the most recent one
+    const mostRecent = allPrompts[0]; // Already sorted by timestamp (newest first)
+    console.log(`📋 [SAVED-PROMPTS] No rated prompts, using most recent: "${mostRecent.name}"`);
+    return mostRecent;
+  }
+
+  /**
    * Get statistics about saved prompts
    */
   getStats() {
