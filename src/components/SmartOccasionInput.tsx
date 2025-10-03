@@ -446,12 +446,12 @@ Examples:
             Or pick from upcoming events:
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex flex-wrap gap-4">
             {suggestions.map((suggestion) => (
               <button
                 key={suggestion.id}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-purple-300 hover:shadow-lg transition-all duration-200 text-left"
+                className="flex-1 min-w-[280px] group bg-white border border-gray-200 rounded-xl p-4 hover:border-purple-300 hover:shadow-lg transition-all duration-200 text-left"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className={`w-10 h-10 ${suggestion.color} rounded-lg flex items-center justify-center text-white`}>
