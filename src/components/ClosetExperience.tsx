@@ -420,7 +420,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     }
   };
 
-  const handleCategoryConfirm = (category: ClothingCategory, imageUrl: string) => {
+  const handleCategoryConfirm = async (category: ClothingCategory, imageUrl: string) => {
     if (!pendingItem) return;
 
     // Create the complete item with user-selected category
@@ -432,9 +432,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     // Add to closet state
     setClothingItems(prev => [...prev, newItem]);
 
-    // Save to localStorage via ClosetService
-    ClosetService.addClothingItem(newItem);
-    console.log('💾 [CLOSET] Item saved to localStorage');
+    // Save to localStorage via ClosetService (fix: pass category and itemData separately)
+    await ClosetService.addClothingItem(newItem.category, newItem);
+    console.log('💾 [CLOSET] Item saved to localStorage:', newItem.category);
 
     // Award experience
     const baseXP = 10;
