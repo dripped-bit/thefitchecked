@@ -30,6 +30,8 @@ interface ClothingItem {
   timesWorn?: number;
   dateAdded: string;
   season?: 'spring' | 'summer' | 'fall' | 'winter' | 'all';
+  favorite?: boolean;
+  description?: string;
 }
 
 interface Achievement {
@@ -141,7 +143,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   // Main state
   const [currentView, setCurrentView] = useState<'doors' | 'interior' | 'outfit-creator' | 'try-on' | 'monthly-planner' | 'smart-calendar'>(initialView);
   const [doorsOpen, setDoorsOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all' | 'wishlist'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all' | 'favorites'>('all');
   const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
   const [selectedOutfit, setSelectedOutfit] = useState<ClothingItem[]>([]);
 
@@ -196,6 +198,10 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   // Share state
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedItemToShare, setSelectedItemToShare] = useState<ClothingItem | null>(null);
+
+  // Delete confirmation state
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<ClothingItem | null>(null);
 
   // Try-on result state
   const [tryOnResults, setTryOnResults] = useState<{
@@ -378,14 +384,14 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     setSustainabilityScore(Math.round(sustainabilityPercentage));
   }, [clothingItems]);
 
-  const categories: Array<{ id: ClothingCategory | 'all' | 'wishlist', name: string, icon: React.ReactNode, count: number }> = [
+  const categories: Array<{ id: ClothingCategory | 'all' | 'favorites', name: string, icon: React.ReactNode, count: number }> = [
     { id: 'all', name: 'All Items', icon: <Package className="w-5 h-5" />, count: clothingItems.length },
     { id: 'shirts', name: 'Tops', icon: <Shirt className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'shirts').length },
     { id: 'pants', name: 'Bottoms', icon: <Tag className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'pants').length },
     { id: 'dresses', name: 'Dresses', icon: <Crown className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'dresses').length },
     { id: 'shoes', name: 'Shoes', icon: <Target className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'shoes').length },
     { id: 'accessories', name: 'Accessories', icon: <Sparkles className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'accessories').length },
-    { id: 'wishlist', name: 'Wishlist', icon: <Heart className="w-5 h-5" />, count: 5 }
+    { id: 'favorites', name: 'Favorites', icon: <Heart className="w-5 h-5" />, count: ClosetService.getFavoriteItems().length }
   ];
 
   const handleDoorsOpen = () => {
@@ -647,6 +653,47 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     console.log('❌ [CLOSET] Item upload cancelled');
     setShowCategorySelector(false);
     setPendingItem(null);
+  };
+
+  const handleToggleFavorite = (item: ClothingItem) => {
+    console.log(`❤️ [FAVORITE] Toggling favorite for item: ${item.name}`);
+    const success = ClosetService.toggleFavorite(item.id);
+    if (success) {
+      // Reload items to reflect the change
+      const allItems = ClosetService.getAllClothingItems();
+      setClothingItems(allItems);
+      console.log(`✅ [FAVORITE] Item ${item.favorite ? 'unfavorited' : 'favorited'}: ${item.name}`);
+    }
+  };
+
+  const handleDeleteClick = (item: ClothingItem) => {
+    console.log(`🗑️ [DELETE] Delete clicked for item: ${item.name}`);
+    setItemToDelete(item);
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!itemToDelete) return;
+
+    console.log(`🗑️ [DELETE] Permanently deleting item: ${itemToDelete.name}`);
+    const success = ClosetService.deleteClothingItem(itemToDelete.id);
+
+    if (success) {
+      // Reload items to reflect the deletion
+      const allItems = ClosetService.getAllClothingItems();
+      setClothingItems(allItems);
+      console.log(`✅ [DELETE] Item deleted: ${itemToDelete.name}`);
+    }
+
+    // Reset state
+    setShowDeleteConfirmation(false);
+    setItemToDelete(null);
+  };
+
+  const handleDeleteCancel = () => {
+    console.log('❌ [DELETE] Delete cancelled');
+    setShowDeleteConfirmation(false);
+    setItemToDelete(null);
   };
 
   const checkAchievements = () => {
@@ -1850,7 +1897,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">
                   {selectedCategory === 'all' ? 'All Items' :
-                   selectedCategory === 'wishlist' ? 'Wishlist' :
+                   selectedCategory === 'favorites' ? 'Favorites' :
                    categories.find(c => c.id === selectedCategory)?.name}
                 </h2>
 
@@ -1904,9 +1951,11 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
               {/* Clothing Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {(() => {
-                  const filteredItems = clothingItems.filter(item =>
-                    selectedCategory === 'all' || selectedCategory === 'wishlist' || item.category === selectedCategory
-                  );
+                  const filteredItems = clothingItems.filter(item => {
+                    if (selectedCategory === 'all') return true;
+                    if (selectedCategory === 'favorites') return item.favorite === true;
+                    return item.category === selectedCategory;
+                  });
 
                   console.log(`🖼️ [CLOSET-GRID] Rendering grid for "${selectedCategory}":`, {
                     totalItems: clothingItems.length,
@@ -1957,14 +2006,29 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                         {/* Overlay actions */}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-2">
-                            <button className="bg-white/90 p-2 rounded-full hover:bg-white transition-colors">
-                              <Play className="w-4 h-4 text-gray-700" />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleFavorite(item);
+                              }}
+                              className={`p-2 rounded-full hover:scale-110 transition-all ${
+                                item.favorite
+                                  ? 'bg-red-500 text-white'
+                                  : 'bg-white/90 text-gray-700 hover:bg-white'
+                              }`}
+                              title={item.favorite ? 'Remove from favorites' : 'Add to favorites'}
+                            >
+                              <Heart className={`w-4 h-4 ${item.favorite ? 'fill-current' : ''}`} />
                             </button>
-                            <button className="bg-white/90 p-2 rounded-full hover:bg-white transition-colors">
-                              <Heart className="w-4 h-4 text-gray-700" />
-                            </button>
-                            <button className="bg-white/90 p-2 rounded-full hover:bg-white transition-colors">
-                              <Share2 className="w-4 h-4 text-gray-700" />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(item);
+                              }}
+                              className="bg-white/90 p-2 rounded-full hover:bg-red-500 hover:text-white transition-colors"
+                              title="Delete item"
+                            >
+                              <X className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
@@ -2045,6 +2109,45 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
               >
                 Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmation && itemToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+            <div className="flex items-start mb-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <X className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="ml-4 flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  Delete Item?
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Are you sure you want to permanently delete <span className="font-semibold">{itemToDelete.name}</span> from your closet?
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={handleDeleteCancel}
+                className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                No, Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Yes, Delete
               </button>
             </div>
           </div>
