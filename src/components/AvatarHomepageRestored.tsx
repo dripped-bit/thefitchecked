@@ -1150,7 +1150,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                       console.log('Navigate to closet - door transition not available');
                     }
                   }}
-                  className="w-full flex items-center justify-center space-x-2 bg-sky-300/30 text-black px-4 py-3 rounded-xl text-sm font-medium italic transition-colors hover:bg-sky-400/40"
+                  className="w-full flex items-center justify-center space-x-2 bg-sky-300/30 text-black px-4 py-3 rounded-full text-xl font-medium italic transition-colors hover:bg-sky-400/40"
                 >
                   <span>👗</span>
                   <span>My Closet</span>
