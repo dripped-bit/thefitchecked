@@ -165,7 +165,7 @@ Return ONLY the JSON object, no additional text.`
 
       return {
         success: true,
-        category: parsed.category,
+        category: this.mapToClosetCategory(parsed.category),
         subcategory: parsed.subcategory,
         color: parsed.color,
         style: parsed.style,
@@ -183,6 +183,35 @@ Return ONLY the JSON object, no additional text.`
       });
       throw error;
     }
+  }
+
+  /**
+   * Map AI categories to closet storage categories
+   * Fixes mismatch between Claude's output and closet structure
+   */
+  private mapToClosetCategory(aiCategory: string): string {
+    const categoryMap: Record<string, string> = {
+      'bottoms': 'pants',        // Claude says "bottoms" → Closet needs "pants"
+      'tops': 'tops',            // Direct match
+      'dresses': 'dresses',      // Direct match
+      'shoes': 'shoes',          // Direct match
+      'accessories': 'accessories', // Direct match
+      'outerwear': 'outerwear',  // Direct match
+      'jackets': 'jackets',      // Direct match
+      'skirts': 'skirts',        // Direct match
+      'shirts': 'tops',          // Map shirts to tops category
+      'sweaters': 'sweaters',    // Direct match
+      'pants': 'pants',          // Already correct
+      'other': 'other'           // Direct match
+    };
+
+    const mappedCategory = categoryMap[aiCategory.toLowerCase()] || aiCategory;
+
+    if (mappedCategory !== aiCategory) {
+      console.log(`🔄 [CATEGORIZATION] Mapped "${aiCategory}" → "${mappedCategory}"`);
+    }
+
+    return mappedCategory;
   }
 
   /**
@@ -249,7 +278,7 @@ Return ONLY the JSON object, no additional text.`
 
     return {
       success: true,
-      category,
+      category: this.mapToClosetCategory(category),
       subcategory,
       color: metadata.dominantColor || 'unknown',
       style: 'casual',
