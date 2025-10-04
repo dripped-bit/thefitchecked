@@ -12,6 +12,7 @@ import { outfitGenerationService, OutfitSuggestion, StyleProfile } from '../serv
 import { avatarAnimationService, AnimationType } from '../services/avatarAnimationService';
 import TwoStepClothingWorkflow from './TwoStepClothingWorkflow';
 import EnhancedOutfitGenerator from './EnhancedOutfitGenerator';
+import ClothingUploadComponent from './ClothingUploadComponent';
 import { UserData } from '../types/user';
 import UserService from '../services/userService';
 import AchievementsService from '../services/achievementsService';
@@ -1330,6 +1331,57 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
           }}
           avatarData={avatarData}
         />
+      )}
+
+      {/* Upload Outfit Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+            <button
+              onClick={() => setShowUploadModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+              <Camera className="w-6 h-6 mr-2 text-purple-600" />
+              Upload Outfit to Try On
+            </h2>
+
+            <ClothingUploadComponent
+              avatarImage={avatarData?.imageUrl || avatarData}
+              onTryOnComplete={(result) => {
+                console.log('✅ [UPLOAD-MODAL] Try-on complete:', result);
+
+                // Update avatar with FASHN result
+                const resultUrl = result.url || result.images?.[0]?.url;
+                if (resultUrl && onAvatarUpdate) {
+                  const newAvatarData = {
+                    imageUrl: resultUrl,
+                    withOutfit: true,
+                    metadata: {
+                      lastUpdate: new Date().toISOString(),
+                      source: 'uploaded-outfit'
+                    }
+                  };
+                  onAvatarUpdate(newAvatarData);
+                  setShowUploadModal(false);
+
+                  // Trigger avatar animation
+                  setAvatarAnimation('posing');
+                  setTimeout(() => setAvatarAnimation('breathing'), 1000);
+                } else {
+                  console.error('❌ No result URL from FASHN');
+                }
+              }}
+              onError={(error) => {
+                console.error('❌ [UPLOAD-MODAL] Error:', error);
+                alert(`Upload failed: ${error}`);
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {/* Settings Modal */}
