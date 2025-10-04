@@ -52,9 +52,21 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
   };
 
   const handleSuggestionSelected = (suggestion: SmartSuggestion) => {
+    // Use user's typed text if present, otherwise use suggestion details
+    const originalInput = suggestion.userTypedInput
+      ? suggestion.userTypedInput
+      : `${suggestion.title} ${suggestion.date} ${suggestion.time}`;
+
+    console.log('🎯 [OCCASION-SELECTED] Creating occasion:', {
+      userTypedInput: suggestion.userTypedInput || 'none',
+      occasionTitle: suggestion.title,
+      originalInputUsed: originalInput,
+      willCombineInGenerator: !!suggestion.userTypedInput
+    });
+
     // Convert suggestion to ParsedOccasion format
     const occasion: ParsedOccasion = {
-      originalInput: `${suggestion.title} ${suggestion.date} ${suggestion.time}`,
+      originalInput: originalInput,
       occasion: suggestion.title,
       formality: suggestion.formality,
       date: suggestion.date,

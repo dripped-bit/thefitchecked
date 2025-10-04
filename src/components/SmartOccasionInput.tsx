@@ -60,6 +60,7 @@ export interface SmartSuggestion {
   };
   formality: 'casual' | 'semi-formal' | 'formal' | 'black-tie';
   color: string;
+  userTypedInput?: string; // User's custom typed text from input field
 }
 
 interface SmartOccasionInputProps {
@@ -145,6 +146,9 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
 
   // Handle occasion card click - trigger outfit generation immediately
   const handleOccasionClick = (occasion: any) => {
+    // Capture user's typed text (if any) before creating suggestion
+    const userText = input.trim();
+
     // Create suggestion object for generation
     const suggestion = {
       ...occasion,
@@ -155,8 +159,15 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
         temp: 72,
         condition: 'Clear',
         icon: <Sun className="w-4 h-4 text-yellow-500" />
-      }
+      },
+      userTypedInput: userText || undefined // Include user's typed text if present
     };
+
+    console.log('📝 [OCCASION-CLICK] User clicked occasion:', {
+      occasion: occasion.title,
+      userTypedText: userText || 'none',
+      willCombine: !!userText
+    });
 
     // Trigger outfit generation immediately without budget
     handleSuggestionClick(suggestion);
