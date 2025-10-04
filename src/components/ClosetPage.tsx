@@ -130,10 +130,13 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
     let items = closet[category] || [];
     if (category === 'tops') {
       // Combine both 'tops' and 'shirts' arrays
-      items = [...(closet['tops'] || []), ...(closet['shirts'] || [])];
+      const topsItems = closet['tops'] || [];
+      const shirtsItems = closet['shirts'] || [];
+      items = [...topsItems, ...shirtsItems];
+      console.log(`🔍 [CLOSET-MERGE] Combining tops (${topsItems.length}) + shirts (${shirtsItems.length}) = ${items.length} total`);
     }
 
-    console.log(`🔍 [CLOSET] Getting items for category "${category}":`, {
+    console.log(`🔍 [CLOSET-PAGE] Getting items for category "${category}":`, {
       totalInCategory: items.length,
       showFavoritesOnly,
       searchQuery,
