@@ -15,7 +15,14 @@ import {
   Heart,
   Coffee,
   Plane,
-  Zap
+  Zap,
+  ShoppingBag,
+  Shirt,
+  Building,
+  Umbrella,
+  Moon,
+  Dumbbell,
+  GraduationCap
 } from 'lucide-react';
 import { weatherService, WeatherData } from '../services/weatherService';
 
@@ -64,6 +71,7 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [parsedOccasion, setParsedOccasion] = useState<ParsedOccasion | null>(null);
   const [isReadyToGenerate, setIsReadyToGenerate] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('All');
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Generate smart suggestions based on upcoming events and common occasions
@@ -80,81 +88,69 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
     };
   }, []);
 
+  // Comprehensive categorized occasions
+  const occasions = {
+    'Formal': [
+      { id: 'business-conf', title: 'Business Conference', subtitle: 'Professional networking', icon: <Briefcase className="w-5 h-5" />, formality: 'formal' as const, color: 'bg-blue-600', category: 'Business' },
+      { id: 'gala', title: 'Gala Dinner', subtitle: 'Black-tie event', icon: <Heart className="w-5 h-5" />, formality: 'black-tie' as const, color: 'bg-purple-700', category: 'Formal' },
+      { id: 'wedding-guest', title: 'Wedding Guest', subtitle: 'Formal ceremony', icon: <Heart className="w-5 h-5" />, formality: 'formal' as const, color: 'bg-pink-500', category: 'Formal' },
+      { id: 'award-ceremony', title: 'Award Ceremony', subtitle: 'Cocktail attire', icon: <Sparkles className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-yellow-600', category: 'Formal' }
+    ],
+    'Casual': [
+      { id: 'brunch', title: 'Sunday Brunch', subtitle: 'Casual meetup', icon: <Coffee className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-orange-500', category: 'Casual' },
+      { id: 'coffee-date', title: 'Coffee Date', subtitle: 'Relaxed cafe', icon: <Coffee className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-amber-600', category: 'Casual' },
+      { id: 'shopping', title: 'Shopping Trip', subtitle: 'Day out', icon: <ShoppingBag className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-teal-500', category: 'Casual' },
+      { id: 'movie-night', title: 'Movie Night', subtitle: 'Cinema outing', icon: <Users className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-indigo-500', category: 'Casual' }
+    ],
+    'Beach': [
+      { id: 'beach-wedding', title: 'Beach Wedding', subtitle: 'Outdoor ceremony', icon: <Heart className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-cyan-500', category: 'Beach' },
+      { id: 'beach-party', title: 'Beach Party', subtitle: 'Seaside celebration', icon: <Sun className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-yellow-400', category: 'Beach' },
+      { id: 'resort-dinner', title: 'Resort Dinner', subtitle: 'Tropical evening', icon: <Plane className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-green-500', category: 'Beach' },
+      { id: 'pool-party', title: 'Pool Party', subtitle: 'Poolside fun', icon: <Umbrella className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-blue-400', category: 'Beach' }
+    ],
+    'Evening': [
+      { id: 'date-night', title: 'Date Night', subtitle: 'Dinner & drinks', icon: <Heart className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-purple-500', category: 'Evening' },
+      { id: 'cocktail-party', title: 'Cocktail Party', subtitle: 'Upscale gathering', icon: <Sparkles className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-pink-600', category: 'Evening' },
+      { id: 'theater', title: 'Theater Show', subtitle: 'Cultural event', icon: <Users className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-red-600', category: 'Evening' },
+      { id: 'night-out', title: 'Night Out', subtitle: 'Club & bars', icon: <Moon className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-violet-600', category: 'Evening' }
+    ],
+    'Active': [
+      { id: 'gym', title: 'Gym Workout', subtitle: 'Fitness session', icon: <Dumbbell className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-red-500', category: 'Active' },
+      { id: 'yoga', title: 'Yoga Class', subtitle: 'Wellness activity', icon: <Users className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-green-400', category: 'Active' },
+      { id: 'hiking', title: 'Hiking Trip', subtitle: 'Outdoor adventure', icon: <Sun className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-emerald-600', category: 'Active' },
+      { id: 'sports', title: 'Sports Event', subtitle: 'Athletic activity', icon: <Zap className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-orange-600', category: 'Active' }
+    ],
+    'Business': [
+      { id: 'board-meeting', title: 'Board Meeting', subtitle: 'Important presentation', icon: <Briefcase className="w-5 h-5" />, formality: 'formal' as const, color: 'bg-blue-700', category: 'Business' },
+      { id: 'job-interview', title: 'Job Interview', subtitle: 'Professional meeting', icon: <Building className="w-5 h-5" />, formality: 'formal' as const, color: 'bg-slate-700', category: 'Business' },
+      { id: 'client-lunch', title: 'Client Lunch', subtitle: 'Business meal', icon: <Coffee className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-gray-600', category: 'Business' },
+      { id: 'networking', title: 'Networking Event', subtitle: 'Professional mixer', icon: <Users className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-indigo-600', category: 'Business' }
+    ]
+  };
+
+  // Filter occasions by selected tab
+  const getFilteredOccasions = (tab: string) => {
+    if (tab === 'All') {
+      return Object.values(occasions).flat();
+    }
+    return occasions[tab as keyof typeof occasions] || [];
+  };
+
   const generateSmartSuggestions = () => {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    const nextWeek = new Date(today);
-    nextWeek.setDate(today.getDate() + 7);
-
-    const mockSuggestions: SmartSuggestion[] = [
-      {
-        id: 'beach-wedding',
-        title: 'Beach Wedding',
-        subtitle: 'Outdoor ceremony',
-        icon: <Heart className="w-5 h-5" />,
-        date: 'Saturday',
-        time: '3:00 PM',
-        location: 'Malibu, CA',
-        weather: {
-          temp: 78,
-          condition: 'Sunny',
-          icon: <Sun className="w-4 h-4 text-yellow-500" />
-        },
-        formality: 'semi-formal',
-        color: 'bg-pink-500'
-      },
-      {
-        id: 'brunch',
-        title: 'Sunday Brunch',
-        subtitle: 'Casual meetup',
-        icon: <Coffee className="w-5 h-5" />,
-        date: 'Sunday',
-        time: '11:00 AM',
-        location: 'Downtown',
-        weather: {
-          temp: 72,
-          condition: 'Partly cloudy',
-          icon: <Cloud className="w-4 h-4 text-gray-400" />
-        },
-        formality: 'casual',
-        color: 'bg-orange-500'
-      },
-      {
-        id: 'work-meeting',
-        title: 'Board Meeting',
-        subtitle: 'Important presentation',
-        icon: <Briefcase className="w-5 h-5" />,
-        date: 'Monday',
-        time: '9:00 AM',
-        location: 'Office',
-        weather: {
-          temp: 65,
-          condition: 'Cool',
-          icon: <Cloud className="w-4 h-4 text-gray-500" />
-        },
-        formality: 'formal',
-        color: 'bg-blue-600'
-      },
-      {
-        id: 'date-night',
-        title: 'Date Night',
-        subtitle: 'Dinner & drinks',
-        icon: <Heart className="w-5 h-5" />,
-        date: 'Friday',
-        time: '7:00 PM',
-        location: 'City Center',
-        weather: {
-          temp: 68,
-          condition: 'Clear',
-          icon: <Sun className="w-4 h-4 text-yellow-500" />
-        },
-        formality: 'semi-formal',
-        color: 'bg-purple-500'
+    // Initialize with all occasions for backward compatibility
+    const allOccasions = Object.values(occasions).flat();
+    const formatted = allOccasions.map(occ => ({
+      ...occ,
+      date: 'This Weekend',
+      time: '6:00 PM',
+      location: 'TBD',
+      weather: {
+        temp: 72,
+        condition: 'Clear',
+        icon: <Sun className="w-4 h-4 text-yellow-500" />
       }
-    ];
-
-    setSuggestions(mockSuggestions);
+    }));
+    setSuggestions(formatted);
   };
 
   const parseNaturalLanguage = async (text: string): Promise<ParsedOccasion> => {
@@ -440,57 +436,66 @@ Examples:
           )}
         </div>
 
-        {/* Quick Suggestions */}
+        {/* Tab-based Occasion Selector */}
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             Or pick from upcoming events:
           </h3>
 
-          <div className="flex flex-wrap gap-4">
-            {suggestions.map((suggestion) => (
+          {/* Tab Navigation */}
+          <div className="flex overflow-x-auto space-x-2 mb-6 pb-2 scrollbar-hide">
+            {['All', 'Formal', 'Casual', 'Beach', 'Evening', 'Active', 'Business'].map((tab) => (
               <button
-                key={suggestion.id}
-                onClick={() => handleSuggestionClick(suggestion)}
-                className="flex-1 min-w-[280px] group bg-white border border-gray-200 rounded-xl p-4 hover:border-purple-300 hover:shadow-lg transition-all duration-200 text-left"
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-shrink-0 px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  activeTab === tab
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                    : 'bg-white text-gray-700 border border-gray-200 hover:border-purple-300'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Filtered Occasions Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {getFilteredOccasions(activeTab).map((occasion) => (
+              <button
+                key={occasion.id}
+                onClick={() => handleSuggestionClick({
+                  ...occasion,
+                  date: 'This Weekend',
+                  time: '6:00 PM',
+                  location: 'TBD',
+                  weather: {
+                    temp: 72,
+                    condition: 'Clear',
+                    icon: <Sun className="w-4 h-4 text-yellow-500" />
+                  }
+                })}
+                className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-purple-300 hover:shadow-lg transition-all duration-200 text-left"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 ${suggestion.color} rounded-lg flex items-center justify-center text-white`}>
-                    {suggestion.icon}
+                  <div className={`w-10 h-10 ${occasion.color} rounded-lg flex items-center justify-center text-white`}>
+                    {occasion.icon}
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-purple-500 transition-colors" />
                 </div>
 
-                <h4 className="font-medium text-gray-900 mb-1">{suggestion.title}</h4>
-                <p className="text-sm text-gray-600 mb-3">{suggestion.subtitle}</p>
-
-                <div className="space-y-1 text-xs text-gray-500">
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="w-3 h-3" />
-                    <span>{suggestion.date} {suggestion.time}</span>
-                  </div>
-
-                  {suggestion.location && (
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="w-3 h-3" />
-                      <span>{suggestion.location}</span>
-                    </div>
-                  )}
-
-                  {suggestion.weather && (
-                    <div className="flex items-center space-x-1">
-                      {suggestion.weather.icon}
-                      <span>{suggestion.weather.temp}°F {suggestion.weather.condition}</span>
-                    </div>
-                  )}
-                </div>
+                <h4 className="font-medium text-gray-900 mb-1">{occasion.title}</h4>
+                <p className="text-sm text-gray-600 mb-3">{occasion.subtitle}</p>
 
                 <div className="mt-2">
                   <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                    suggestion.formality === 'formal' ? 'bg-blue-100 text-blue-700' :
-                    suggestion.formality === 'semi-formal' ? 'bg-purple-100 text-purple-700' :
-                    'bg-green-100 text-green-700'
+                    occasion.formality === 'formal' || occasion.formality === 'black-tie'
+                      ? 'bg-blue-100 text-blue-700'
+                      : occasion.formality === 'semi-formal'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-green-100 text-green-700'
                   }`}>
-                    {suggestion.formality}
+                    {occasion.formality}
                   </span>
                 </div>
               </button>
