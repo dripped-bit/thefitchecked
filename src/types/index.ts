@@ -2,7 +2,7 @@ export interface UserProfile {
   id: string;
   name: string;
   age: number;
-  gender: string;
+  gender: 'male' | 'female' | 'unisex';
   style_preferences: string[];
   avatar_data?: any;
   measurements?: {

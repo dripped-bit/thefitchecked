@@ -4,6 +4,7 @@ import { cgiAvatarGenerationService } from '../services/cgiAvatarGenerationServi
 import { CGIAvatarRequest, CGIAvatarResult } from '../types/cgiAvatar';
 import SavedPromptsModal from './SavedPromptsModal';
 import { CURRENT_PERFECT_PROMPT } from '../config/bestavatargenerated.js';
+import userDataService from '../services/userDataService';
 
 interface MeasurementData {
   heightFeet: string;
@@ -14,7 +15,7 @@ interface MeasurementData {
   shoulderWidth: string;
   inseam: string;
   bodyType: string;
-  gender?: 'male' | 'female' | 'other';
+  gender: 'male' | 'female' | 'unisex';
 }
 
 interface AvatarMeasurementsPageProps {
@@ -38,7 +39,8 @@ const AvatarMeasurementsPage: React.FC<AvatarMeasurementsPageProps> = ({ uploade
     hips: '',
     shoulderWidth: '',
     inseam: '',
-    bodyType: ''
+    bodyType: '',
+    gender: 'unisex' // Default to unisex
   });
 
   const bodyTypes = [
@@ -71,6 +73,14 @@ const AvatarMeasurementsPage: React.FC<AvatarMeasurementsPageProps> = ({ uploade
   const handleContinue = async () => {
     // Store measurements in localStorage
     localStorage.setItem('avatarMeasurements', JSON.stringify(measurements));
+
+    // Save gender to user profile
+    const userData = userDataService.getAllUserData();
+    if (userData?.profile) {
+      userData.profile.gender = measurements.gender;
+      userDataService.saveUserProfile(userData.profile);
+      console.log('👤 [GENDER] Saved to profile:', measurements.gender);
+    }
 
     // Check if we have head photo data for CGI generation
     const headPhotoData = avatarData?.headPhotoData || uploadedPhoto;
@@ -387,6 +397,52 @@ const AvatarMeasurementsPage: React.FC<AvatarMeasurementsPageProps> = ({ uploade
             </div>
 
             <div className="space-y-6">
+              {/* Gender Selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-4">Gender</label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div
+                    onClick={() => handleInputChange('gender', 'male')}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      measurements.gender === 'male'
+                        ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
+                        : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-3xl mb-2">👨</div>
+                      <h3 className="font-semibold text-gray-800">Man</h3>
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => handleInputChange('gender', 'female')}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      measurements.gender === 'female'
+                        ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
+                        : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-3xl mb-2">👩</div>
+                      <h3 className="font-semibold text-gray-800">Woman</h3>
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => handleInputChange('gender', 'unisex')}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      measurements.gender === 'unisex'
+                        ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
+                        : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-3xl mb-2">⚧️</div>
+                      <h3 className="font-semibold text-gray-800">Unisex</h3>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Height */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Height</label>
