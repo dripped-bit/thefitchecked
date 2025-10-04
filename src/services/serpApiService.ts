@@ -54,44 +54,74 @@ class SerpApiService {
     });
 
     try {
-      // Call backend API route instead of SerpAPI directly (fixes CORS)
-      const response = await fetch('/api/serpapi-search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          query: enhancedQuery,
-          num: maxResults,
-          budgetMin,
-          budgetMax
+      // Call both Google Shopping AND Amazon in parallel
+      const [googleShoppingResponse, amazonResponse] = await Promise.allSettled([
+        // Google Shopping search
+        fetch('/api/serpapi-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: enhancedQuery,
+            num: Math.ceil(maxResults * 0.6), // 60% Google Shopping
+            budgetMin,
+            budgetMax
+          })
+        }),
+        // Amazon search
+        fetch('/api/serpapi-amazon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: query, // Use original query for Amazon (not enhanced)
+            num: Math.ceil(maxResults * 0.4), // 40% Amazon
+            budgetMin,
+            budgetMax
+          })
         })
-      });
+      ]);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ [SERPAPI] API Error:', response.status, errorText);
-        throw new Error(`SerpAPI failed: ${response.status}`);
+      let allResults: ProductSearchResult[] = [];
+
+      // Process Amazon results first (to prioritize them)
+      if (amazonResponse.status === 'fulfilled' && amazonResponse.value.ok) {
+        const amazonData = await amazonResponse.value.json();
+        const amazonProducts = this.transformResults(amazonData.shopping_results || []);
+        console.log(`🛍️ [AMAZON] Found ${amazonProducts.length} Amazon products`);
+        allResults.push(...amazonProducts);
       }
 
-      const data = await response.json();
+      // Process Google Shopping results
+      if (googleShoppingResponse.status === 'fulfilled' && googleShoppingResponse.value.ok) {
+        const googleData = await googleShoppingResponse.value.json();
+        const googleProducts = this.transformResults(googleData.shopping_results || []);
+        console.log(`🔍 [GOOGLE-SHOPPING] Found ${googleProducts.length} products`);
+        allResults.push(...googleProducts);
+      }
 
-      console.log('📥 [SERPAPI] Raw response:', {
-        hasResults: !!data.shopping_results,
-        count: data.shopping_results?.length || 0
+      // Deduplicate by URL (in case Amazon products appear in both searches)
+      const seenUrls = new Set<string>();
+      const deduplicatedResults = allResults.filter(product => {
+        if (seenUrls.has(product.url)) {
+          return false;
+        }
+        seenUrls.add(product.url);
+        return true;
       });
 
-      const results = this.transformResults(data.shopping_results || []);
+      console.log(`📦 [SERPAPI] Total results: ${deduplicatedResults.length} (after deduplication)`);
 
       // Filter by priority stores if specified
-      let filteredResults = results;
+      let filteredResults = deduplicatedResults;
       if (stores && stores.length > 0) {
-        filteredResults = this.filterByStores(results, stores);
-        console.log(`🏪 [SERPAPI] Filtered to priority stores: ${filteredResults.length}/${results.length}`);
+        filteredResults = this.filterByStores(deduplicatedResults, stores);
+        console.log(`🏪 [SERPAPI] Filtered to priority stores: ${filteredResults.length}/${deduplicatedResults.length}`);
       }
 
-      console.log(`✅ [SERPAPI] Found ${filteredResults.length} products`);
-      return filteredResults;
+      // Limit to maxResults
+      const finalResults = filteredResults.slice(0, maxResults);
+      console.log(`✅ [SERPAPI] Returning ${finalResults.length} products (Amazon prioritized)`);
+
+      return finalResults;
 
     } catch (error) {
       console.error('❌ [SERPAPI] Search failed:', error);
