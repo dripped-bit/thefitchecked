@@ -507,12 +507,37 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {section.products.map((product) => (
                   <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-row">
-                    {/* Product Image - Left Side */}
-                    <div className="w-40 h-40 flex-shrink-0 bg-gray-100 relative group">
+                    {/* Product Image - Left Side - CLICKABLE */}
+                    <div
+                      className="w-40 h-40 flex-shrink-0 bg-gray-100 relative group cursor-pointer"
+                      onClick={() => {
+                        console.log('🖼️ [IMAGE-CLICK] Product image clicked');
+
+                        // Save product to clicked products (for calendar save)
+                        setClickedProducts(prev => {
+                          const alreadyClicked = prev.some(p => p.url === product.url);
+                          if (!alreadyClicked) {
+                            console.log('💾 [SHOPPING-CAPTURE] Product saved for calendar:', product.title);
+                            return [...prev, product];
+                          }
+                          return prev;
+                        });
+
+                        // Convert to affiliate link and open
+                        const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
+                          product.url,
+                          product.store || 'unknown'
+                        );
+
+                        console.log('🎯 [IMAGE-CLICK] Opening product URL:', affiliateUrl);
+                        affiliateLinkService.trackClick(affiliateUrl, undefined, product);
+                        window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+                      }}
+                    >
                       <img
                         src={product.imageUrl}
                         alt={product.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover cursor-pointer"
                         onError={(e) => {
                           // Fallback to category icon if image fails
                           const target = e.target as HTMLImageElement;
@@ -537,10 +562,16 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                           }
                         }}
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-200 flex items-center justify-center">
+                      <div
+                        className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-200 flex items-center justify-center"
+                        onClick={(e) => e.stopPropagation()} // Prevent image click when clicking Try-On
+                      >
                         {avatarData?.imageUrl && (
                           <button
-                            onClick={() => onTryOnProduct?.(product)}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent image click
+                              onTryOnProduct?.(product);
+                            }}
                             className="opacity-0 group-hover:opacity-100 bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-opacity duration-200"
                           >
                             <User className="w-3 h-3 inline mr-1" />
@@ -555,7 +586,10 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                         </div>
                       )}
 
-                      <button className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-50">
+                      <button
+                        onClick={(e) => e.stopPropagation()} // Prevent image click
+                        className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-50"
+                      >
                         <Heart className="w-3 h-3 text-gray-600" />
                       </button>
                     </div>
