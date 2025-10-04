@@ -297,7 +297,7 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
     }
 
     // Reset states when input is too short
-    if (value.length < 15) {
+    if (value.length < 100) {
       setParsedOccasion(null);
       setIsReadyToGenerate(false);
       setIsLoading(false);
@@ -361,7 +361,7 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
             <textarea
               value={input}
               onChange={(e) => handleInputChange(e.target.value)}
-              placeholder="Describe your occasion in detail... (minimum 15 characters)
+              placeholder="Describe your occasion in detail... (minimum 100 characters)
 
 Examples:
 • Beach wedding this Saturday afternoon for my cousin
@@ -382,95 +382,19 @@ Examples:
           <div className="flex items-center justify-between mt-2 px-2">
             <div className="flex items-center space-x-4">
               <span className={`text-sm ${
-                input.length < 15 ? 'text-gray-400' :
-                input.length < 25 ? 'text-orange-500' : 'text-green-600'
+                input.length < 100 ? 'text-gray-400' :
+                input.length < 150 ? 'text-orange-500' : 'text-green-600'
               }`}>
-                {input.length}/15 characters
+                {input.length}/100 characters
               </span>
-              {input.length >= 15 && (
+              {input.length >= 100 && (
                 <div className="flex items-center space-x-1 text-green-600">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium">Ready to analyze</span>
+                  <span className="text-sm font-medium">Generate outfits</span>
                 </div>
               )}
             </div>
-
-            {/* Generate button */}
-            {isReadyToGenerate && (
-              <button
-                onClick={handleGenerateOutfits}
-                disabled={!parsedOccasion}
-                className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <Zap className="w-5 h-5" />
-                <span>Generate Outfits</span>
-              </button>
-            )}
           </div>
-
-          {/* Parsed Preview */}
-          {parsedOccasion && (
-            <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-purple-900">Analysis Preview:</h4>
-                    {isReadyToGenerate && (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                        Ready to generate!
-                      </span>
-                    )}
-                  </div>
-                  <div className="space-y-1 text-sm text-purple-700">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-3 h-3" />
-                      <span><strong>{parsedOccasion.occasion}</strong> ({parsedOccasion.formality})</span>
-                    </div>
-                    {parsedOccasion.date && (
-                      <div className="flex items-center space-x-2">
-                        <Clock className="w-3 h-3" />
-                        <span>{parsedOccasion.date} {parsedOccasion.time && `at ${parsedOccasion.time}`}</span>
-                      </div>
-                    )}
-                    {parsedOccasion.location && (
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="w-3 h-3" />
-                        <span>{parsedOccasion.location}</span>
-                        {parsedOccasion.weather && (
-                          <span className="flex items-center space-x-1 ml-2">
-                            {getWeatherIcon(parsedOccasion.weather.temperature)}
-                            <span>{parsedOccasion.weather.temperature}°F</span>
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {parsedOccasion.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {parsedOccasion.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-block px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {isReadyToGenerate && (
-                    <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-xs text-green-700">
-                        <strong>✓ Ready!</strong> Click "Generate Outfits" above to create perfect outfits for this occasion.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Dropdown-based Occasion Selector */}
@@ -530,6 +454,84 @@ Examples:
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Parsed Preview - Moved here for better flow */}
+          {parsedOccasion && (
+            <div className="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-purple-900">Analysis Preview:</h4>
+                    {isReadyToGenerate && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                        Ready to generate!
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-1 text-sm text-purple-700">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-3 h-3" />
+                      <span><strong>{parsedOccasion.occasion}</strong> ({parsedOccasion.formality})</span>
+                    </div>
+                    {parsedOccasion.date && (
+                      <div className="flex items-center space-x-2">
+                        <Clock className="w-3 h-3" />
+                        <span>{parsedOccasion.date} {parsedOccasion.time && `at ${parsedOccasion.time}`}</span>
+                      </div>
+                    )}
+                    {parsedOccasion.location && (
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="w-3 h-3" />
+                        <span>{parsedOccasion.location}</span>
+                        {parsedOccasion.weather && (
+                          <span className="flex items-center space-x-1 ml-2">
+                            {getWeatherIcon(parsedOccasion.weather.temperature)}
+                            <span>{parsedOccasion.weather.temperature}°F</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {parsedOccasion.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {parsedOccasion.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="inline-block px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {isReadyToGenerate && (
+                    <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-xs text-green-700">
+                        <strong>✓ Ready!</strong> Click "Generate Outfits" below to create perfect outfits for this occasion.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Generate button - Moved here for better flow */}
+          {isReadyToGenerate && (
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={handleGenerateOutfits}
+                disabled={!parsedOccasion}
+                className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                <Zap className="w-5 h-5" />
+                <span>Generate Outfits</span>
+              </button>
             </div>
           )}
         </div>
