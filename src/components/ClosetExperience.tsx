@@ -24,6 +24,7 @@ interface ClothingItem {
   id: string;
   name: string;
   imageUrl: string;
+  originalImageUrl?: string; // Original image with background (if background was removed)
   category: ClothingCategory;
   color?: string;
   brand?: string;
@@ -165,6 +166,19 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
   const [isDragMode, setIsDragMode] = useState(false);
 
+  // Background removal settings (load from localStorage)
+  const [autoRemoveBackground, setAutoRemoveBackground] = useState<boolean>(() => {
+    const saved = localStorage.getItem('autoRemoveBackground');
+    return saved !== null ? JSON.parse(saved) : true; // Default: ON
+  });
+  const [keepOriginal, setKeepOriginal] = useState<boolean>(() => {
+    const saved = localStorage.getItem('keepOriginalImage');
+    return saved !== null ? JSON.parse(saved) : true; // Default: Keep both versions
+  });
+
+  // Track which items are showing original version (item IDs)
+  const [showingOriginalVersions, setShowingOriginalVersions] = useState<Set<string>>(new Set());
+
   // Outfit of the Day Modal state
   const [showOOTDModal, setShowOOTDModal] = useState(false);
   const [ootdWeather, setOotdWeather] = useState<{ temperature: number; description: string } | null>(null);
@@ -245,6 +259,17 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       console.log(`ℹ️ [CLOSET-VIEW] Not in interior view - grid will not render (current: ${currentView})`);
     }
   }, [currentView]);
+
+  // Save background removal settings to localStorage
+  useEffect(() => {
+    localStorage.setItem('autoRemoveBackground', JSON.stringify(autoRemoveBackground));
+    console.log('💾 [SETTINGS] Auto background removal:', autoRemoveBackground ? 'ON' : 'OFF');
+  }, [autoRemoveBackground]);
+
+  useEffect(() => {
+    localStorage.setItem('keepOriginalImage', JSON.stringify(keepOriginal));
+    console.log('💾 [SETTINGS] Keep original images:', keepOriginal ? 'ON' : 'OFF');
+  }, [keepOriginal]);
 
   // Initialize achievements
   useEffect(() => {
@@ -436,8 +461,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       const result = await backgroundRemovalService.processClothingUpload(file);
 
       if (result.success) {
-        // Show background removal stage if successful
-        if (result.metadata?.backgroundRemoved) {
+        // Show background removal stage if successful and enabled
+        const backgroundRemoved = autoRemoveBackground && result.metadata?.backgroundRemoved;
+        if (backgroundRemoved) {
           setUploadProgress(prev => ({
             ...prev,
             stage: 'removing-background',
@@ -454,11 +480,21 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
         }));
         await new Promise(resolve => setTimeout(resolve, 500));
 
+        // Determine which image to use based on settings
+        const finalImageUrl = autoRemoveBackground && result.processedImageUrl
+          ? result.processedImageUrl
+          : result.imageUrl!;
+
+        const originalImageUrl = (autoRemoveBackground && keepOriginal && backgroundRemoved && result.imageUrl)
+          ? result.imageUrl
+          : undefined;
+
         // Prepare item data (without category yet)
         const itemData = {
           id: Date.now().toString(),
           name: result.metadata?.originalName || file.name.replace(/\.[^/.]+$/, ""),
-          imageUrl: result.processedImageUrl || result.imageUrl!,
+          imageUrl: finalImageUrl,
+          originalImageUrl: originalImageUrl, // Store original if keeping both versions
           color: result.metadata?.color,
           brand: result.metadata?.brand,
           sustainability: result.metadata?.sustainability || 'regular',
@@ -469,10 +505,10 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
         // Store pending item and show category selector
         setPendingItem({
-          imageUrl: result.processedImageUrl || result.imageUrl!,
+          imageUrl: finalImageUrl,
           itemData,
           metadata: {
-            backgroundRemoved: result.metadata?.backgroundRemoved,
+            backgroundRemoved: backgroundRemoved,
             confidence: result.metadata?.confidence,
             suggestedCategory: result.category
           }
@@ -704,6 +740,20 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     console.log('❌ [DELETE] Delete cancelled');
     setShowDeleteConfirmation(false);
     setItemToDelete(null);
+  };
+
+  const handleToggleImageVersion = (itemId: string) => {
+    setShowingOriginalVersions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+        console.log(`🖼️ [IMAGE-TOGGLE] Showing transparent version for item: ${itemId}`);
+      } else {
+        newSet.add(itemId);
+        console.log(`🖼️ [IMAGE-TOGGLE] Showing original version for item: ${itemId}`);
+      }
+      return newSet;
+    });
   };
 
   const checkAchievements = () => {
@@ -1313,6 +1363,57 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                 <Sparkles className="w-4 h-4" />
                 <span>Smart Calendar</span>
               </button>
+            </div>
+          </div>
+
+          {/* Upload Settings */}
+          <div className="mb-6">
+            <h3 className="font-semibold text-gray-800 mb-3">Upload Settings</h3>
+            <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700">Auto Remove Background</label>
+                  <p className="text-xs text-gray-500">Automatically remove backgrounds from uploads</p>
+                </div>
+                <button
+                  onClick={() => setAutoRemoveBackground(!autoRemoveBackground)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    autoRemoveBackground ? 'bg-purple-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      autoRemoveBackground ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700">Keep Original Image</label>
+                  <p className="text-xs text-gray-500">Save both original and transparent versions</p>
+                </div>
+                <button
+                  onClick={() => setKeepOriginal(!keepOriginal)}
+                  disabled={!autoRemoveBackground}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    keepOriginal && autoRemoveBackground ? 'bg-purple-600' : 'bg-gray-300'
+                  } ${!autoRemoveBackground ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      keepOriginal ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {!autoRemoveBackground && (
+                <div className="text-xs text-gray-500 italic mt-2">
+                  💡 Enable auto background removal to access advanced options
+                </div>
+              )}
             </div>
           </div>
 
@@ -2129,11 +2230,23 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                       className="category-item bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group"
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
-                      <div className="aspect-square relative bg-gray-100 flex items-center justify-center">
+                      <div
+                        className="aspect-square relative flex items-center justify-center"
+                        style={{
+                          background: item.originalImageUrl && !showingOriginalVersions.has(item.id)
+                            ? 'repeating-conic-gradient(#e5e7eb 0% 25%, #f3f4f6 0% 50%) 50% / 20px 20px'
+                            : '#f3f4f6'
+                        }}
+                        title={item.originalImageUrl ? 'Has transparent background' : undefined}
+                      >
                         <img
-                          src={item.imageUrl}
+                          src={
+                            item.originalImageUrl && showingOriginalVersions.has(item.id)
+                              ? item.originalImageUrl
+                              : item.imageUrl
+                          }
                           alt={item.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                           onError={(e) => {
                             console.error(`❌ [IMAGE-LOAD-ERROR-GRID] Failed to load image for "${item.name}":`, {
                               itemId: item.id,
@@ -2179,6 +2292,21 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                             >
                               <Heart className={`w-4 h-4 ${item.favorite ? 'fill-current' : ''}`} />
                             </button>
+
+                            {/* Toggle between original and transparent versions */}
+                            {item.originalImageUrl && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleImageVersion(item.id);
+                                }}
+                                className="bg-white/90 p-2 rounded-full hover:bg-purple-500 hover:text-white transition-colors"
+                                title={showingOriginalVersions.has(item.id) ? 'Show transparent version' : 'Show original version'}
+                              >
+                                <Palette className="w-4 h-4" />
+                              </button>
+                            )}
+
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
