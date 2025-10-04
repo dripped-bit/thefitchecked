@@ -725,7 +725,15 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   return (
     <>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative overflow-hidden">
+      <div className="min-h-screen relative overflow-hidden">
+      {/* Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+        style={{ backgroundImage: "url('/avatarhomepage.png')" }}
+      />
+
+      {/* Content Layer */}
+      <div className="relative z-10">
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm border-b border-gray-200">
         {/* Personalized Greeting */}
@@ -1545,6 +1553,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
           quality: CURRENT_PERFECT_PROMPT.quality
         }}
       />
+      </div>
       </div>
     </>
   );
