@@ -17,7 +17,7 @@ import {
 import { GeneratedOutfit } from './TripleOutfitGenerator';
 import { ParsedOccasion, BudgetRange } from './SmartOccasionInput';
 import optionalProductSearchService from '../services/optionalProductSearchService';
-import perplexityService, { ProductSearchResult } from '../services/perplexityService';
+import serpApiService, { ProductSearchResult } from '../services/serpApiService';
 import { buildPriorityStoreQuery, SEARCH_STRATEGY, getPriorityStoreDomains } from '../config/priorityStores';
 import { affiliateLinkService } from '../services/affiliateLinkService';
 
@@ -94,7 +94,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
   const searchContextualProducts = async () => {
     setIsSearching(true);
-    setSearchProgress('Searching priority stores for your outfit...');
+    setSearchProgress('Searching Google Shopping for your outfit...');
 
     try {
       const baseQuery = selectedOutfit.searchPrompt;
@@ -105,64 +105,27 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
       let allProducts: ProductSearchResult[] = [];
 
-      // PHASE 1: Search primary priority stores FIRST (user's preferred webpages)
-      console.log('🔍 [PHASE 1] Searching primary priority stores...');
-      setSearchProgress('Checking Shein, Fashion Nova, White Fox...');
+      // Search via SerpAPI (Google Shopping) - simpler and more reliable
+      console.log('🔍 [SERPAPI] Searching Google Shopping...');
+      setSearchProgress('Finding products on Google Shopping...');
 
-      const primaryQuery = buildPriorityStoreQuery(baseQuery, 5, true, false);
-      console.log('🎯 [PRIORITY-SEARCH] Primary query:', primaryQuery);
-
-      const primaryResults = await perplexityService.searchSimilarProducts(
-        primaryQuery,
-        { maxResults: 10 }
-      );
-
-      allProducts.push(...primaryResults);
-      console.log(`✅ [PHASE 1] Found ${primaryResults.length} products from priority stores`);
-
-      // Log each product URL for debugging
-      primaryResults.forEach((product, index) => {
-        console.log(`📦 [PHASE 1] Product ${index + 1}:`, {
-          title: product.title,
-          store: product.store,
-          url: product.url,
-          urlType: product.url.includes('/products/') || product.url.includes('/dp/') || product.url.includes('/goods') || product.url.includes('-p-') ? 'PRODUCT_PAGE' : 'POSSIBLE_ERROR_PAGE'
-        });
+      const searchResults = await serpApiService.searchProducts(baseQuery, {
+        maxResults: 20
       });
 
-      // PHASE 2: If not enough results, add secondary stores
-      if (allProducts.length < SEARCH_STRATEGY.MIN_RESULTS_PRIMARY && SEARCH_STRATEGY.PHASE_2_ADD_SECONDARY) {
-        console.log('🔍 [PHASE 2] Not enough results, searching secondary stores...');
-        setSearchProgress('Expanding search to ASOS, Zara, H&M...');
+      allProducts.push(...searchResults);
+      console.log(`✅ [SERPAPI] Found ${searchResults.length} products from Google Shopping`);
 
-        const secondaryQuery = buildPriorityStoreQuery(baseQuery, 5, false, true);
-        console.log('🎯 [SECONDARY-SEARCH] Secondary query:', secondaryQuery);
-
-        const secondaryResults = await perplexityService.searchSimilarProducts(
-          secondaryQuery,
-          { maxResults: 5 }
-        );
-
-        allProducts.push(...secondaryResults);
-        console.log(`✅ [PHASE 2] Found ${secondaryResults.length} products from secondary stores`);
-      }
-
-      // PHASE 3: If still not enough, search ALL priority stores (primary + secondary)
-      if (allProducts.length < SEARCH_STRATEGY.MIN_RESULTS_SECONDARY && SEARCH_STRATEGY.PHASE_3_GENERAL_SEARCH) {
-        console.log('🔍 [PHASE 3] Still not enough, searching all priority stores...');
-        setSearchProgress('Searching all available retailers...');
-
-        const allStoresQuery = buildPriorityStoreQuery(baseQuery, 11, true, true);
-        console.log('🎯 [ALL-STORES-SEARCH] Query:', allStoresQuery);
-
-        const allStoresResults = await perplexityService.searchSimilarProducts(
-          allStoresQuery,
-          { maxResults: 10 }
-        );
-
-        allProducts.push(...allStoresResults);
-        console.log(`✅ [PHASE 3] Found ${allStoresResults.length} products from all priority stores`);
-      }
+      // Log product details
+      searchResults.forEach((product, index) => {
+        console.log(`📦 [PRODUCT ${index + 1}]:`, {
+          title: product.title,
+          store: product.store,
+          price: product.price,
+          hasImage: !!product.imageUrl,
+          url: product.url
+        });
+      });
 
       console.log('✅ [SHOPPING] Total products found:', allProducts.length);
 
@@ -544,22 +507,36 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {section.products.map((product) => (
                   <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-row">
-                    {/* Product Category - Left Side */}
-                    <div className="w-40 h-40 flex-shrink-0 bg-gradient-to-br from-purple-100 to-blue-100 relative group flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">
-                          {product.category === 'dress' ? '👗' :
-                           product.category === 'top' ? '👚' :
-                           product.category === 'bottom' ? '👖' :
-                           product.category === 'skirt' ? '👗' :
-                           product.category === 'outerwear' ? '🧥' :
-                           product.category === 'shoes' ? '👠' :
-                           '👔'}
-                        </div>
-                        <div className="text-xs font-medium text-gray-600 capitalize">
-                          {product.category || 'clothing'}
-                        </div>
-                      </div>
+                    {/* Product Image - Left Side */}
+                    <div className="w-40 h-40 flex-shrink-0 bg-gray-100 relative group">
+                      <img
+                        src={product.imageUrl}
+                        alt={product.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to category icon if image fails
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.classList.add('flex', 'items-center', 'justify-center', 'bg-gradient-to-br', 'from-purple-100', 'to-blue-100');
+                            parent.innerHTML = `
+                              <div class="text-center">
+                                <div class="text-4xl mb-2">${
+                                  product.category === 'dress' ? '👗' :
+                                  product.category === 'top' ? '👚' :
+                                  product.category === 'bottom' ? '👖' :
+                                  product.category === 'skirt' ? '👗' :
+                                  product.category === 'outerwear' ? '🧥' :
+                                  product.category === 'shoes' ? '👠' :
+                                  '👔'
+                                }</div>
+                                <div class="text-xs font-medium text-gray-600 capitalize">${product.category || 'clothing'}</div>
+                              </div>
+                            `;
+                          }
+                        }}
+                      />
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-200 flex items-center justify-center">
                         {avatarData?.imageUrl && (
                           <button
