@@ -479,7 +479,7 @@ Examples:
         {/* Dropdown-based Occasion Selector */}
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Or pick from upcoming events:
+            then pick from upcoming events:
           </h3>
 
           {/* Category Dropdown */}
