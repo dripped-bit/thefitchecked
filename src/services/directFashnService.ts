@@ -415,7 +415,11 @@ class DirectFashnService {
     }
 
     // Step 2: Analyze garment for optimal parameters
-    const garmentAnalysis = await this.analyzeGarment(processedGarment.processedImageUrl);
+    const garmentAnalysis = await this.analyzeGarment(
+      processedGarment.processedImageUrl,
+      options.garmentDescription,
+      options.garmentType
+    );
     console.log('🎯 [FASHN-ENHANCE] Garment analysis:', garmentAnalysis);
 
     // Step 3: Generate seed for consistency (must be within 0 to 2^32 - 1 range)
@@ -822,10 +826,19 @@ class DirectFashnService {
   async tryOnClothing(
     modelImageUrl: string,
     garmentImageUrl: string,
-    options: { context?: ImageContext; timeout?: number } = {}
+    options: {
+      context?: ImageContext;
+      timeout?: number;
+      garmentDescription?: string; // Description of garment for intelligent segmentation
+      garmentType?: string; // Type of garment (e.g., "jacket", "dress", "bodycon")
+    } = {}
   ) {
     const context = options.context || 'try_on'; // Default to 'try_on' context
-    console.log('🎯 [NATIVE-FASHN] Starting FASHN try-on with timeout and fallback...', { context });
+    console.log('🎯 [NATIVE-FASHN] Starting FASHN try-on with timeout and fallback...', {
+      context,
+      hasGarmentDescription: !!options.garmentDescription,
+      garmentType: options.garmentType || 'auto'
+    });
 
     // Single request queue - prevent multiple simultaneous FASHN requests
     if (this.activeRequest) {
@@ -1164,11 +1177,21 @@ class DirectFashnService {
   /**
    * Analyze garment to determine optimal FASHN parameters
    */
-  private async analyzeGarment(garmentImageUrl: string): Promise<GarmentAnalysis> {
-    console.log('🔍 [GARMENT-ANALYSIS] Analyzing garment for optimal parameters...');
+  private async analyzeGarment(
+    garmentImageUrl: string,
+    garmentDescription?: string,
+    garmentType?: string
+  ): Promise<GarmentAnalysis> {
+    console.log('🔍 [GARMENT-ANALYSIS] Analyzing garment for optimal parameters...', {
+      hasDescription: !!garmentDescription,
+      providedType: garmentType || 'auto'
+    });
 
-    // Check cache first
-    const cacheKey = this.generateCacheKey(garmentImageUrl);
+    // Build analysis data from description or URL
+    const analysisData = garmentDescription || garmentType || garmentImageUrl;
+
+    // Check cache first (use description for cache key if available)
+    const cacheKey = this.generateCacheKey(analysisData);
     if (this.parameterCache.has(cacheKey)) {
       console.log('📋 [GARMENT-ANALYSIS] Using cached analysis');
       return this.parameterCache.get(cacheKey)!;
@@ -1176,11 +1199,11 @@ class DirectFashnService {
 
     try {
       // Enhanced garment type detection
-      const garmentType = this.detectEnhancedClothingCategory(garmentImageUrl);
+      const detectedCategory = this.detectEnhancedClothingCategory(analysisData);
 
-      // Determine fitting type and complexity
-      const fittingType = this.determineFittingType(garmentImageUrl);
-      const complexity = this.determineGarmentComplexity(garmentImageUrl);
+      // Determine fitting type and complexity using description (or URL fallback)
+      const fittingType = this.determineFittingType(analysisData);
+      const complexity = this.determineGarmentComplexity(analysisData);
 
       // Generate recommended mode and samples based on analysis
       const recommendedMode = this.getRecommendedMode(complexity);
@@ -1188,7 +1211,7 @@ class DirectFashnService {
       const recommendedSegmentationFree = this.getRecommendedSegmentation(fittingType, complexity);
 
       const analysis: GarmentAnalysis = {
-        type: garmentType,
+        type: detectedCategory,
         fittingType,
         complexity,
         recommendedMode,
@@ -1253,25 +1276,56 @@ class DirectFashnService {
   }
 
   /**
-   * Determine garment fitting type
+   * Determine garment fitting type for intelligent segmentation
+   * Based on FASHN best practices for segmentation_free parameter
    */
   private determineFittingType(garmentData: string): 'fitted' | 'loose' | 'layered' | 'accessory' {
     const dataLower = garmentData.toLowerCase();
 
-    if (dataLower.includes('fitted') || dataLower.includes('tight') || dataLower.includes('slim')) {
-      return 'fitted';
-    }
-    if (dataLower.includes('loose') || dataLower.includes('oversized') || dataLower.includes('baggy')) {
-      return 'loose';
-    }
-    if (dataLower.includes('layer') || dataLower.includes('jacket') || dataLower.includes('cardigan')) {
-      return 'layered';
-    }
-    if (dataLower.includes('accessory') || dataLower.includes('belt') || dataLower.includes('scarf')) {
+    // Accessories - go over clothes, use segmentation_free: true
+    if (dataLower.includes('scarf') || dataLower.includes('belt') ||
+        dataLower.includes('bag') || dataLower.includes('accessory') ||
+        dataLower.includes('hat') || dataLower.includes('jewelry') ||
+        dataLower.includes('watch') || dataLower.includes('sunglasses')) {
       return 'accessory';
     }
 
-    return 'fitted'; // Default
+    // Outerwear/layered items - go over clothes, use segmentation_free: true
+    if (dataLower.includes('jacket') || dataLower.includes('coat') ||
+        dataLower.includes('blazer') || dataLower.includes('cardigan') ||
+        dataLower.includes('vest') || dataLower.includes('shawl') ||
+        dataLower.includes('poncho') || dataLower.includes('cape') ||
+        dataLower.includes('kimono') || dataLower.includes('robe') ||
+        dataLower.includes('layer')) {
+      return 'layered';
+    }
+
+    // Loose/oversized - better with segmentation_free: true
+    if (dataLower.includes('oversized') || dataLower.includes('loose') ||
+        dataLower.includes('baggy') || dataLower.includes('relaxed') ||
+        dataLower.includes('boyfriend') || dataLower.includes('slouchy')) {
+      return 'loose';
+    }
+
+    // Form-fitting/tight - require segmentation_free: false for clean replacement
+    // Includes: bodycon, tight fits, undergarments, swimwear
+    if (dataLower.includes('bodycon') || dataLower.includes('tight') ||
+        dataLower.includes('fitted') || dataLower.includes('slim') ||
+        dataLower.includes('skinny') || dataLower.includes('form-fitting') ||
+        dataLower.includes('bodysuit') || dataLower.includes('leotard') ||
+        dataLower.includes('swimsuit') || dataLower.includes('bikini') ||
+        dataLower.includes('underwear') || dataLower.includes('lingerie')) {
+      return 'fitted';
+    }
+
+    // Check for dress types - most dresses need segmentation
+    if (dataLower.includes('dress') &&
+        (dataLower.includes('bodycon') || dataLower.includes('fitted') ||
+         dataLower.includes('tight') || dataLower.includes('pencil'))) {
+      return 'fitted';
+    }
+
+    return 'fitted'; // Default to fitted (use segmentation for clean replacement)
   }
 
   /**
@@ -1315,20 +1369,42 @@ class DirectFashnService {
 
   /**
    * Get recommended segmentation setting based on garment type
+   * Intelligent selection based on FASHN best practices
    */
   private getRecommendedSegmentation(fittingType: string, complexity: string): boolean {
-    // Per FASHN documentation:
-    // - segmentation_free: false (default) - Uses segmentation to properly remove original clothes
-    // - segmentation_free: true - For bulkier garments, better body/skin preservation but may not remove original clothes
+    // FASHN segmentation_free parameter guide:
+    //
+    // segmentation_free: true (skip segmentation) - For items that LAYER OVER existing clothes
+    // Benefits: ~30% faster, preserves body/skin, natural layering effect
+    // Use cases: Outerwear, accessories, loose items, quick previews
+    //
+    // segmentation_free: false (use segmentation) - For items that REPLACE existing clothes
+    // Benefits: Clean replacement, removes original garments completely
+    // Use cases: Form-fitting clothes, dresses, underwear, single-layer outfits
 
-    // Only use segmentation_free=true for very bulky/oversized items where preservation is critical
-    if (fittingType === 'oversized' || complexity === 'very-complex') {
-      return true; // Use segmentation-free for bulky items like oversized jackets, coats
+    if (fittingType === 'layered') {
+      console.log('🧥 [SEGMENTATION] Layered/outerwear detected → segmentation_free: true (layers over clothes)');
+      return true; // Jackets, coats, blazers, cardigans go OVER existing clothes
     }
 
-    // For most cases (fitted, loose, layered, simple, moderate, complex), use segmentation
-    // This ensures original clothes are properly removed during try-on
-    return false; // Default to false - use segmentation to remove original garments
+    if (fittingType === 'accessory') {
+      console.log('👜 [SEGMENTATION] Accessory detected → segmentation_free: true (doesn\'t replace clothes)');
+      return true; // Accessories (scarves, belts, bags) don't replace clothes
+    }
+
+    if (fittingType === 'loose') {
+      console.log('👕 [SEGMENTATION] Loose/oversized garment detected → segmentation_free: true (better draping)');
+      return true; // Oversized/baggy items look more natural with segmentation-free
+    }
+
+    if (fittingType === 'fitted') {
+      console.log('👗 [SEGMENTATION] Form-fitting garment detected → segmentation_free: false (clean replacement)');
+      return false; // Fitted, bodycon, tight items need segmentation for clean replacement
+    }
+
+    // Default: Use segmentation for clean replacement
+    console.log('❓ [SEGMENTATION] Unknown garment type → defaulting to segmentation_free: false');
+    return false;
   }
 
   /**

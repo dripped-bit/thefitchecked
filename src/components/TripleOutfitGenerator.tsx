@@ -468,7 +468,9 @@ NO explanations, just the search keywords.`
         outfit.imageUrl,        // The generated clothing from Seedream
         {
           category: 'auto',     // Let FASHN auto-detect clothing category
-          timeout: 90000        // 90 seconds - FASHN typically takes 40-50s
+          timeout: 90000,       // 90 seconds - FASHN typically takes 40-50s
+          garmentDescription: outfit.originalPrompt || outfit.searchPrompt, // Use prompt for intelligent segmentation
+          context: 'try_on'     // Use JPEG for speed during try-on
         }
       );
 

@@ -46,14 +46,16 @@ class ExternalTryOnService {
 
       console.log('✅ [EXTERNAL-TRYON] External image validated, proceeding with FASHN...');
 
-      // Use direct FASHN service for the try-on
+      // Use direct FASHN service for the try-on with intelligent segmentation
       const fashnResult = await directFashnService.tryOnClothing(
         avatarImageUrl,
         product.imageUrl,
         {
           category: 'auto', // Let FASHN auto-detect the category
           timeout: 90000, // 90 seconds - FASHN typically takes 40-50s, need buffer
-          source: 'external-search'
+          source: 'external-search',
+          garmentDescription: product.title, // Use product title for intelligent segmentation detection
+          context: 'try_on' // Use JPEG for speed during try-on
         }
       );
 
