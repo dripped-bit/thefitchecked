@@ -208,26 +208,11 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     // Build final prompt with PERSONALITY as highest priority for variation
     const genderPrefix = genderGuidance ? `${genderGuidance}. ` : '';
 
-    return `⚠️ ${personality.promptModifier} ⚠️
-
-CRITICAL REQUIREMENTS:
-- GENERATE EXACTLY 1 SINGLE OUTFIT ONLY (not 2, not 3, just 1)
-- If dress: Show ONLY 1 dress
-- If separates: Show ONLY 1 top + 1 bottom overlapped together
-- NEVER generate: multiple outfits, outfit comparisons, variations
+    return `${personality.promptModifier}
 
 ${genderPrefix}FOR OCCASION: ${userRequest}. ${styleGuidance}
 
-HOW TO GENERATE THE SINGLE OUTFIT:
-- If dress/jumpsuit: Show 1 complete one-piece garment
-- If separates: Show 1 top AND 1 bottom overlapped together as unified outfit
-- ALL pieces must touch/overlap to form single coordinated look
-- Layout: Flat-lay style as if ready to wear (top on top, bottom below)
-
-STYLE REQUIREMENTS:
-Product photography, clean white background, centered composition, professional fashion photography, detailed fabric texture, well-lit, crisp details, fashion catalog style, FASHN-ready outfit image, virtual try-on optimized, no person, no model, no mannequin.
-
-FINAL REMINDER: Generate EXACTLY 1 OUTFIT - if you're showing a dress, show ONLY 1 dress, NOT 2 or more.`;
+SINGLE OUTFIT ONLY: 1 dress OR 1 top+bottom overlapped together, flat-lay style, clean white background, professional product photography, no person, no model.`;
   };
 
   const createCleanSearchPrompt = (): string => {
@@ -397,6 +382,14 @@ NO explanations, just keywords.`
     return reasons;
   };
 
+  // Generate unique seed for each personality to force variation
+  const generatePersonalitySeed = (personalityId: string): number => {
+    // Hash personality ID to create unique but consistent seed
+    const baseTime = Math.floor(Date.now() / 1000); // Changes per second
+    const hash = personalityId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return (baseTime * 1000) + (hash * 100); // Unique seed per personality
+  };
+
   const generateTripleOutfits = async () => {
     setIsGenerating(true);
     setGenerationProgress('Generating your personalized outfit options...');
@@ -417,7 +410,8 @@ NO explanations, just keywords.`
             prompt,
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
-            enable_safety_checker: true
+            enable_safety_checker: true,
+            seed: generatePersonalitySeed(personality.id) // Force unique outputs per personality
           })
         });
 
