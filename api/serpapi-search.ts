@@ -49,13 +49,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('❌ [SERPAPI-PROXY] Error:', response.status, data);
+      console.error('❌ [SERPAPI-PROXY] SerpAPI Error Details:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData: JSON.stringify(data, null, 2),
+        requestParams: params.toString(),
+        query: query
+      });
       return res.status(response.status).json(data);
     }
 
     console.log('✅ [SERPAPI-PROXY] Success:', {
       hasResults: !!data.shopping_results,
-      count: data.shopping_results?.length || 0
+      count: data.shopping_results?.length || 0,
+      searchId: data.search_metadata?.id
     });
 
     return res.status(200).json(data);
