@@ -351,18 +351,6 @@ NO explanations, just keywords.`
   const generateReasoning = (personality: OutfitPersonality): string[] => {
     const reasons = [];
 
-    // Weather-based reasoning
-    if (occasion.weather) {
-      const temp = occasion.weather.temperature;
-      if (temp < 60) {
-        reasons.push(`Warm layers for ${temp}°F weather`);
-      } else if (temp > 80) {
-        reasons.push(`Breathable fabrics for ${temp}°F heat`);
-      } else {
-        reasons.push(`Perfect temperature at ${temp}°F`);
-      }
-    }
-
     // Occasion-based reasoning
     if (occasion.formality === 'formal') {
       reasons.push('Formal dress code appropriate');
