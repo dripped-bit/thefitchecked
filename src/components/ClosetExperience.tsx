@@ -15,6 +15,7 @@ import WoreThisTodayTracker from './WoreThisTodayTracker';
 import CategorySelector from './CategorySelector';
 import MultiItemSplitter from './MultiItemSplitter';
 import ShareModal from './ShareModal';
+import CameraCapture from './CameraCapture';
 import ClosetService, { ClothingCategory } from '../services/closetService';
 import seamlessTryOnService from '../services/seamlessTryOnService';
 import backgroundRemovalService from '../services/backgroundRemovalService';
@@ -229,6 +230,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   // Share state
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedItemToShare, setSelectedItemToShare] = useState<ClothingItem | null>(null);
+
+  // Camera capture state (for desktop webcam access)
+  const [showCameraModal, setShowCameraModal] = useState(false);
 
   // Delete confirmation state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -1356,7 +1360,20 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
               </button>
 
               <button
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={() => {
+                  // Detect if mobile device
+                  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+                  if (isMobile) {
+                    // Mobile: Use native camera input
+                    console.log('📱 [CAMERA] Mobile detected - using native camera');
+                    cameraInputRef.current?.click();
+                  } else {
+                    // Desktop: Open webcam modal
+                    console.log('💻 [CAMERA] Desktop detected - opening webcam modal');
+                    setShowCameraModal(true);
+                  }
+                }}
                 disabled={uploadProgress.isUploading}
                 className={`w-full flex items-center justify-center space-x-2 py-2 px-4 rounded-lg transition-colors ${
                   uploadProgress.isUploading
@@ -2719,6 +2736,21 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
             subcategory: pendingItem.metadata?.subcategory,
             color: pendingItem.metadata?.color,
             confidence: pendingItem.metadata?.confidence
+          }}
+        />
+      )}
+
+      {/* Camera Capture Modal (Desktop Webcam) */}
+      {showCameraModal && (
+        <CameraCapture
+          onCapture={(file) => {
+            console.log('📸 [CAMERA] Photo captured from webcam:', file.name);
+            handleFileUpload(file);
+            setShowCameraModal(false);
+          }}
+          onClose={() => {
+            console.log('❌ [CAMERA] Camera modal closed');
+            setShowCameraModal(false);
           }}
         />
       )}
