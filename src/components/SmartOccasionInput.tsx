@@ -242,30 +242,43 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
       time = timeMatch[0];
     }
 
-    // Weather lookup if location and date are available
+    // Weather lookup if location is available
     let weather: WeatherData | undefined;
-    if (location && date) {
+    if (location) {
       try {
-        // For demo, we'll use mock weather data
-        weather = {
-          temperature: 75,
-          feelsLike: 78,
-          humidity: 60,
-          windSpeed: 5,
-          weatherCode: 0,
-          weatherDescription: 'Clear sky',
-          isDay: true,
-          precipitation: 0,
-          uvIndex: 6,
-          location: {
-            latitude: 34.0522,
-            longitude: -118.2437,
-            city: location
-          },
-          timestamp: new Date().toISOString()
-        };
+        console.log('🌤️ [WEATHER] Fetching real weather for:', location);
+
+        // Parse location into city and optional state
+        const locationParts = location.split(',').map(s => s.trim());
+        const city = locationParts[0];
+        const state = locationParts[1];
+
+        // Fetch real weather from weatherService
+        if (state) {
+          weather = await weatherService.getWeatherByCity(city, state);
+        } else {
+          weather = await weatherService.getWeatherByCity(city);
+        }
+
+        console.log('✅ [WEATHER] Real weather fetched:', weather);
       } catch (error) {
-        console.log('Weather lookup failed:', error);
+        console.error('❌ [WEATHER] Failed to fetch weather for location, using current location fallback:', error);
+        try {
+          // Fallback to current location weather
+          weather = await weatherService.getCurrentWeather();
+          console.log('✅ [WEATHER] Using current location weather as fallback');
+        } catch (fallbackError) {
+          console.error('❌ [WEATHER] Current location fallback also failed:', fallbackError);
+        }
+      }
+    } else {
+      // No location specified, use current location weather
+      try {
+        console.log('🌤️ [WEATHER] No location specified, using current location');
+        weather = await weatherService.getCurrentWeather();
+        console.log('✅ [WEATHER] Current location weather fetched');
+      } catch (error) {
+        console.error('❌ [WEATHER] Failed to get current location weather:', error);
       }
     }
 

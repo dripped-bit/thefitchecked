@@ -52,68 +52,6 @@ interface TripleOutfitGeneratorProps {
   className?: string;
 }
 
-interface BudgetOption {
-  range: string;
-  label: string;
-  description: string;
-  color: string;
-}
-
-const budgetOptions: BudgetOption[] = [
-  { range: '$1-50', label: 'Budget', description: 'Affordable finds', color: 'bg-green-50 border-green-200 hover:bg-green-100' },
-  { range: '$50-150', label: 'Moderate', description: 'Great value', color: 'bg-blue-50 border-blue-200 hover:bg-blue-100' },
-  { range: '$150-500', label: 'Premium', description: 'Quality pieces', color: 'bg-purple-50 border-purple-200 hover:bg-purple-100' },
-  { range: '$500-1500', label: 'Luxury', description: 'Designer items', color: 'bg-pink-50 border-pink-200 hover:bg-pink-100' }
-];
-
-interface BudgetSelectorModalProps {
-  onSelect: (budget: string) => void;
-  onClose: () => void;
-}
-
-const BudgetSelectorModal: React.FC<BudgetSelectorModalProps> = ({ onSelect, onClose }) => {
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">Select Your Budget</h3>
-              <p className="text-sm text-gray-600 mt-1">Choose your preferred price range</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
-          </div>
-        </div>
-
-        {/* Budget Options */}
-        <div className="p-6 space-y-3">
-          {budgetOptions.map((option) => (
-            <button
-              key={option.range}
-              onClick={() => onSelect(option.range)}
-              className={`w-full p-4 rounded-xl border-2 transition-all ${option.color} text-left`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-gray-900">{option.label}</div>
-                  <div className="text-sm text-gray-600">{option.description}</div>
-                </div>
-                <div className="text-lg font-bold text-gray-900">{option.range}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   occasion,
   avatarData,
@@ -134,8 +72,6 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   const [zoomOutfit, setZoomOutfit] = useState<GeneratedOutfit | null>(null);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [outfitToSave, setOutfitToSave] = useState<any>(null);
-  const [showBudgetModal, setShowBudgetModal] = useState(false);
-  const [pendingOutfit, setPendingOutfit] = useState<GeneratedOutfit | null>(null);
 
   const personalities: OutfitPersonality[] = [
     {
@@ -351,14 +287,25 @@ FINAL REMINDER: Generate EXACTLY 1 OUTFIT - if you're showing a dress, show ONLY
                 },
                 {
                   type: 'text',
-                  text: `Analyze this ${personalityName} outfit for ${occasion.occasion} and extract:
-1. PRIMARY COLORS (2-3 main colors)
-2. GARMENT TYPE (dress/skirt/top/pants/jumpsuit)
-3. STYLE ATTRIBUTES (flowy/fitted/bohemian/structured/casual)
-4. PATTERN/TEXTURE (floral/solid/striped/lace)
+                  text: `Analyze this ${personalityName} outfit for ${occasion.occasion}.
 
-Return ONLY as a shopping search query like: "coral pink flowy maxi dress bohemian floral"
-NO explanations, just the search keywords.`
+USER REQUESTED: "${occasion.originalInput || occasion.occasion}"
+
+Build a PRECISE shopping search query that prioritizes the user's exact request:
+
+STEP 1: Start with user's exact keywords (e.g., if they said "blue dress", START with "blue dress")
+STEP 2: Add visible garment details:
+- GARMENT TYPE (dress/skirt/top/pants/jumpsuit/romper)
+- LENGTH if visible (maxi/midi/mini/long/short)
+- FIT STYLE (fitted/flowy/loose/bodycon/a-line)
+STEP 3: Add ONLY obvious details:
+- PRIMARY COLOR if not already in user request
+- PATTERN if clearly visible (floral/solid/striped/polka dot)
+
+CRITICAL: If user said "blue dress", query MUST start with "blue dress" not generic terms.
+
+Return ONLY the search query like: "blue dress maxi flowy bohemian" or "red skirt midi fitted leather"
+NO explanations, just keywords.`
                 }
               ]
             }
@@ -529,38 +476,9 @@ NO explanations, just the search keywords.`
     setSelectedOutfit(outfit);
     onOutfitSelected(outfit);
 
-    // Show budget modal for user to select price range
-    setPendingOutfit(outfit);
-    setShowBudgetModal(true);
-  };
-
-  const handleBudgetSelect = async (budget: string) => {
-    if (!pendingOutfit) return;
-
-    console.log('💰 [BUDGET] User selected budget:', budget);
-
-    // Update outfit with selected budget
-    const outfitWithBudget = {
-      ...pendingOutfit,
-      priceRange: budget
-    };
-
-    // Update outfits array with budget
-    const updatedOutfits = outfits.map(o =>
-      o.personality.id === pendingOutfit.personality.id
-        ? outfitWithBudget
-        : o
-    );
-    setOutfits(updatedOutfits);
-    setSelectedOutfit(outfitWithBudget);
-
-    // Close budget modal
-    setShowBudgetModal(false);
-    setPendingOutfit(null);
-
-    // Trigger try-on if avatar exists
+    // Directly trigger try-on if avatar exists (budget selection moved to "Shop This Look")
     if (avatarData?.imageUrl) {
-      await handleApplyToAvatar(outfitWithBudget);
+      await handleApplyToAvatar(outfit);
     }
   };
 
@@ -872,17 +790,6 @@ NO explanations, just the search keywords.`
           outfit={outfitToSave}
           onSave={handleCalendarSave}
           onClose={() => setShowCalendarModal(false)}
-        />
-      )}
-
-      {/* Budget Selector Modal */}
-      {showBudgetModal && (
-        <BudgetSelectorModal
-          onSelect={handleBudgetSelect}
-          onClose={() => {
-            setShowBudgetModal(false);
-            setPendingOutfit(null);
-          }}
         />
       )}
 
