@@ -477,7 +477,7 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
     console.log('🛍️ [PERPLEXITY] Searching for similar products:', clothingDescription);
 
     // Build targeted shopping query with specific product page patterns
-    let query = `${clothingDescription} buy online`;
+    let query = `${clothingDescription}`;
 
     // Add budget constraints
     if (budgetMin || budgetMax) {
@@ -490,8 +490,11 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
       }
     }
 
-    // Add store preferences with specific product page paths
-    if (stores && stores.length > 0) {
+    // Check if query already has site filters (to avoid duplicates)
+    const alreadyHasSiteFilters = clothingDescription.includes('site:');
+
+    // Add store preferences with specific product page paths (only if not already present)
+    if (stores && stores.length > 0 && !alreadyHasSiteFilters) {
       // Build site-specific queries targeting product pages
       const storeQueries = stores.map(store => {
         const storeLower = store.toLowerCase();
@@ -514,8 +517,8 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
         }
       });
       query += ` (${storeQueries.join(' OR ')})`;
-    } else {
-      // No specific stores - target major retailers with product page patterns
+    } else if (!alreadyHasSiteFilters) {
+      // No specific stores and no site filters in query - target major retailers with product page patterns
       query += ` (site:amazon.com/dp/ OR site:fashionnova.com/products/ OR site:shein.com OR site:nordstrom.com OR site:target.com/p/)`;
     }
 
@@ -532,7 +535,10 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
     query += ` -site:rakuten.com -site:shareasale.com -site:linksynergy.com -site:avantlink.com`;
     query += ` -inurl:/collection -inurl:/collections -inurl:/category -inurl:/search`;
 
-    console.log('🔍 [PERPLEXITY] Enhanced query (with affiliate exclusions):', query);
+    console.log('🔍 [PERPLEXITY] ========== FINAL SEARCH QUERY ==========');
+    console.log('📝 [PERPLEXITY] Original input:', clothingDescription);
+    console.log('🎯 [PERPLEXITY] Enhanced query:', query);
+    console.log('🔍 [PERPLEXITY] ============================================');
 
     try {
       const searchResults = await this.searchWeb(query, maxResults);

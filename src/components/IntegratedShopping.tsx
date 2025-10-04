@@ -88,7 +88,10 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
     try {
       const baseQuery = selectedOutfit.searchPrompt;
-      console.log('🛍️ [SHOPPING] Base search query:', baseQuery);
+      console.log('🛍️ [SHOPPING] ========== SEARCH DEBUG START ==========');
+      console.log('📝 [SHOPPING] User\'s original input:', occasion.originalInput || occasion.occasion);
+      console.log('🔍 [SHOPPING] Generated search query:', baseQuery);
+      console.log('🎨 [SHOPPING] Outfit personality:', selectedOutfit.personality.name);
 
       let allProducts: ProductSearchResult[] = [];
 
@@ -106,6 +109,16 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
       allProducts.push(...primaryResults);
       console.log(`✅ [PHASE 1] Found ${primaryResults.length} products from priority stores`);
+
+      // Log each product URL for debugging
+      primaryResults.forEach((product, index) => {
+        console.log(`📦 [PHASE 1] Product ${index + 1}:`, {
+          title: product.title,
+          store: product.store,
+          url: product.url,
+          urlType: product.url.includes('/products/') || product.url.includes('/dp/') || product.url.includes('/goods') || product.url.includes('-p-') ? 'PRODUCT_PAGE' : 'POSSIBLE_ERROR_PAGE'
+        });
+      });
 
       // PHASE 2: If not enough results, add secondary stores
       if (allProducts.length < SEARCH_STRATEGY.MIN_RESULTS_PRIMARY && SEARCH_STRATEGY.PHASE_2_ADD_SECONDARY) {
@@ -158,6 +171,32 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
       });
 
       console.log(`✅ [FILTER] Filtered products: ${uniqueProducts.length} → ${nonYouTubeProducts.length} (removed ${uniqueProducts.length - nonYouTubeProducts.length} YouTube results)`);
+
+      // Final URL validation check
+      console.log('🔍 [URL-VALIDATION] Checking all product URLs for potential errors:');
+      nonYouTubeProducts.forEach((product, index) => {
+        const isLikelyProductPage =
+          product.url.includes('/products/') ||  // Shopify stores
+          product.url.includes('/dp/') ||        // Amazon
+          product.url.includes('/gp/product/') || // Amazon alternate
+          product.url.includes('/goods') ||      // SHEIN
+          product.url.includes('-p-') ||         // SHEIN product code
+          product.url.includes('/item/') ||      // Generic item
+          product.url.includes('/p/') ||         // Target, others
+          product.url.includes('productId=') ||  // Product ID param
+          product.url.includes('sku=');          // SKU param
+
+        if (!isLikelyProductPage) {
+          console.warn(`⚠️ [URL-VALIDATION] Product ${index + 1} may not be a product page:`, {
+            title: product.title,
+            url: product.url,
+            store: product.store,
+            reason: 'URL does not match known product page patterns'
+          });
+        } else {
+          console.log(`✅ [URL-VALIDATION] Product ${index + 1} looks valid:`, product.title);
+        }
+      });
 
       // Categorize products into sections
       const sections = categorizeBySimilarity(nonYouTubeProducts);
@@ -491,10 +530,11 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {section.products.map((product) => (
-                  <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="aspect-square bg-gray-100 relative group">
+                  <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-row">
+                    {/* Product Image - Left Side */}
+                    <div className="w-40 h-40 flex-shrink-0 bg-gray-100 relative group">
                       <img
                         src={product.imageUrl}
                         alt={product.title}
@@ -504,9 +544,9 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                         {avatarData?.imageUrl && (
                           <button
                             onClick={() => onTryOnProduct?.(product)}
-                            className="opacity-0 group-hover:opacity-100 bg-purple-600 text-white px-4 py-2 rounded-lg font-medium transition-opacity duration-200"
+                            className="opacity-0 group-hover:opacity-100 bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-opacity duration-200"
                           >
-                            <User className="w-4 h-4 inline mr-2" />
+                            <User className="w-3 h-3 inline mr-1" />
                             Try-On
                           </button>
                         )}
@@ -518,30 +558,31 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                         </div>
                       )}
 
-                      <button className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50">
-                        <Heart className="w-4 h-4 text-gray-600" />
+                      <button className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-50">
+                        <Heart className="w-3 h-3 text-gray-600" />
                       </button>
                     </div>
 
-                    <div className="p-4">
-                      <h5 className="font-medium text-gray-900 mb-2 line-clamp-2">{product.title}</h5>
+                    {/* Product Details - Right Side */}
+                    <div className="flex-1 p-4 flex flex-col justify-between">
+                      <div>
+                        <h5 className="font-medium text-gray-900 mb-2 line-clamp-2">{product.title}</h5>
 
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 mb-2">
                           <span className="font-bold text-lg text-gray-900">{product.price}</span>
                           {product.originalPrice && product.originalPrice !== product.price && (
                             <span className="text-sm text-gray-500 line-through">{product.originalPrice}</span>
                           )}
+                          {product.rating && (
+                            <div className="flex items-center ml-auto">
+                              <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                              <span className="text-sm text-gray-600 ml-1">{product.rating}</span>
+                            </div>
+                          )}
                         </div>
-                        {product.rating && (
-                          <div className="flex items-center">
-                            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                            <span className="text-sm text-gray-600 ml-1">{product.rating}</span>
-                          </div>
-                        )}
-                      </div>
 
-                      <p className="text-sm text-gray-600 mb-3">{product.store}</p>
+                        <p className="text-sm text-gray-600 mb-3">{product.store}</p>
+                      </div>
 
                       <button
                         onClick={() => {
@@ -564,7 +605,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                           affiliateLinkService.trackClick(affiliateUrl, undefined, product);
                           window.open(affiliateUrl, '_blank');
                         }}
-                        className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center"
+                        className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center text-sm"
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
                         View Product
