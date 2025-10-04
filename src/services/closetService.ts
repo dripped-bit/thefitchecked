@@ -20,7 +20,7 @@ export interface ClothingItem {
   confidence?: number; // Categorization confidence score
 }
 
-export type ClothingCategory = 'shirts' | 'pants' | 'skirts' | 'dresses' | 'shoes' | 'accessories' | 'outerwear' | 'tops' | 'jackets' | 'other';
+export type ClothingCategory = 'shirts' | 'pants' | 'skirts' | 'dresses' | 'shoes' | 'accessories' | 'outerwear' | 'tops' | 'jackets' | 'sweaters' | 'other';
 
 export interface UserCloset {
   shirts: ClothingItem[];
@@ -32,6 +32,7 @@ export interface UserCloset {
   outerwear: ClothingItem[];
   tops: ClothingItem[];
   jackets: ClothingItem[];
+  sweaters: ClothingItem[];
   other: ClothingItem[];
 }
 

@@ -17,6 +17,8 @@ import ShareModal from './ShareModal';
 import ClosetService, { ClothingCategory } from '../services/closetService';
 import seamlessTryOnService from '../services/seamlessTryOnService';
 import backgroundRemovalService from '../services/backgroundRemovalService';
+import weatherService from '../services/weatherService';
+import stylePreferencesService from '../services/stylePreferencesService';
 
 interface ClothingItem {
   id: string;
@@ -391,6 +393,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     { id: 'shirts', name: 'Tops', icon: <Shirt className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'shirts').length },
     { id: 'pants', name: 'Bottoms', icon: <Tag className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'pants').length },
     { id: 'dresses', name: 'Dresses', icon: <Crown className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'dresses').length },
+    { id: 'sweaters', name: 'Sweaters', icon: <Shirt className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'sweaters').length },
     { id: 'shoes', name: 'Shoes', icon: <Target className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'shoes').length },
     { id: 'accessories', name: 'Accessories', icon: <Sparkles className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'accessories').length },
     { id: 'favorites', name: 'Favorites', icon: <Heart className="w-5 h-5" />, count: ClosetService.getFavoriteItems().length }
@@ -708,24 +711,153 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     });
   };
 
-  const generateOutfitOfTheDay = () => {
-    if (clothingItems.length < 3) return;
+  const generateOutfitOfTheDay = async () => {
+    if (clothingItems.length < 3) {
+      console.log('⚠️ Not enough items in closet to generate outfit');
+      return;
+    }
 
-    const randomItems = clothingItems
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3);
+    try {
+      console.log('🎯 [OOTD] Generating intelligent outfit of the day...');
 
-    const ootd: OutfitCombination = {
-      id: Date.now().toString(),
-      name: 'Today\'s Look',
-      items: randomItems,
-      occasion: 'casual',
-      season: currentSeason,
-      saves: 0,
-      dateCreated: new Date().toISOString()
-    };
+      // Get current weather
+      const weather = await weatherService.getCurrentWeather();
+      const temperature = weather?.temperature || 70; // Default to 70°F if no weather data
 
-    setOutfitOfTheDay(ootd);
+      // Get user style preferences
+      const styleProfile = await stylePreferencesService.loadStyleProfile();
+      const preferredColors = styleProfile?.fashionPersonality?.colorPalette || [];
+      const avoidColors = styleProfile?.fashionPersonality?.avoidColors || [];
+      const preferredMaterials = styleProfile?.preferences?.materials || [];
+      const preferredFits = styleProfile?.preferences?.fits || [];
+
+      // Get current day of week (0 = Sunday, 6 = Saturday)
+      const dayOfWeek = new Date().getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+      console.log('🌡️ [OOTD] Weather temperature:', temperature);
+      console.log('📅 [OOTD] Day:', isWeekend ? 'Weekend' : 'Weekday');
+
+      // Filter items based on weather and style preferences
+      const weatherAppropriateItems = clothingItems.filter(item => {
+        // Temperature-based filtering
+        if (temperature < 50) {
+          // Cold weather - prefer sweaters, jackets, outerwear, long pants
+          return ['sweaters', 'jackets', 'outerwear', 'pants'].includes(item.category);
+        } else if (temperature < 70) {
+          // Mild weather - versatile pieces
+          return ['shirts', 'tops', 'sweaters', 'pants', 'dresses'].includes(item.category);
+        } else {
+          // Warm weather - light, breathable pieces
+          return ['shirts', 'tops', 'dresses', 'skirts'].includes(item.category);
+        }
+      });
+
+      // Further filter by style preferences if available
+      let styledItems = weatherAppropriateItems;
+      if (preferredColors.length > 0 || avoidColors.length > 0) {
+        styledItems = weatherAppropriateItems.filter(item => {
+          const itemColor = item.color?.toLowerCase() || '';
+
+          // Avoid colors user doesn't like
+          if (avoidColors.length > 0 && avoidColors.some(c => itemColor.includes(c.toLowerCase()))) {
+            return false;
+          }
+
+          // Prefer user's favorite colors (but don't exclude if no color match)
+          return true;
+        });
+      }
+
+      // If filtering was too strict, fall back to weather-appropriate items
+      const itemPool = styledItems.length >= 3 ? styledItems : weatherAppropriateItems;
+
+      // Categorize items
+      const tops = itemPool.filter(i => ['shirts', 'tops', 'sweaters'].includes(i.category));
+      const bottoms = itemPool.filter(i => ['pants', 'skirts'].includes(i.category));
+      const dresses = itemPool.filter(i => i.category === 'dresses');
+      const outerwear = itemPool.filter(i => ['jackets', 'outerwear'].includes(i.category));
+      const shoes = itemPool.filter(i => i.category === 'shoes');
+
+      // Build outfit based on available items
+      const outfitItems: ClothingItem[] = [];
+
+      // Option 1: Dress (if available and warm enough)
+      if (dresses.length > 0 && temperature > 60) {
+        outfitItems.push(dresses[Math.floor(Math.random() * dresses.length)]);
+
+        // Add outerwear if cold
+        if (temperature < 65 && outerwear.length > 0) {
+          outfitItems.push(outerwear[Math.floor(Math.random() * outerwear.length)]);
+        }
+      } else {
+        // Option 2: Top + Bottom combo
+        if (tops.length > 0) {
+          outfitItems.push(tops[Math.floor(Math.random() * tops.length)]);
+        }
+
+        if (bottoms.length > 0) {
+          outfitItems.push(bottoms[Math.floor(Math.random() * bottoms.length)]);
+        }
+
+        // Add layer if cold
+        if (temperature < 60 && outerwear.length > 0) {
+          outfitItems.push(outerwear[Math.floor(Math.random() * outerwear.length)]);
+        }
+      }
+
+      // Add shoes if available
+      if (shoes.length > 0) {
+        outfitItems.push(shoes[Math.floor(Math.random() * shoes.length)]);
+      }
+
+      // Fallback: if we don't have enough items, just pick random ones
+      if (outfitItems.length < 2) {
+        console.log('⚠️ [OOTD] Not enough categorized items, using random selection');
+        const randomItems = itemPool
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+        outfitItems.push(...randomItems);
+      }
+
+      const ootd: OutfitCombination = {
+        id: Date.now().toString(),
+        name: `Today's ${isWeekend ? 'Weekend' : 'Weekday'} Look`,
+        items: outfitItems,
+        occasion: isWeekend ? 'casual' : 'smart-casual',
+        season: currentSeason,
+        saves: 0,
+        dateCreated: new Date().toISOString()
+      };
+
+      console.log('✅ [OOTD] Generated outfit:', {
+        itemCount: outfitItems.length,
+        categories: outfitItems.map(i => i.category),
+        temperature,
+        isWeekend
+      });
+
+      setOutfitOfTheDay(ootd);
+    } catch (error) {
+      console.error('❌ [OOTD] Failed to generate outfit:', error);
+
+      // Fallback to simple random selection
+      const randomItems = clothingItems
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+
+      const fallbackOotd: OutfitCombination = {
+        id: Date.now().toString(),
+        name: 'Today\'s Look',
+        items: randomItems,
+        occasion: 'casual',
+        season: currentSeason,
+        saves: 0,
+        dateCreated: new Date().toISOString()
+      };
+
+      setOutfitOfTheDay(fallbackOotd);
+    }
   };
 
   const getDifficultyColor = (difficulty: string) => {

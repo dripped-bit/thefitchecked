@@ -108,37 +108,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, userProfile }) => {
         </div>
       </div>
 
-      {/* Shopping Links */}
-      <div className="px-6 mb-8">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Shopping Links</h2>
-        <a
-          href="https://tapto.shop/dripped"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block bg-gradient-to-br from-green-50 to-emerald-100 border border-green-200 rounded-2xl p-6 hover:shadow-lg hover:shadow-green-500/30 hover:scale-105 transition-all duration-300"
-          onClick={(e) => {
-            e.preventDefault();
-            const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
-              'https://tapto.shop/dripped',
-              'dripped'
-            );
-            affiliateLinkService.trackClick(affiliateUrl);
-            window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center space-x-2 mb-3">
-                <ShoppingBag className="w-8 h-8 text-green-600" />
-                <ExternalLink className="w-4 h-4 text-green-500" />
-              </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Dripped Shop</h3>
-              <p className="text-sm text-gray-600">Explore curated fashion collections</p>
-            </div>
-          </div>
-        </a>
-      </div>
-
       {/* Recent Activity */}
       <div className="px-6 mb-8">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Recent Activity</h2>
