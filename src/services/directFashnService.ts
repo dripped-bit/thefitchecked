@@ -1219,7 +1219,7 @@ class DirectFashnService {
       // Generate recommended mode and samples based on analysis
       const recommendedMode = this.getRecommendedMode(complexity);
       const recommendedSamples = this.getRecommendedSamples(complexity);
-      const recommendedSegmentationFree = this.getRecommendedSegmentation(fittingType, complexity);
+      const recommendedSegmentationFree = this.getRecommendedSegmentation(fittingType, detectedCategory, complexity);
 
       const analysis: GarmentAnalysis = {
         type: detectedCategory,
@@ -1250,39 +1250,66 @@ class DirectFashnService {
   }
 
   /**
-   * Enhanced clothing category detection with more categories
+   * Enhanced clothing category detection with comprehensive pattern matching
+   * Detects from product names, descriptions, and URL patterns
    */
   private detectEnhancedClothingCategory(clothingData: string): 'tops' | 'bottoms' | 'one-pieces' | 'auto' {
     const dataLower = clothingData.toLowerCase();
 
-    // Dresses map to one-pieces in official API
-    if (dataLower.includes('dress') || dataLower.includes('gown')) {
+    // One-pieces detection (comprehensive list)
+    const onePiecesPatterns = [
+      'dress', 'gown', 'jumpsuit', 'romper', 'overall',
+      'bodysuit', 'swimsuit', 'bikini', 'one-piece',
+      'tunic dress', 'maxi dress', 'midi dress', 'mini dress',
+      'cocktail dress', 'evening gown', 'ball gown'
+    ];
+    if (onePiecesPatterns.some(pattern => dataLower.includes(pattern))) {
+      console.log('🏷️ [CATEGORY] Detected one-pieces from pattern match');
       return 'one-pieces';
     }
 
-    // Outerwear maps to tops in official API
-    if (dataLower.includes('jacket') || dataLower.includes('coat') || dataLower.includes('blazer') ||
-        dataLower.includes('cardigan') || dataLower.includes('hoodie') || dataLower.includes('sweater')) {
-      return 'tops';
-    }
-
-    // Tops
-    if (dataLower.includes('shirt') || dataLower.includes('top') || dataLower.includes('blouse') ||
-        dataLower.includes('tshirt') || dataLower.includes('t-shirt') || dataLower.includes('tank')) {
-      return 'tops';
-    }
-
-    // Bottoms
-    if (dataLower.includes('pants') || dataLower.includes('jeans') || dataLower.includes('trouser') ||
-        dataLower.includes('short') || dataLower.includes('skirt') || dataLower.includes('legging')) {
+    // Bottoms detection (comprehensive list)
+    const bottomsPatterns = [
+      'pants', 'jeans', 'trouser', 'short', 'shorts', 'skirt',
+      'legging', 'leggings', 'jogger', 'joggers', 'sweatpants',
+      'culottes', 'capri', 'palazzo', 'cargo', 'chinos',
+      'skinny jeans', 'wide leg', 'bootcut', 'flare'
+    ];
+    if (bottomsPatterns.some(pattern => dataLower.includes(pattern))) {
+      console.log('🏷️ [CATEGORY] Detected bottoms from pattern match');
       return 'bottoms';
     }
 
-    // One-pieces
-    if (dataLower.includes('jumpsuit') || dataLower.includes('romper') || dataLower.includes('overall')) {
-      return 'one-pieces';
+    // Tops detection (comprehensive list)
+    const topsPatterns = [
+      'shirt', 'top', 'blouse', 'tshirt', 't-shirt', 'tank',
+      'jacket', 'coat', 'blazer', 'cardigan', 'hoodie', 'sweater',
+      'polo', 'henley', 'tunic', 'crop top', 'camisole', 'vest',
+      'pullover', 'sweatshirt', 'turtleneck', 'halter', 'off-shoulder'
+    ];
+    if (topsPatterns.some(pattern => dataLower.includes(pattern))) {
+      console.log('🏷️ [CATEGORY] Detected tops from pattern match');
+      return 'tops';
     }
 
+    // URL-based detection for e-commerce links
+    if (dataLower.includes('/dress') || dataLower.includes('/one-piece') ||
+        dataLower.includes('/jumpsuit') || dataLower.includes('/romper')) {
+      console.log('🏷️ [CATEGORY] Detected one-pieces from URL pattern');
+      return 'one-pieces';
+    }
+    if (dataLower.includes('/pants') || dataLower.includes('/bottoms') ||
+        dataLower.includes('/jeans') || dataLower.includes('/skirt')) {
+      console.log('🏷️ [CATEGORY] Detected bottoms from URL pattern');
+      return 'bottoms';
+    }
+    if (dataLower.includes('/tops') || dataLower.includes('/shirts') ||
+        dataLower.includes('/jacket') || dataLower.includes('/sweater')) {
+      console.log('🏷️ [CATEGORY] Detected tops from URL pattern');
+      return 'tops';
+    }
+
+    console.log('🏷️ [CATEGORY] No specific category detected, using auto');
     return 'auto';
   }
 
@@ -1379,10 +1406,14 @@ class DirectFashnService {
   }
 
   /**
-   * Get recommended segmentation setting based on garment type
+   * Get recommended segmentation setting based on garment type and category
    * Intelligent selection based on FASHN best practices
    */
-  private getRecommendedSegmentation(fittingType: string, complexity: string): boolean {
+  private getRecommendedSegmentation(
+    fittingType: string,
+    category: 'tops' | 'bottoms' | 'one-pieces' | 'auto',
+    complexity: string
+  ): boolean {
     // FASHN segmentation_free parameter guide:
     //
     // segmentation_free: true (skip segmentation) - For items that LAYER OVER existing clothes
@@ -1393,6 +1424,13 @@ class DirectFashnService {
     // Benefits: Clean replacement, removes original garments completely
     // Use cases: Form-fitting clothes, dresses, underwear, single-layer outfits
 
+    // Priority 1: Category-based rules (strongest signal)
+    if (category === 'one-pieces') {
+      console.log('👗 [SEGMENTATION] One-piece garment (dress/jumpsuit) → segmentation_free: false (full replacement)');
+      return false; // Dresses, jumpsuits need to replace entire outfit
+    }
+
+    // Priority 2: Fitting type based rules
     if (fittingType === 'layered') {
       console.log('🧥 [SEGMENTATION] Layered/outerwear detected → segmentation_free: true (layers over clothes)');
       return true; // Jackets, coats, blazers, cardigans go OVER existing clothes
@@ -1409,8 +1447,19 @@ class DirectFashnService {
     }
 
     if (fittingType === 'fitted') {
-      console.log('👗 [SEGMENTATION] Form-fitting garment detected → segmentation_free: false (clean replacement)');
+      console.log('👔 [SEGMENTATION] Form-fitting garment detected → segmentation_free: false (clean replacement)');
       return false; // Fitted, bodycon, tight items need segmentation for clean replacement
+    }
+
+    // Priority 3: Category defaults for tops/bottoms
+    if (category === 'bottoms') {
+      console.log('👖 [SEGMENTATION] Bottoms detected → segmentation_free: false (replace lower garments)');
+      return false; // Pants, skirts replace lower body garments
+    }
+
+    if (category === 'tops') {
+      console.log('👚 [SEGMENTATION] Tops detected → segmentation_free: false (replace upper garments)');
+      return false; // Shirts, tops replace upper body garments
     }
 
     // Default: Use segmentation for clean replacement
