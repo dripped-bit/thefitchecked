@@ -5,6 +5,7 @@
 
 import directFashnService from './directFashnService';
 import { ProductSearchResult } from './perplexityService';
+import { getProxiedUrl } from '../utils/imageProxy';
 
 export interface ExternalTryOnResult {
   success: boolean;
@@ -46,10 +47,18 @@ class ExternalTryOnService {
 
       console.log('✅ [EXTERNAL-TRYON] External image validated, proceeding with FASHN...');
 
+      // Proxy external image URL to avoid CORS issues when FASHN fetches the garment
+      const proxiedGarmentUrl = getProxiedUrl(product.imageUrl);
+      console.log('🔄 [EXTERNAL-TRYON] Proxying garment image:', {
+        original: product.imageUrl.substring(0, 60) + '...',
+        proxied: proxiedGarmentUrl.substring(0, 60) + '...',
+        needsProxy: product.imageUrl !== proxiedGarmentUrl
+      });
+
       // Use direct FASHN service for the try-on with intelligent segmentation
       const fashnResult = await directFashnService.tryOnClothing(
         avatarImageUrl,
-        product.imageUrl,
+        proxiedGarmentUrl, // Use proxied URL to avoid CORS
         {
           category: 'auto', // Let FASHN auto-detect the category
           timeout: 90000, // 90 seconds - FASHN typically takes 40-50s, need buffer
