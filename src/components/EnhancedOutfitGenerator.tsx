@@ -273,7 +273,7 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     console.log('🎯 Starting occasion-based generate with direct FAL API...');
 
     // Generate enhanced prompt from occasion data
-    const occasionPrompt = generateOccasionPrompt(selectedOccasion);
+    const occasionPrompt = await generateOccasionPrompt(selectedOccasion);
     console.log('📝 Occasion-based prompt:', occasionPrompt);
 
     // Step 1: Generate clothing using proxy API
@@ -336,23 +336,61 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     }, 2000);
   };
 
+  // Helper function to analyze user context from avatar and style preferences
+  const analyzeUserContext = async (): Promise<{
+    gender: string;
+    ageDescriptors: string;
+    negativePrompts: string;
+  }> => {
+    // Load style profile to get gender
+    const profile = await stylePreferencesService.loadStyleProfile();
+    let gender = 'adult';
+
+    // Extract gender from style preferences
+    if (profile?.sizes?.gender) {
+      if (profile.sizes.gender === 'women') {
+        gender = "women's";
+      } else if (profile.sizes.gender === 'men') {
+        gender = "men's";
+      } else {
+        gender = 'unisex adult';
+      }
+    }
+
+    // Age descriptors - this app is for adult fashion
+    const ageDescriptors = 'adult clothing for ages 25-35, mature styling, grown-up fashion, contemporary adult wear';
+
+    // Strong negative prompts to prevent children's clothing
+    const negativePrompts = 'NOT child clothing, NOT juvenile, NOT little girl dress, NOT little boy clothing, NOT kids fashion, NOT childish patterns, NOT youth sizing, adult sizing only, NOT teen clothing, NOT baby clothes';
+
+    console.log('🎯 User context analyzed:', { gender, ageDescriptors });
+
+    return { gender, ageDescriptors, negativePrompts };
+  };
+
   // Helper function to enhance clothing prompts
   const enhanceClothingPrompt = async (userPrompt: string): Promise<string> => {
+    // User's explicit prompt comes FIRST (highest priority)
     let prompt = userPrompt;
 
-    // Add style preferences if available
+    // Add user context (gender and age) from avatar and preferences
+    const context = await analyzeUserContext();
+    prompt += `, ${context.gender} ${context.ageDescriptors}`;
+
+    // Add style preferences as reference/context (can be overridden by user's prompt)
     const stylePrefs = await stylePreferencesService.formatPreferencesForPrompt();
     if (stylePrefs.hasPreferences) {
       prompt += `, ${stylePrefs.styleText}`;
       console.log('✨ Added style preferences to prompt');
     }
 
-    const basePrompt = `${prompt}, clothing item only, no person, no model, no mannequin, isolated garment, product photography, fashion flat lay, clean white background, centered composition, professional product photography, detailed fabric texture, well-lit, crisp details, garment display, fashion catalog style, FASHN-ready garment image, virtual try-on optimized`;
+    // Add base descriptors and negative prompts
+    const basePrompt = `${prompt}, clothing item only, no person, no model, no mannequin, isolated garment, product photography, fashion flat lay, clean white background, centered composition, professional product photography, detailed fabric texture, well-lit, crisp details, garment display, fashion catalog style, FASHN-ready garment image, virtual try-on optimized, ${context.negativePrompts}`;
     return basePrompt;
   };
 
   // Helper function to generate occasion-specific prompts
-  const generateOccasionPrompt = (occasion: OccasionData): string => {
+  const generateOccasionPrompt = async (occasion: OccasionData): Promise<string> => {
     let prompt = '';
 
     // Base occasion description
@@ -363,16 +401,20 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
       prompt += `${subcategory.name} outfit, `;
     }
 
-    // Add user's style preferences
-    const stylePrefs = stylePreferencesService.formatPreferencesForPrompt();
+    // Add occasion-specific context from user input
+    if (occasion.additionalContext) {
+      prompt += `${occasion.additionalContext} style, `;
+    }
+
+    // Add user context (gender and age) from avatar and preferences
+    const context = await analyzeUserContext();
+    prompt += `${context.gender} ${context.ageDescriptors}, `;
+
+    // Add user's style preferences as reference (can be overridden by occasion context)
+    const stylePrefs = await stylePreferencesService.formatPreferencesForPrompt();
     if (stylePrefs.hasPreferences) {
       prompt += `${stylePrefs.styleText}, `;
       console.log('✨ Added style preferences to occasion prompt');
-    }
-
-    // Add style context
-    if (occasion.additionalContext) {
-      prompt += `${occasion.additionalContext} style, `;
     }
 
     // Add time of day considerations
@@ -406,8 +448,8 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
       }
     }
 
-    // Add quality and style descriptors
-    prompt += 'clothing item only, no person, no model, no mannequin, isolated garment, product photography, fashion flat lay, clean white background, centered composition, professional product photography, detailed fabric texture, well-lit, crisp details, garment display, fashion catalog style, FASHN-ready garment image, virtual try-on optimized';
+    // Add quality and style descriptors with negative prompts
+    prompt += `clothing item only, no person, no model, no mannequin, isolated garment, product photography, fashion flat lay, clean white background, centered composition, professional product photography, detailed fabric texture, well-lit, crisp details, garment display, fashion catalog style, FASHN-ready garment image, virtual try-on optimized, ${context.negativePrompts}`;
 
     return prompt;
   };
