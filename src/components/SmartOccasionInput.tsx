@@ -388,7 +388,7 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
             <textarea
               value={input}
               onChange={(e) => handleInputChange(e.target.value)}
-              placeholder="Describe your occasion in detail... (minimum 100 characters)
+              placeholder="Describe your occasion in detail... (minimum 150 characters for best results)
 
 Examples:
 • Beach wedding this Saturday afternoon for my cousin
@@ -409,15 +409,14 @@ Examples:
           <div className="flex items-center justify-between mt-2 px-2">
             <div className="flex items-center space-x-4">
               <span className={`text-sm ${
-                input.length < 100 ? 'text-gray-400' :
-                input.length < 150 ? 'text-orange-500' : 'text-green-600'
+                input.length < 150 ? 'text-gray-400' : 'text-green-600'
               }`}>
-                {input.length}/100 characters
+                {input.length}/150 characters
               </span>
-              {input.length >= 100 && (
+              {input.length >= 150 && (
                 <div className="flex items-center space-x-1 text-green-600">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium">Generate outfits</span>
+                  <span className="text-sm font-medium">Ready to generate outfits</span>
                 </div>
               )}
             </div>
