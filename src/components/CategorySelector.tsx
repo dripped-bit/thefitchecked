@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, Sparkles } from 'lucide-react';
 import { ClothingCategory } from '../services/closetService';
 
 interface CategorySelectorProps {
@@ -12,6 +12,11 @@ interface CategorySelectorProps {
   imageUrl: string;
   onCancel?: () => void;
   suggestedCategory?: ClothingCategory;
+  aiMetadata?: {
+    subcategory?: string;
+    color?: string;
+    confidence?: number;
+  };
 }
 
 const CLOTHING_CATEGORIES: Array<{ value: ClothingCategory; label: string }> = [
@@ -30,8 +35,10 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   imageUrl,
   onCancel,
   suggestedCategory,
+  aiMetadata,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory>(suggestedCategory || 'tops');
+  const isAISuggested = !!suggestedCategory;
 
   const handleConfirm = () => {
     console.log('🏷️ Category selected:', selectedCategory);
@@ -67,15 +74,52 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
             </div>
           </div>
 
+          {/* AI Detection Banner */}
+          {isAISuggested && aiMetadata && (
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-4">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <h3 className="font-bold text-purple-900">AI Detected</h3>
+                    {aiMetadata.confidence && (
+                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
+                        {Math.round(aiMetadata.confidence * 100)}% confident
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-700">
+                    {aiMetadata.subcategory && (
+                      <span className="font-medium capitalize">{aiMetadata.subcategory}</span>
+                    )}
+                    {aiMetadata.color && aiMetadata.subcategory && <span> • </span>}
+                    {aiMetadata.color && (
+                      <span className="capitalize">{aiMetadata.color}</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Category pre-selected - change if needed
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Category Dropdown */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Select Category
+              {isAISuggested ? 'Confirm or Change Category' : 'Select Category'}
             </label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as ClothingCategory)}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none text-lg bg-white hover:border-gray-400 transition-colors"
+              className={`w-full px-4 py-3 border-2 rounded-xl focus:border-blue-500 focus:outline-none text-lg bg-white hover:border-gray-400 transition-colors ${
+                isAISuggested ? 'border-purple-300 bg-purple-50/30' : 'border-gray-300'
+              }`}
             >
               {CLOTHING_CATEGORIES.map((cat) => (
                 <option key={cat.value} value={cat.value}>

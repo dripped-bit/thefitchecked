@@ -539,7 +539,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           metadata: {
             backgroundRemoved: backgroundRemoved,
             confidence: result.metadata?.confidence,
-            suggestedCategory: result.category
+            suggestedCategory: result.category,
+            subcategory: result.metadata?.type, // AI-detected subcategory
+            color: result.metadata?.color // AI-detected color
           }
         });
 
@@ -2706,6 +2708,11 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           onConfirm={handleCategoryConfirm}
           onCancel={handleCategoryCancel}
           suggestedCategory={pendingItem.metadata?.suggestedCategory as ClothingCategory}
+          aiMetadata={{
+            subcategory: pendingItem.metadata?.subcategory,
+            color: pendingItem.metadata?.color,
+            confidence: pendingItem.metadata?.confidence
+          }}
         />
       )}
     </div>
