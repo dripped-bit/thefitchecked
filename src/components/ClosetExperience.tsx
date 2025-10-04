@@ -4,7 +4,7 @@ import {
   Sparkles, ShoppingBag, Heart, Mic, Calendar, DollarSign,
   Leaf, TrendingUp, Award, Gift, CheckCircle, X, Play,
   Palette, Shuffle, Share2, Volume2, VolumeX, Crown,
-  Tag, Package, Zap, Users, MapPin, Clock
+  Tag, Package, Zap, Users, MapPin, Clock, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import ClosetDoors from './ClosetDoors';
 import OutfitCreator from './OutfitCreator';
@@ -168,6 +168,8 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   const [showDateModal, setShowDateModal] = useState(false);
   const [modalStep, setModalStep] = useState<'occasion' | 'notes' | 'outfit'>('occasion');
   const [outfitMode, setOutfitMode] = useState<'upload' | 'closet'>('closet');
+  const [currentMonth, setCurrentMonth] = useState(9); // 0-based: 9 = October
+  const [currentYear, setCurrentYear] = useState(2024);
   const [dateOccasions, setDateOccasions] = useState<{[key: number]: {
     occasion: 'travel' | 'formal' | 'social' | 'daily' | 'activities';
     notes: string;
@@ -1468,7 +1470,37 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                 {/* Monthly Calendar Component will go here */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-gray-200">
                   <div className="mb-6">
-                    <h3 className="text-xl font-semibold text-gray-700 mb-4">October 2024</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <button
+                        onClick={() => {
+                          if (currentMonth === 0) {
+                            setCurrentMonth(11);
+                            setCurrentYear(currentYear - 1);
+                          } else {
+                            setCurrentMonth(currentMonth - 1);
+                          }
+                        }}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <ChevronLeft className="w-6 h-6 text-gray-600" />
+                      </button>
+                      <h3 className="text-xl font-semibold text-gray-700">
+                        {new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </h3>
+                      <button
+                        onClick={() => {
+                          if (currentMonth === 11) {
+                            setCurrentMonth(0);
+                            setCurrentYear(currentYear + 1);
+                          } else {
+                            setCurrentMonth(currentMonth + 1);
+                          }
+                        }}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <ChevronRight className="w-6 h-6 text-gray-600" />
+                      </button>
+                    </div>
                     <div className="grid grid-cols-7 gap-2 mb-4">
                       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                         <div key={day} className="text-center font-medium text-gray-600 py-2">
@@ -1477,22 +1509,36 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                       ))}
                     </div>
                     <div className="grid grid-cols-7 gap-2">
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(date => {
-                        const dayPlan = dateOccasions[date];
-                        const hasNotes = dayPlan?.notes && dayPlan.notes.length > 0;
-                        const hasOutfit = dayPlan?.outfitPieces && dayPlan.outfitPieces.length > 0;
+                      {/* Calculate days in current month and first day of week */}
+                      {(() => {
+                        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                        const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
+                        const calendarCells = [];
 
-                        return (
-                          <div
-                            key={date}
-                            onClick={() => handleDateClick(date)}
-                            className={`aspect-square border rounded-lg p-2 cursor-pointer transition-colors relative ${
-                              dayPlan
-                                ? 'border-gray-300 hover:bg-gray-50'
-                                : 'border-gray-200 hover:bg-purple-50'
-                            }`}
-                          >
-                            <div className="text-sm font-medium text-gray-700">{date}</div>
+                        // Add empty cells for days before the 1st
+                        for (let i = 0; i < firstDayOfWeek; i++) {
+                          calendarCells.push(
+                            <div key={`empty-${i}`} className="aspect-square border border-transparent p-2"></div>
+                          );
+                        }
+
+                        // Add cells for each day of the month
+                        for (let date = 1; date <= daysInMonth; date++) {
+                          const dayPlan = dateOccasions[date];
+                          const hasNotes = dayPlan?.notes && dayPlan.notes.length > 0;
+                          const hasOutfit = dayPlan?.outfitPieces && dayPlan.outfitPieces.length > 0;
+
+                          calendarCells.push(
+                            <div
+                              key={date}
+                              onClick={() => handleDateClick(date)}
+                              className={`aspect-square border rounded-lg p-2 cursor-pointer transition-colors relative ${
+                                dayPlan
+                                  ? 'border-gray-300 hover:bg-gray-50'
+                                  : 'border-gray-200 hover:bg-purple-50'
+                              }`}
+                            >
+                              <div className="text-sm font-medium text-gray-700">{date}</div>
 
                             {/* Occasion indicator */}
                             {dayPlan ? (
@@ -1509,18 +1555,21 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                               <div className="text-xs text-gray-400 mt-1">Click to plan</div>
                             )}
 
-                            {/* Plan summary */}
-                            {dayPlan && (
-                              <div className="text-xs text-gray-500 mt-1 leading-tight">
-                                <div className="capitalize truncate">{dayPlan.occasion}</div>
-                                {hasOutfit && (
-                                  <div className="text-pink-600">{dayPlan.outfitPieces.length} pieces</div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                              {/* Plan summary */}
+                              {dayPlan && (
+                                <div className="text-xs text-gray-500 mt-1 leading-tight">
+                                  <div className="capitalize truncate">{dayPlan.occasion}</div>
+                                  {hasOutfit && (
+                                    <div className="text-pink-600">{dayPlan.outfitPieces.length} pieces</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        return calendarCells;
+                      })()}
                     </div>
                   </div>
 
