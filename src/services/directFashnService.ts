@@ -1441,10 +1441,10 @@ class DirectFashnService {
    * Get recommended sample count based on complexity (official API parameter: 1-4)
    */
   private getRecommendedSamples(complexity: string): number {
-    // Always generate maximum samples (4) for best quality and highest success rate
-    // More samples = better chance of getting perfect fit and realistic clothing placement
-    // Trade-off: Slightly longer processing time (~5-10s) but much better results
-    return 4;
+    // Generate 2 samples for good quality with reasonable processing time
+    // With Claude Vision analysis, 2 samples is sufficient to select the best result
+    // Trade-off: Faster processing (~20-30s) with still excellent quality selection
+    return 2;
   }
 
   /**
@@ -1642,6 +1642,96 @@ class DirectFashnService {
   }
 
   /**
+   * Analyze a single FASHN result sample using Claude Vision API
+   * Scores based on skin tone consistency, clothing fit, and overall quality
+   */
+  private async analyzeSampleQuality(imageUrl: string, sampleIndex: number): Promise<{score: number; reasoning: string}> {
+    try {
+      console.log(`🔍 [VISION-ANALYSIS-${sampleIndex}] Analyzing image quality with Claude Vision...`);
+
+      // Convert image to base64
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const base64Image = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          const base64Data = base64.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      // Call Claude Vision API for quality analysis
+      const visionResponse = await fetch('/api/claude/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 300,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: 'image/jpeg',
+                  data: base64Image
+                }
+              },
+              {
+                type: 'text',
+                text: `Analyze this virtual try-on result image and rate its quality from 0-100.
+
+CRITICAL QUALITY FACTORS:
+1. Skin Tone Consistency (40 points): Does the person's skin look natural and consistent across their body? Deduct heavy points for color changes, unnatural tones, or mismatched skin between face/arms/legs.
+2. Clothing Fit Quality (30 points): Does the clothing fit naturally on the body? Check for proper alignment, no distortions, realistic draping.
+3. No Artifacts/Distortions (20 points): Are there any visual glitches, warping, weird edges, or AI artifacts?
+4. Overall Quality (10 points): Image clarity, lighting, professional appearance.
+
+SCORING GUIDE:
+- 90-100: Excellent - natural skin tone, perfect fit, no artifacts
+- 70-89: Good - minor issues but acceptable
+- 50-69: Fair - noticeable issues with skin tone OR fit OR artifacts
+- 0-49: Poor - major problems, unusable
+
+Return ONLY this format:
+Score: [number]
+Reason: [1-2 sentence explanation focusing on skin tone and fit quality]`
+              }
+            ]
+          }]
+        })
+      });
+
+      if (!visionResponse.ok) {
+        throw new Error(`Claude Vision API error: ${visionResponse.status}`);
+      }
+
+      const visionResult = await visionResponse.json();
+      const analysisText = visionResult.content?.[0]?.text || '';
+
+      // Parse score and reasoning
+      const scoreMatch = analysisText.match(/Score:\s*(\d+)/i);
+      const reasonMatch = analysisText.match(/Reason:\s*(.+)/i);
+
+      const score = scoreMatch ? parseInt(scoreMatch[1]) : 50; // Default to average if parsing fails
+      const reasoning = reasonMatch ? reasonMatch[1].trim() : 'Analysis parsing failed';
+
+      console.log(`✅ [VISION-ANALYSIS-${sampleIndex}] Quality score: ${score}/100 - ${reasoning}`);
+
+      return { score, reasoning };
+
+    } catch (error) {
+      console.error(`❌ [VISION-ANALYSIS-${sampleIndex}] Vision analysis failed:`, error);
+      // Return neutral score if analysis fails
+      return { score: 50, reasoning: 'Analysis failed - using fallback' };
+    }
+  }
+
+  /**
    * Select the best quality sample from multiple generated images
    */
   private async selectBestSample(sampleUrls: string[]): Promise<string> {
@@ -1654,51 +1744,51 @@ class DirectFashnService {
     }
 
     try {
-      // Score each sample based on quality heuristics
+      // Analyze each sample with Claude Vision for intelligent quality scoring
       const scoredSamples = await Promise.all(
         sampleUrls.map(async (url, index) => {
-          let score = 100;
-
-          // Basic URL validation
+          // Basic URL validation (safety check)
           if (!url || !url.startsWith('http')) {
-            score -= 50;
-            console.warn(`⚠️ [SAMPLE-${index}] Invalid URL format`);
+            console.warn(`⚠️ [SAMPLE-${index}] Invalid URL format, skipping Vision analysis`);
+            return {
+              url,
+              score: 0,
+              index,
+              reasoning: 'Invalid URL'
+            };
           }
 
-          // Check if FASHN CDN URL (these are naturally short)
-          const isFashnCdn = url && (url.includes('cdn.fashn.ai') || url.includes('fal.media'));
+          // Use Claude Vision to analyze actual image quality
+          const visionAnalysis = await this.analyzeSampleQuality(url, index);
 
-          // Check URL length (longer URLs often indicate more data)
-          // Skip this check for FASHN CDN URLs which are legitimately short
-          if (!isFashnCdn && url.length < 100) {
-            score -= 20;
-            console.warn(`⚠️ [SAMPLE-${index}] Suspiciously short URL`);
-          }
-
-          // Prefer URLs with certain quality indicators
-          if (url.includes('_hq') || url.includes('high') || url.includes('quality')) {
-            score += 10;
-            debugLog.sample(`✅ [SAMPLE-${index}] Quality indicator in URL`);
-          }
-
-          debugLog.sample(`📊 [SAMPLE-${index}] Quality score: ${score}`);
+          console.log(`📊 [SAMPLE-${index}] Vision AI Score: ${visionAnalysis.score}/100`);
+          console.log(`💭 [SAMPLE-${index}] Reasoning: ${visionAnalysis.reasoning}`);
 
           return {
             url,
-            score,
-            index
+            score: visionAnalysis.score,
+            index,
+            reasoning: visionAnalysis.reasoning
           };
         })
       );
 
-      // Sort by score (highest first)
+      // Sort by Claude Vision score (highest first)
       scoredSamples.sort((a, b) => b.score - a.score);
 
       const bestSample = scoredSamples[0];
-      debugLog.sample('🏆 [SAMPLE-SELECTION] Best sample selected:', {
+
+      console.log('🏆 [SAMPLE-SELECTION] Best sample selected by Claude Vision:', {
         index: bestSample.index,
         score: bestSample.score,
+        reasoning: bestSample.reasoning,
         totalSamples: sampleUrls.length
+      });
+
+      // Show comparison of all samples
+      console.log('📊 [SAMPLE-COMPARISON] All samples ranked:');
+      scoredSamples.forEach((sample, rank) => {
+        console.log(`  ${rank + 1}. Sample ${sample.index}: ${sample.score}/100 - ${sample.reasoning}`);
       });
 
       return bestSample.url;

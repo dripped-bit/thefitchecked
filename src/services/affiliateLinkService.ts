@@ -139,36 +139,32 @@ class AffiliateLinkService {
       return affiliateUrl;
     }
 
-    // Target
+    // Target (Rakuten disabled - returning original URL)
     if (url.includes('target.com') || storeNameLower.includes('target')) {
-      affiliateUrl = this.wrapRakutenLink(url);
-      console.log('📤 [AFFILIATE] OUTPUT (Target):', affiliateUrl);
+      console.log('📤 [AFFILIATE] OUTPUT (Target - Rakuten disabled):', url);
       console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
-      return affiliateUrl;
+      return url;
     }
 
-    // Walmart
+    // Walmart (Rakuten disabled - returning original URL)
     if (url.includes('walmart.com') || storeNameLower.includes('walmart')) {
-      affiliateUrl = this.wrapRakutenLink(url);
-      console.log('📤 [AFFILIATE] OUTPUT (Walmart):', affiliateUrl);
+      console.log('📤 [AFFILIATE] OUTPUT (Walmart - Rakuten disabled):', url);
       console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
-      return affiliateUrl;
+      return url;
     }
 
-    // Macy's
+    // Macy's (Rakuten disabled - returning original URL)
     if (url.includes('macys.com') || storeNameLower.includes('macy')) {
-      affiliateUrl = this.wrapRakutenLink(url);
-      console.log('📤 [AFFILIATE] OUTPUT (Macys):', affiliateUrl);
+      console.log('📤 [AFFILIATE] OUTPUT (Macys - Rakuten disabled):', url);
       console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
-      return affiliateUrl;
+      return url;
     }
 
-    // Nordstrom
+    // Nordstrom (Rakuten disabled - returning original URL)
     if (url.includes('nordstrom.com') || storeNameLower.includes('nordstrom')) {
-      affiliateUrl = this.wrapRakutenLink(url);
-      console.log('📤 [AFFILIATE] OUTPUT (Nordstrom):', affiliateUrl);
+      console.log('📤 [AFFILIATE] OUTPUT (Nordstrom - Rakuten disabled):', url);
       console.log('🔗 [AFFILIATE] ========== CONVERSION END ==========');
-      return affiliateUrl;
+      return url;
     }
 
     // For all other stores, return original URL
@@ -183,9 +179,9 @@ class AffiliateLinkService {
    */
   private wrapAmazonLink(url: string): string {
     if (!this.config.amazonAssociatesTag) {
-      // If no Amazon tag configured, try Rakuten
-      console.log('⚠️ [AFFILIATE] No Amazon tag configured, falling back to Rakuten');
-      return this.wrapRakutenLink(url);
+      // If no Amazon tag configured, return original URL (Rakuten disabled)
+      console.log('⚠️ [AFFILIATE] No Amazon tag configured, returning original URL');
+      return url;
     }
 
     try {
@@ -222,41 +218,46 @@ class AffiliateLinkService {
 
   /**
    * Check if store is a Rakuten partner
+   * DISABLED: Rakuten affiliate integration temporarily disabled
    */
   private isRakutenPartner(storeName: string): boolean {
-    const rakutenPartners = [
-      // Priority fashion stores (user's preferred stores)
-      'shein',
-      'fashion nova',
-      'fashionnova',
-      'white fox',
-      'whitefox',
-      'oh polly',
-      'ohpolly',
-      'princess polly',
-      'princesspolly',
-      // Major retailers
-      'macy',
-      'nordstrom',
-      'sephora',
-      'walmart',
-      'target',
-      'gap',
-      'old navy',
-      'banana republic',
-      'nike',
-      'adidas',
-      'zara',
-      'h&m',
-      'asos',
-      'bloomingdale',
-      'saks',
-      'neiman marcus',
-      'best buy',
-      'ebay',
-    ];
+    // Rakuten is currently disabled
+    return false;
 
-    return rakutenPartners.some(partner => storeName.includes(partner));
+    // Original Rakuten partners list (kept for future re-enablement):
+    // const rakutenPartners = [
+    //   // Priority fashion stores (user's preferred stores)
+    //   'shein',
+    //   'fashion nova',
+    //   'fashionnova',
+    //   'white fox',
+    //   'whitefox',
+    //   'oh polly',
+    //   'ohpolly',
+    //   'princess polly',
+    //   'princesspolly',
+    //   // Major retailers
+    //   'macy',
+    //   'nordstrom',
+    //   'sephora',
+    //   'walmart',
+    //   'target',
+    //   'gap',
+    //   'old navy',
+    //   'banana republic',
+    //   'nike',
+    //   'adidas',
+    //   'zara',
+    //   'h&m',
+    //   'asos',
+    //   'bloomingdale',
+    //   'saks',
+    //   'neiman marcus',
+    //   'best buy',
+    //   'ebay',
+    // ];
+    //
+    // return rakutenPartners.some(partner => storeName.includes(partner));
   }
 
   /**

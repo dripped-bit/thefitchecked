@@ -52,6 +52,68 @@ interface TripleOutfitGeneratorProps {
   className?: string;
 }
 
+interface BudgetOption {
+  range: string;
+  label: string;
+  description: string;
+  color: string;
+}
+
+const budgetOptions: BudgetOption[] = [
+  { range: '$1-50', label: 'Budget', description: 'Affordable finds', color: 'bg-green-50 border-green-200 hover:bg-green-100' },
+  { range: '$50-150', label: 'Moderate', description: 'Great value', color: 'bg-blue-50 border-blue-200 hover:bg-blue-100' },
+  { range: '$150-500', label: 'Premium', description: 'Quality pieces', color: 'bg-purple-50 border-purple-200 hover:bg-purple-100' },
+  { range: '$500-1500', label: 'Luxury', description: 'Designer items', color: 'bg-pink-50 border-pink-200 hover:bg-pink-100' }
+];
+
+interface BudgetSelectorModalProps {
+  onSelect: (budget: string) => void;
+  onClose: () => void;
+}
+
+const BudgetSelectorModal: React.FC<BudgetSelectorModalProps> = ({ onSelect, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Select Your Budget</h3>
+              <p className="text-sm text-gray-600 mt-1">Choose your preferred price range</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+        {/* Budget Options */}
+        <div className="p-6 space-y-3">
+          {budgetOptions.map((option) => (
+            <button
+              key={option.range}
+              onClick={() => onSelect(option.range)}
+              className={`w-full p-4 rounded-xl border-2 transition-all ${option.color} text-left`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-gray-900">{option.label}</div>
+                  <div className="text-sm text-gray-600">{option.description}</div>
+                </div>
+                <div className="text-lg font-bold text-gray-900">{option.range}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   occasion,
   avatarData,
@@ -72,6 +134,8 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   const [zoomOutfit, setZoomOutfit] = useState<GeneratedOutfit | null>(null);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [outfitToSave, setOutfitToSave] = useState<any>(null);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [pendingOutfit, setPendingOutfit] = useState<GeneratedOutfit | null>(null);
 
   const personalities: OutfitPersonality[] = [
     {
@@ -209,7 +273,27 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     // Build final prompt with gender as highest priority
     const genderPrefix = genderGuidance ? `${genderGuidance}. ` : '';
 
-    return `${genderPrefix}COMPLETE OUTFIT: ${userRequest}. ${styleGuidance}${personality.promptModifier}. Generate a full coordinated outfit ensemble with all garment pieces together as one complete look (if dress: show complete dress; if separates: show top AND bottom/skirt together). Product photography style, clean white background, centered composition, professional fashion photography, detailed fabric texture, well-lit, crisp details, complete outfit display, fashion catalog style, FASHN-ready complete outfit image, virtual try-on optimized, no person, no model, no mannequin, just the complete clothing ensemble. IMPORTANT: If PRIMARY request specifies a color, that color MUST be used. Show ALL pieces of the outfit together as ONE coordinated ensemble.`;
+    return `⚠️ CRITICAL: GENERATE EXACTLY 1 SINGLE OUTFIT ONLY - NOT 2, NOT 3, JUST 1 ⚠️
+
+QUANTITY REQUIREMENTS (MOST IMPORTANT):
+- COUNT: Exactly 1 outfit (singular, not plural)
+- If dress: Show ONLY 1 dress (NOT 2 dresses, NOT multiple dresses, NOT dress options)
+- If separates: Show ONLY 1 top + 1 bottom (NOT multiple tops, NOT outfit variations)
+- NEVER generate: 2 dresses, multiple outfits, outfit comparisons, style options, variations
+- REJECT: Any image showing more than 1 complete garment set
+
+${genderPrefix}OUTFIT REQUEST: ${userRequest}. ${styleGuidance}${personality.promptModifier}.
+
+HOW TO GENERATE THE SINGLE OUTFIT:
+- If dress/jumpsuit: Show 1 complete one-piece garment
+- If separates: Show 1 top AND 1 bottom overlapped together as unified outfit
+- ALL pieces must touch/overlap to form single coordinated look
+- Layout: Flat-lay style as if ready to wear (top on top, bottom below)
+
+STYLE REQUIREMENTS:
+Product photography, clean white background, centered composition, professional fashion photography, detailed fabric texture, well-lit, crisp details, fashion catalog style, FASHN-ready outfit image, virtual try-on optimized, no person, no model, no mannequin.
+
+FINAL REMINDER: Generate EXACTLY 1 OUTFIT - if you're showing a dress, show ONLY 1 dress, NOT 2 or more.`;
   };
 
   const createCleanSearchPrompt = (): string => {
@@ -405,8 +489,6 @@ NO explanations, just the search keywords.`
         }
 
         const reasoning = generateReasoning(personality);
-        const priceRange = personality.id === 'elegant' ? '$120-$200' :
-                          personality.id === 'romantic' ? '$89-$150' : '$95-$180';
 
         // Analyze the generated outfit image to create intelligent search prompts
         const searchPrompt = await analyzeOutfitImage(result.images[0].url, personality.name);
@@ -415,7 +497,7 @@ NO explanations, just the search keywords.`
           personality,
           imageUrl: result.images[0].url,
           reasoning,
-          priceRange,
+          priceRange: '', // Will be set when user selects budget
           confidence: 0.85 + Math.random() * 0.1, // Mock confidence between 85-95%
           isSelected: false,
           originalPrompt: prompt,
@@ -447,9 +529,38 @@ NO explanations, just the search keywords.`
     setSelectedOutfit(outfit);
     onOutfitSelected(outfit);
 
-    // Auto-trigger try-on if avatar exists
+    // Show budget modal for user to select price range
+    setPendingOutfit(outfit);
+    setShowBudgetModal(true);
+  };
+
+  const handleBudgetSelect = async (budget: string) => {
+    if (!pendingOutfit) return;
+
+    console.log('💰 [BUDGET] User selected budget:', budget);
+
+    // Update outfit with selected budget
+    const outfitWithBudget = {
+      ...pendingOutfit,
+      priceRange: budget
+    };
+
+    // Update outfits array with budget
+    const updatedOutfits = outfits.map(o =>
+      o.personality.id === pendingOutfit.personality.id
+        ? outfitWithBudget
+        : o
+    );
+    setOutfits(updatedOutfits);
+    setSelectedOutfit(outfitWithBudget);
+
+    // Close budget modal
+    setShowBudgetModal(false);
+    setPendingOutfit(null);
+
+    // Trigger try-on if avatar exists
     if (avatarData?.imageUrl) {
-      await handleApplyToAvatar(outfit);
+      await handleApplyToAvatar(outfitWithBudget);
     }
   };
 
@@ -667,13 +778,8 @@ NO explanations, just the search keywords.`
                   </ul>
                 </div>
 
-                {/* Price Range */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-2">
-                    <ShoppingBag className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">Shop from</span>
-                    <span className="font-semibold text-gray-900">{outfit.priceRange}</span>
-                  </div>
+                {/* Match Confidence */}
+                <div className="flex justify-end mb-4">
                   <div className="text-xs text-gray-500">
                     {Math.round(outfit.confidence * 100)}% match
                   </div>
@@ -766,6 +872,17 @@ NO explanations, just the search keywords.`
           outfit={outfitToSave}
           onSave={handleCalendarSave}
           onClose={() => setShowCalendarModal(false)}
+        />
+      )}
+
+      {/* Budget Selector Modal */}
+      {showBudgetModal && (
+        <BudgetSelectorModal
+          onSelect={handleBudgetSelect}
+          onClose={() => {
+            setShowBudgetModal(false);
+            setPendingOutfit(null);
+          }}
         />
       )}
 
