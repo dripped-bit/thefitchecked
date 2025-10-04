@@ -29,18 +29,8 @@ export interface ProductSearchOptions {
 }
 
 class SerpApiService {
-  private readonly apiKey: string;
-  private readonly baseUrl = 'https://serpapi.com/search.json';
-
   constructor() {
-    this.apiKey = import.meta.env.VITE_SERPAPI_KEY || '';
-
-    if (!this.apiKey) {
-      console.error('❌ [SERPAPI] VITE_SERPAPI_KEY not configured in environment variables');
-      console.warn('⚠️ [SERPAPI] Add VITE_SERPAPI_KEY to Vercel environment variables');
-    } else {
-      console.log('✅ [SERPAPI] Service initialized with API key');
-    }
+    console.log('✅ [SERPAPI] Service initialized - using backend API route');
   }
 
   /**
@@ -59,31 +49,20 @@ class SerpApiService {
       maxResults
     });
 
-    if (!this.apiKey) {
-      console.error('❌ [SERPAPI] Cannot search - API key not configured');
-      return [];
-    }
-
     try {
-      const params = new URLSearchParams({
-        api_key: this.apiKey,
-        engine: 'google_shopping',
-        q: query,
-        location: 'Austin, Texas, United States',
-        hl: 'en',
-        gl: 'us',
-        num: maxResults.toString()
+      // Call backend API route instead of SerpAPI directly (fixes CORS)
+      const response = await fetch('/api/serpapi-search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query,
+          num: maxResults,
+          budgetMin,
+          budgetMax
+        })
       });
-
-      // Add price range filter if budget specified
-      if (budgetMin !== undefined || budgetMax !== undefined) {
-        const min = budgetMin || 0;
-        const max = budgetMax || 999999;
-        params.append('tbs', `ppr_min:${min},ppr_max:${max}`);
-        console.log(`💰 [SERPAPI] Budget filter: $${min}-$${max}`);
-      }
-
-      const response = await fetch(`${this.baseUrl}?${params}`);
 
       if (!response.ok) {
         const errorText = await response.text();
