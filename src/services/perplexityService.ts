@@ -705,27 +705,18 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
   }
 
   /**
-   * Generate placeholder image for product based on search query
+   * Generate icon/initial based on product category
+   * No placeholder images - return undefined to display product cards without images
    */
-  private generatePlaceholderImage(productTitle: string, storeName: string): string {
-    // Extract key fashion terms from title for better image matching
-    const fashionTerms = productTitle.toLowerCase();
-
-    // Determine image category based on product type
-    let category = 'fashion';
-    if (fashionTerms.includes('dress')) category = 'dress';
-    else if (fashionTerms.includes('top') || fashionTerms.includes('shirt') || fashionTerms.includes('blouse')) category = 'shirt';
-    else if (fashionTerms.includes('pants') || fashionTerms.includes('jeans') || fashionTerms.includes('trousers')) category = 'pants';
-    else if (fashionTerms.includes('skirt')) category = 'skirt';
-    else if (fashionTerms.includes('jacket') || fashionTerms.includes('coat')) category = 'jacket';
-    else if (fashionTerms.includes('shoes') || fashionTerms.includes('heels') || fashionTerms.includes('boots')) category = 'shoes';
-
-    // Generate a consistent hash from title for consistent images per product
-    const hash = productTitle.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const imageId = 1515372039744 + (hash % 1000000); // Base Unsplash photo ID + variation
-
-    // Return Unsplash fashion image with proper sizing
-    return `https://images.unsplash.com/photo-${imageId}?w=400&h=500&fit=crop&auto=format&q=80`;
+  private getProductCategory(productTitle: string): string {
+    const title = productTitle.toLowerCase();
+    if (title.includes('dress')) return 'dress';
+    if (title.includes('top') || title.includes('shirt') || title.includes('blouse')) return 'top';
+    if (title.includes('pants') || title.includes('jeans') || title.includes('trousers')) return 'bottom';
+    if (title.includes('skirt')) return 'skirt';
+    if (title.includes('jacket') || title.includes('coat')) return 'outerwear';
+    if (title.includes('shoes') || title.includes('heels') || title.includes('boots')) return 'shoes';
+    return 'clothing';
   }
 
   /**
@@ -748,8 +739,8 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
         price: this.extractPrice(result.snippet, result.title),
         inStock: this.checkStockStatus(result.snippet, result.title),
         rating: this.extractRating(result.snippet),
-        // Generate placeholder image since Perplexity doesn't provide product images
-        imageUrl: this.generatePlaceholderImage(result.title, storeName)
+        // Product category for display (no images available from Perplexity)
+        category: this.getProductCategory(result.title)
       };
 
       // Extract additional product details
@@ -759,7 +750,7 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
         product.discount = this.calculateDiscount(originalPrice, product.price);
       }
 
-      console.log(`🖼️ [IMAGE] Generated placeholder for "${result.title.substring(0, 40)}...": ${product.imageUrl}`);
+      console.log(`📦 [PRODUCT] Parsed "${result.title.substring(0, 40)}..." as ${product.category}`);
 
       return product;
     });

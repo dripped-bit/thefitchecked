@@ -568,13 +568,22 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {section.products.map((product) => (
                   <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-row">
-                    {/* Product Image - Left Side */}
-                    <div className="w-40 h-40 flex-shrink-0 bg-gray-100 relative group">
-                      <img
-                        src={product.imageUrl}
-                        alt={product.title}
-                        className="w-full h-full object-cover"
-                      />
+                    {/* Product Category - Left Side */}
+                    <div className="w-40 h-40 flex-shrink-0 bg-gradient-to-br from-purple-100 to-blue-100 relative group flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">
+                          {product.category === 'dress' ? '👗' :
+                           product.category === 'top' ? '👚' :
+                           product.category === 'bottom' ? '👖' :
+                           product.category === 'skirt' ? '👗' :
+                           product.category === 'outerwear' ? '🧥' :
+                           product.category === 'shoes' ? '👠' :
+                           '👔'}
+                        </div>
+                        <div className="text-xs font-medium text-gray-600 capitalize">
+                          {product.category || 'clothing'}
+                        </div>
+                      </div>
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-200 flex items-center justify-center">
                         {avatarData?.imageUrl && (
                           <button
