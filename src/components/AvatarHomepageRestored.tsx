@@ -1140,19 +1140,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
           {/* Right Sidebar */}
           <div className="space-y-6">
 
-            {/* Today's Picks Section */}
-            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800 flex items-center space-x-2">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
-                    <span>Today's Picks</span>
-                  </h3>
-                  <p className="text-sm text-slate-600 mt-1">Create and customize your style</p>
-                </div>
-              </div>
-
-              {/* Navigation Buttons */}
+            {/* Navigation Buttons */}
               <div className="space-y-3">
                 <button
                   onClick={() => {
@@ -1190,8 +1178,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                 </button>
 
               </div>
-
-            </div>
 
             {/* Navigation Quick Actions */}
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-200">
