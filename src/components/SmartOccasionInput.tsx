@@ -499,15 +499,15 @@ Examples:
             </select>
           </div>
 
-          {/* Horizontal Occasion Cards */}
+          {/* Vertical Occasion Cards */}
           {selectedCategory && (
             <div className="relative">
-              <div className="flex overflow-x-auto space-x-4 pb-4 scrollbar-hide">
+              <div className="flex flex-col space-y-4">
                 {getFilteredOccasions(selectedCategory).map((occasion) => (
                   <button
                     key={occasion.id}
                     onClick={() => handleOccasionClick(occasion)}
-                    className="flex-shrink-0 w-64 group bg-white border border-gray-200 rounded-xl p-4 hover:border-purple-300 hover:shadow-lg transition-all duration-200 text-left"
+                    className="w-full group bg-white border border-gray-200 rounded-xl p-4 hover:border-purple-300 hover:shadow-lg transition-all duration-200 text-left"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className={`w-10 h-10 ${occasion.color} rounded-lg flex items-center justify-center text-white`}>
