@@ -1180,36 +1180,28 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
               </div>
 
             {/* Navigation Quick Actions */}
-            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">Quick Actions</h3>
+            <div className="bg-sky-300/30 backdrop-blur-sm rounded-[3rem] shadow-lg p-6 border border-sky-200/50">
               <div className="space-y-3">
                 <button
                   onClick={onNavigateToMeasurements}
-                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
+                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-sky-100/50 rounded-lg transition-colors"
                 >
                   <User className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium text-slate-800">Update Measurements</span>
+                  <span className="font-medium text-slate-800 italic text-[0.95em]">Update Measurements</span>
                 </button>
                 <button
                   onClick={onNavigateToStyleProfile}
-                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
+                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-sky-100/50 rounded-lg transition-colors"
                 >
                   <Palette className="w-5 h-5 text-purple-600" />
-                  <span className="font-medium text-slate-800">Style Preferences</span>
+                  <span className="font-medium text-slate-800 italic text-[0.95em]">Style Preferences</span>
                 </button>
                 <button
                   onClick={onResetAvatar}
-                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
+                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-sky-100/50 rounded-lg transition-colors"
                 >
                   <RotateCcw className="w-5 h-5 text-red-600" />
-                  <span className="font-medium text-slate-800">Reset Avatar</span>
-                </button>
-                <button
-                  onClick={() => setShowPromptsModal(true)}
-                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <BookOpen className="w-5 h-5 text-purple-600" />
-                  <span className="font-medium text-slate-800">Avatar Prompts</span>
+                  <span className="font-medium text-slate-800 italic text-[0.95em]">Reset Avatar</span>
                 </button>
               </div>
             </div>

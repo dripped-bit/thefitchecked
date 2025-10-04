@@ -712,8 +712,7 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     <div className="space-y-6">
       <div className="text-center">
         <Zap className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Quick Generate</h2>
-        <p className="text-gray-600">Describe what you need and get instant outfit suggestions</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Quick Generate</h2>
 
         {hasStylePreferences && (
           <div className="mt-3 inline-flex items-center space-x-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full text-sm font-medium">
@@ -725,8 +724,8 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            What kind of outfit are you looking for?
+          <label className="block text-lg font-bold text-gray-700 mb-2 text-center">
+            Describe your desired outfit in detail (colors, style, fabrics, fits)
           </label>
           <textarea
             value={quickPrompt}
@@ -743,7 +742,7 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
           className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
         >
           <Zap className={`w-5 h-5 ${isGenerating ? 'animate-spin' : ''}`} />
-          <span>{isGenerating ? 'Generating...' : 'Generate Outfit'}</span>
+          <span className="text-black italic text-lg">{isGenerating ? 'Generating...' : 'Generate Outfit'}</span>
         </button>
 
         {generationProgress && (
