@@ -207,20 +207,25 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     const genderPrefix = genderGuidance ? `${genderGuidance}. ` : '';
 
     // If user provided specific details, put them FIRST to ensure AI prioritizes user's request
+    // BUT emphasize personality style variation
     if (hasCustomInput) {
-      return `SPECIFIC REQUEST: ${occasion.originalInput}
+      return `${personality.name.toUpperCase()} STYLE: ${personality.promptModifier}
 
-STYLE INTERPRETATION - ${personality.name}: ${personality.promptModifier}
+USER REQUEST: ${occasion.originalInput}
 
 FOR OCCASION: ${occasion.occasion}, ${occasion.formality} attire
 ${genderPrefix}${styleGuidance}
 
-Generate ONE SINGLE complete outfit matching the specific request above. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
+IMPORTANT: Create a ${personality.name.toLowerCase()} interpretation with ${personality.promptModifier}. Make this outfit distinctly ${personality.name.toLowerCase()} in style.
+
+Generate ONE SINGLE complete outfit. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
     } else {
-      // No custom input - use personality as primary guide
-      return `${personality.promptModifier}
+      // No custom input - use personality as primary guide with strong emphasis
+      return `${personality.name.toUpperCase()} STYLE OUTFIT: ${personality.promptModifier}
 
 ${genderPrefix}FOR OCCASION: ${userRequest}. ${styleGuidance}
+
+IMPORTANT: This must be distinctly ${personality.name.toLowerCase()} style - ${personality.promptModifier}. Different from other fashion styles.
 
 Generate ONE SINGLE complete outfit. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
     }
@@ -386,7 +391,8 @@ NO explanations, just keywords.`
     // Hash personality ID to create unique but consistent seed
     const baseTime = Math.floor(Date.now() / 1000); // Changes per second
     const hash = personalityId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return (baseTime * 1000) + (hash * 100); // Unique seed per personality
+    // Multiply hash by 10000 instead of 100 for much greater variance between personalities
+    return (baseTime * 1000) + (hash * 10000) + Math.floor(Math.random() * 1000); // Strong variation
   };
 
   const generateTripleOutfits = async () => {
@@ -407,11 +413,12 @@ NO explanations, just keywords.`
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: 'multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits',
+            negative_prompt: 'multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, identical clothing, same style, repetitive, copy, clone, similar outfits',
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
-            seed: generatePersonalitySeed(personality.id) // Force unique outputs per personality
+            seed: generatePersonalitySeed(personality.id), // Force unique outputs per personality
+            num_inference_steps: 28 // Increase quality and variation
           })
         });
 
