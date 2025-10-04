@@ -13,10 +13,12 @@ import SmartCalendarDashboard from './SmartCalendarDashboard';
 import PackingListGenerator from './PackingListGenerator';
 import WoreThisTodayTracker from './WoreThisTodayTracker';
 import CategorySelector from './CategorySelector';
+import MultiItemSplitter from './MultiItemSplitter';
 import ShareModal from './ShareModal';
 import ClosetService, { ClothingCategory } from '../services/closetService';
 import seamlessTryOnService from '../services/seamlessTryOnService';
 import backgroundRemovalService from '../services/backgroundRemovalService';
+import multiItemDetectionService, { DetectedItem, MultiItemDetectionResult } from '../services/multiItemDetectionService';
 import weatherService from '../services/weatherService';
 import stylePreferencesService from '../services/stylePreferencesService';
 
@@ -217,6 +219,12 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     itemData: Partial<ClothingItem>;
     metadata?: any;
   } | null>(null);
+
+  // Multi-item detection state
+  const [showMultiItemSplitter, setShowMultiItemSplitter] = useState(false);
+  const [multiItemDetectionResult, setMultiItemDetectionResult] = useState<MultiItemDetectionResult | null>(null);
+  const [pendingMultiItems, setPendingMultiItems] = useState<DetectedItem[]>([]);
+  const [currentMultiItemIndex, setCurrentMultiItemIndex] = useState(0);
 
   // Share state
   const [showShareModal, setShowShareModal] = useState(false);
@@ -489,6 +497,27 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           ? result.imageUrl
           : undefined;
 
+        // NEW: Check for multiple items in the image
+        setUploadProgress(prev => ({
+          ...prev,
+          stage: 'processing',
+          message: '🔍 Detecting multiple items...'
+        }));
+
+        const detectionResult = await multiItemDetectionService.detectMultipleItems(finalImageUrl);
+
+        if (detectionResult.hasMultipleItems && detectionResult.items.length > 1) {
+          console.log(`🎯 [MULTI-ITEM] Detected ${detectionResult.items.length} items!`);
+
+          // Store detection result and show splitter
+          setMultiItemDetectionResult(detectionResult);
+          setUploadProgress({ isUploading: false, stage: 'complete', message: '' });
+          setShowMultiItemSplitter(true);
+          return; // Exit - will continue after user confirms split
+        }
+
+        console.log('✅ [MULTI-ITEM] Single item detected, proceeding normally');
+
         // Prepare item data (without category yet)
         const itemData = {
           id: Date.now().toString(),
@@ -684,9 +713,50 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       // Check for achievements
       checkAchievements();
 
-      // Reset state
-      setShowCategorySelector(false);
-      setPendingItem(null);
+      // Check if this is part of a multi-item upload
+      const isMultiItem = pendingItem.metadata?.isMultiItem;
+      const totalItems = pendingItem.metadata?.totalItems || 0;
+      const currentIndex = pendingItem.metadata?.currentIndex || 0;
+
+      if (isMultiItem && currentIndex < totalItems - 1) {
+        // More items to categorize
+        const nextIndex = currentIndex + 1;
+        const nextItem = pendingMultiItems[nextIndex];
+
+        console.log(`📦 [MULTI-ITEM] Moving to next item (${nextIndex + 1}/${totalItems})`);
+
+        setCurrentMultiItemIndex(nextIndex);
+        setPendingItem({
+          imageUrl: nextItem.croppedImageUrl || '',
+          itemData: {
+            id: Date.now().toString() + nextIndex,
+            name: nextItem.name,
+            imageUrl: nextItem.croppedImageUrl || '',
+            color: 'unknown',
+            dateAdded: new Date().toISOString(),
+            timesWorn: 0,
+            season: 'all'
+          },
+          metadata: {
+            suggestedCategory: nextItem.category,
+            isMultiItem: true,
+            totalItems: totalItems,
+            currentIndex: nextIndex
+          }
+        });
+        // Category selector stays open for next item
+      } else {
+        // All items categorized or single item
+        if (isMultiItem) {
+          console.log(`✅ [MULTI-ITEM] All ${totalItems} items categorized successfully!`);
+          setPendingMultiItems([]);
+          setCurrentMultiItemIndex(0);
+        }
+
+        // Reset state
+        setShowCategorySelector(false);
+        setPendingItem(null);
+      }
 
     } catch (error) {
       console.error('❌ [CLOSET] Failed to save item:', error);
@@ -754,6 +824,73 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       }
       return newSet;
     });
+  };
+
+  // Multi-item splitter handlers
+  const handleMultiItemConfirmSplit = (items: DetectedItem[]) => {
+    console.log('✂️ [MULTI-ITEM] User confirmed split, processing', items.length, 'items');
+
+    // Store the items to be categorized one by one
+    setPendingMultiItems(items);
+    setCurrentMultiItemIndex(0);
+    setShowMultiItemSplitter(false);
+
+    // Show category selector for the first item
+    if (items.length > 0) {
+      const firstItem = items[0];
+      setPendingItem({
+        imageUrl: firstItem.croppedImageUrl || '',
+        itemData: {
+          id: Date.now().toString(),
+          name: firstItem.name,
+          imageUrl: firstItem.croppedImageUrl || '',
+          color: 'unknown',
+          dateAdded: new Date().toISOString(),
+          timesWorn: 0,
+          season: 'all'
+        },
+        metadata: {
+          suggestedCategory: firstItem.category,
+          isMultiItem: true,
+          totalItems: items.length,
+          currentIndex: 0
+        }
+      });
+      setShowCategorySelector(true);
+    }
+  };
+
+  const handleMultiItemTreatAsSingle = () => {
+    console.log('🔗 [MULTI-ITEM] User chose to treat as single item');
+    setShowMultiItemSplitter(false);
+
+    // Continue with normal flow using the original image
+    if (multiItemDetectionResult) {
+      setPendingItem({
+        imageUrl: multiItemDetectionResult.originalImageUrl,
+        itemData: {
+          id: Date.now().toString(),
+          name: 'Mixed Outfit',
+          imageUrl: multiItemDetectionResult.originalImageUrl,
+          color: 'mixed',
+          dateAdded: new Date().toISOString(),
+          timesWorn: 0,
+          season: 'all'
+        },
+        metadata: {
+          suggestedCategory: 'other'
+        }
+      });
+      setShowCategorySelector(true);
+    }
+  };
+
+  const handleMultiItemCancel = () => {
+    console.log('❌ [MULTI-ITEM] User cancelled multi-item split');
+    setShowMultiItemSplitter(false);
+    setMultiItemDetectionResult(null);
+    setPendingMultiItems([]);
+    setCurrentMultiItemIndex(0);
   };
 
   const checkAchievements = () => {
@@ -2549,6 +2686,17 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
             )}
           </div>
         </div>
+      )}
+
+      {/* Multi-Item Splitter Modal */}
+      {showMultiItemSplitter && multiItemDetectionResult && (
+        <MultiItemSplitter
+          originalImageUrl={multiItemDetectionResult.originalImageUrl}
+          detectedItems={multiItemDetectionResult.items}
+          onConfirmSplit={handleMultiItemConfirmSplit}
+          onCancel={handleMultiItemCancel}
+          onTreatAsSingle={handleMultiItemTreatAsSingle}
+        />
       )}
 
       {/* Category Selector Modal */}
