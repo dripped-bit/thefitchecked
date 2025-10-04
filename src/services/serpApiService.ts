@@ -42,8 +42,12 @@ class SerpApiService {
   ): Promise<ProductSearchResult[]> {
     const { budgetMin, budgetMax, stores, maxResults = 20 } = options;
 
+    // Enhance query for better try-on compatible images (front-facing model photos)
+    const enhancedQuery = `${query} model wearing full body front view`;
+
     console.log('🛍️ [SERPAPI] Searching Google Shopping:', {
-      query,
+      originalQuery: query,
+      enhancedQuery,
       budgetMin,
       budgetMax,
       maxResults
@@ -57,7 +61,7 @@ class SerpApiService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          query,
+          query: enhancedQuery,
           num: maxResults,
           budgetMin,
           budgetMax

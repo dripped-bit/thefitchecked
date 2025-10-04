@@ -15,6 +15,7 @@ interface ExternalTryOnModalProps {
   product: ProductSearchResult;
   avatarData: any;
   onTryOnComplete?: (result: ExternalTryOnResult) => void;
+  onSaveToCalendar?: (productUrl: string) => void;
 }
 
 const ExternalTryOnModal: React.FC<ExternalTryOnModalProps> = ({
@@ -22,11 +23,13 @@ const ExternalTryOnModal: React.FC<ExternalTryOnModalProps> = ({
   onClose,
   product,
   avatarData,
-  onTryOnComplete
+  onTryOnComplete,
+  onSaveToCalendar
 }) => {
   const [tryOnState, setTryOnState] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [tryOnResult, setTryOnResult] = useState<ExternalTryOnResult | null>(null);
   const [processingStep, setProcessingStep] = useState<string>('');
+  const [showCalendarPrompt, setShowCalendarPrompt] = useState(false);
 
   if (!isOpen) return null;
 
@@ -177,6 +180,39 @@ const ExternalTryOnModal: React.FC<ExternalTryOnModalProps> = ({
               </div>
             )}
 
+            {/* Calendar prompt inline */}
+            {showCalendarPrompt && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="text-sm font-medium text-gray-900 mb-3">
+                  Add this product link to your calendar?
+                </p>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      if (onSaveToCalendar && product.url) {
+                        const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
+                          product.url,
+                          product.store || 'unknown'
+                        );
+                        onSaveToCalendar(affiliateUrl);
+                      }
+                      setShowCalendarPrompt(false);
+                      handleClose();
+                    }}
+                    className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Yes, Add to Calendar
+                  </button>
+                  <button
+                    onClick={() => setShowCalendarPrompt(false)}
+                    className="flex-1 px-3 py-2 bg-white border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    No Thanks
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex space-x-3">
               <button
                 onClick={handleClose}
@@ -193,11 +229,14 @@ const ExternalTryOnModal: React.FC<ExternalTryOnModalProps> = ({
                     );
                     affiliateLinkService.trackClick(affiliateUrl, undefined, product);
                     window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+
+                    // Show calendar prompt after opening shop link
+                    setShowCalendarPrompt(true);
                   }
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
-                Buy Now
+                Shop This Product
               </button>
             </div>
           </div>

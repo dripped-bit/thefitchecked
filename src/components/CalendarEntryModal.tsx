@@ -293,11 +293,11 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
             </p>
           </div>
 
-          {/* Shopping Reminder */}
+          {/* Reminder to Buy */}
           <div>
             <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
               <Bell className="w-4 h-4" />
-              <span>Shopping Reminder</span>
+              <span>Reminder to Buy</span>
             </label>
             <select
               value={formData.reminderDays}
@@ -310,6 +310,9 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               <option value={14}>2 weeks before event</option>
               <option value={30}>1 month before event</option>
             </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Get reminded to purchase these items before your event
+            </p>
           </div>
 
           {/* Notes */}

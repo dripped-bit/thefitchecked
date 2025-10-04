@@ -154,6 +154,14 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
     setShowSaveToCalendarModal(true);
   };
 
+  const handleSaveProductToCalendar = (productUrl: string) => {
+    // Add the product URL to collected shopping links
+    console.log('📦 [PLANNER] Saving product URL to calendar:', productUrl);
+    setCollectedShoppingLinks(prev => [...prev, { url: productUrl } as ProductSearchResult]);
+    // Open calendar modal with the product link
+    setShowSaveToCalendarModal(true);
+  };
+
   const handleProductsCollected = (products: ProductSearchResult[]) => {
     console.log('🛍️ [PLANNER] Collected shopping links:', products.length);
     setCollectedShoppingLinks(products);
@@ -320,6 +328,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
           product={tryOnProduct}
           avatarData={avatarData}
           onTryOnComplete={handleTryOnComplete}
+          onSaveToCalendar={handleSaveProductToCalendar}
         />
       )}
 
