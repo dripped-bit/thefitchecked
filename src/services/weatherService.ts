@@ -83,38 +83,73 @@ class WeatherService {
 
   /**
    * Geocode city/state to coordinates using Open-Meteo Geocoding API
+   * Tries multiple formats to increase success rate
    */
   async geocodeLocation(city: string, state?: string): Promise<{ latitude: number; longitude: number; displayName: string }> {
-    try {
-      const searchQuery = state ? `${city}, ${state}` : city;
-      console.log(`🌍 [WEATHER] Geocoding location: ${searchQuery}`);
+    // Generate multiple search query formats to try
+    const searchQueries: string[] = [];
 
-      const response = await fetch(
-        `${this.GEOCODING_BASE}/search?name=${encodeURIComponent(searchQuery)}&count=1&language=en&format=json`
+    if (state) {
+      // Try various formats for better geocoding success
+      const cityTitle = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+      const stateUpper = state.toUpperCase();
+      const stateTitle = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+      searchQueries.push(
+        `${cityTitle}, ${stateTitle}`,        // "Austin, Texas"
+        `${cityTitle}, ${stateUpper}`,         // "Austin, TEXAS"
+        `${city}, ${state}`,                   // Original: "austin, texas"
+        `${cityTitle} ${stateTitle}`,          // "Austin Texas" (no comma)
+        cityTitle                              // Just "Austin"
       );
-
-      if (!response.ok) {
-        throw new Error(`Geocoding failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.results || data.results.length === 0) {
-        throw new Error(`Location not found: ${searchQuery}`);
-      }
-
-      const result = data.results[0];
-      console.log(`✅ [WEATHER] Location found: ${result.name}, ${result.admin1 || ''}`);
-
-      return {
-        latitude: result.latitude,
-        longitude: result.longitude,
-        displayName: `${result.name}${result.admin1 ? ', ' + result.admin1 : ''}`
-      };
-    } catch (error) {
-      console.error('❌ [WEATHER] Geocoding failed:', error);
-      throw error;
+    } else {
+      const cityTitle = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+      searchQueries.push(cityTitle, city);
     }
+
+    // Try each query format until one succeeds
+    for (let i = 0; i < searchQueries.length; i++) {
+      const searchQuery = searchQueries[i];
+
+      try {
+        console.log(`🌍 [WEATHER] Geocoding attempt ${i + 1}/${searchQueries.length}: "${searchQuery}"`);
+
+        const response = await fetch(
+          `${this.GEOCODING_BASE}/search?name=${encodeURIComponent(searchQuery)}&count=1&language=en&format=json`
+        );
+
+        if (!response.ok) {
+          console.warn(`⚠️ [WEATHER] Geocoding request failed (${response.status}), trying next format...`);
+          continue;
+        }
+
+        const data = await response.json();
+
+        if (!data.results || data.results.length === 0) {
+          console.warn(`⚠️ [WEATHER] No results for "${searchQuery}", trying next format...`);
+          continue;
+        }
+
+        const result = data.results[0];
+        console.log(`✅ [WEATHER] Location found: ${result.name}, ${result.admin1 || ''} (used format: "${searchQuery}")`);
+
+        return {
+          latitude: result.latitude,
+          longitude: result.longitude,
+          displayName: `${result.name}${result.admin1 ? ', ' + result.admin1 : ''}`
+        };
+      } catch (error) {
+        console.warn(`⚠️ [WEATHER] Error with format "${searchQuery}":`, error);
+        if (i === searchQueries.length - 1) {
+          // Last attempt failed, throw error
+          throw new Error(`All geocoding formats failed for: ${city}${state ? ', ' + state : ''}`);
+        }
+        // Try next format
+        continue;
+      }
+    }
+
+    throw new Error(`Location not found after trying all formats: ${city}${state ? ', ' + state : ''}`);
   }
 
   /**
