@@ -102,37 +102,51 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
       { id: 'business-conf', title: 'Business Conference', subtitle: 'Professional networking', icon: <Briefcase className="w-5 h-5" />, formality: 'formal' as const, color: 'bg-blue-600', category: 'Business' },
       { id: 'gala', title: 'Gala Dinner', subtitle: 'Black-tie event', icon: <Heart className="w-5 h-5" />, formality: 'black-tie' as const, color: 'bg-purple-700', category: 'Formal' },
       { id: 'wedding-guest', title: 'Wedding Guest', subtitle: 'Formal ceremony', icon: <Heart className="w-5 h-5" />, formality: 'formal' as const, color: 'bg-pink-500', category: 'Formal' },
-      { id: 'award-ceremony', title: 'Award Ceremony', subtitle: 'Cocktail attire', icon: <Sparkles className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-yellow-600', category: 'Formal' }
+      { id: 'award-ceremony', title: 'Award Ceremony', subtitle: 'Cocktail attire', icon: <Sparkles className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-yellow-600', category: 'Formal' },
+      { id: 'baby-shower', title: 'Baby Shower', subtitle: 'Celebration event', icon: <Heart className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-pink-400', category: 'Formal' },
+      { id: 'charity-event', title: 'Charity Event', subtitle: 'Fundraising gala', icon: <Sparkles className="w-5 h-5" />, formality: 'formal' as const, color: 'bg-rose-600', category: 'Formal' },
+      { id: 'engagement-party', title: 'Engagement Party', subtitle: 'Celebration dinner', icon: <Heart className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-fuchsia-500', category: 'Formal' }
     ],
     'Casual': [
       { id: 'brunch', title: 'Sunday Brunch', subtitle: 'Casual meetup', icon: <Coffee className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-orange-500', category: 'Casual' },
       { id: 'coffee-date', title: 'Coffee Date', subtitle: 'Relaxed cafe', icon: <Coffee className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-amber-600', category: 'Casual' },
       { id: 'shopping', title: 'Shopping Trip', subtitle: 'Day out', icon: <ShoppingBag className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-teal-500', category: 'Casual' },
-      { id: 'movie-night', title: 'Movie Night', subtitle: 'Cinema outing', icon: <Users className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-indigo-500', category: 'Casual' }
+      { id: 'movie-night', title: 'Movie Night', subtitle: 'Cinema outing', icon: <Users className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-indigo-500', category: 'Casual' },
+      { id: 'garden-party', title: 'Garden Party', subtitle: 'Outdoor gathering', icon: <Sun className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-green-500', category: 'Casual' },
+      { id: 'picnic', title: 'Picnic', subtitle: 'Park outing', icon: <Sun className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-lime-500', category: 'Casual' },
+      { id: 'farmers-market', title: 'Farmer\'s Market', subtitle: 'Morning shopping', icon: <ShoppingBag className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-emerald-600', category: 'Casual' }
     ],
     'Beach': [
       { id: 'beach-wedding', title: 'Beach Wedding', subtitle: 'Outdoor ceremony', icon: <Heart className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-cyan-500', category: 'Beach' },
       { id: 'beach-party', title: 'Beach Party', subtitle: 'Seaside celebration', icon: <Sun className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-yellow-400', category: 'Beach' },
       { id: 'resort-dinner', title: 'Resort Dinner', subtitle: 'Tropical evening', icon: <Plane className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-green-500', category: 'Beach' },
-      { id: 'pool-party', title: 'Pool Party', subtitle: 'Poolside fun', icon: <Umbrella className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-blue-400', category: 'Beach' }
+      { id: 'pool-party', title: 'Pool Party', subtitle: 'Poolside fun', icon: <Umbrella className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-blue-400', category: 'Beach' },
+      { id: 'yacht-party', title: 'Yacht Party', subtitle: 'Luxury cruise', icon: <Plane className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-sky-600', category: 'Beach' },
+      { id: 'beach-photoshoot', title: 'Beach Photoshoot', subtitle: 'Seaside photos', icon: <Sun className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-amber-400', category: 'Beach' }
     ],
     'Evening': [
       { id: 'date-night', title: 'Date Night', subtitle: 'Dinner & drinks', icon: <Heart className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-purple-500', category: 'Evening' },
       { id: 'cocktail-party', title: 'Cocktail Party', subtitle: 'Upscale gathering', icon: <Sparkles className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-pink-600', category: 'Evening' },
       { id: 'theater', title: 'Theater Show', subtitle: 'Cultural event', icon: <Users className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-red-600', category: 'Evening' },
-      { id: 'night-out', title: 'Night Out', subtitle: 'Club & bars', icon: <Moon className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-violet-600', category: 'Evening' }
+      { id: 'night-out', title: 'Night Out', subtitle: 'Club & bars', icon: <Moon className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-violet-600', category: 'Evening' },
+      { id: 'opera-ballet', title: 'Opera/Ballet', subtitle: 'Performing arts', icon: <Sparkles className="w-5 h-5" />, formality: 'formal' as const, color: 'bg-indigo-700', category: 'Evening' },
+      { id: 'wine-tasting', title: 'Wine Tasting', subtitle: 'Vineyard event', icon: <Coffee className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-purple-600', category: 'Evening' }
     ],
     'Active': [
       { id: 'gym', title: 'Gym Workout', subtitle: 'Fitness session', icon: <Dumbbell className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-red-500', category: 'Active' },
       { id: 'yoga', title: 'Yoga Class', subtitle: 'Wellness activity', icon: <Users className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-green-400', category: 'Active' },
       { id: 'hiking', title: 'Hiking Trip', subtitle: 'Outdoor adventure', icon: <Sun className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-emerald-600', category: 'Active' },
-      { id: 'sports', title: 'Sports Event', subtitle: 'Athletic activity', icon: <Zap className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-orange-600', category: 'Active' }
+      { id: 'sports', title: 'Sports Event', subtitle: 'Athletic activity', icon: <Zap className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-orange-600', category: 'Active' },
+      { id: 'running-event', title: 'Running Event', subtitle: '5K/Marathon', icon: <Dumbbell className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-blue-500', category: 'Active' },
+      { id: 'cycling-trip', title: 'Cycling Trip', subtitle: 'Bike adventure', icon: <Zap className="w-5 h-5" />, formality: 'casual' as const, color: 'bg-cyan-600', category: 'Active' }
     ],
     'Business': [
       { id: 'board-meeting', title: 'Board Meeting', subtitle: 'Important presentation', icon: <Briefcase className="w-5 h-5" />, formality: 'formal' as const, color: 'bg-blue-700', category: 'Business' },
       { id: 'job-interview', title: 'Job Interview', subtitle: 'Professional meeting', icon: <Building className="w-5 h-5" />, formality: 'formal' as const, color: 'bg-slate-700', category: 'Business' },
       { id: 'client-lunch', title: 'Client Lunch', subtitle: 'Business meal', icon: <Coffee className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-gray-600', category: 'Business' },
-      { id: 'networking', title: 'Networking Event', subtitle: 'Professional mixer', icon: <Users className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-indigo-600', category: 'Business' }
+      { id: 'networking', title: 'Networking Event', subtitle: 'Professional mixer', icon: <Users className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-indigo-600', category: 'Business' },
+      { id: 'trade-show', title: 'Trade Show', subtitle: 'Industry exhibition', icon: <Building className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-slate-600', category: 'Business' },
+      { id: 'corporate-retreat', title: 'Corporate Retreat', subtitle: 'Team building', icon: <Users className="w-5 h-5" />, formality: 'semi-formal' as const, color: 'bg-teal-600', category: 'Business' }
     ]
   };
 
