@@ -85,7 +85,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       icon: <Star className="w-5 h-5" />,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50 border-blue-200',
-      promptModifier: 'elegant, sophisticated, classic, refined, timeless style'
+      promptModifier: 'ELEGANT SOPHISTICATED OUTFIT: tailored silhouette, classic lines, neutral tones (black, navy, cream, camel) or jewel tones (emerald, sapphire, burgundy), refined details, structured pieces, timeless elegance'
     },
     {
       id: 'romantic',
@@ -94,7 +94,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       icon: <Heart className="w-5 h-5" />,
       color: 'text-pink-600',
       bgColor: 'bg-pink-50 border-pink-200',
-      promptModifier: 'romantic, feminine, soft, flowing, delicate details'
+      promptModifier: 'ROMANTIC FEMININE OUTFIT: flowing fabrics, soft pastels (blush pink, lavender, powder blue, cream), delicate details, ruffles OR lace OR floral elements, dreamy feminine style, soft draping'
     },
     {
       id: 'bold',
@@ -103,7 +103,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       icon: <Zap className="w-5 h-5" />,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50 border-purple-200',
-      promptModifier: 'bold, modern, striking, contemporary, fashion-forward'
+      promptModifier: 'BOLD MODERN OUTFIT: statement pieces, contemporary cuts, vibrant colors (electric blue, hot pink, emerald green) OR color blocking OR metallics, striking details, edgy fashion-forward style'
     }
   ];
 
@@ -201,23 +201,22 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       }
     }
 
-    // Structure: GENDER FIRST (highest priority), then user request, style guidance
+    // Structure: PERSONALITY FIRST for maximum variation, then gender/request/style
     // NOTE: Removed time/location/weather to prevent text appearing in generated images
     const userRequest = `${basePrompt}, ${occasion.formality} attire`;
 
-    // Build final prompt with gender as highest priority
+    // Build final prompt with PERSONALITY as highest priority for variation
     const genderPrefix = genderGuidance ? `${genderGuidance}. ` : '';
 
-    return `⚠️ CRITICAL: GENERATE EXACTLY 1 SINGLE OUTFIT ONLY - NOT 2, NOT 3, JUST 1 ⚠️
+    return `⚠️ ${personality.promptModifier} ⚠️
 
-QUANTITY REQUIREMENTS (MOST IMPORTANT):
-- COUNT: Exactly 1 outfit (singular, not plural)
-- If dress: Show ONLY 1 dress (NOT 2 dresses, NOT multiple dresses, NOT dress options)
-- If separates: Show ONLY 1 top + 1 bottom (NOT multiple tops, NOT outfit variations)
-- NEVER generate: 2 dresses, multiple outfits, outfit comparisons, style options, variations
-- REJECT: Any image showing more than 1 complete garment set
+CRITICAL REQUIREMENTS:
+- GENERATE EXACTLY 1 SINGLE OUTFIT ONLY (not 2, not 3, just 1)
+- If dress: Show ONLY 1 dress
+- If separates: Show ONLY 1 top + 1 bottom overlapped together
+- NEVER generate: multiple outfits, outfit comparisons, variations
 
-${genderPrefix}OUTFIT REQUEST: ${userRequest}. ${styleGuidance}${personality.promptModifier}.
+${genderPrefix}FOR OCCASION: ${userRequest}. ${styleGuidance}
 
 HOW TO GENERATE THE SINGLE OUTFIT:
 - If dress/jumpsuit: Show 1 complete one-piece garment
