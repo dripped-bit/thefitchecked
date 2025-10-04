@@ -480,28 +480,16 @@ class SmartCalendarService {
   // =====================
 
   /**
-   * Check if URL is a specific product page (not collection/category)
+   * Check if URL is a valid URL (accepts all valid URLs including Google Shopping)
    */
   isProductUrl(url: string): boolean {
-    const productPatterns = [
-      '/dp/',        // Amazon
-      '/gp/product/', // Amazon alternate
-      '/products/',  // Fashion Nova, Shopify stores
-      '/goods',      // SHEIN
-      '-p-',         // SHEIN product code
-      '-p[0-9]+',    // Zara
-      '/s/',         // Nordstrom
-      '/shop/',      // Nordstrom alternate
-      '/item/',      // Generic
-      '/p/',         // Target, Neiman Marcus
-      'sku=',        // SKU parameter
-      'product_id=', // Product ID parameter
-      '/A-'          // Target product code
-    ];
-
-    return productPatterns.some(pattern =>
-      url.match(new RegExp(pattern))
-    );
+    try {
+      new URL(url);
+      return true; // Accept all valid URLs including Google Shopping
+    } catch (e) {
+      console.error('⚠️ [CALENDAR] Malformed URL:', url);
+      return false;
+    }
   }
 
   /**
@@ -518,11 +506,11 @@ class SmartCalendarService {
     // Import affiliate service dynamically to avoid circular dependency
     const { affiliateLinkService } = await import('./affiliateLinkService');
 
-    // Process shopping links to ensure they're product-specific
+    // Process shopping links - keep all valid URLs
     const processedLinks = shoppingLinks.map(link => {
-      // Validate it's a product page
+      // Validate it's a valid URL
       if (!this.isProductUrl(link.url)) {
-        console.warn('⚠️ [CALENDAR] Invalid product URL:', link.url);
+        console.warn('⚠️ [CALENDAR] Skipping malformed URL:', link.url);
         return null;
       }
 
@@ -539,9 +527,9 @@ class SmartCalendarService {
         isDirectProduct: true,
         validatedAt: Date.now()
       };
-    }).filter(Boolean);
+    }).filter(Boolean); // Only filter out truly malformed URLs
 
-    console.log(`✅ [CALENDAR] Validated ${processedLinks.length}/${shoppingLinks.length} shopping links`);
+    console.log(`✅ [CALENDAR] Processed ${processedLinks.length}/${shoppingLinks.length} shopping links`);
 
     // Create calendar entry with validated links
     const calendarEntry = {

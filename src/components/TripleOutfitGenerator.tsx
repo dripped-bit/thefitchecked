@@ -127,6 +127,80 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     }
   }, [occasion]);
 
+  // Parse garment details from user input
+  const parseGarmentDetails = (input: string): {
+    garmentType: string;
+    color?: string;
+    fabric?: string;
+    length?: string;
+    fit?: string;
+  } => {
+    const lowerInput = input.toLowerCase();
+
+    // Extract garment type
+    const garmentTypes = [
+      'dress', 'dresses', 'maxi dress', 'midi dress', 'mini dress',
+      'skirt', 'skirts', 'maxi skirt', 'midi skirt', 'mini skirt',
+      'top', 'tops', 'blouse', 'shirt', 't-shirt', 'tshirt',
+      'pants', 'trousers', 'jeans', 'slacks',
+      'jumpsuit', 'jumpsuits',
+      'romper', 'rompers',
+      'suit', 'suits', 'blazer',
+      'jacket', 'coat',
+      'outfit'
+    ];
+
+    let garmentType = 'outfit'; // default
+    for (const type of garmentTypes) {
+      if (lowerInput.includes(type)) {
+        garmentType = type;
+        break;
+      }
+    }
+
+    // Extract color
+    const colorKeywords = ['pink', 'red', 'blue', 'green', 'black', 'white', 'yellow', 'purple', 'brown', 'orange', 'beige', 'navy', 'grey', 'gray', 'cream', 'tan', 'burgundy', 'teal', 'lavender', 'coral', 'emerald', 'olive', 'gold', 'silver'];
+    let color: string | undefined;
+    for (const colorWord of colorKeywords) {
+      if (lowerInput.includes(colorWord)) {
+        color = colorWord;
+        break;
+      }
+    }
+
+    // Extract fabric
+    const fabricKeywords = ['silk', 'satin', 'cotton', 'linen', 'chiffon', 'velvet', 'denim', 'leather', 'lace', 'knit', 'wool', 'cashmere', 'polyester', 'rayon'];
+    let fabric: string | undefined;
+    for (const fabricWord of fabricKeywords) {
+      if (lowerInput.includes(fabricWord)) {
+        fabric = fabricWord;
+        break;
+      }
+    }
+
+    // Extract length
+    const lengthKeywords = ['maxi', 'midi', 'mini', 'knee-length', 'floor-length', 'ankle-length', 'long', 'short'];
+    let length: string | undefined;
+    for (const lengthWord of lengthKeywords) {
+      if (lowerInput.includes(lengthWord)) {
+        length = lengthWord;
+        break;
+      }
+    }
+
+    // Extract fit
+    const fitKeywords = ['fitted', 'tight', 'loose', 'flowy', 'relaxed', 'oversized', 'bodycon', 'a-line', 'wrap', 'shift'];
+    let fit: string | undefined;
+    for (const fitWord of fitKeywords) {
+      if (lowerInput.includes(fitWord)) {
+        fit = fitWord;
+        break;
+      }
+    }
+
+    return { garmentType, color, fabric, length, fit };
+  };
+
   const createPersonalizedPrompt = async (personality: OutfitPersonality): Promise<string> => {
     // Combine user's typed input with selected occasion category
     // If user typed custom details, prioritize those alongside the occasion
@@ -201,34 +275,84 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       }
     }
 
-    // Structure: USER'S SPECIFIC REQUEST FIRST if provided, then personality as style variation
-    // NOTE: Removed time/location/weather to prevent text appearing in generated images
-    const userRequest = `${basePrompt}, ${occasion.formality} attire`;
-    const genderPrefix = genderGuidance ? `${genderGuidance}. ` : '';
+    // Parse garment details from user input
+    const garmentDetails = parseGarmentDetails(basePrompt);
 
-    // If user provided specific details, put them FIRST to ensure AI prioritizes user's request
-    // BUT emphasize personality style variation
-    if (hasCustomInput) {
-      return `${personality.name.toUpperCase()} STYLE: ${personality.promptModifier}
-
-USER REQUEST: ${occasion.originalInput}
-
-FOR OCCASION: ${occasion.occasion}, ${occasion.formality} attire
-${genderPrefix}${styleGuidance}
-
-IMPORTANT: Create a ${personality.name.toLowerCase()} interpretation with ${personality.promptModifier}. Make this outfit distinctly ${personality.name.toLowerCase()} in style.
-
-Generate ONE SINGLE complete outfit. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
-    } else {
-      // No custom input - use personality as primary guide with strong emphasis
-      return `${personality.name.toUpperCase()} STYLE OUTFIT: ${personality.promptModifier}
-
-${genderPrefix}FOR OCCASION: ${userRequest}. ${styleGuidance}
-
-IMPORTANT: This must be distinctly ${personality.name.toLowerCase()} style - ${personality.promptModifier}. Different from other fashion styles.
-
-Generate ONE SINGLE complete outfit. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
+    // Build weather context
+    let weatherContext = '';
+    if (occasion.weather) {
+      const temp = occasion.weather.temperature;
+      if (temp < 60) {
+        weatherContext = 'Cool weather (warm layers recommended)';
+      } else if (temp > 80) {
+        weatherContext = 'Warm weather (breathable, lightweight fabric)';
+      } else {
+        weatherContext = 'Moderate weather (comfortable fabric)';
+      }
     }
+
+    // Build requirements list
+    const requirements: string[] = [];
+    requirements.push(`- Style: ${personality.name}`);
+
+    if (garmentDetails.color) {
+      requirements.push(`- Color: ${garmentDetails.color}`);
+    } else if (!hasExplicitColor && stylePrefs.colors.length > 0) {
+      requirements.push(`- Color: ${stylePrefs.colors.join(' or ')}`);
+    }
+
+    if (garmentDetails.fabric) {
+      requirements.push(`- Fabric: ${garmentDetails.fabric}`);
+    } else if (stylePrefs.materials.length > 0) {
+      requirements.push(`- Fabric suggestion: ${stylePrefs.materials.join(', ')}`);
+    }
+
+    if (garmentDetails.length) {
+      requirements.push(`- Length: ${garmentDetails.length}`);
+    }
+
+    if (garmentDetails.fit) {
+      requirements.push(`- Fit: ${garmentDetails.fit}`);
+    } else if (stylePrefs.fits.length > 0) {
+      requirements.push(`- Fit preference: ${stylePrefs.fits.join(', ')}`);
+    }
+
+    if (genderGuidance) {
+      const genderType = userGender === 'female' ? "Women's clothing" : "Men's clothing";
+      requirements.push(`- Gender: ${genderType}`);
+    }
+
+    // Build exclusions
+    const exclusions: string[] = [];
+    if (userGender === 'female') {
+      exclusions.push("men's suits, ties, dress shirts, masculine formal wear");
+    } else if (userGender === 'male') {
+      exclusions.push("dresses, skirts, women's blouses, feminine clothing");
+    }
+    if (stylePrefs.boundaries.length > 0) {
+      exclusions.push(stylePrefs.boundaries.join(', '));
+    }
+
+    // NEW CLEAN PROMPT STRUCTURE
+    return `Generate a realistic, high-quality ${garmentDetails.garmentType} for ${occasion.occasion}.
+
+REQUIREMENTS:
+${requirements.join('\n')}
+
+MUST BE:
+- Real clothing (NO costumes, NO fantasy wear, NO theatrical clothing)
+- Professionally photographed quality
+- Clean white background
+- Single complete outfit
+- Wearable, modern fashion
+
+STYLE MODIFIER (${personality.name}):
+${personality.promptModifier}
+${exclusions.length > 0 ? `\nEXCLUDE: ${exclusions.join(', ')}` : ''}
+
+${weatherContext ? `Weather context: ${weatherContext}` : ''}
+
+Formality: ${occasion.formality} attire`;
   };
 
   const createCleanSearchPrompt = (): string => {
@@ -386,13 +510,20 @@ NO explanations, just keywords.`
     return reasons;
   };
 
-  // Generate unique seed for each personality to force variation
+  // Generate unique seed for each personality using fixed ranges
   const generatePersonalitySeed = (personalityId: string): number => {
-    // Hash personality ID to create unique but consistent seed
-    const baseTime = Math.floor(Date.now() / 1000); // Changes per second
-    const hash = personalityId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    // Multiply hash by 10000 instead of 100 for much greater variance between personalities
-    return (baseTime * 1000) + (hash * 10000) + Math.floor(Math.random() * 1000); // Strong variation
+    // Fixed seed ranges for each personality to ensure distinct outputs
+    const seedRanges: { [key: string]: { min: number; max: number } } = {
+      'elegant': { min: 1000, max: 2000 },
+      'romantic': { min: 3000, max: 4000 },
+      'bold': { min: 5000, max: 6000 }
+    };
+
+    const range = seedRanges[personalityId] || { min: 1000, max: 2000 }; // Default to elegant range
+    const seed = range.min + Math.floor(Math.random() * (range.max - range.min));
+
+    console.log(`🎲 [SEED] ${personalityId} seed: ${seed} (range ${range.min}-${range.max})`);
+    return seed;
   };
 
   const generateTripleOutfits = async () => {
@@ -413,7 +544,7 @@ NO explanations, just keywords.`
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: 'multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, identical clothing, same style, repetitive, copy, clone, similar outfits',
+            negative_prompt: 'multiple outfits, 2 dresses, duplicate outfits, identical clothing, side by side, outfit comparison, variations, multiple options, costume, fantasy wear, theatrical clothing, halloween costume, cosplay, cape, wings, armor, princess dress, character outfit, stage costume',
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
