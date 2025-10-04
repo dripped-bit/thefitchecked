@@ -212,7 +212,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
 
 ${genderPrefix}FOR OCCASION: ${userRequest}. ${styleGuidance}
 
-SINGLE OUTFIT ONLY: 1 dress OR 1 top+bottom overlapped together, flat-lay style, clean white background, professional product photography, no person, no model.`;
+Generate ONE SINGLE complete outfit (either a dress, or a top and bottom worn together). Show this as one unified clothing item or outfit combination. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
   };
 
   const createCleanSearchPrompt = (): string => {
@@ -408,6 +408,7 @@ NO explanations, just keywords.`
           },
           body: JSON.stringify({
             prompt,
+            negative_prompt: 'multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits',
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
