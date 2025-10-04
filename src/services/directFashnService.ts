@@ -432,6 +432,13 @@ class DirectFashnService {
     const outputFormat = getOutputFormatAuto(context);
     console.log(`📷 [FORMAT-SELECT] Using ${outputFormat.toUpperCase()} for context: ${context}`);
 
+    // Step 6: Detect garment photo type (flat-lay product vs model-worn)
+    const photoType = this.detectGarmentPhotoType(
+      garmentImageUrl,
+      options.source,
+      options.photoType
+    );
+
     const payload: FashnTryOnRequest = {
       model_name: this.modelVersion,
       inputs: {
@@ -440,7 +447,7 @@ class DirectFashnService {
         category: garmentAnalysis.type,
         segmentation_free: garmentAnalysis.recommendedSegmentationFree, // Adaptive segmentation based on garment type
         moderation_level: 'none',  // No content moderation
-        garment_photo_type: 'auto',      // Auto-detect garment photo type
+        garment_photo_type: photoType, // Intelligent detection: flat-lay for products, model for inspiration
         mode: garmentAnalysis.recommendedMode, // Use analyzed mode based on garment complexity
         num_samples: validatedSamples,   // Generate multiple samples for best quality selection
         seed: seed,
@@ -831,13 +838,17 @@ class DirectFashnService {
       timeout?: number;
       garmentDescription?: string; // Description of garment for intelligent segmentation
       garmentType?: string; // Type of garment (e.g., "jacket", "dress", "bodycon")
+      source?: string; // Source of garment (e.g., "external-search", "user_upload", "library", "closet")
+      photoType?: 'flat-lay' | 'model' | 'auto'; // Hint about photo type
     } = {}
   ) {
     const context = options.context || 'try_on'; // Default to 'try_on' context
     console.log('🎯 [NATIVE-FASHN] Starting FASHN try-on with timeout and fallback...', {
       context,
       hasGarmentDescription: !!options.garmentDescription,
-      garmentType: options.garmentType || 'auto'
+      garmentType: options.garmentType || 'auto',
+      source: options.source || 'unknown',
+      photoType: options.photoType || 'auto'
     });
 
     // Single request queue - prevent multiple simultaneous FASHN requests
@@ -1405,6 +1416,100 @@ class DirectFashnService {
     // Default: Use segmentation for clean replacement
     console.log('❓ [SEGMENTATION] Unknown garment type → defaulting to segmentation_free: false');
     return false;
+  }
+
+  /**
+   * Detect garment photo type from URL patterns and source metadata
+   * Helps FASHN optimize processing for flat-lay vs model-worn photos
+   */
+  private detectGarmentPhotoType(
+    garmentImageUrl: string,
+    source?: string,
+    providedPhotoType?: 'flat-lay' | 'model' | 'auto'
+  ): 'flat-lay' | 'model' | 'auto' {
+    // If explicitly provided, use it
+    if (providedPhotoType && providedPhotoType !== 'auto') {
+      console.log(`📸 [PHOTO-TYPE] Using provided type: ${providedPhotoType}`);
+      return providedPhotoType;
+    }
+
+    const url = garmentImageUrl.toLowerCase();
+
+    // E-commerce and product photo patterns → flat-lay
+    const flatLayPatterns = [
+      'amazon.com', 'amzn', 'a.co',
+      'zara.com', 'hm.com', 'gap.com',
+      'nordstrom', 'macys', 'target.com',
+      'shein', 'fashionnova', 'asos',
+      'shopify', 'woocommerce',
+      '/product/', '/item/', '/products/',
+      'ghost-mannequin', 'flat-lay', 'flatlay',
+      'product-image', 'catalog'
+    ];
+
+    // Social media and style inspiration patterns → model
+    const modelPatterns = [
+      'instagram.com', 'insta', 'cdninstagram',
+      'pinterest.com', 'pinimg',
+      'tumblr', 'blogspot',
+      'street-style', 'streetstyle',
+      'lookbook', 'ootd', 'outfit',
+      'worn', 'styled', 'model-',
+      'influencer'
+    ];
+
+    // Check URL patterns
+    if (flatLayPatterns.some(pattern => url.includes(pattern))) {
+      console.log('📸 [PHOTO-TYPE] Detected flat-lay from URL pattern');
+      return 'flat-lay';
+    }
+
+    if (modelPatterns.some(pattern => url.includes(pattern))) {
+      console.log('📸 [PHOTO-TYPE] Detected model photo from URL pattern');
+      return 'model';
+    }
+
+    // Check source metadata
+    if (source) {
+      const sourceLower = source.toLowerCase();
+
+      // E-commerce sources
+      if (sourceLower.includes('external-search') ||
+          sourceLower.includes('shopping') ||
+          sourceLower.includes('perplexity') ||
+          sourceLower.includes('product')) {
+        console.log('📸 [PHOTO-TYPE] E-commerce source → flat-lay');
+        return 'flat-lay';
+      }
+
+      // User closet items (usually photographed flat)
+      if (sourceLower.includes('closet') ||
+          sourceLower.includes('user_upload') ||
+          sourceLower.includes('wardrobe')) {
+        console.log('📸 [PHOTO-TYPE] User closet → flat-lay');
+        return 'flat-lay';
+      }
+
+      // Generated clothing (AI-generated, usually flat product style)
+      if (sourceLower.includes('seedream') ||
+          sourceLower.includes('generated') ||
+          sourceLower.includes('ai-outfit')) {
+        console.log('📸 [PHOTO-TYPE] AI-generated clothing → flat-lay');
+        return 'flat-lay';
+      }
+
+      // Inspiration sources
+      if (sourceLower.includes('inspiration') ||
+          sourceLower.includes('pinterest') ||
+          sourceLower.includes('instagram')) {
+        console.log('📸 [PHOTO-TYPE] Inspiration source → model');
+        return 'model';
+      }
+    }
+
+    // Default to auto-detection
+    console.log('📸 [PHOTO-TYPE] Unable to determine → using auto');
+    return 'auto';
   }
 
   /**
