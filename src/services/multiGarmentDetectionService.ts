@@ -45,7 +45,7 @@ class MultiGarmentDetectionService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-3-5-sonnet-20240620',
           max_tokens: 500,
           messages: [
             {
