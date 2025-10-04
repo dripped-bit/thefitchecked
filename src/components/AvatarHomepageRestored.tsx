@@ -728,7 +728,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
       <div className="min-h-screen relative overflow-hidden">
       {/* Background Image */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
         style={{ backgroundImage: "url('/avatarhomepage.png')" }}
       />
 
