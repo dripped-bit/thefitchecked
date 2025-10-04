@@ -1220,52 +1220,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
               </div>
             </div>
 
-            {/* Shopping Links */}
-            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-200">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">Shopping Links</h3>
-              <div className="space-y-3">
-                <a
-                  href="https://tapto.shop/dripped"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
-                      'https://tapto.shop/dripped',
-                      'dripped'
-                    );
-                    affiliateLinkService.trackClick(affiliateUrl);
-                    window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
-                  }}
-                >
-                  <ShoppingBag className="w-5 h-5 text-green-600" />
-                  <span className="font-medium text-slate-800">Dripped Shop</span>
-                  <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
-                </a>
-                <a
-                  href="https://www.rakuten.com/r/DRIPPE62?eeid=28187"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const affiliateUrl = 'https://www.rakuten.com/r/DRIPPE62?eeid=28187';
-                    affiliateLinkService.trackClick(affiliateUrl, undefined, {
-                      title: 'Rakuten Coupons',
-                      store: 'rakuten',
-                      url: affiliateUrl
-                    });
-                    window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
-                  }}
-                >
-                  <Tag className="w-5 h-5 text-orange-600" />
-                  <span className="font-medium text-slate-800">Coupons</span>
-                  <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
-                </a>
-              </div>
-            </div>
-
           </div>
         </div>
       </main>
