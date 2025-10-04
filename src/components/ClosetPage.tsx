@@ -57,8 +57,7 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
     icon: React.ReactNode;
     color: string;
   }> = [
-    { key: 'shirts', label: 'Shirts', icon: <Shirt className="w-4 h-4" />, color: 'blue' },
-    { key: 'tops', label: 'Tops', icon: <Package className="w-4 h-4" />, color: 'purple' },
+    { key: 'tops', label: 'Tops/Shirts', icon: <Shirt className="w-4 h-4" />, color: 'purple' },
     { key: 'pants', label: 'Pants', icon: <Package className="w-4 h-4" />, color: 'green' },
     { key: 'dresses', label: 'Dresses', icon: <Sparkles className="w-4 h-4" />, color: 'pink' },
     { key: 'skirts', label: 'Skirts', icon: <Zap className="w-4 h-4" />, color: 'yellow' },
@@ -127,13 +126,19 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
   }, []);
 
   const getCategoryItems = (category: ClothingCategory): ClothingItem[] => {
+    // Merge 'shirts' and 'tops' into one display category for backward compatibility
     let items = closet[category] || [];
+    if (category === 'tops') {
+      // Combine both 'tops' and 'shirts' arrays
+      items = [...(closet['tops'] || []), ...(closet['shirts'] || [])];
+    }
 
     console.log(`🔍 [CLOSET] Getting items for category "${category}":`, {
       totalInCategory: items.length,
       showFavoritesOnly,
       searchQuery,
-      categoryExists: !!closet[category]
+      categoryExists: !!closet[category],
+      combinedCategories: category === 'tops' ? ['tops', 'shirts'] : [category]
     });
 
     if (showFavoritesOnly) {
@@ -501,7 +506,11 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
             <div className="mb-8">
               <div className="flex flex-wrap gap-2">
                 {categories.map(category => {
-                  const count = closet[category.key]?.length || 0;
+                  // Calculate count - combine 'tops' and 'shirts' for display
+                  let count = closet[category.key]?.length || 0;
+                  if (category.key === 'tops') {
+                    count = (closet['tops']?.length || 0) + (closet['shirts']?.length || 0);
+                  }
                   const isActive = activeCategory === category.key;
 
                   return (
