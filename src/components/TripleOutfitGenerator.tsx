@@ -127,8 +127,8 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     // Combine user's typed input with selected occasion category
     // If user typed custom details, prioritize those alongside the occasion
     const hasCustomInput = occasion.originalInput &&
-                          occasion.originalInput.trim() !== occasion.occasion.trim() &&
-                          occasion.originalInput.length > occasion.occasion.length;
+                          occasion.originalInput.trim().length > 0 &&
+                          occasion.originalInput.trim().toLowerCase() !== occasion.occasion.trim().toLowerCase();
 
     const basePrompt = hasCustomInput
       ? `${occasion.originalInput} (for ${occasion.occasion})`
@@ -138,7 +138,8 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       originalInput: occasion.originalInput,
       occasion: occasion.occasion,
       hasCustomInput,
-      basePrompt
+      basePrompt,
+      usingCustomInput: hasCustomInput ? 'YES - User typed custom details' : 'NO - Using occasion only'
     });
 
     const weatherContext = occasion.weather
@@ -224,7 +225,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     const genderPrefix = genderGuidance ? `${genderGuidance}. ` : '';
     const budgetSuffix = budgetGuidance || '';
 
-    return `${genderPrefix}PRIMARY: ${userRequest}${budgetSuffix}. ${styleGuidance}${personality.promptModifier}, single clothing piece only, one garment, no person, no model, no mannequin, isolated single garment, product photography, fashion flat lay, clean white background, centered composition, professional product photography, detailed fabric texture, well-lit, crisp details, single item display, fashion catalog style, FASHN-ready single garment image, virtual try-on optimized. IMPORTANT: If PRIMARY request specifies a color, that color MUST be used.`;
+    return `${genderPrefix}COMPLETE OUTFIT: ${userRequest}${budgetSuffix}. ${styleGuidance}${personality.promptModifier}. Generate a full coordinated outfit ensemble with all garment pieces together as one complete look (if dress: show complete dress; if separates: show top AND bottom/skirt together). Product photography style, clean white background, centered composition, professional fashion photography, detailed fabric texture, well-lit, crisp details, complete outfit display, fashion catalog style, FASHN-ready complete outfit image, virtual try-on optimized, no person, no model, no mannequin, just the complete clothing ensemble. IMPORTANT: If PRIMARY request specifies a color, that color MUST be used. Show ALL pieces of the outfit together as ONE coordinated ensemble.`;
   };
 
   const createCleanSearchPrompt = (): string => {
