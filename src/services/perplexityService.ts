@@ -544,6 +544,17 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
       const searchResults = await this.searchWeb(query, maxResults);
       const products = this.parseProductResults(searchResults);
 
+      // Calculate relevance scores for each product
+      console.log('📊 [RELEVANCE] Scoring product matches...');
+      products.forEach(product => {
+        const relevanceScore = this.calculateRelevanceScore(clothingDescription, product.title);
+        console.log(`${relevanceScore >= 50 ? '✅' : '⚠️'} [RELEVANCE] ${relevanceScore}% match: "${product.title.substring(0, 50)}..."`);
+
+        if (relevanceScore < 30) {
+          console.warn(`⚠️ [LOW-MATCH] Product may not match outfit: ${product.title} (${relevanceScore}%)`);
+        }
+      });
+
       // MANDATORY: Use direct store links if no products found
       if (products.length === 0) {
         console.log('⚠️ [PERPLEXITY] No products found, using direct store fallback...');
@@ -665,6 +676,59 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
   }
 
   /**
+   * Calculate relevance score between search query and product title
+   * Returns score from 0-100 based on keyword matches
+   */
+  private calculateRelevanceScore(searchQuery: string, productTitle: string): number {
+    const queryWords = searchQuery.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const titleWords = productTitle.toLowerCase().split(/\s+/);
+
+    let matches = 0;
+    let exactMatches = 0;
+
+    queryWords.forEach(queryWord => {
+      // Check for exact match
+      if (titleWords.includes(queryWord)) {
+        exactMatches++;
+        matches++;
+      }
+      // Check for partial match (word contains query word)
+      else if (titleWords.some(titleWord => titleWord.includes(queryWord) || queryWord.includes(titleWord))) {
+        matches += 0.5;
+      }
+    });
+
+    // Calculate score (exact matches worth more)
+    const score = Math.min(100, ((exactMatches * 20) + (matches * 10)));
+
+    return Math.round(score);
+  }
+
+  /**
+   * Generate placeholder image for product based on search query
+   */
+  private generatePlaceholderImage(productTitle: string, storeName: string): string {
+    // Extract key fashion terms from title for better image matching
+    const fashionTerms = productTitle.toLowerCase();
+
+    // Determine image category based on product type
+    let category = 'fashion';
+    if (fashionTerms.includes('dress')) category = 'dress';
+    else if (fashionTerms.includes('top') || fashionTerms.includes('shirt') || fashionTerms.includes('blouse')) category = 'shirt';
+    else if (fashionTerms.includes('pants') || fashionTerms.includes('jeans') || fashionTerms.includes('trousers')) category = 'pants';
+    else if (fashionTerms.includes('skirt')) category = 'skirt';
+    else if (fashionTerms.includes('jacket') || fashionTerms.includes('coat')) category = 'jacket';
+    else if (fashionTerms.includes('shoes') || fashionTerms.includes('heels') || fashionTerms.includes('boots')) category = 'shoes';
+
+    // Generate a consistent hash from title for consistent images per product
+    const hash = productTitle.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const imageId = 1515372039744 + (hash % 1000000); // Base Unsplash photo ID + variation
+
+    // Return Unsplash fashion image with proper sizing
+    return `https://images.unsplash.com/photo-${imageId}?w=400&h=500&fit=crop&auto=format&q=80`;
+  }
+
+  /**
    * Parse Perplexity search results to extract product information
    */
   private parseProductResults(results: PerplexitySearchResult[]): ProductSearchResult[] {
@@ -674,14 +738,18 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
     console.log(`✅ [FILTER] Product page validation: ${validResults.length}/${results.length} valid products`);
 
     return validResults.map((result, index) => {
+      const storeName = this.extractStoreName(result.url);
+
       const product: ProductSearchResult = {
         id: `product_${Date.now()}_${index}`,
         title: result.title,
         url: result.url,
-        store: this.extractStoreName(result.url),
+        store: storeName,
         price: this.extractPrice(result.snippet, result.title),
         inStock: this.checkStockStatus(result.snippet, result.title),
-        rating: this.extractRating(result.snippet)
+        rating: this.extractRating(result.snippet),
+        // Generate placeholder image since Perplexity doesn't provide product images
+        imageUrl: this.generatePlaceholderImage(result.title, storeName)
       };
 
       // Extract additional product details
@@ -690,6 +758,8 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
         product.originalPrice = originalPrice;
         product.discount = this.calculateDiscount(originalPrice, product.price);
       }
+
+      console.log(`🖼️ [IMAGE] Generated placeholder for "${result.title.substring(0, 40)}...": ${product.imageUrl}`);
 
       return product;
     });

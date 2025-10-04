@@ -292,20 +292,9 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
             avatarData={avatarData}
             onOutfitSelected={handleOutfitSelected}
             onOutfitApplied={handleOutfitApplied}
+            onShopThisLook={() => setShowBudgetModal(true)}
+            hasTriedOn={hasTriedOn}
           />
-
-          {/* Shop This Look - Only show AFTER try-on */}
-          {selectedOutfit && hasTriedOn && (
-            <div className="text-center">
-              <button
-                onClick={() => setShowBudgetModal(true)}
-                className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-medium hover:from-green-700 hover:to-blue-700 transition-colors shadow-lg"
-              >
-                <ShoppingBag className="w-5 h-5" />
-                <span>Shop This Look</span>
-              </button>
-            </div>
-          )}
         </div>
       )}
 

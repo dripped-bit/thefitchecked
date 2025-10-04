@@ -49,6 +49,8 @@ interface TripleOutfitGeneratorProps {
   avatarData?: any;
   onOutfitSelected: (outfit: GeneratedOutfit) => void;
   onOutfitApplied: (outfit: GeneratedOutfit, avatarUrl: string) => void;
+  onShopThisLook?: () => void;
+  hasTriedOn?: boolean;
   className?: string;
 }
 
@@ -57,6 +59,8 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   avatarData,
   onOutfitSelected,
   onOutfitApplied,
+  onShopThisLook,
+  hasTriedOn = false,
   className = ''
 }) => {
   const [outfits, setOutfits] = useState<GeneratedOutfit[]>([]);
@@ -739,6 +743,17 @@ NO explanations, just keywords.`
                     >
                       <Users className="w-4 h-4 inline mr-2" />
                       Try This On (Create Avatar First)
+                    </button>
+                  )}
+
+                  {/* Shop This Look - Only show on selected outfit AFTER try-on */}
+                  {outfit.isSelected && hasTriedOn && onShopThisLook && (
+                    <button
+                      onClick={onShopThisLook}
+                      className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 transition-colors shadow-lg flex items-center justify-center space-x-2"
+                    >
+                      <ShoppingBag className="w-5 h-5" />
+                      <span>Shop This Look</span>
                     </button>
                   )}
 
