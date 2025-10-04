@@ -124,7 +124,23 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   }, [occasion]);
 
   const createPersonalizedPrompt = async (personality: OutfitPersonality): Promise<string> => {
-    const basePrompt = occasion.occasion;
+    // Combine user's typed input with selected occasion category
+    // If user typed custom details, prioritize those alongside the occasion
+    const hasCustomInput = occasion.originalInput &&
+                          occasion.originalInput.trim() !== occasion.occasion.trim() &&
+                          occasion.originalInput.length > occasion.occasion.length;
+
+    const basePrompt = hasCustomInput
+      ? `${occasion.originalInput} (for ${occasion.occasion})`
+      : occasion.occasion;
+
+    console.log('📝 [PROMPT] Building prompt with:', {
+      originalInput: occasion.originalInput,
+      occasion: occasion.occasion,
+      hasCustomInput,
+      basePrompt
+    });
+
     const weatherContext = occasion.weather
       ? `${occasion.weather.temperature}°F ${occasion.weather.weatherDescription}`
       : '';
