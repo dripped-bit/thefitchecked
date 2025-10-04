@@ -26,6 +26,13 @@ import {
 } from 'lucide-react';
 import { weatherService, WeatherData } from '../services/weatherService';
 
+export interface BudgetRange {
+  label: string;
+  range: string;
+  min: number;
+  max: number;
+}
+
 export interface ParsedOccasion {
   originalInput: string;
   occasion: string;
@@ -36,6 +43,7 @@ export interface ParsedOccasion {
   weather?: WeatherData;
   confidence: number;
   tags: string[];
+  budgetRange?: BudgetRange;
 }
 
 export interface SmartSuggestion {
@@ -53,6 +61,7 @@ export interface SmartSuggestion {
   };
   formality: 'casual' | 'semi-formal' | 'formal' | 'black-tie';
   color: string;
+  budgetRange?: BudgetRange;
 }
 
 interface SmartOccasionInputProps {

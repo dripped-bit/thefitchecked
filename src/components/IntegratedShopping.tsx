@@ -51,6 +51,28 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   const [selectedBudget, setSelectedBudget] = useState<'all' | 'budget' | 'mid' | 'luxury' | null>(null);
   const [savedToCalendar, setSavedToCalendar] = useState(false);
 
+  // Auto-set budget filter based on occasion's budgetRange
+  useEffect(() => {
+    if (occasion.budgetRange) {
+      console.log('💰 [BUDGET] Auto-setting budget filter from occasion:', occasion.budgetRange);
+
+      // Map occasion budgetRange to IntegratedShopping budget categories
+      // Occasion: Budget ($50-100), Mid-Range ($100-250), Premium ($250+)
+      // IntegratedShopping: budget (< $70), mid ($70-150), luxury (> $150)
+      const budgetMap: Record<string, 'budget' | 'mid' | 'luxury'> = {
+        'Budget': 'budget',      // $50-100 → budget (< $70)
+        'Mid-Range': 'mid',      // $100-250 → mid ($70-150)
+        'Premium': 'luxury'      // $250+ → luxury (> $150)
+      };
+
+      const mappedBudget = budgetMap[occasion.budgetRange.label];
+      if (mappedBudget) {
+        setSelectedBudget(mappedBudget);
+        console.log(`✅ [BUDGET] Budget filter set to: ${mappedBudget} (from ${occasion.budgetRange.label})`);
+      }
+    }
+  }, [occasion.budgetRange]);
+
   useEffect(() => {
     if (selectedOutfit) {
       searchContextualProducts();
@@ -395,9 +417,16 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
         </div>
 
         {/* Budget Filter */}
-        <div className="flex items-center space-x-4">
-          <Filter className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700">Filter by budget:</span>
+        <div className="space-y-2">
+          <div className="flex items-center space-x-4">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Filter by budget:</span>
+            {occasion.budgetRange && (
+              <span className="text-xs text-purple-600 font-medium bg-purple-50 px-2 py-1 rounded-full">
+                ✓ Auto-selected: {occasion.budgetRange.range}
+              </span>
+            )}
+          </div>
           <div className="flex space-x-2">
             {[
               { id: 'all', label: 'All', range: '' },

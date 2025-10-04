@@ -74,7 +74,8 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
         timestamp: new Date().toISOString()
       } : undefined,
       confidence: 0.9,
-      tags: [suggestion.formality]
+      tags: [suggestion.formality],
+      budgetRange: suggestion.budgetRange  // Pass through budget selection
     };
 
     setParsedOccasion(occasion);
