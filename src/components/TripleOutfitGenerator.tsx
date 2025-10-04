@@ -146,12 +146,6 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       usingCustomInput: hasCustomInput ? 'YES - User typed custom details' : 'NO - Using occasion only'
     });
 
-    const weatherContext = occasion.weather
-      ? `${occasion.weather.temperature}°F ${occasion.weather.weatherDescription}`
-      : '';
-    const timeContext = occasion.time ? `for ${occasion.time}` : '';
-    const locationContext = occasion.location ? `in ${occasion.location}` : '';
-
     // Get user's gender from profile
     const userData = userDataService.getAllUserData();
     const userGender = userData?.profile?.gender;
@@ -208,7 +202,8 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     }
 
     // Structure: GENDER FIRST (highest priority), then user request, style guidance
-    const userRequest = `${basePrompt} ${timeContext} ${locationContext}, ${weatherContext}, ${occasion.formality} attire`;
+    // NOTE: Removed time/location/weather to prevent text appearing in generated images
+    const userRequest = `${basePrompt}, ${occasion.formality} attire`;
 
     // Build final prompt with gender as highest priority
     const genderPrefix = genderGuidance ? `${genderGuidance}. ` : '';
