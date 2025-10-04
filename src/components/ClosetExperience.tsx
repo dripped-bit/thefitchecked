@@ -1147,14 +1147,6 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
             <h3 className="font-semibold text-gray-800 mb-3">Quick Actions</h3>
             <div className="space-y-2">
               <button
-                onClick={() => setCurrentView('outfit-creator')}
-                className="w-full flex items-center space-x-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-2 px-4 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all"
-              >
-                <Palette className="w-4 h-4" />
-                <span>Outfit Creator</span>
-              </button>
-
-              <button
                 onClick={generateOutfitOfTheDay}
                 className="w-full flex items-center space-x-2 bg-gradient-to-r from-orange-500 to-yellow-600 text-white py-2 px-4 rounded-lg hover:from-orange-600 hover:to-yellow-700 transition-all"
               >
