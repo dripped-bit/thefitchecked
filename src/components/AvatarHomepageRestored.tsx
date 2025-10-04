@@ -1162,7 +1162,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                       console.log('Navigate to closet - door transition not available');
                     }
                   }}
-                  className="w-full flex items-center justify-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+                  className="w-full flex items-center justify-center space-x-2 bg-sky-300/30 text-black px-4 py-3 rounded-xl text-sm font-medium italic transition-colors hover:bg-sky-400/40"
                 >
                   <span>👗</span>
                   <span>My Closet</span>
@@ -1170,7 +1170,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
                 <button
                   onClick={() => setActiveView('wishlist')}
-                  className="w-full flex items-center justify-center space-x-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 shadow-lg relative"
+                  className="w-full flex items-center justify-center space-x-2 bg-sky-300/30 text-black px-4 py-3 rounded-xl text-sm font-medium italic transition-colors hover:bg-sky-400/40 relative"
                 >
                   <ShoppingCart className="w-4 h-4" />
                   <span>Wishlist</span>
@@ -1183,7 +1183,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
                 <button
                   onClick={() => setShowShareModal(true)}
-                  className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+                  className="w-full flex items-center justify-center space-x-2 bg-sky-300/30 text-black px-4 py-3 rounded-xl text-sm font-medium italic transition-colors hover:bg-sky-400/40"
                 >
                   <Share2 className="w-4 h-4" />
                   <span>Share Outfit</span>
