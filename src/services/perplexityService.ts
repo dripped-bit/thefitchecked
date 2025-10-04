@@ -257,6 +257,70 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
   }
 
   /**
+   * Extract product title from URL and snippet
+   */
+  private extractProductTitle(url: string, snippet: string, fallbackIndex: number): string {
+    // Try to extract from URL path
+    try {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+
+      // Extract product name from common URL patterns
+      // Examples:
+      // /products/black-dress → Black Dress
+      // /p/womens-jeans-blue → Womens Jeans Blue
+      // /black-dress-p-12345.html → Black Dress
+
+      const patterns = [
+        /\/products?\/([^/]+)/,  // /products/name or /product/name
+        /\/p\/([^/]+)/,           // /p/name
+        /\/([^/]+)-p-\d+/,        // /name-p-12345
+        /\/([^/]+)\.html/,        // /name.html
+        /\/([^/]+)$/              // /name at end
+      ];
+
+      for (const pattern of patterns) {
+        const match = pathname.match(pattern);
+        if (match && match[1]) {
+          // Convert URL slug to readable title
+          // black-dress-midi → Black Dress Midi
+          const title = match[1]
+            .replace(/-/g, ' ')
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+
+          if (title.length > 3) {
+            return title;
+          }
+        }
+      }
+    } catch (error) {
+      // URL parsing failed, continue to snippet
+    }
+
+    // Try to extract from snippet (first meaningful sentence)
+    if (snippet && snippet.length > 10) {
+      // Get first sentence or first 60 characters
+      const firstSentence = snippet.split(/[.!?]/)[0];
+      if (firstSentence.length > 10 && firstSentence.length < 100) {
+        return firstSentence.trim();
+      }
+
+      // If sentence too long, take first 60 chars
+      if (snippet.length > 60) {
+        return snippet.substring(0, 60).trim() + '...';
+      }
+
+      return snippet.trim();
+    }
+
+    // Last resort fallback
+    return `Product ${fallbackIndex + 1}`;
+  }
+
+  /**
    * Extract search results from Perplexity chat completion response
    */
   private extractSearchResults(data: any): PerplexitySearchResult[] {
@@ -266,10 +330,13 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
     if (data.citations && Array.isArray(data.citations)) {
       data.citations.forEach((citation: any, index: number) => {
         if (citation.url && citation.url.trim()) {
+          const snippet = citation.snippet || citation.text || '';
+          const title = citation.title || this.extractProductTitle(citation.url, snippet, index);
+
           results.push({
-            title: citation.title || `Product ${index + 1}`,
+            title: title,
             url: citation.url,
-            snippet: citation.snippet || citation.text || '',
+            snippet: snippet,
             date: citation.date
           });
         }
@@ -284,8 +351,10 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
     urls.forEach((url: string, index: number) => {
       // Avoid duplicates
       if (!results.some(r => r.url === url)) {
+        const title = this.extractProductTitle(url, '', results.length);
+
         results.push({
-          title: `Product ${results.length + 1}`,
+          title: title,
           url: url,
           snippet: '',
         });
