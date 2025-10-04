@@ -161,21 +161,6 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       genderGuidance = "men's clothing, men's fashion, masculine style, for men. EXCLUDE: dresses, skirts, women's blouses, feminine clothing";
     }
 
-    // Get budget range guidance if available
-    let budgetGuidance = '';
-    if (occasion.budgetRange) {
-      const budget = occasion.budgetRange;
-      console.log('💰 [BUDGET] Budget range:', budget.label, budget.range);
-
-      if (budget.label === 'High Budget') {
-        budgetGuidance = ', high-end designer, luxury brands, premium quality, upscale fashion';
-      } else if (budget.label === 'Medium Budget') {
-        budgetGuidance = ', mid-range quality, contemporary brands, good value';
-      } else if (budget.label === 'Low Budget') {
-        budgetGuidance = ', affordable, budget-friendly, accessible price point';
-      }
-    }
-
     // Check if user explicitly specified a color in their request
     const colorKeywords = ['pink', 'red', 'blue', 'green', 'black', 'white', 'yellow', 'purple', 'brown', 'orange', 'beige', 'navy', 'grey', 'gray', 'cream', 'tan', 'burgundy', 'teal', 'lavender', 'coral', 'emerald', 'olive'];
     const hasExplicitColor = colorKeywords.some(color =>
@@ -218,14 +203,13 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       }
     }
 
-    // Structure: GENDER FIRST (highest priority), then user request, budget, style guidance
+    // Structure: GENDER FIRST (highest priority), then user request, style guidance
     const userRequest = `${basePrompt} ${timeContext} ${locationContext}, ${weatherContext}, ${occasion.formality} attire`;
 
     // Build final prompt with gender as highest priority
     const genderPrefix = genderGuidance ? `${genderGuidance}. ` : '';
-    const budgetSuffix = budgetGuidance || '';
 
-    return `${genderPrefix}COMPLETE OUTFIT: ${userRequest}${budgetSuffix}. ${styleGuidance}${personality.promptModifier}. Generate a full coordinated outfit ensemble with all garment pieces together as one complete look (if dress: show complete dress; if separates: show top AND bottom/skirt together). Product photography style, clean white background, centered composition, professional fashion photography, detailed fabric texture, well-lit, crisp details, complete outfit display, fashion catalog style, FASHN-ready complete outfit image, virtual try-on optimized, no person, no model, no mannequin, just the complete clothing ensemble. IMPORTANT: If PRIMARY request specifies a color, that color MUST be used. Show ALL pieces of the outfit together as ONE coordinated ensemble.`;
+    return `${genderPrefix}COMPLETE OUTFIT: ${userRequest}. ${styleGuidance}${personality.promptModifier}. Generate a full coordinated outfit ensemble with all garment pieces together as one complete look (if dress: show complete dress; if separates: show top AND bottom/skirt together). Product photography style, clean white background, centered composition, professional fashion photography, detailed fabric texture, well-lit, crisp details, complete outfit display, fashion catalog style, FASHN-ready complete outfit image, virtual try-on optimized, no person, no model, no mannequin, just the complete clothing ensemble. IMPORTANT: If PRIMARY request specifies a color, that color MUST be used. Show ALL pieces of the outfit together as ONE coordinated ensemble.`;
   };
 
   const createCleanSearchPrompt = (): string => {

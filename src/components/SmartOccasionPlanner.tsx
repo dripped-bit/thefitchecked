@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ShoppingBag } from 'lucide-react';
-import SmartOccasionInput, { ParsedOccasion, SmartSuggestion } from './SmartOccasionInput';
+import { ShoppingBag, ChevronRight } from 'lucide-react';
+import SmartOccasionInput, { ParsedOccasion, SmartSuggestion, BudgetRange } from './SmartOccasionInput';
 import TripleOutfitGenerator, { GeneratedOutfit } from './TripleOutfitGenerator';
 import IntegratedShopping from './IntegratedShopping';
 import ExternalTryOnModal from './ExternalTryOnModal';
@@ -36,6 +36,10 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
 
   // Save to calendar modal state
   const [showSaveToCalendarModal, setShowSaveToCalendarModal] = useState(false);
+
+  // Budget selection modal state
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState<BudgetRange | null>(null);
 
   const handleOccasionParsed = (occasion: ParsedOccasion) => {
     setParsedOccasion(occasion);
@@ -74,8 +78,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
         timestamp: new Date().toISOString()
       } : undefined,
       confidence: 0.9,
-      tags: [suggestion.formality],
-      budgetRange: suggestion.budgetRange  // Pass through budget selection
+      tags: [suggestion.formality]
     };
 
     setParsedOccasion(occasion);
@@ -137,6 +140,12 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
   const handleSaveToCalendar = () => {
     // Open the save to calendar modal
     setShowSaveToCalendarModal(true);
+  };
+
+  const handleBudgetSelect = (budget: BudgetRange) => {
+    setSelectedBudget(budget);
+    setShowBudgetModal(false);
+    setCurrentState('shopping');
   };
 
   const handleCalendarSaveComplete = (data: CalendarSaveData) => {
@@ -277,11 +286,11 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
           {selectedOutfit && hasTriedOn && (
             <div className="text-center">
               <button
-                onClick={() => setCurrentState('shopping')}
+                onClick={() => setShowBudgetModal(true)}
                 className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-medium hover:from-green-700 hover:to-blue-700 transition-colors shadow-lg"
               >
                 <ShoppingBag className="w-5 h-5" />
-                <span>Shop This Look ({selectedOutfit.priceRange})</span>
+                <span>Shop This Look</span>
               </button>
             </div>
           )}
@@ -318,6 +327,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
           <IntegratedShopping
             selectedOutfit={selectedOutfit}
             occasion={parsedOccasion}
+            budget={selectedBudget}
             onTryOnProduct={handleTryOnProduct}
             onSaveToCalendar={handleSaveToCalendar}
             avatarData={avatarData}
@@ -347,6 +357,56 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
           outfitImageUrl={selectedOutfit?.imageUrl || ''}
           outfitName={selectedOutfit ? `${selectedOutfit.personality.name} outfit` : ''}
         />
+      )}
+
+      {/* Budget Selection Modal */}
+      {showBudgetModal && selectedOutfit && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="inline-flex w-16 h-16 bg-gradient-to-r from-green-600 to-blue-600 rounded-full items-center justify-center text-white mb-4">
+                <ShoppingBag className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Choose Your Budget</h3>
+              <p className="text-gray-600">
+                Select your budget range to find the best products for your {selectedOutfit.personality.name} outfit
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { label: 'Value', range: '$1-50', icon: '🏷️', min: 1, max: 50 },
+                { label: 'Budget', range: '$50-100', icon: '💰', min: 50, max: 100 },
+                { label: 'Mid-Range', range: '$100-250', icon: '💎', min: 100, max: 250 },
+                { label: 'Premium', range: '$250+', icon: '👑', min: 250, max: 1000 }
+              ].map((tier) => (
+                <button
+                  key={tier.label}
+                  onClick={() => handleBudgetSelect(tier)}
+                  className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 rounded-xl hover:border-green-400 hover:shadow-md transition-all duration-200 group"
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">{tier.icon}</span>
+                    <div className="text-left">
+                      <div className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                        {tier.label}
+                      </div>
+                      <div className="text-sm text-gray-600">{tier.range}</div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors" />
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowBudgetModal(false)}
+              className="w-full mt-4 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

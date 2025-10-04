@@ -43,7 +43,6 @@ export interface ParsedOccasion {
   weather?: WeatherData;
   confidence: number;
   tags: string[];
-  budgetRange?: BudgetRange;
 }
 
 export interface SmartSuggestion {
@@ -61,7 +60,6 @@ export interface SmartSuggestion {
   };
   formality: 'casual' | 'semi-formal' | 'formal' | 'black-tie';
   color: string;
-  budgetRange?: BudgetRange;
 }
 
 interface SmartOccasionInputProps {
@@ -81,8 +79,6 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
   const [parsedOccasion, setParsedOccasion] = useState<ParsedOccasion | null>(null);
   const [isReadyToGenerate, setIsReadyToGenerate] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [showBudgetOptions, setShowBudgetOptions] = useState(false);
-  const [selectedOccasion, setSelectedOccasion] = useState<any>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Generate smart suggestions based on upcoming events and common occasions
@@ -147,23 +143,14 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
     return occasions[category as keyof typeof occasions] || [];
   };
 
-  // Handle occasion card click - show budget options instead of immediate generation
+  // Handle occasion card click - trigger outfit generation immediately
   const handleOccasionClick = (occasion: any) => {
-    setSelectedOccasion(occasion);
-    setShowBudgetOptions(true);
-  };
-
-  // Handle budget selection - trigger outfit generation
-  const handleBudgetSelect = (budgetTier: { label: string; range: string; min: number; max: number }) => {
-    if (!selectedOccasion) return;
-
     // Create suggestion object for generation
     const suggestion = {
-      ...selectedOccasion,
+      ...occasion,
       date: 'This Weekend',
       time: '6:00 PM',
       location: 'TBD',
-      budgetRange: budgetTier,
       weather: {
         temp: 72,
         condition: 'Clear',
@@ -171,9 +158,8 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
       }
     };
 
-    // Trigger outfit generation with budget context
+    // Trigger outfit generation immediately without budget
     handleSuggestionClick(suggestion);
-    setShowBudgetOptions(false);
   };
 
   const generateSmartSuggestions = () => {
@@ -532,54 +518,6 @@ Examples:
                     </div>
                   </button>
                 ))}
-              </div>
-            </div>
-          )}
-
-          {/* Budget Selection Modal */}
-          {showBudgetOptions && selectedOccasion && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-                <div className="text-center mb-6">
-                  <div className={`inline-flex w-16 h-16 ${selectedOccasion.color} rounded-full items-center justify-center text-white mb-4`}>
-                    {selectedOccasion.icon}
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedOccasion.title}</h3>
-                  <p className="text-gray-600">Choose your budget range:</p>
-                </div>
-
-                <div className="space-y-3">
-                  {[
-                    { label: 'Value', range: '$1-50', icon: '🏷️', min: 1, max: 50 },
-                    { label: 'Budget', range: '$50-100', icon: '💰', min: 50, max: 100 },
-                    { label: 'Mid-Range', range: '$100-250', icon: '💎', min: 100, max: 250 },
-                    { label: 'Premium', range: '$250+', icon: '👑', min: 250, max: 1000 }
-                  ].map((tier) => (
-                    <button
-                      key={tier.label}
-                      onClick={() => handleBudgetSelect(tier)}
-                      className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-md transition-all duration-200 group"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl">{tier.icon}</span>
-                        <div className="text-left">
-                          <div className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
-                            {tier.label}
-                          </div>
-                          <div className="text-sm text-gray-600">{tier.range}</div>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setShowBudgetOptions(false)}
-                  className="w-full mt-4 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Cancel
-                </button>
               </div>
             </div>
           )}

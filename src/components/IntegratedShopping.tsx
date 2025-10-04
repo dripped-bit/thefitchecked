@@ -15,7 +15,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { GeneratedOutfit } from './TripleOutfitGenerator';
-import { ParsedOccasion } from './SmartOccasionInput';
+import { ParsedOccasion, BudgetRange } from './SmartOccasionInput';
 import optionalProductSearchService from '../services/optionalProductSearchService';
 import perplexityService, { ProductSearchResult } from '../services/perplexityService';
 import { buildPriorityStoreQuery, SEARCH_STRATEGY, getPriorityStoreDomains } from '../config/priorityStores';
@@ -24,6 +24,7 @@ import { affiliateLinkService } from '../services/affiliateLinkService';
 interface IntegratedShoppingProps {
   selectedOutfit: GeneratedOutfit;
   occasion: ParsedOccasion;
+  budget?: BudgetRange | null;
   onTryOnProduct?: (product: ProductSearchResult) => void;
   onSaveToCalendar?: () => void;
   avatarData?: any;
@@ -40,6 +41,7 @@ interface ShoppingSection {
 const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   selectedOutfit,
   occasion,
+  budget,
   onTryOnProduct,
   onSaveToCalendar,
   avatarData,
@@ -51,13 +53,13 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   const [selectedBudget, setSelectedBudget] = useState<'all' | 'value' | 'budget' | 'mid' | 'luxury' | null>(null);
   const [savedToCalendar, setSavedToCalendar] = useState(false);
 
-  // Auto-set budget filter based on occasion's budgetRange
+  // Auto-set budget filter based on budget prop
   useEffect(() => {
-    if (occasion.budgetRange) {
-      console.log('💰 [BUDGET] Auto-setting budget filter from occasion:', occasion.budgetRange);
+    if (budget) {
+      console.log('💰 [BUDGET] Auto-setting budget filter from budget prop:', budget);
 
-      // Map occasion budgetRange to IntegratedShopping budget categories
-      // Occasion: Value ($1-50), Budget ($50-100), Mid-Range ($100-250), Premium ($250+)
+      // Map budget to IntegratedShopping budget categories
+      // Budget: Value ($1-50), Budget ($50-100), Mid-Range ($100-250), Premium ($250+)
       // IntegratedShopping: value ($1-50), budget ($50-100), mid ($100-250), luxury ($250+)
       const budgetMap: Record<string, 'value' | 'budget' | 'mid' | 'luxury'> = {
         'Value': 'value',        // $1-50 → value ($1-50)
@@ -66,13 +68,13 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
         'Premium': 'luxury'      // $250+ → luxury ($250+)
       };
 
-      const mappedBudget = budgetMap[occasion.budgetRange.label];
+      const mappedBudget = budgetMap[budget.label];
       if (mappedBudget) {
         setSelectedBudget(mappedBudget);
-        console.log(`✅ [BUDGET] Budget filter set to: ${mappedBudget} (from ${occasion.budgetRange.label})`);
+        console.log(`✅ [BUDGET] Budget filter set to: ${mappedBudget} (from ${budget.label})`);
       }
     }
-  }, [occasion.budgetRange]);
+  }, [budget]);
 
   useEffect(() => {
     if (selectedOutfit) {
