@@ -48,7 +48,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   const [shoppingSections, setShoppingSections] = useState<ShoppingSection[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchProgress, setSearchProgress] = useState('');
-  const [selectedBudget, setSelectedBudget] = useState<'all' | 'budget' | 'mid' | 'luxury' | null>(null);
+  const [selectedBudget, setSelectedBudget] = useState<'all' | 'value' | 'budget' | 'mid' | 'luxury' | null>(null);
   const [savedToCalendar, setSavedToCalendar] = useState(false);
 
   // Auto-set budget filter based on occasion's budgetRange
@@ -57,12 +57,13 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
       console.log('💰 [BUDGET] Auto-setting budget filter from occasion:', occasion.budgetRange);
 
       // Map occasion budgetRange to IntegratedShopping budget categories
-      // Occasion: Budget ($50-100), Mid-Range ($100-250), Premium ($250+)
-      // IntegratedShopping: budget (< $70), mid ($70-150), luxury (> $150)
-      const budgetMap: Record<string, 'budget' | 'mid' | 'luxury'> = {
-        'Budget': 'budget',      // $50-100 → budget (< $70)
-        'Mid-Range': 'mid',      // $100-250 → mid ($70-150)
-        'Premium': 'luxury'      // $250+ → luxury (> $150)
+      // Occasion: Value ($1-50), Budget ($50-100), Mid-Range ($100-250), Premium ($250+)
+      // IntegratedShopping: value ($1-50), budget ($50-100), mid ($100-250), luxury ($250+)
+      const budgetMap: Record<string, 'value' | 'budget' | 'mid' | 'luxury'> = {
+        'Value': 'value',        // $1-50 → value ($1-50)
+        'Budget': 'budget',      // $50-100 → budget ($50-100)
+        'Mid-Range': 'mid',      // $100-250 → mid ($100-250)
+        'Premium': 'luxury'      // $250+ → luxury ($250+)
       };
 
       const mappedBudget = budgetMap[occasion.budgetRange.label];
@@ -430,9 +431,10 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
           <div className="flex space-x-2">
             {[
               { id: 'all', label: 'All', range: '' },
-              { id: 'budget', label: 'Budget', range: '< $70' },
-              { id: 'mid', label: 'Mid-range', range: '$70-$150' },
-              { id: 'luxury', label: 'Luxury', range: '> $150' }
+              { id: 'value', label: 'Value', range: '$1-$50' },
+              { id: 'budget', label: 'Budget', range: '$50-$100' },
+              { id: 'mid', label: 'Mid-range', range: '$100-$250' },
+              { id: 'luxury', label: 'Luxury', range: '$250+' }
             ].map((option) => (
               <button
                 key={option.id}

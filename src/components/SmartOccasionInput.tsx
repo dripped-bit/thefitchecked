@@ -550,6 +550,7 @@ Examples:
 
                 <div className="space-y-3">
                   {[
+                    { label: 'Value', range: '$1-50', icon: '🏷️', min: 1, max: 50 },
                     { label: 'Budget', range: '$50-100', icon: '💰', min: 50, max: 100 },
                     { label: 'Mid-Range', range: '$100-250', icon: '💎', min: 100, max: 250 },
                     { label: 'Premium', range: '$250+', icon: '👑', min: 250, max: 1000 }
