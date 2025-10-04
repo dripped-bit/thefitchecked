@@ -351,7 +351,7 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">What's the occasion?</h2>
           <p className="text-gray-600">
-            Tell us about your event and we'll create the perfect outfit instantly
+            Tell me about the outfit you'd like for your upcoming event
           </p>
         </div>
 
