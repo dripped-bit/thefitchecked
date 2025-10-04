@@ -165,6 +165,11 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
   const [isDragMode, setIsDragMode] = useState(false);
 
+  // Outfit of the Day Modal state
+  const [showOOTDModal, setShowOOTDModal] = useState(false);
+  const [ootdWeather, setOotdWeather] = useState<{ temperature: number; description: string } | null>(null);
+  const [ootdError, setOotdError] = useState<string | null>(null);
+
   // Calendar state
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [showDateModal, setShowDateModal] = useState(false);
@@ -712,8 +717,12 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   };
 
   const generateOutfitOfTheDay = async () => {
+    // Handle insufficient items case
     if (clothingItems.length < 3) {
       console.log('⚠️ Not enough items in closet to generate outfit');
+      setOotdError('You need at least 3 items in your closet to generate an outfit');
+      setOutfitOfTheDay(null);
+      setShowOOTDModal(true);
       return;
     }
 
@@ -837,7 +846,18 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
         isWeekend
       });
 
+      // Store weather data for modal display
+      setOotdWeather({
+        temperature,
+        description: weather?.weatherDescription || getWeatherDescription(temperature)
+      });
+
+      // Clear any previous errors
+      setOotdError(null);
+
+      // Set outfit and open modal
       setOutfitOfTheDay(ootd);
+      setShowOOTDModal(true);
     } catch (error) {
       console.error('❌ [OOTD] Failed to generate outfit:', error);
 
@@ -2087,40 +2107,6 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                 </div>
               </div>
 
-              {/* Outfit of the Day */}
-              {outfitOfTheDay && (
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6 mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-purple-800">Today's Outfit Suggestion</h3>
-                    <button className="text-purple-600 hover:text-purple-800">
-                      <Shuffle className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    {outfitOfTheDay.items.map((item, index) => (
-                      <div key={item.id} className="flex-shrink-0">
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="w-16 h-16 object-cover rounded-lg border-2 border-white shadow-sm"
-                        />
-                      </div>
-                    ))}
-                    <div className="flex-1">
-                      <p className="text-sm text-purple-700 mb-2">Perfect for a {outfitOfTheDay.occasion} {currentSeason} day!</p>
-                      <div className="flex space-x-2">
-                        <button className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition-colors">
-                          Try On
-                        </button>
-                        <button className="bg-white text-purple-600 border border-purple-300 px-4 py-2 rounded-lg text-sm hover:bg-purple-50 transition-colors">
-                          Save Outfit
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Clothing Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {(() => {
@@ -2323,6 +2309,116 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                 Yes, Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Outfit of the Day Modal */}
+      {showOOTDModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Error State */}
+            {ootdError && (
+              <>
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">Build Your Wardrobe</h3>
+                  <p className="text-gray-600">{ootdError}</p>
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowOOTDModal(false)}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowOOTDModal(false);
+                      setCurrentView('wardrobe');
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-colors"
+                  >
+                    Add Items to Closet
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Success State */}
+            {!ootdError && outfitOfTheDay && ootdWeather && (
+              <>
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    Perfect Outfit for Today
+                  </h3>
+                  <p className="text-gray-600">
+                    This would be perfect for today, {new Date().toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric'
+                    })}, considering the {ootdWeather.description} weather at {ootdWeather.temperature}°F
+                  </p>
+                </div>
+
+                {/* Outfit Items Grid */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+                    Your Outfit
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {outfitOfTheDay.items.map((item, index) => (
+                      <div
+                        key={index}
+                        className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-3 border border-purple-200"
+                      >
+                        <div className="aspect-square rounded-lg overflow-hidden mb-2 bg-white">
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <p className="text-xs font-medium text-gray-800 truncate">{item.name}</p>
+                        <p className="text-xs text-gray-500 capitalize">{item.category}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setShowOOTDModal(false)}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => {
+                      generateOutfitOfTheDay();
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Regenerate
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowOOTDModal(false);
+                      // Could add logic here to save outfit or mark as "worn today"
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-colors"
+                  >
+                    Wear This
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
