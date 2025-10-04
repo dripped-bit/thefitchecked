@@ -349,7 +349,17 @@ class DirectFashnService {
   /**
    * Submit a try-on request using native FASHN API
    */
-  async submitTryOn(modelImageUrl: string, garmentImageUrl: string, context: ImageContext = 'try_on'): Promise<string> {
+  async submitTryOn(
+    modelImageUrl: string,
+    garmentImageUrl: string,
+    context: ImageContext = 'try_on',
+    options: {
+      garmentDescription?: string;
+      garmentType?: string;
+      source?: string;
+      photoType?: 'flat-lay' | 'model' | 'auto';
+    } = {}
+  ): Promise<string> {
     console.log('🚀 [NATIVE-FASHN] Starting native FASHN try-on request...');
     console.log('🔍 [NATIVE-FASHN] Input validation:', {
       modelImageUrl: modelImageUrl ? `${modelImageUrl.substring(0, 50)}...` : 'missing',
@@ -414,30 +424,32 @@ class DirectFashnService {
       throw stopError;
     }
 
-    // Step 2: Analyze garment for optimal parameters
-    const garmentAnalysis = await this.analyzeGarment(
-      processedGarment.processedImageUrl,
-      options.garmentDescription,
-      options.garmentType
-    );
-    console.log('🎯 [FASHN-ENHANCE] Garment analysis:', garmentAnalysis);
-
-    // Step 3: Generate seed for consistency (must be within 0 to 2^32 - 1 range)
-    const seed = Math.floor(Math.random() * Math.pow(2, 32));
-
-    // Step 4: Validate and clamp num_samples to official range (1-4)
-    const validatedSamples = Math.max(1, Math.min(4, garmentAnalysis.recommendedSamples));
-
-    // Step 5: Determine optimal output format based on context
-    const outputFormat = getOutputFormatAuto(context);
-    console.log(`📷 [FORMAT-SELECT] Using ${outputFormat.toUpperCase()} for context: ${context}`);
-
-    // Step 6: Detect garment photo type (flat-lay product vs model-worn)
+    // Step 2: Detect garment photo type first (flat-lay product vs model-worn)
+    // This helps with smarter category detection
     const photoType = this.detectGarmentPhotoType(
       garmentImageUrl,
       options.source,
       options.photoType
     );
+
+    // Step 3: Analyze garment for optimal parameters (using photo type for smarter detection)
+    const garmentAnalysis = await this.analyzeGarment(
+      processedGarment.processedImageUrl,
+      options.garmentDescription,
+      options.garmentType,
+      photoType
+    );
+    console.log('🎯 [FASHN-ENHANCE] Garment analysis:', garmentAnalysis);
+
+    // Step 4: Generate seed for consistency (must be within 0 to 2^32 - 1 range)
+    const seed = Math.floor(Math.random() * Math.pow(2, 32));
+
+    // Step 5: Validate and clamp num_samples to official range (1-4)
+    const validatedSamples = Math.max(1, Math.min(4, garmentAnalysis.recommendedSamples));
+
+    // Step 6: Determine optimal output format based on context
+    const outputFormat = getOutputFormatAuto(context);
+    console.log(`📷 [FORMAT-SELECT] Using ${outputFormat.toUpperCase()} for context: ${context}`);
 
     const payload: FashnTryOnRequest = {
       model_name: this.modelVersion,
@@ -904,7 +916,12 @@ class DirectFashnService {
     });
 
     // Create the actual try-on promise and track it
-    const tryOnPromise = this.performTryOnWithRetries(modelImageUrl, garmentImageUrl, context);
+    const tryOnPromise = this.performTryOnWithRetries(modelImageUrl, garmentImageUrl, context, {
+      garmentDescription: options.garmentDescription,
+      garmentType: options.garmentType,
+      source: options.source,
+      photoType: options.photoType
+    });
     this.activeRequest = tryOnPromise;
 
     try {
@@ -947,12 +964,22 @@ class DirectFashnService {
     }
   }
 
-  private async performTryOnWithRetries(modelImageUrl: string, garmentImageUrl: string, context: ImageContext = 'try_on') {
+  private async performTryOnWithRetries(
+    modelImageUrl: string,
+    garmentImageUrl: string,
+    context: ImageContext = 'try_on',
+    options: {
+      garmentDescription?: string;
+      garmentType?: string;
+      source?: string;
+      photoType?: 'flat-lay' | 'model' | 'auto';
+    } = {}
+  ) {
     // Single attempt - timeout mechanism will handle retries at higher level
     try {
       console.log('🔄 [NATIVE-FASHN] Making FASHN try-on request...');
 
-      const imageUrl = await this.submitTryOn(modelImageUrl, garmentImageUrl, context);
+      const imageUrl = await this.submitTryOn(modelImageUrl, garmentImageUrl, context, options);
 
       if (!imageUrl) {
         throw new Error('No image URL returned from FASHN API');
@@ -1191,26 +1218,28 @@ class DirectFashnService {
   private async analyzeGarment(
     garmentImageUrl: string,
     garmentDescription?: string,
-    garmentType?: string
+    garmentType?: string,
+    photoType?: 'flat-lay' | 'model' | 'auto'
   ): Promise<GarmentAnalysis> {
     console.log('🔍 [GARMENT-ANALYSIS] Analyzing garment for optimal parameters...', {
       hasDescription: !!garmentDescription,
-      providedType: garmentType || 'auto'
+      providedType: garmentType || 'auto',
+      photoType: photoType || 'auto'
     });
 
     // Build analysis data from description or URL
     const analysisData = garmentDescription || garmentType || garmentImageUrl;
 
     // Check cache first (use description for cache key if available)
-    const cacheKey = this.generateCacheKey(analysisData);
+    const cacheKey = this.generateCacheKey(analysisData + (photoType || ''));
     if (this.parameterCache.has(cacheKey)) {
       console.log('📋 [GARMENT-ANALYSIS] Using cached analysis');
       return this.parameterCache.get(cacheKey)!;
     }
 
     try {
-      // Enhanced garment type detection
-      const detectedCategory = this.detectEnhancedClothingCategory(analysisData);
+      // Enhanced garment type detection based on photo type
+      const detectedCategory = this.detectEnhancedClothingCategory(analysisData, photoType);
 
       // Determine fitting type and complexity using description (or URL fallback)
       const fittingType = this.determineFittingType(analysisData);
@@ -1252,11 +1281,19 @@ class DirectFashnService {
   /**
    * Enhanced clothing category detection with comprehensive pattern matching
    * Detects from product names, descriptions, and URL patterns
+   *
+   * Strategy based on photo type:
+   * - Flat-lay images: Prefer 'auto' for ambiguous cases (FASHN auto-detects well from product photos)
+   * - Model images: Try to detect category to help FASHN decide on full outfit vs partial swap
+   * - Clear matches: Always return specific category regardless of photo type
    */
-  private detectEnhancedClothingCategory(clothingData: string): 'tops' | 'bottoms' | 'one-pieces' | 'auto' {
+  private detectEnhancedClothingCategory(
+    clothingData: string,
+    photoType?: 'flat-lay' | 'model' | 'auto'
+  ): 'tops' | 'bottoms' | 'one-pieces' | 'auto' {
     const dataLower = clothingData.toLowerCase();
 
-    // One-pieces detection (comprehensive list)
+    // One-pieces detection (comprehensive list) - ALWAYS return if matched
     const onePiecesPatterns = [
       'dress', 'gown', 'jumpsuit', 'romper', 'overall',
       'bodysuit', 'swimsuit', 'bikini', 'one-piece',
@@ -1268,7 +1305,7 @@ class DirectFashnService {
       return 'one-pieces';
     }
 
-    // Bottoms detection (comprehensive list)
+    // Bottoms detection (comprehensive list) - ALWAYS return if matched
     const bottomsPatterns = [
       'pants', 'jeans', 'trouser', 'short', 'shorts', 'skirt',
       'legging', 'leggings', 'jogger', 'joggers', 'sweatpants',
@@ -1280,7 +1317,7 @@ class DirectFashnService {
       return 'bottoms';
     }
 
-    // Tops detection (comprehensive list)
+    // Tops detection (comprehensive list) - ALWAYS return if matched
     const topsPatterns = [
       'shirt', 'top', 'blouse', 'tshirt', 't-shirt', 'tank',
       'jacket', 'coat', 'blazer', 'cardigan', 'hoodie', 'sweater',
@@ -1292,7 +1329,7 @@ class DirectFashnService {
       return 'tops';
     }
 
-    // URL-based detection for e-commerce links
+    // URL-based detection for e-commerce links - ALWAYS return if matched
     if (dataLower.includes('/dress') || dataLower.includes('/one-piece') ||
         dataLower.includes('/jumpsuit') || dataLower.includes('/romper')) {
       console.log('🏷️ [CATEGORY] Detected one-pieces from URL pattern');
@@ -1309,7 +1346,12 @@ class DirectFashnService {
       return 'tops';
     }
 
-    console.log('🏷️ [CATEGORY] No specific category detected, using auto');
+    // No clear match found - use 'auto' for best FASHN detection
+    // For flat-lay/ghost mannequin: FASHN auto-detects garment type accurately
+    // For model photos: FASHN handles full-body (outfit swap) vs focused shots (tops/bottoms)
+    console.log(`🏷️ [CATEGORY] No specific category detected, using 'auto' (photo type: ${photoType || 'unknown'})`);
+    console.log('   → Flat-lay images: FASHN will auto-detect garment type from product photo');
+    console.log('   → Model images: FASHN will decide full outfit swap vs partial based on framing');
     return 'auto';
   }
 
