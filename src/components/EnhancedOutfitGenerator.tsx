@@ -739,7 +739,7 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
         <button
           onClick={handleGenerateOutfit}
           disabled={!quickPrompt.trim() || isGenerating}
-          className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          className="w-full bg-gradient-to-r from-amber-400 to-orange-400 text-white py-3 px-4 rounded-full font-medium hover:from-amber-500 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
         >
           <Zap className={`w-5 h-5 ${isGenerating ? 'animate-spin' : ''}`} />
           <span className="text-black italic text-lg">{isGenerating ? 'Generating...' : 'Generate Outfit'}</span>
