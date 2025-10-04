@@ -401,24 +401,6 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
             </div>
           </div>
 
-          {/* Context Tags */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
-              <MapPin className="w-3 h-3 mr-1" />
-              {occasion.location || 'Location-appropriate'}
-            </span>
-            {occasion.weather && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-orange-100 text-orange-700">
-                <Tag className="w-3 h-3 mr-1" />
-                {occasion.weather.temperature}°F weather
-              </span>
-            )}
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-purple-100 text-purple-700">
-              <Clock className="w-3 h-3 mr-1" />
-              {occasion.formality}
-            </span>
-          </div>
-
           {/* Why These Products */}
           <div className="bg-white rounded-lg p-4 border border-green-200 mb-4">
             <h4 className="font-medium text-gray-900 mb-2">Smart matching based on:</h4>
@@ -431,12 +413,6 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                 <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                 {selectedOutfit.personality.name} personality
               </div>
-              {occasion.weather && (
-                <div className="flex items-center">
-                  <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                  {occasion.weather.temperature}°F weather
-                </div>
-              )}
               <div className="flex items-center">
                 <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
                 {occasion.formality} dress code

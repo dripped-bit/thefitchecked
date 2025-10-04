@@ -290,9 +290,6 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
                 <h3 className="text-xl font-bold text-gray-900">
                   {selectedOutfit.personality.name} style for {parsedOccasion.occasion}
                 </h3>
-                <p className="text-gray-600">
-                  {parsedOccasion.date} {parsedOccasion.time} • {parsedOccasion.location}
-                </p>
               </div>
               <button
                 onClick={handleStartOver}
