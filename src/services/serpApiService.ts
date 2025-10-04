@@ -43,7 +43,8 @@ class SerpApiService {
     const { budgetMin, budgetMax, stores, maxResults = 20 } = options;
 
     // Enhance query for better try-on compatible images (front-facing model photos)
-    const enhancedQuery = `${query} model wearing full body front view`;
+    // Use negative keywords to exclude back-facing images
+    const enhancedQuery = `${query} model wearing front view -back -backside -"back view" -rear`;
 
     console.log('🛍️ [SERPAPI] Searching Google Shopping:', {
       originalQuery: query,
