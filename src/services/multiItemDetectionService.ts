@@ -131,14 +131,20 @@ BOUNDING BOX INSTRUCTIONS - VERY IMPORTANT:
 - For DRESSES: Include neckline → bottom hem
 - The bounding box should tightly frame the ENTIRE visible garment, centered on the garment itself
 
+CATEGORY RULES - IMPORTANT:
+- Tops/Shirts/Blouses/Tank Tops → use category "tops"
+- Pants/Skirts/Shorts (all bottom garments) → use category "pants"
+- Dresses/Jumpsuits/Rompers → use category "dresses"
+- Keep item NAME specific and descriptive (e.g., "White Skirt", "Blue Denim Shorts", "Black Pants")
+
 For each detected garment piece, provide its bounding box. Return ONLY valid JSON:
 
 {
   "hasMultipleItems": true/false,
   "items": [
     {
-      "name": "Item description (e.g., Pink Tank Top, Denim Skirt)",
-      "category": "tops|pants|dresses|skirts|shoes|accessories|outerwear|sweaters|other",
+      "name": "Item description (e.g., Pink Tank Top, White Skirt, Blue Shorts)",
+      "category": "tops|pants|dresses|shoes|accessories|outerwear|sweaters|other",
       "boundingBox": {
         "x": 0.1,     // Left edge (0-1, normalized to image)
         "y": 0.2,     // Top edge (0-1, normalized to image)

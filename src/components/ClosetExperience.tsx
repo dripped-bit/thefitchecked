@@ -429,7 +429,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   const categories: Array<{ id: ClothingCategory | 'all' | 'favorites', name: string, icon: React.ReactNode, count: number }> = [
     { id: 'all', name: 'All Items', icon: <Package className="w-5 h-5" />, count: clothingItems.length },
     { id: 'tops', name: 'Tops', icon: <Shirt className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'tops' || item.category === 'shirts').length },
-    { id: 'pants', name: 'Bottoms', icon: <Tag className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'pants').length },
+    { id: 'pants', name: 'Bottoms', icon: <Tag className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'pants' || item.category === 'skirts').length },
     { id: 'dresses', name: 'Dresses', icon: <Crown className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'dresses').length },
     { id: 'sweaters', name: 'Sweaters', icon: <Shirt className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'sweaters').length },
     { id: 'shoes', name: 'Shoes', icon: <Target className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'shoes').length },
@@ -2356,6 +2356,8 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                     if (selectedCategory === 'favorites') return item.favorite === true;
                     // Handle both 'tops' and legacy 'shirts' category
                     if (selectedCategory === 'tops') return item.category === 'tops' || item.category === 'shirts';
+                    // Handle both 'pants' and 'skirts' in Bottoms category
+                    if (selectedCategory === 'pants') return item.category === 'pants' || item.category === 'skirts';
                     return item.category === selectedCategory;
                   });
 
@@ -2364,7 +2366,8 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                     filteredItems: filteredItems.length,
                     selectedCategory,
                     itemCategories: clothingItems.map(i => i.category).filter((v, i, a) => a.indexOf(v) === i),
-                    topsAndShirts: selectedCategory === 'tops' ? clothingItems.filter(i => i.category === 'tops' || i.category === 'shirts').map(i => ({name: i.name, category: i.category})) : undefined
+                    topsAndShirts: selectedCategory === 'tops' ? clothingItems.filter(i => i.category === 'tops' || i.category === 'shirts').map(i => ({name: i.name, category: i.category})) : undefined,
+                    pantsAndSkirts: selectedCategory === 'pants' ? clothingItems.filter(i => i.category === 'pants' || i.category === 'skirts').map(i => ({name: i.name, category: i.category})) : undefined
                   });
 
                   return filteredItems.map((item, index) => (
