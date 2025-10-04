@@ -12,7 +12,6 @@ import { outfitGenerationService, OutfitSuggestion, StyleProfile } from '../serv
 import { avatarAnimationService, AnimationType } from '../services/avatarAnimationService';
 import TwoStepClothingWorkflow from './TwoStepClothingWorkflow';
 import EnhancedOutfitGenerator from './EnhancedOutfitGenerator';
-import ClothingUploadComponent from './ClothingUploadComponent';
 import { UserData } from '../types/user';
 import UserService from '../services/userService';
 import AchievementsService from '../services/achievementsService';
@@ -1333,10 +1332,10 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
         />
       )}
 
-      {/* Upload Outfit Modal */}
+      {/* Upload Outfit Modal - Simple Like Page 3 */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
             <button
               onClick={() => setShowUploadModal(false)}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10"
@@ -1349,37 +1348,67 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
               Upload Outfit to Try On
             </h2>
 
-            <ClothingUploadComponent
-              avatarImage={avatarData?.imageUrl || avatarData}
-              onTryOnComplete={(result) => {
-                console.log('✅ [UPLOAD-MODAL] Try-on complete:', result);
+            <p className="text-gray-600 mb-6">
+              Upload a photo of clothing and it will automatically be applied to your avatar using FASHN AI.
+            </p>
 
-                // Update avatar with FASHN result
-                const resultUrl = result.url || result.images?.[0]?.url;
-                if (resultUrl && onAvatarUpdate) {
-                  const newAvatarData = {
-                    imageUrl: resultUrl,
-                    withOutfit: true,
-                    metadata: {
-                      lastUpdate: new Date().toISOString(),
-                      source: 'uploaded-outfit'
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !avatarData || !onAvatarUpdate) return;
+
+                try {
+                  setUploadingClothing(true);
+
+                  // Convert to base64
+                  const reader = new FileReader();
+                  reader.onload = async (event) => {
+                    const garmentUrl = event.target?.result as string;
+
+                    // Use seamless try-on service (same as Page 3)
+                    const result = await seamlessTryOnService.applyOutfitToAvatar(
+                      avatarData.imageUrl || avatarData,
+                      garmentUrl
+                    );
+
+                    if (result.success && result.finalImageUrl) {
+                      onAvatarUpdate({
+                        imageUrl: result.finalImageUrl,
+                        withOutfit: true,
+                        metadata: {
+                          lastUpdate: new Date().toISOString(),
+                          source: 'uploaded-outfit'
+                        }
+                      });
+
+                      setShowUploadModal(false);
+                      setAvatarAnimation('posing');
+                      setTimeout(() => setAvatarAnimation('breathing'), 1000);
+                    } else {
+                      alert(result.error || 'Failed to apply outfit');
                     }
-                  };
-                  onAvatarUpdate(newAvatarData);
-                  setShowUploadModal(false);
 
-                  // Trigger avatar animation
-                  setAvatarAnimation('posing');
-                  setTimeout(() => setAvatarAnimation('breathing'), 1000);
-                } else {
-                  console.error('❌ No result URL from FASHN');
+                    setUploadingClothing(false);
+                  };
+                  reader.readAsDataURL(file);
+                } catch (error) {
+                  console.error('Upload error:', error);
+                  alert('Failed to upload outfit');
+                  setUploadingClothing(false);
                 }
               }}
-              onError={(error) => {
-                console.error('❌ [UPLOAD-MODAL] Error:', error);
-                alert(`Upload failed: ${error}`);
-              }}
+              className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-500 transition-colors cursor-pointer"
+              disabled={uploadingClothing}
             />
+
+            {uploadingClothing && (
+              <div className="mt-4 text-center">
+                <Loader className="w-6 h-6 animate-spin mx-auto text-purple-600" />
+                <p className="text-sm text-gray-600 mt-2">Applying outfit to avatar...</p>
+              </div>
+            )}
           </div>
         </div>
       )}
