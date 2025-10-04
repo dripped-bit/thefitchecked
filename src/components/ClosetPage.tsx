@@ -37,7 +37,7 @@ type TabType = 'closet' | 'weekly-planner' | 'achievements';
 
 const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
   const [closet, setCloset] = useState<UserCloset>(ClosetService.getUserCloset());
-  const [activeCategory, setActiveCategory] = useState<ClothingCategory>('shirts');
+  const [activeCategory, setActiveCategory] = useState<ClothingCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -50,13 +50,14 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
   const [searchResults, setSearchResults] = useState<OutfitSearchResults | null>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
-  // Category configurations - Updated to merge shirts and tops
+  // Category configurations - Updated to merge shirts and tops, with "All Items" view
   const categories: Array<{
-    key: ClothingCategory;
+    key: ClothingCategory | 'all';
     label: string;
     icon: React.ReactNode;
     color: string;
   }> = [
+    { key: 'all', label: 'All Items', icon: <Grid className="w-4 h-4" />, color: 'blue' },
     { key: 'tops', label: 'Tops/Shirts', icon: <Shirt className="w-4 h-4" />, color: 'purple' },
     { key: 'pants', label: 'Pants', icon: <Package className="w-4 h-4" />, color: 'green' },
     { key: 'dresses', label: 'Dresses', icon: <Sparkles className="w-4 h-4" />, color: 'pink' },
@@ -125,26 +126,34 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
     };
   }, []);
 
-  const getCategoryItems = (category: ClothingCategory): ClothingItem[] => {
-    console.log(`🎯 [CLOSET-PAGE-V2] GETTING ITEMS FOR: "${category}"`);
+  const getCategoryItems = (category: ClothingCategory | 'all'): ClothingItem[] => {
+    console.log(`🎯 [CLOSET-PAGE-V3] GETTING ITEMS FOR: "${category}"`);
 
-    // Merge 'shirts' and 'tops' into one display category for backward compatibility
-    let items = closet[category] || [];
+    let items: ClothingItem[] = [];
 
-    if (category === 'tops') {
-      // Combine both 'tops' and 'shirts' arrays
+    // Handle "All Items" view - show everything
+    if (category === 'all') {
+      items = ClosetService.getAllClothingItems();
+      console.log(`✅ [CLOSET-ALL-V3] Showing all items: ${items.length} total`);
+    }
+    // Handle tops - merge 'tops' and 'shirts' for backward compatibility
+    else if (category === 'tops') {
       const topsItems = closet['tops'] || [];
       const shirtsItems = closet['shirts'] || [];
       items = [...topsItems, ...shirtsItems];
-      console.log(`✅ [CLOSET-MERGE-V2] Combining tops (${topsItems.length}) + shirts (${shirtsItems.length}) = ${items.length} total`);
+      console.log(`✅ [CLOSET-MERGE-V3] Combining tops (${topsItems.length}) + shirts (${shirtsItems.length}) = ${items.length} total`);
+    }
+    // Handle regular categories
+    else {
+      items = closet[category] || [];
     }
 
-    console.log(`🔍 [CLOSET-PAGE-V2] Category "${category}" has:`, {
+    console.log(`🔍 [CLOSET-PAGE-V3] Category "${category}" has:`, {
       totalInCategory: items.length,
       showFavoritesOnly,
       searchQuery,
-      categoryExists: !!closet[category],
-      combinedCategories: category === 'tops' ? ['tops', 'shirts'] : [category]
+      categoryExists: category === 'all' ? true : !!closet[category],
+      combinedCategories: category === 'all' ? 'all' : (category === 'tops' ? ['tops', 'shirts'] : [category])
     });
 
     if (showFavoritesOnly) {
@@ -512,10 +521,14 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
             <div className="mb-8">
               <div className="flex flex-wrap gap-2">
                 {categories.map(category => {
-                  // Calculate count - combine 'tops' and 'shirts' for display
-                  let count = closet[category.key]?.length || 0;
-                  if (category.key === 'tops') {
+                  // Calculate count - handle 'all', 'tops', and regular categories
+                  let count = 0;
+                  if (category.key === 'all') {
+                    count = ClosetService.getAllClothingItems().length;
+                  } else if (category.key === 'tops') {
                     count = (closet['tops']?.length || 0) + (closet['shirts']?.length || 0);
+                  } else {
+                    count = closet[category.key as ClothingCategory]?.length || 0;
                   }
                   const isActive = activeCategory === category.key;
 
@@ -523,12 +536,14 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
                     <button
                       key={category.key}
                       onClick={() => {
-                        console.log(`📂 [CATEGORY-CLICK-PAGE] Selected category:`, {
+                        console.log(`📂 [CATEGORY-CLICK-V3] Selected category:`, {
                           key: category.key,
                           label: category.label,
                           count,
                           previousCategory: activeCategory,
-                          itemsInCategory: closet[category.key]?.map(i => i.name) || []
+                          itemsInCategory: category.key === 'all'
+                            ? ClosetService.getAllClothingItems().map(i => i.name)
+                            : (closet[category.key as ClothingCategory]?.map(i => i.name) || [])
                         });
                         setActiveCategory(category.key);
                       }}

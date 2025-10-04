@@ -428,7 +428,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
   const categories: Array<{ id: ClothingCategory | 'all' | 'favorites', name: string, icon: React.ReactNode, count: number }> = [
     { id: 'all', name: 'All Items', icon: <Package className="w-5 h-5" />, count: clothingItems.length },
-    { id: 'shirts', name: 'Tops', icon: <Shirt className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'shirts').length },
+    { id: 'tops', name: 'Tops', icon: <Shirt className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'tops' || item.category === 'shirts').length },
     { id: 'pants', name: 'Bottoms', icon: <Tag className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'pants').length },
     { id: 'dresses', name: 'Dresses', icon: <Crown className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'dresses').length },
     { id: 'sweaters', name: 'Sweaters', icon: <Shirt className="w-5 h-5" />, count: clothingItems.filter(item => item.category === 'sweaters').length },
@@ -1457,11 +1457,12 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                 <button
                   key={category.id}
                   onClick={() => {
-                    console.log(`📂 [CATEGORY-CLICK] Selected category:`, {
+                    console.log(`📂 [CATEGORY-CLICK-V3] Selected category:`, {
                       id: category.id,
                       name: category.name,
                       count: category.count,
-                      previousCategory: selectedCategory
+                      previousCategory: selectedCategory,
+                      willMatchBoth: category.id === 'tops' ? 'tops OR shirts' : category.id
                     });
                     setSelectedCategory(category.id);
                   }}
@@ -2353,14 +2354,17 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                   const filteredItems = clothingItems.filter(item => {
                     if (selectedCategory === 'all') return true;
                     if (selectedCategory === 'favorites') return item.favorite === true;
+                    // Handle both 'tops' and legacy 'shirts' category
+                    if (selectedCategory === 'tops') return item.category === 'tops' || item.category === 'shirts';
                     return item.category === selectedCategory;
                   });
 
-                  console.log(`🖼️ [CLOSET-GRID] Rendering grid for "${selectedCategory}":`, {
+                  console.log(`🖼️ [CLOSET-GRID-V3] Rendering grid for "${selectedCategory}":`, {
                     totalItems: clothingItems.length,
                     filteredItems: filteredItems.length,
                     selectedCategory,
-                    itemCategories: clothingItems.map(i => i.category).filter((v, i, a) => a.indexOf(v) === i)
+                    itemCategories: clothingItems.map(i => i.category).filter((v, i, a) => a.indexOf(v) === i),
+                    topsAndShirts: selectedCategory === 'tops' ? clothingItems.filter(i => i.category === 'tops' || i.category === 'shirts').map(i => ({name: i.name, category: i.category})) : undefined
                   });
 
                   return filteredItems.map((item, index) => (
