@@ -16,6 +16,7 @@ interface MeasurementData {
   shoulderWidth: string;
   inseam: string;
   bodyType: string;
+  gender: 'male' | 'female' | 'unisex';
 }
 
 interface GenerationProgress {
@@ -62,7 +63,8 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
         hips: Math.round((preMeasurements.hips || 98) / 2.54).toString(),
         shoulderWidth: Math.round((preMeasurements.shoulders || 45) / 2.54).toString(),
         inseam: Math.round((preMeasurements.inseam || 82) / 2.54).toString(),
-        bodyType: preMeasurements.build || 'average'
+        bodyType: preMeasurements.build || 'average',
+        gender: preMeasurements.gender || 'unisex'
       };
     }
 
@@ -74,7 +76,8 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
       hips: '',
       shoulderWidth: '',
       inseam: '',
-      bodyType: ''
+      bodyType: '',
+      gender: 'unisex'
     };
   });
 
@@ -119,7 +122,8 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
       hips: demoData.hips.replace('"', ''),
       shoulderWidth: demoData.shoulderWidth.replace('"', ''),
       inseam: demoData.inseam.replace('"', ''),
-      bodyType: demoData.bodyType
+      bodyType: demoData.bodyType,
+      gender: demoData.gender || 'female'
     };
 
     setMeasurements(demoMeasurements);
@@ -147,9 +151,7 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
       shoulderWidth: localMeasurements.shoulderWidth,
       inseam: localMeasurements.inseam,
       bodyType: localMeasurements.bodyType,
-      // Infer gender from body type if not explicitly set
-      gender: localMeasurements.bodyType === 'curvy' ? 'female' :
-              localMeasurements.bodyType === 'athletic' ? 'male' : undefined
+      gender: localMeasurements.gender
     };
   };
 
@@ -211,7 +213,8 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
         bodyType: measurements.bodyType,
         build: measurements.bodyType === 'athletic' ? 'athletic' :
               measurements.bodyType === 'slim' ? 'slim' :
-              measurements.bodyType === 'curvy' ? 'curvy' : 'average'
+              measurements.bodyType === 'curvy' ? 'curvy' : 'average',
+        gender: measurements.gender
       };
 
       console.log('🎬 Generating animated avatar directly with Kling Video...');
@@ -539,6 +542,52 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
                 />
               </div>
 
+              {/* Gender Selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-4">Gender</label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div
+                    onClick={() => handleInputChange('gender', 'male')}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      measurements.gender === 'male'
+                        ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
+                        : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-3xl mb-2">👨</div>
+                      <h3 className="font-semibold text-gray-800">Man</h3>
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => handleInputChange('gender', 'female')}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      measurements.gender === 'female'
+                        ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
+                        : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-3xl mb-2">👩</div>
+                      <h3 className="font-semibold text-gray-800">Woman</h3>
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => handleInputChange('gender', 'unisex')}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      measurements.gender === 'unisex'
+                        ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
+                        : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-3xl mb-2">⚧️</div>
+                      <h3 className="font-semibold text-gray-800">Unisex</h3>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Body Type Selector */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-4">Body Type</label>
@@ -648,7 +697,8 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
                         hips: '38',
                         shoulderWidth: '18',
                         inseam: '32',
-                        bodyType: 'average'
+                        bodyType: 'average',
+                        gender: 'unisex'
                       });
                     }}
                     className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
