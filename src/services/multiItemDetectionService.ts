@@ -123,19 +123,30 @@ DETECTION RULES:
 - Only outerwear visible (coat covering everything)
 - Single item only (just a shirt, just shoes, etc.)
 
-BOUNDING BOX INSTRUCTIONS - VERY IMPORTANT:
-📐 Frame the COMPLETE garment from top edge to bottom edge:
-- For TOPS: Include neckline/shoulders → bottom hem (full shirt/blouse)
-- For BOTTOMS (pants/skirts/shorts): Include waistline → bottom hem (full garment, not just lower portion)
-- For SHOES: Include entire shoe from top to sole
-- For DRESSES: Include neckline → bottom hem
-- The bounding box should tightly frame the ENTIRE visible garment, centered on the garment itself
+⚠️ CRITICAL - BOUNDING BOX ACCURACY:
+Each item's bounding box MUST frame THAT EXACT item! Common mistake: providing boxes in wrong order.
 
-CATEGORY RULES - IMPORTANT:
-- Tops/Shirts/Blouses/Tank Tops → use category "tops"
-- Pants/Skirts/Shorts (all bottom garments) → use category "pants"
-- Dresses/Jumpsuits/Rompers → use category "dresses"
-- Keep item NAME specific and descriptive (e.g., "White Skirt", "Blue Denim Shorts", "Black Pants")
+STEP 1: Identify items by their SPATIAL POSITION (top to bottom):
+- TOP AREA (y: 0.0-0.35): Upper garment (crop top, shirt, blouse, tank top)
+- MIDDLE AREA (y: 0.3-0.65): Lower garment (skirt, pants, shorts)
+- BOTTOM AREA (y: 0.6-1.0): Footwear (shoes, sneakers, boots)
+
+STEP 2: For EACH item, ensure bounding box frames ONLY that specific garment:
+- "White Crop Top" → box must frame the TOP/SHIRT (upper body area)
+- "White Mini Skirt" → box must frame the SKIRT (waist to mid-thigh area)
+- "White Sneakers" → box must frame the SHOES (foot area only)
+
+📐 Bounding box requirements:
+- TOPS: Frame neckline → bottom hem (shoulders to waist)
+- BOTTOMS: Frame waistline → hem (waist to knees/ankles, NOT legs)
+- SHOES: Frame entire shoe (NOT the leg, just the footwear)
+- Box should be CENTERED on the garment, tightly framed
+
+CATEGORY RULES:
+- Tops/Shirts/Blouses/Tank Tops → "tops"
+- Pants/Skirts/Shorts → "pants"
+- Dresses/Jumpsuits → "dresses"
+- Keep NAME descriptive (e.g., "White Crop Top", "White Mini Skirt")
 
 For each detected garment piece, provide its bounding box. Return ONLY valid JSON:
 
@@ -156,11 +167,32 @@ For each detected garment piece, provide its bounding box. Return ONLY valid JSO
   ]
 }
 
-EXAMPLES:
-- Photo of person wearing tank top + skirt → hasMultipleItems: true, 2 items (top, skirt)
-- Photo of person wearing dress only → hasMultipleItems: false, 1 item
-- Flat-lay with shirt and shorts → hasMultipleItems: true, 2 items
-- Person wearing complete outfit with shoes → hasMultipleItems: true, 3+ items
+EXAMPLE - Person wearing crop top + skirt + sneakers:
+{
+  "hasMultipleItems": true,
+  "items": [
+    {
+      "name": "White Crop Top",
+      "category": "tops",
+      "boundingBox": { "x": 0.2, "y": 0.1, "width": 0.6, "height": 0.25 },  ← TOP area (shoulders to waist)
+      "confidence": 0.95
+    },
+    {
+      "name": "White Mini Skirt",
+      "category": "pants",
+      "boundingBox": { "x": 0.2, "y": 0.35, "width": 0.6, "height": 0.2 }, ← MIDDLE area (waist to mid-thigh)
+      "confidence": 0.95
+    },
+    {
+      "name": "White Sneakers",
+      "category": "shoes",
+      "boundingBox": { "x": 0.25, "y": 0.75, "width": 0.5, "height": 0.2 }, ← BOTTOM area (feet only)
+      "confidence": 0.95
+    }
+  ]
+}
+
+⚠️ VERIFY: Each bounding box must correspond to its item name!
 
 Return ONLY the JSON object, no additional text.`
             }
