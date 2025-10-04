@@ -20,7 +20,7 @@ import webEnhancedPromptService, { PromptVariation } from '../services/webEnhanc
 import WebEnhancedPromptModal from './WebEnhancedPromptModal';
 import ShareModal from './ShareModal';
 import SaveToClosetModal, { SavedItemData } from './SaveToClosetModal';
-import seamlessTryOnService, { SeamlessTryOnResult, TryOnProgress } from '../services/seamlessTryOnService';
+import directFashnService from '../services/directFashnService';
 import AvatarClothingAnalysisService, { AvatarClothingAnalysis } from '../services/avatarClothingAnalysisService';
 import PerplexityService, { ProductSearchResult, ProductSearchOptions } from '../services/perplexityService';
 import affiliateLinkService from '../services/affiliateLinkService';
@@ -1367,30 +1367,35 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                   reader.onload = async (event) => {
                     const garmentUrl = event.target?.result as string;
 
-                    // Use seamless try-on service (same as Page 3)
-                    const result = await seamlessTryOnService.applyOutfitToAvatar(
-                      avatarData.imageUrl || avatarData,
-                      garmentUrl
-                    );
+                    try {
+                      // Use direct FASHN service for try-on
+                      const result = await directFashnService.tryOnClothing(
+                        avatarData.imageUrl || avatarData,
+                        garmentUrl
+                      );
 
-                    if (result.success && result.finalImageUrl) {
-                      onAvatarUpdate({
-                        imageUrl: result.finalImageUrl,
-                        withOutfit: true,
-                        metadata: {
-                          lastUpdate: new Date().toISOString(),
-                          source: 'uploaded-outfit'
-                        }
-                      });
+                      if (result && result.imageUrl) {
+                        onAvatarUpdate({
+                          imageUrl: result.imageUrl,
+                          withOutfit: true,
+                          metadata: {
+                            lastUpdate: new Date().toISOString(),
+                            source: 'uploaded-outfit'
+                          }
+                        });
 
-                      setShowUploadModal(false);
-                      setAvatarAnimation('posing');
-                      setTimeout(() => setAvatarAnimation('breathing'), 1000);
-                    } else {
-                      alert(result.error || 'Failed to apply outfit');
+                        setShowUploadModal(false);
+                        setAvatarAnimation('posing');
+                        setTimeout(() => setAvatarAnimation('breathing'), 1000);
+                      } else {
+                        alert('Failed to apply outfit - no result image');
+                      }
+                    } catch (error) {
+                      console.error('FASHN try-on error:', error);
+                      alert(error instanceof Error ? error.message : 'Failed to apply outfit');
+                    } finally {
+                      setUploadingClothing(false);
                     }
-
-                    setUploadingClothing(false);
                   };
                   reader.readAsDataURL(file);
                 } catch (error) {
