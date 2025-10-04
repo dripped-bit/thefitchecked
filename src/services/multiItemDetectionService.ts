@@ -236,21 +236,43 @@ Return ONLY the JSON object, no additional text.`
 
   /**
    * Convert image to base64
+   * Normalizes all formats (AVIF, WebP, etc.) to PNG for Claude API compatibility
    */
   private async imageToBase64(imageUrl: string): Promise<string> {
     try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-
       return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = reader.result as string;
-          const base64Data = base64.split(',')[1];
-          resolve(base64Data);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        img.onload = () => {
+          try {
+            // Create canvas and draw image
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+
+            if (!ctx) {
+              throw new Error('Could not get canvas context');
+            }
+
+            ctx.drawImage(img, 0, 0);
+
+            // Convert to PNG base64 (removes data:image/png;base64, prefix)
+            const dataUrl = canvas.toDataURL('image/png');
+            const base64Data = dataUrl.split(',')[1];
+
+            resolve(base64Data);
+          } catch (error) {
+            reject(error);
+          }
         };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
+
+        img.onerror = () => {
+          reject(new Error('Failed to load image for base64 conversion'));
+        };
+
+        img.src = imageUrl;
       });
     } catch (error) {
       console.error('❌ Image to base64 conversion failed:', error);
