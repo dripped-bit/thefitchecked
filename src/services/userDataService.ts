@@ -116,6 +116,7 @@ export interface CompleteUserData {
     weatherLocation?: string;
     preferredCurrency: string;
     privacyLevel: 'public' | 'friends' | 'private';
+    qualityPreference?: 'battery_saver' | 'balanced' | 'high_quality'; // Image output quality preference
   };
   metadata: {
     accountCreated: string;

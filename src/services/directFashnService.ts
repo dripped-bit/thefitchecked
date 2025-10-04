@@ -7,6 +7,7 @@
 
 import { fashnLibraryService, LibraryGarment, FashnLibraryResponse } from './fashnLibraryService';
 import { debugLog } from '../utils/debugConfig';
+import { getOutputFormatAuto, type ImageContext } from '../utils/outputFormatSelector';
 
 interface FashnTryOnRequest {
   model_name: string;
@@ -348,7 +349,7 @@ class DirectFashnService {
   /**
    * Submit a try-on request using native FASHN API
    */
-  async submitTryOn(modelImageUrl: string, garmentImageUrl: string): Promise<string> {
+  async submitTryOn(modelImageUrl: string, garmentImageUrl: string, context: ImageContext = 'try_on'): Promise<string> {
     console.log('🚀 [NATIVE-FASHN] Starting native FASHN try-on request...');
     console.log('🔍 [NATIVE-FASHN] Input validation:', {
       modelImageUrl: modelImageUrl ? `${modelImageUrl.substring(0, 50)}...` : 'missing',
@@ -423,6 +424,10 @@ class DirectFashnService {
     // Step 4: Validate and clamp num_samples to official range (1-4)
     const validatedSamples = Math.max(1, Math.min(4, garmentAnalysis.recommendedSamples));
 
+    // Step 5: Determine optimal output format based on context
+    const outputFormat = getOutputFormatAuto(context);
+    console.log(`📷 [FORMAT-SELECT] Using ${outputFormat.toUpperCase()} for context: ${context}`);
+
     const payload: FashnTryOnRequest = {
       model_name: this.modelVersion,
       inputs: {
@@ -435,7 +440,7 @@ class DirectFashnService {
         mode: garmentAnalysis.recommendedMode, // Use analyzed mode based on garment complexity
         num_samples: validatedSamples,   // Generate multiple samples for best quality selection
         seed: seed,
-        output_format: 'png',            // PNG for highest quality
+        output_format: outputFormat,     // Dynamic format based on context (PNG/JPEG)
         return_base64: false             // Return CDN URLs (faster than base64)
       }
     };
@@ -814,8 +819,13 @@ class DirectFashnService {
   /**
    * Complete try-on with retry logic and error handling using native FASHN API
    */
-  async tryOnClothing(modelImageUrl: string, garmentImageUrl: string, options: any = {}) {
-    console.log('🎯 [NATIVE-FASHN] Starting FASHN try-on with timeout and fallback...');
+  async tryOnClothing(
+    modelImageUrl: string,
+    garmentImageUrl: string,
+    options: { context?: ImageContext; timeout?: number } = {}
+  ) {
+    const context = options.context || 'try_on'; // Default to 'try_on' context
+    console.log('🎯 [NATIVE-FASHN] Starting FASHN try-on with timeout and fallback...', { context });
 
     // Single request queue - prevent multiple simultaneous FASHN requests
     if (this.activeRequest) {
@@ -870,7 +880,7 @@ class DirectFashnService {
     });
 
     // Create the actual try-on promise and track it
-    const tryOnPromise = this.performTryOnWithRetries(modelImageUrl, garmentImageUrl);
+    const tryOnPromise = this.performTryOnWithRetries(modelImageUrl, garmentImageUrl, context);
     this.activeRequest = tryOnPromise;
 
     try {
@@ -913,12 +923,12 @@ class DirectFashnService {
     }
   }
 
-  private async performTryOnWithRetries(modelImageUrl: string, garmentImageUrl: string) {
+  private async performTryOnWithRetries(modelImageUrl: string, garmentImageUrl: string, context: ImageContext = 'try_on') {
     // Single attempt - timeout mechanism will handle retries at higher level
     try {
       console.log('🔄 [NATIVE-FASHN] Making FASHN try-on request...');
 
-      const imageUrl = await this.submitTryOn(modelImageUrl, garmentImageUrl);
+      const imageUrl = await this.submitTryOn(modelImageUrl, garmentImageUrl, context);
 
       if (!imageUrl) {
         throw new Error('No image URL returned from FASHN API');
