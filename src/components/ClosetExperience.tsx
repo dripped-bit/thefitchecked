@@ -4,7 +4,7 @@ import {
   Sparkles, ShoppingBag, Heart, Mic, Calendar, DollarSign,
   Leaf, TrendingUp, Award, Gift, CheckCircle, X, Play,
   Palette, Shuffle, Share2, Volume2, VolumeX, Crown,
-  Tag, Package, Zap, Users, MapPin, Clock, ChevronLeft, ChevronRight
+  Tag, Package, Zap, Users, MapPin, Clock, ChevronLeft, ChevronRight, ExternalLink
 } from 'lucide-react';
 import ClosetDoors from './ClosetDoors';
 import OutfitCreator from './OutfitCreator';
@@ -203,6 +203,14 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       imageUrl: string;
       category: string;
     }>;
+    shoppingLinks?: Array<{
+      url: string;
+      affiliateUrl?: string;
+      store: string;
+      title?: string;
+      price?: string;
+    }>;
+    calendarEntryId?: number;
   }}>({});
 
   // Upload processing state
@@ -338,6 +346,63 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       }
     ]);
   }, [clothingItems]);
+
+  // Load calendar entries from localStorage when month changes
+  useEffect(() => {
+    const loadCalendarEntries = async () => {
+      try {
+        // Import smartCalendarService dynamically
+        const { default: smartCalendarService } = await import('../services/smartCalendarService');
+        const entries = smartCalendarService.getCalendarEntries();
+
+        console.log('📅 [MONTHLY-PLANNER] Loading calendar entries:', entries.length);
+
+        // Convert calendar entries to dateOccasions format
+        const newDateOccasions: typeof dateOccasions = {};
+
+        entries.forEach((entry: any) => {
+          const entryDate = new Date(entry.date);
+          const entryMonth = entryDate.getMonth();
+          const entryYear = entryDate.getFullYear();
+
+          // Only load entries for current displayed month
+          if (entryMonth === currentMonth && entryYear === currentYear) {
+            const dayOfMonth = entryDate.getDate();
+
+            newDateOccasions[dayOfMonth] = {
+              occasion: mapOccasionToCategory(entry.occasion || 'social'),
+              notes: entry.outfit?.description || '',
+              outfitPieces: [], // Outfit image handled separately
+              shoppingLinks: entry.shoppingLinks || entry.processedLinks || [],
+              calendarEntryId: entry.id
+            };
+          }
+        });
+
+        // Merge with existing dateOccasions (don't overwrite manually added ones)
+        setDateOccasions(prev => ({
+          ...prev,
+          ...newDateOccasions
+        }));
+
+        console.log('✅ [MONTHLY-PLANNER] Loaded entries for month:', currentMonth, currentYear);
+      } catch (error) {
+        console.error('❌ [MONTHLY-PLANNER] Failed to load calendar entries:', error);
+      }
+    };
+
+    loadCalendarEntries();
+  }, [currentMonth, currentYear]);
+
+  // Helper function to map occasion names to categories
+  const mapOccasionToCategory = (occasion: string): 'travel' | 'formal' | 'social' | 'daily' | 'activities' => {
+    const lowerOccasion = occasion.toLowerCase();
+    if (lowerOccasion.includes('travel') || lowerOccasion.includes('trip') || lowerOccasion.includes('vacation')) return 'travel';
+    if (lowerOccasion.includes('formal') || lowerOccasion.includes('wedding') || lowerOccasion.includes('gala')) return 'formal';
+    if (lowerOccasion.includes('party') || lowerOccasion.includes('dinner') || lowerOccasion.includes('date')) return 'social';
+    if (lowerOccasion.includes('sport') || lowerOccasion.includes('gym') || lowerOccasion.includes('yoga')) return 'activities';
+    return 'daily';
+  };
 
   // Initialize style challenges
   useEffect(() => {
@@ -1929,6 +1994,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                           const dayPlan = dateOccasions[date];
                           const hasNotes = dayPlan?.notes && dayPlan.notes.length > 0;
                           const hasOutfit = dayPlan?.outfitPieces && dayPlan.outfitPieces.length > 0;
+                          const hasShoppingLinks = dayPlan?.shoppingLinks && dayPlan.shoppingLinks.length > 0;
 
                           calendarCells.push(
                             <div
@@ -1952,6 +2018,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                                 {hasOutfit && (
                                   <div className="w-2 h-2 bg-pink-500 rounded-full" title="Has outfit pieces"></div>
                                 )}
+                                {hasShoppingLinks && (
+                                  <div className="w-2 h-2 bg-green-500 rounded-full" title="Has shopping links"></div>
+                                )}
                               </div>
                             ) : (
                               <div className="text-xs text-gray-400 mt-1">Click to plan</div>
@@ -1963,6 +2032,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                                   <div className="capitalize truncate">{dayPlan.occasion}</div>
                                   {hasOutfit && (
                                     <div className="text-pink-600">{dayPlan.outfitPieces.length} pieces</div>
+                                  )}
+                                  {hasShoppingLinks && (
+                                    <div className="text-green-600">{dayPlan.shoppingLinks.length} link{dayPlan.shoppingLinks.length !== 1 ? 's' : ''}</div>
                                   )}
                                 </div>
                               )}
@@ -2004,7 +2076,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
                     <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                       <h5 className="text-sm font-medium text-gray-700 mb-2">Planning Indicators</h5>
-                      <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="grid grid-cols-3 gap-3 text-xs">
                         <div className="flex items-center space-x-2">
                           <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                           <span className="text-gray-600">Has notes</span>
@@ -2012,6 +2084,10 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                         <div className="flex items-center space-x-2">
                           <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
                           <span className="text-gray-600">Has outfit pieces</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-gray-600">Has shopping links</span>
                         </div>
                       </div>
                     </div>
@@ -2275,6 +2351,41 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
                                   </div>
                                 ))}
                               </div>
+                            </div>
+                          )}
+
+                          {/* Shopping Links Section */}
+                          {dateOccasions[selectedDate]?.shoppingLinks && dateOccasions[selectedDate].shoppingLinks!.length > 0 && (
+                            <div className="mb-4 border-t border-gray-200 pt-4">
+                              <h4 className="font-medium text-gray-700 mb-3 flex items-center">
+                                <ShoppingBag className="w-4 h-4 mr-2 text-green-600" />
+                                Shopping Links ({dateOccasions[selectedDate].shoppingLinks!.length})
+                              </h4>
+                              <div className="space-y-2">
+                                {dateOccasions[selectedDate].shoppingLinks!.map((link, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => {
+                                      const urlToOpen = link.affiliateUrl || link.url;
+                                      console.log('🛍️ [MONTHLY-PLANNER] Opening shopping link:', urlToOpen);
+                                      window.open(urlToOpen, '_blank', 'noopener,noreferrer');
+                                    }}
+                                    className="w-full flex items-center justify-between p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors text-left"
+                                  >
+                                    <div className="flex-1 min-w-0 mr-3">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {link.title || link.store || `Product ${index + 1}`}
+                                      </p>
+                                      <p className="text-xs text-gray-600">{link.store}</p>
+                                      {link.price && (
+                                        <p className="text-xs font-medium text-green-600 mt-1">{link.price}</p>
+                                      )}
+                                    </div>
+                                    <ExternalLink className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                  </button>
+                                ))}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-2">Click to open product pages and shop</p>
                             </div>
                           )}
 
