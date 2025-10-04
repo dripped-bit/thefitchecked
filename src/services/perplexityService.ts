@@ -546,8 +546,24 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
         console.log('✅ [FALLBACK] Added direct store search links:', directStoreLinks.length);
       }
 
-      console.log('✅ [PERPLEXITY] Found products:', products.length);
-      return products;
+      // CRITICAL: Deduplicate by store - keep only ONE product per store
+      const uniqueByStore = new Map<string, ProductSearchResult>();
+      products.forEach(product => {
+        const storeLower = product.store.toLowerCase();
+        if (!uniqueByStore.has(storeLower)) {
+          uniqueByStore.set(storeLower, product);
+        }
+      });
+
+      const deduplicatedProducts = Array.from(uniqueByStore.values());
+
+      console.log('✅ [PERPLEXITY] Found products:', {
+        total: products.length,
+        uniqueStores: deduplicatedProducts.length,
+        stores: deduplicatedProducts.map(p => p.store).join(', ')
+      });
+
+      return deduplicatedProducts;
 
     } catch (error) {
       console.error('❌ [PERPLEXITY] Product search failed:', error);
@@ -683,6 +699,12 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
       // Map common domains to store names
       const storeMap: { [key: string]: string } = {
         'amazon.com': 'Amazon',
+        'fashionnova.com': 'Fashion Nova',
+        'shein.com': 'Shein',
+        'whitefoxboutique.com': 'White Fox Boutique',
+        'ohpolly.com': 'Oh Polly',
+        'houseofcb.com': 'House of CB',
+        'prettylittlething.com': 'PrettyLittleThing',
         'ebay.com': 'eBay',
         'etsy.com': 'Etsy',
         'zara.com': 'Zara',
