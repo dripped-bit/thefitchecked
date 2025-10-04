@@ -50,7 +50,7 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
   const [searchResults, setSearchResults] = useState<OutfitSearchResults | null>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
-  // Category configurations
+  // Category configurations - Updated to merge shirts and tops
   const categories: Array<{
     key: ClothingCategory;
     label: string;
