@@ -2705,6 +2705,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           imageUrl={pendingItem.imageUrl}
           onConfirm={handleCategoryConfirm}
           onCancel={handleCategoryCancel}
+          suggestedCategory={pendingItem.metadata?.suggestedCategory as ClothingCategory}
         />
       )}
     </div>

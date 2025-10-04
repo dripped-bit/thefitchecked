@@ -11,6 +11,7 @@ interface CategorySelectorProps {
   onConfirm: (category: ClothingCategory, imageUrl: string) => void;
   imageUrl: string;
   onCancel?: () => void;
+  suggestedCategory?: ClothingCategory;
 }
 
 const CLOTHING_CATEGORIES: Array<{ value: ClothingCategory; label: string }> = [
@@ -28,8 +29,9 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   onConfirm,
   imageUrl,
   onCancel,
+  suggestedCategory,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<ClothingCategory>('tops');
+  const [selectedCategory, setSelectedCategory] = useState<ClothingCategory>(suggestedCategory || 'tops');
 
   const handleConfirm = () => {
     console.log('🏷️ Category selected:', selectedCategory);
