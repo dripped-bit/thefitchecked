@@ -33,17 +33,17 @@ class MultiItemDetectionService {
    */
   async detectMultipleItems(imageUrl: string): Promise<MultiItemDetectionResult> {
     try {
-      console.log('🔍 [MULTI-ITEM] Starting multi-item detection...');
+      console.log('🔍 [MULTI-ITEM-V2] Starting enhanced multi-item detection (outfit photos + flat-lays)...');
 
       // Convert image to base64
       const base64Image = await this.imageToBase64(imageUrl);
       const mediaType = this.detectMediaType(imageUrl);
 
-      // Call Claude Vision to detect multiple items
+      // Call Claude Vision to detect multiple items (V2: now handles outfit photos)
       const detectionResult = await this.analyzeWithClaude(base64Image, mediaType);
 
       if (!detectionResult.hasMultipleItems || detectionResult.items.length <= 1) {
-        console.log('ℹ️ [MULTI-ITEM] Single item detected, no splitting needed');
+        console.log('ℹ️ [MULTI-ITEM-V2] Single item detected, no splitting needed');
         return {
           hasMultipleItems: false,
           itemCount: detectionResult.items.length,
@@ -53,7 +53,7 @@ class MultiItemDetectionService {
       }
 
       // Crop each detected item from the original image
-      console.log(`✂️ [MULTI-ITEM] Cropping ${detectionResult.items.length} items...`);
+      console.log(`✂️ [MULTI-ITEM-V2] Cropping ${detectionResult.items.length} items...`);
       const itemsWithCrops = await Promise.all(
         detectionResult.items.map(async (item) => ({
           ...item,
@@ -61,7 +61,7 @@ class MultiItemDetectionService {
         }))
       );
 
-      console.log(`✅ [MULTI-ITEM] Successfully detected and cropped ${itemsWithCrops.length} items`);
+      console.log(`✅ [MULTI-ITEM-V2] Successfully detected and cropped ${itemsWithCrops.length} items:`, itemsWithCrops.map(i => `${i.name} (${i.category})`));
 
       return {
         hasMultipleItems: true,
@@ -106,34 +106,48 @@ class MultiItemDetectionService {
             },
             {
               type: 'text',
-              text: `Analyze this image and detect if it contains multiple separate clothing items (e.g., a shirt and shorts laid out together, or an outfit flat-lay).
+              text: `Analyze this image and detect all individual clothing items. This includes BOTH:
+1. Flat-lay photos with items laid out separately
+2. Outfit photos where a person is wearing multiple garments
 
-IMPORTANT: Only detect items if they are CLEARLY SEPARATE pieces (not a complete outfit worn on a person). For example:
-- ✅ YES: Flat-lay photo with shirt + pants laid separately
-- ✅ YES: Two items photographed side-by-side
-- ❌ NO: Person wearing a complete outfit
-- ❌ NO: Single dress or one-piece garment
+DETECTION RULES:
+✅ DETECT separate items when you see:
+- Person wearing shirt + pants/skirt/shorts (split into 2+ items)
+- Person wearing outfit with shoes visible (include shoes as separate item)
+- Person wearing accessories (bags, hats, jewelry - separate items)
+- Flat-lay photo with multiple items laid out
+- Items photographed side-by-side
 
-If you detect multiple SEPARATE items, provide bounding boxes for each. Return ONLY valid JSON:
+❌ TREAT AS SINGLE ITEM only when:
+- One-piece garment (dress, jumpsuit, romper) with NO other visible items
+- Only outerwear visible (coat covering everything)
+- Single item only (just a shirt, just shoes, etc.)
+
+For each detected garment piece, provide its bounding box. Return ONLY valid JSON:
 
 {
   "hasMultipleItems": true/false,
   "items": [
     {
-      "name": "Item description (e.g., Blue Denim Shorts)",
-      "category": "tops|bottoms|dresses|skirts|shoes|accessories|outerwear|jackets|other",
+      "name": "Item description (e.g., Pink Tank Top, Denim Skirt)",
+      "category": "tops|pants|dresses|skirts|shoes|accessories|outerwear|sweaters|other",
       "boundingBox": {
-        "x": 0.1,     // Left edge (0-1, normalized)
-        "y": 0.2,     // Top edge (0-1, normalized)
-        "width": 0.4, // Width (0-1, normalized)
-        "height": 0.5 // Height (0-1, normalized)
+        "x": 0.1,     // Left edge (0-1, normalized to image)
+        "y": 0.2,     // Top edge (0-1, normalized to image)
+        "width": 0.4, // Width (0-1, normalized to image)
+        "height": 0.5 // Height (0-1, normalized to image)
       },
       "confidence": 0.9
     }
   ]
 }
 
-If only ONE item or a person wearing clothes, return hasMultipleItems: false with single item.
+EXAMPLES:
+- Photo of person wearing tank top + skirt → hasMultipleItems: true, 2 items (top, skirt)
+- Photo of person wearing dress only → hasMultipleItems: false, 1 item
+- Flat-lay with shirt and shorts → hasMultipleItems: true, 2 items
+- Person wearing complete outfit with shoes → hasMultipleItems: true, 3+ items
+
 Return ONLY the JSON object, no additional text.`
             }
           ]
@@ -166,7 +180,7 @@ Return ONLY the JSON object, no additional text.`
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
-    console.log('🤖 [MULTI-ITEM] Claude analysis result:', parsed);
+    console.log('🤖 [MULTI-ITEM-V2] Claude analysis result:', parsed);
 
     return {
       hasMultipleItems: parsed.hasMultipleItems || false,
