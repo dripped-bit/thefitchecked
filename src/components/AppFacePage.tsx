@@ -620,11 +620,6 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
           <div className="sparkle sparkle-6 text-lg top-2 right-1/5">⭐</div>
         </div>
 
-        {/* Subtitle */}
-        <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed text-center">
-          Upload your outfit and see how it looks on your 3D avatar with FASHN AI
-        </p>
-
         {/* Centered Avatar Display */}
         <div className="flex justify-center items-center mb-8">
           <div className="max-w-sm w-full px-4">
