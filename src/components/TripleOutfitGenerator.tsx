@@ -85,7 +85,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       icon: <Star className="w-5 h-5" />,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50 border-blue-200',
-      promptModifier: 'ELEGANT SOPHISTICATED OUTFIT: tailored silhouette, classic lines, neutral tones (black, navy, cream, camel) or jewel tones (emerald, sapphire, burgundy), refined details, structured pieces, timeless elegance'
+      promptModifier: 'tailored silhouette, classic lines, refined details, structured pieces, timeless elegance'
     },
     {
       id: 'romantic',
@@ -94,7 +94,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       icon: <Heart className="w-5 h-5" />,
       color: 'text-pink-600',
       bgColor: 'bg-pink-50 border-pink-200',
-      promptModifier: 'ROMANTIC FEMININE OUTFIT: flowing fabrics, soft pastels (blush pink, lavender, powder blue, cream), delicate details, ruffles OR lace OR floral elements, dreamy feminine style, soft draping'
+      promptModifier: 'flowing fabrics, delicate details, ruffles OR lace OR floral elements, dreamy feminine style, soft draping'
     },
     {
       id: 'bold',
@@ -103,7 +103,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       icon: <Zap className="w-5 h-5" />,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50 border-purple-200',
-      promptModifier: 'BOLD MODERN OUTFIT: statement pieces, contemporary cuts, vibrant colors (electric blue, hot pink, emerald green) OR color blocking OR metallics, striking details, edgy fashion-forward style'
+      promptModifier: 'statement pieces, contemporary cuts, striking details, edgy fashion-forward style, color blocking OR metallics'
     }
   ];
 
@@ -135,7 +135,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
                           occasion.originalInput.trim().toLowerCase() !== occasion.occasion.trim().toLowerCase();
 
     const basePrompt = hasCustomInput
-      ? `${occasion.originalInput} (for ${occasion.occasion})`
+      ? occasion.originalInput  // Use EXACTLY what user typed
       : occasion.occasion;
 
     console.log('📝 [PROMPT] Building prompt with:', {
@@ -201,18 +201,29 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       }
     }
 
-    // Structure: PERSONALITY FIRST for maximum variation, then gender/request/style
+    // Structure: USER'S SPECIFIC REQUEST FIRST if provided, then personality as style variation
     // NOTE: Removed time/location/weather to prevent text appearing in generated images
     const userRequest = `${basePrompt}, ${occasion.formality} attire`;
-
-    // Build final prompt with PERSONALITY as highest priority for variation
     const genderPrefix = genderGuidance ? `${genderGuidance}. ` : '';
 
-    return `${personality.promptModifier}
+    // If user provided specific details, put them FIRST to ensure AI prioritizes user's request
+    if (hasCustomInput) {
+      return `SPECIFIC REQUEST: ${occasion.originalInput}
+
+STYLE INTERPRETATION - ${personality.name}: ${personality.promptModifier}
+
+FOR OCCASION: ${occasion.occasion}, ${occasion.formality} attire
+${genderPrefix}${styleGuidance}
+
+Generate ONE SINGLE complete outfit matching the specific request above. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
+    } else {
+      // No custom input - use personality as primary guide
+      return `${personality.promptModifier}
 
 ${genderPrefix}FOR OCCASION: ${userRequest}. ${styleGuidance}
 
-Generate ONE SINGLE complete outfit (either a dress, or a top and bottom worn together). Show this as one unified clothing item or outfit combination. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
+Generate ONE SINGLE complete outfit. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
+    }
   };
 
   const createCleanSearchPrompt = (): string => {
