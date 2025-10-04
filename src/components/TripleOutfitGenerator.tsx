@@ -611,27 +611,7 @@ NO explanations, just keywords.`
             </div>
           )}
 
-          <div className="flex items-center justify-center space-x-6 text-sm text-gray-600">
-            {occasion.date && (
-              <div className="flex items-center space-x-1">
-                <Calendar className="w-4 h-4" />
-                <span>{occasion.date} {occasion.time}</span>
-              </div>
-            )}
-            {occasion.weather && (
-              <div className="flex items-center space-x-1">
-                <Thermometer className="w-4 h-4" />
-                <span>{occasion.weather.temperature}°F {occasion.weather.weatherDescription}</span>
-              </div>
-            )}
-            <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-              occasion.formality === 'formal' ? 'bg-blue-100 text-blue-700' :
-              occasion.formality === 'semi-formal' ? 'bg-purple-100 text-purple-700' :
-              'bg-green-100 text-green-700'
-            }`}>
-              {occasion.formality}
-            </div>
-          </div>
+          {/* Date/Time/Weather display removed - was showing placeholder demo data */}
         </div>
 
         {/* Triple Outfit Display */}
