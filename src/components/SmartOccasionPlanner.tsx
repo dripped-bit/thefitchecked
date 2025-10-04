@@ -4,9 +4,8 @@ import SmartOccasionInput, { ParsedOccasion, SmartSuggestion, BudgetRange } from
 import TripleOutfitGenerator, { GeneratedOutfit } from './TripleOutfitGenerator';
 import IntegratedShopping from './IntegratedShopping';
 import ExternalTryOnModal from './ExternalTryOnModal';
-import SaveToCalendarModal, { CalendarSaveData } from './SaveToCalendarModal';
+import CalendarEntryModal from './CalendarEntryModal';
 import { ProductSearchResult } from '../services/perplexityService';
-import ClosetService, { ClothingItem } from '../services/closetService';
 
 interface SmartOccasionPlannerProps {
   onOutfitGenerate?: (outfitData: any) => void;
@@ -36,6 +35,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
 
   // Save to calendar modal state
   const [showSaveToCalendarModal, setShowSaveToCalendarModal] = useState(false);
+  const [collectedShoppingLinks, setCollectedShoppingLinks] = useState<ProductSearchResult[]>([]);
 
   // Budget selection modal state
   const [showBudgetModal, setShowBudgetModal] = useState(false);
@@ -154,58 +154,36 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
     setShowSaveToCalendarModal(true);
   };
 
+  const handleProductsCollected = (products: ProductSearchResult[]) => {
+    console.log('🛍️ [PLANNER] Collected shopping links:', products.length);
+    setCollectedShoppingLinks(products);
+  };
+
   const handleBudgetSelect = (budget: BudgetRange) => {
     setSelectedBudget(budget);
     setShowBudgetModal(false);
     setCurrentState('shopping');
   };
 
-  const handleCalendarSaveComplete = (data: CalendarSaveData) => {
-    if (!selectedOutfit) {
-      console.error('No outfit selected');
-      return;
-    }
-
-    // Create a placeholder clothing item representing the generated outfit
-    // In the future, this could be enhanced to save individual items if they exist in the closet
-    const outfitPlaceholder: ClothingItem = {
-      id: `generated-outfit-${Date.now()}`,
-      name: `${selectedOutfit.personality.name} outfit`,
-      imageUrl: selectedOutfit.imageUrl,
-      category: 'other',
-      dateAdded: new Date().toISOString(),
-      description: `${selectedOutfit.personality.name} style for ${data.occasion}`,
-      isUserGenerated: true,
-      source: 'occasion-planner'
-    };
-
-    // Save outfit to calendar using ClosetService
-    const success = ClosetService.saveDailyOutfit(data.date, [outfitPlaceholder], {
-      notes: `${selectedOutfit.personality.name} outfit for ${data.occasion}`,
-      needsPurchase: data.needsPurchaseReminder,
-      purchaseLink: data.purchaseLink,
-      purchaseReminders: data.needsPurchaseReminder ? [data.date] : []
+  const handleCalendarSaveComplete = (calendarEntry: any) => {
+    console.log('✅ [CALENDAR] Outfit saved successfully:', {
+      id: calendarEntry.id,
+      occasion: calendarEntry.occasion,
+      eventDate: calendarEntry.eventDate,
+      shoppingLinks: calendarEntry.shoppingLinks?.length || 0,
+      processedLinks: calendarEntry.processedLinks?.length || 0
     });
 
-    if (success) {
-      console.log('✅ [CALENDAR] Outfit saved successfully:', {
-        date: data.date,
-        occasion: data.occasion,
-        outfit: selectedOutfit.personality.name,
-        needsPurchase: data.needsPurchaseReminder,
-        purchaseLink: data.purchaseLink
-      });
+    setShowSaveToCalendarModal(false);
 
-      setShowSaveToCalendarModal(false);
-
-      // Show success message
-      setTimeout(() => {
-        alert(`✅ Outfit saved to calendar for ${data.occasion} on ${new Date(data.date).toLocaleDateString()}!`);
-      }, 100);
-    } else {
-      console.error('❌ [CALENDAR] Failed to save outfit');
-      alert('Failed to save outfit to calendar. Please try again.');
-    }
+    // Show success message
+    setTimeout(() => {
+      const linkCount = calendarEntry.shoppingLinks?.length || 0;
+      const message = linkCount > 0
+        ? `✅ Outfit saved to calendar with ${linkCount} shopping link${linkCount !== 1 ? 's' : ''}!`
+        : `✅ Outfit saved to calendar for ${calendarEntry.occasion}!`;
+      alert(message);
+    }, 100);
   };
 
   const handleStartOver = () => {
@@ -331,6 +309,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
             budget={selectedBudget}
             onTryOnProduct={handleTryOnProduct}
             onSaveToCalendar={handleSaveToCalendar}
+            onProductsCollected={handleProductsCollected}
             avatarData={avatarData}
           />
         </div>
@@ -348,15 +327,20 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
       )}
 
       {/* Save to Calendar Modal */}
-      {showSaveToCalendarModal && (
-        <SaveToCalendarModal
-          isOpen={showSaveToCalendarModal}
-          onClose={() => setShowSaveToCalendarModal(false)}
+      {showSaveToCalendarModal && selectedOutfit && (
+        <CalendarEntryModal
+          outfit={{
+            outfit: selectedOutfit,
+            occasion: parsedOccasion?.occasion || '',
+            image: selectedOutfit.imageUrl,
+            imageUrl: selectedOutfit.imageUrl,
+            avatarUrl: selectedOutfit.imageUrl,
+            description: `${selectedOutfit.personality.name} style outfit`,
+            personality: selectedOutfit.personality
+          }}
+          initialShoppingLinks={collectedShoppingLinks.map(p => p.url)}
           onSave={handleCalendarSaveComplete}
-          defaultOccasion={parsedOccasion?.occasion || ''}
-          defaultDate={parsedOccasion?.date || ''}
-          outfitImageUrl={selectedOutfit?.imageUrl || ''}
-          outfitName={selectedOutfit ? `${selectedOutfit.personality.name} outfit` : ''}
+          onClose={() => setShowSaveToCalendarModal(false)}
         />
       )}
 

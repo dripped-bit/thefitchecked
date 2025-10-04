@@ -373,6 +373,67 @@ class AffiliateLinkService {
   updateConfig(newConfig: Partial<AffiliateConfig>): void {
     this.config = { ...this.config, ...newConfig };
   }
+
+  /**
+   * Get conversion analytics from notification click-throughs
+   */
+  getConversionAnalytics(): {
+    totalConversions: number;
+    conversionsByOccasion: Record<string, number>;
+    averageLinksPerConversion: number;
+    recentConversions: any[];
+  } {
+    try {
+      const conversions = JSON.parse(localStorage.getItem('notification_conversions') || '[]');
+
+      const byOccasion: Record<string, number> = {};
+      let totalLinks = 0;
+
+      conversions.forEach((conv: any) => {
+        if (conv.occasion) {
+          byOccasion[conv.occasion] = (byOccasion[conv.occasion] || 0) + 1;
+        }
+        totalLinks += conv.linksCount || 0;
+      });
+
+      return {
+        totalConversions: conversions.length,
+        conversionsByOccasion: byOccasion,
+        averageLinksPerConversion: conversions.length > 0 ? totalLinks / conversions.length : 0,
+        recentConversions: conversions.slice(-10).reverse()
+      };
+    } catch (error) {
+      console.error('[AFFILIATE] Error loading conversion analytics:', error);
+      return {
+        totalConversions: 0,
+        conversionsByOccasion: {},
+        averageLinksPerConversion: 0,
+        recentConversions: []
+      };
+    }
+  }
+
+  /**
+   * Get combined analytics (clicks + conversions)
+   */
+  getCombinedAnalytics(): {
+    clicks: ReturnType<typeof this.getAnalytics>;
+    conversions: ReturnType<typeof this.getConversionAnalytics>;
+    conversionRate: number;
+  } {
+    const clicks = this.getAnalytics();
+    const conversions = this.getConversionAnalytics();
+
+    const conversionRate = clicks.totalClicks > 0
+      ? (conversions.totalConversions / clicks.totalClicks) * 100
+      : 0;
+
+    return {
+      clicks,
+      conversions,
+      conversionRate
+    };
+  }
 }
 
 // Export singleton instance

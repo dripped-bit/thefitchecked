@@ -20,6 +20,7 @@ interface CalendarEntryModalProps {
   };
   onSave: (calendarEntry: CalendarEntry) => void;
   onClose: () => void;
+  initialShoppingLinks?: string[]; // Array of product URLs to pre-fill
 }
 
 interface CalendarEntry {
@@ -45,12 +46,13 @@ interface ProcessedLink {
 const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
   outfit,
   onSave,
-  onClose
+  onClose,
+  initialShoppingLinks = []
 }) => {
   const [formData, setFormData] = useState({
     eventDate: '',
     occasionName: outfit?.occasion || '',
-    shoppingLinks: '',
+    shoppingLinks: initialShoppingLinks.join('\n'),
     reminderDays: 7,
     notes: ''
   });
@@ -179,17 +181,19 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
     console.log('🔔 [CALENDAR-MODAL] Reminder scheduled:', {
       eventDate: eventDate.toISOString(),
       reminderDate: reminderDate.toISOString(),
-      daysBefore: entry.reminderDays
+      daysBefore: entry.reminderDays,
+      shoppingLinksCount: entry.processedLinks?.length || 0
     });
 
-    // Store reminder data in localStorage
+    // Store reminder data in localStorage with shopping links
     const reminders = JSON.parse(localStorage.getItem('outfit_reminders') || '[]');
     reminders.push({
       id: entry.id,
       reminderDate: reminderDate.toISOString(),
       eventDate: entry.eventDate,
       occasion: entry.occasion,
-      message: `Don't forget to shop for your ${entry.occasion} outfit!`
+      message: `Don't forget to shop for your ${entry.occasion} outfit!`,
+      shoppingLinks: entry.processedLinks?.map(link => link.affiliateUrl) || []
     });
     localStorage.setItem('outfit_reminders', JSON.stringify(reminders));
   };

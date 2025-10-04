@@ -24,6 +24,7 @@ import avatarManagementService from './services/avatarManagementService';
 import weatherService from './services/weatherService';
 import outfitGenerationService from './services/outfitGenerationService';
 import localStorageMigrationService from './services/localStorageMigrationService';
+import reminderMonitorService from './services/reminderMonitorService';
 
 // Import debug utilities for console access
 import './utils/testApiConnection';

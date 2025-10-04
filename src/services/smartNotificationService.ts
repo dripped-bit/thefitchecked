@@ -645,14 +645,57 @@ class SmartNotificationService {
 
       browserNotification.onclick = () => {
         window.focus();
-        if (notification.actionUrl) {
+
+        // Handle shopping links from reminders
+        if (notification.data?.shoppingLinks && notification.data.shoppingLinks.length > 0) {
+          console.log('🛍️ [NOTIFICATION] Opening shopping links from reminder:', {
+            count: notification.data.shoppingLinks.length,
+            occasion: notification.data.occasion
+          });
+
+          // Open shopping links in new tabs
+          notification.data.shoppingLinks.forEach((link: string, index: number) => {
+            setTimeout(() => {
+              window.open(link, '_blank');
+              console.log(`✅ [NOTIFICATION] Opened shopping link ${index + 1}/${notification.data.shoppingLinks.length}`);
+            }, index * 300); // Stagger by 300ms to avoid popup blocker
+          });
+
+          // Track conversion
+          this.trackNotificationConversion(notification);
+        } else if (notification.actionUrl) {
           window.location.href = notification.actionUrl;
         }
+
         browserNotification.close();
       };
 
       // Auto-close after 10 seconds
       setTimeout(() => browserNotification.close(), 10000);
+    }
+  }
+
+  /**
+   * Track when user clicks through notification to shopping links
+   */
+  private trackNotificationConversion(notification: Notification): void {
+    try {
+      const conversion = {
+        notificationId: notification.id,
+        reminderId: notification.data?.reminderId,
+        occasion: notification.data?.occasion,
+        linksCount: notification.data?.shoppingLinks?.length || 0,
+        timestamp: Date.now()
+      };
+
+      // Store conversion in localStorage for analytics
+      const conversions = JSON.parse(localStorage.getItem('notification_conversions') || '[]');
+      conversions.push(conversion);
+      localStorage.setItem('notification_conversions', JSON.stringify(conversions.slice(-100))); // Keep last 100
+
+      console.log('📊 [CONVERSION] Notification click-through tracked:', conversion);
+    } catch (error) {
+      console.error('❌ [CONVERSION] Failed to track conversion:', error);
     }
   }
 

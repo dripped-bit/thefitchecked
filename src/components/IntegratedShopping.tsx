@@ -27,6 +27,7 @@ interface IntegratedShoppingProps {
   budget?: BudgetRange | null;
   onTryOnProduct?: (product: ProductSearchResult) => void;
   onSaveToCalendar?: () => void;
+  onProductsCollected?: (products: ProductSearchResult[]) => void;
   avatarData?: any;
   className?: string;
 }
@@ -44,6 +45,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   budget,
   onTryOnProduct,
   onSaveToCalendar,
+  onProductsCollected,
   avatarData,
   className = ''
 }) => {
@@ -52,6 +54,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   const [searchProgress, setSearchProgress] = useState('');
   const [selectedBudget, setSelectedBudget] = useState<'all' | 'value' | 'budget' | 'mid' | 'luxury' | null>(null);
   const [savedToCalendar, setSavedToCalendar] = useState(false);
+  const [clickedProducts, setClickedProducts] = useState<ProductSearchResult[]>([]);
 
   // Auto-set budget filter based on budget prop
   useEffect(() => {
@@ -75,6 +78,13 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
       }
     }
   }, [budget]);
+
+  // Notify parent when clicked products change
+  useEffect(() => {
+    if (onProductsCollected && clickedProducts.length > 0) {
+      onProductsCollected(clickedProducts);
+    }
+  }, [clickedProducts, onProductsCollected]);
 
   useEffect(() => {
     if (selectedOutfit) {
@@ -435,27 +445,52 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
           </div>
 
           {/* Calendar Save Button - Now Prominent and Always Visible */}
-          <button
-            onClick={handleSaveToCalendar}
-            disabled={savedToCalendar}
-            className={`w-full px-6 py-3 rounded-xl font-medium transition-all shadow-md ${
-              savedToCalendar
-                ? 'bg-green-100 text-green-700 border border-green-300'
-                : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
-            }`}
-          >
-            {savedToCalendar ? (
-              <>
-                <CheckCircle className="w-5 h-5 inline mr-2" />
-                <span className="font-semibold">Saved to Calendar</span>
-              </>
-            ) : (
-              <>
-                <Calendar className="w-5 h-5 inline mr-2" />
-                <span className="font-semibold">Save to Calendar</span>
-              </>
+          <div className="space-y-2">
+            {clickedProducts.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center space-x-2">
+                    <ShoppingBag className="w-4 h-4 text-blue-600" />
+                    <span className="text-blue-700 font-medium">
+                      {clickedProducts.length} item{clickedProducts.length !== 1 ? 's' : ''} saved for calendar
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setClickedProducts([])}
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
             )}
-          </button>
+            <button
+              onClick={handleSaveToCalendar}
+              disabled={savedToCalendar}
+              className={`w-full px-6 py-3 rounded-xl font-medium transition-all shadow-md ${
+                savedToCalendar
+                  ? 'bg-green-100 text-green-700 border border-green-300'
+                  : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
+              }`}
+            >
+              {savedToCalendar ? (
+                <>
+                  <CheckCircle className="w-5 h-5 inline mr-2" />
+                  <span className="font-semibold">Saved to Calendar</span>
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-5 h-5 inline mr-2" />
+                  <span className="font-semibold">Save to Calendar</span>
+                  {clickedProducts.length > 0 && (
+                    <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                      +{clickedProducts.length} items
+                    </span>
+                  )}
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Budget Filter */}
@@ -592,6 +627,16 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                             store: product.store,
                             originalUrl: product.url,
                             price: product.price
+                          });
+
+                          // Save product to clicked products (for calendar save)
+                          setClickedProducts(prev => {
+                            const alreadyClicked = prev.some(p => p.url === product.url);
+                            if (!alreadyClicked) {
+                              console.log('💾 [SHOPPING-CAPTURE] Product saved for calendar:', product.title);
+                              return [...prev, product];
+                            }
+                            return prev;
                           });
 
                           const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
