@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
+import userDataService from '../services/userDataService';
 import { ParsedOccasion } from './SmartOccasionInput';
 import ShareModal from './ShareModal';
 import CalendarEntryModal from './CalendarEntryModal';
@@ -130,6 +131,34 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     const timeContext = occasion.time ? `for ${occasion.time}` : '';
     const locationContext = occasion.location ? `in ${occasion.location}` : '';
 
+    // Get user's gender from profile
+    const userData = userDataService.getAllUserData();
+    const userGender = userData?.profile?.gender;
+    console.log('👤 [GENDER] User gender detected:', userGender || 'unspecified');
+
+    // Build gender-specific clothing guidance with exclusions
+    let genderGuidance = '';
+    if (userGender === 'female') {
+      genderGuidance = "women's clothing, women's fashion, feminine style, for women. EXCLUDE: men's suits, ties, dress shirts, men's formal wear, masculine clothing";
+    } else if (userGender === 'male') {
+      genderGuidance = "men's clothing, men's fashion, masculine style, for men. EXCLUDE: dresses, skirts, women's blouses, feminine clothing";
+    }
+
+    // Get budget range guidance if available
+    let budgetGuidance = '';
+    if (occasion.budgetRange) {
+      const budget = occasion.budgetRange;
+      console.log('💰 [BUDGET] Budget range:', budget.label, budget.range);
+
+      if (budget.label === 'High Budget') {
+        budgetGuidance = ', high-end designer, luxury brands, premium quality, upscale fashion';
+      } else if (budget.label === 'Medium Budget') {
+        budgetGuidance = ', mid-range quality, contemporary brands, good value';
+      } else if (budget.label === 'Low Budget') {
+        budgetGuidance = ', affordable, budget-friendly, accessible price point';
+      }
+    }
+
     // Check if user explicitly specified a color in their request
     const colorKeywords = ['pink', 'red', 'blue', 'green', 'black', 'white', 'yellow', 'purple', 'brown', 'orange', 'beige', 'navy', 'grey', 'gray', 'cream', 'tan', 'burgundy', 'teal', 'lavender', 'coral', 'emerald', 'olive'];
     const hasExplicitColor = colorKeywords.some(color =>
@@ -172,11 +201,14 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       }
     }
 
-    // Structure: USER REQUEST FIRST (highest priority), then style guidance for DETAILS only
+    // Structure: GENDER FIRST (highest priority), then user request, budget, style guidance
     const userRequest = `${basePrompt} ${timeContext} ${locationContext}, ${weatherContext}, ${occasion.formality} attire`;
 
-    // Build final prompt with clear priority structure
-    return `PRIMARY: ${userRequest}. ${styleGuidance}${personality.promptModifier}, single clothing piece only, one garment, no person, no model, no mannequin, isolated single garment, product photography, fashion flat lay, clean white background, centered composition, professional product photography, detailed fabric texture, well-lit, crisp details, single item display, fashion catalog style, FASHN-ready single garment image, virtual try-on optimized. IMPORTANT: If PRIMARY request specifies a color, that color MUST be used.`;
+    // Build final prompt with gender as highest priority
+    const genderPrefix = genderGuidance ? `${genderGuidance}. ` : '';
+    const budgetSuffix = budgetGuidance || '';
+
+    return `${genderPrefix}PRIMARY: ${userRequest}${budgetSuffix}. ${styleGuidance}${personality.promptModifier}, single clothing piece only, one garment, no person, no model, no mannequin, isolated single garment, product photography, fashion flat lay, clean white background, centered composition, professional product photography, detailed fabric texture, well-lit, crisp details, single item display, fashion catalog style, FASHN-ready single garment image, virtual try-on optimized. IMPORTANT: If PRIMARY request specifies a color, that color MUST be used.`;
   };
 
   const createCleanSearchPrompt = (): string => {
