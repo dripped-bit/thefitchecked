@@ -49,6 +49,15 @@ body::after {
     border: 1px solid rgba(245, 245, 220, 0.2);
   }
 
+  /* Hide scrollbar for cleaner horizontal scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
   .glass-beige-dark {
     background: rgba(222, 184, 135, 0.3); /* Darker beige with 30% opacity */
     backdrop-filter: blur(25px);

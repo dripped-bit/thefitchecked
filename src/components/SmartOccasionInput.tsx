@@ -71,7 +71,9 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [parsedOccasion, setParsedOccasion] = useState<ParsedOccasion | null>(null);
   const [isReadyToGenerate, setIsReadyToGenerate] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [showBudgetOptions, setShowBudgetOptions] = useState(false);
+  const [selectedOccasion, setSelectedOccasion] = useState<any>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Generate smart suggestions based on upcoming events and common occasions
@@ -128,12 +130,41 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
     ]
   };
 
-  // Filter occasions by selected tab
-  const getFilteredOccasions = (tab: string) => {
-    if (tab === 'All') {
-      return Object.values(occasions).flat();
+  // Filter occasions by selected category
+  const getFilteredOccasions = (category: string) => {
+    if (!category || category === '') {
+      return [];
     }
-    return occasions[tab as keyof typeof occasions] || [];
+    return occasions[category as keyof typeof occasions] || [];
+  };
+
+  // Handle occasion card click - show budget options instead of immediate generation
+  const handleOccasionClick = (occasion: any) => {
+    setSelectedOccasion(occasion);
+    setShowBudgetOptions(true);
+  };
+
+  // Handle budget selection - trigger outfit generation
+  const handleBudgetSelect = (budgetTier: { label: string; range: string; min: number; max: number }) => {
+    if (!selectedOccasion) return;
+
+    // Create suggestion object for generation
+    const suggestion = {
+      ...selectedOccasion,
+      date: 'This Weekend',
+      time: '6:00 PM',
+      location: 'TBD',
+      budgetRange: budgetTier,
+      weather: {
+        temp: 72,
+        condition: 'Clear',
+        icon: <Sun className="w-4 h-4 text-yellow-500" />
+      }
+    };
+
+    // Trigger outfit generation with budget context
+    handleSuggestionClick(suggestion);
+    setShowBudgetOptions(false);
   };
 
   const generateSmartSuggestions = () => {
@@ -436,71 +467,112 @@ Examples:
           )}
         </div>
 
-        {/* Tab-based Occasion Selector */}
+        {/* Dropdown-based Occasion Selector */}
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             Or pick from upcoming events:
           </h3>
 
-          {/* Tab Navigation */}
-          <div className="flex overflow-x-auto space-x-2 mb-6 pb-2 scrollbar-hide">
-            {['All', 'Formal', 'Casual', 'Beach', 'Evening', 'Active', 'Business'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-shrink-0 px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  activeTab === tab
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:border-purple-300'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
+          {/* Category Dropdown */}
+          <div className="mb-6">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full max-w-md px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 font-medium focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 cursor-pointer"
+            >
+              <option value="">Select occasion type</option>
+              <option value="Formal">Formal Events</option>
+              <option value="Casual">Casual Outings</option>
+              <option value="Beach">Beach/Resort</option>
+              <option value="Evening">Evening Events</option>
+              <option value="Active">Active/Sports</option>
+              <option value="Business">Business</option>
+            </select>
           </div>
 
-          {/* Filtered Occasions Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {getFilteredOccasions(activeTab).map((occasion) => (
-              <button
-                key={occasion.id}
-                onClick={() => handleSuggestionClick({
-                  ...occasion,
-                  date: 'This Weekend',
-                  time: '6:00 PM',
-                  location: 'TBD',
-                  weather: {
-                    temp: 72,
-                    condition: 'Clear',
-                    icon: <Sun className="w-4 h-4 text-yellow-500" />
-                  }
-                })}
-                className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-purple-300 hover:shadow-lg transition-all duration-200 text-left"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 ${occasion.color} rounded-lg flex items-center justify-center text-white`}>
-                    {occasion.icon}
+          {/* Horizontal Occasion Cards */}
+          {selectedCategory && (
+            <div className="relative">
+              <div className="flex overflow-x-auto space-x-4 pb-4 scrollbar-hide">
+                {getFilteredOccasions(selectedCategory).map((occasion) => (
+                  <button
+                    key={occasion.id}
+                    onClick={() => handleOccasionClick(occasion)}
+                    className="flex-shrink-0 w-64 group bg-white border border-gray-200 rounded-xl p-4 hover:border-purple-300 hover:shadow-lg transition-all duration-200 text-left"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={`w-10 h-10 ${occasion.color} rounded-lg flex items-center justify-center text-white`}>
+                        {occasion.icon}
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-purple-500 transition-colors" />
+                    </div>
+
+                    <h4 className="font-medium text-gray-900 mb-1">{occasion.title}</h4>
+                    <p className="text-sm text-gray-600 mb-3">{occasion.subtitle}</p>
+
+                    <div className="mt-2">
+                      <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                        occasion.formality === 'formal' || occasion.formality === 'black-tie'
+                          ? 'bg-blue-100 text-blue-700'
+                          : occasion.formality === 'semi-formal'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {occasion.formality}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Budget Selection Modal */}
+          {showBudgetOptions && selectedOccasion && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                <div className="text-center mb-6">
+                  <div className={`inline-flex w-16 h-16 ${selectedOccasion.color} rounded-full items-center justify-center text-white mb-4`}>
+                    {selectedOccasion.icon}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-purple-500 transition-colors" />
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedOccasion.title}</h3>
+                  <p className="text-gray-600">Choose your budget range:</p>
                 </div>
 
-                <h4 className="font-medium text-gray-900 mb-1">{occasion.title}</h4>
-                <p className="text-sm text-gray-600 mb-3">{occasion.subtitle}</p>
-
-                <div className="mt-2">
-                  <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                    occasion.formality === 'formal' || occasion.formality === 'black-tie'
-                      ? 'bg-blue-100 text-blue-700'
-                      : occasion.formality === 'semi-formal'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'bg-green-100 text-green-700'
-                  }`}>
-                    {occasion.formality}
-                  </span>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Budget', range: '$50-100', icon: '💰', min: 50, max: 100 },
+                    { label: 'Mid-Range', range: '$100-250', icon: '💎', min: 100, max: 250 },
+                    { label: 'Premium', range: '$250+', icon: '👑', min: 250, max: 1000 }
+                  ].map((tier) => (
+                    <button
+                      key={tier.label}
+                      onClick={() => handleBudgetSelect(tier)}
+                      className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-md transition-all duration-200 group"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{tier.icon}</span>
+                        <div className="text-left">
+                          <div className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                            {tier.label}
+                          </div>
+                          <div className="text-sm text-gray-600">{tier.range}</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
+                    </button>
+                  ))}
                 </div>
-              </button>
-            ))}
-          </div>
+
+                <button
+                  onClick={() => setShowBudgetOptions(false)}
+                  className="w-full mt-4 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
