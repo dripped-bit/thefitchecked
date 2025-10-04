@@ -126,17 +126,20 @@ const ClosetPage: React.FC<ClosetPageProps> = ({ onBack, onTryOnItem }) => {
   }, []);
 
   const getCategoryItems = (category: ClothingCategory): ClothingItem[] => {
+    console.log(`🎯 [CLOSET-PAGE-V2] GETTING ITEMS FOR: "${category}"`);
+
     // Merge 'shirts' and 'tops' into one display category for backward compatibility
     let items = closet[category] || [];
+
     if (category === 'tops') {
       // Combine both 'tops' and 'shirts' arrays
       const topsItems = closet['tops'] || [];
       const shirtsItems = closet['shirts'] || [];
       items = [...topsItems, ...shirtsItems];
-      console.log(`🔍 [CLOSET-MERGE] Combining tops (${topsItems.length}) + shirts (${shirtsItems.length}) = ${items.length} total`);
+      console.log(`✅ [CLOSET-MERGE-V2] Combining tops (${topsItems.length}) + shirts (${shirtsItems.length}) = ${items.length} total`);
     }
 
-    console.log(`🔍 [CLOSET-PAGE] Getting items for category "${category}":`, {
+    console.log(`🔍 [CLOSET-PAGE-V2] Category "${category}" has:`, {
       totalInCategory: items.length,
       showFavoritesOnly,
       searchQuery,
