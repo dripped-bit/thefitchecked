@@ -123,6 +123,14 @@ DETECTION RULES:
 - Only outerwear visible (coat covering everything)
 - Single item only (just a shirt, just shoes, etc.)
 
+BOUNDING BOX INSTRUCTIONS - VERY IMPORTANT:
+📐 Frame the COMPLETE garment from top edge to bottom edge:
+- For TOPS: Include neckline/shoulders → bottom hem (full shirt/blouse)
+- For BOTTOMS (pants/skirts/shorts): Include waistline → bottom hem (full garment, not just lower portion)
+- For SHOES: Include entire shoe from top to sole
+- For DRESSES: Include neckline → bottom hem
+- The bounding box should tightly frame the ENTIRE visible garment, centered on the garment itself
+
 For each detected garment piece, provide its bounding box. Return ONLY valid JSON:
 
 {
@@ -209,11 +217,25 @@ Return ONLY the JSON object, no additional text.`
             throw new Error('Could not get canvas context');
           }
 
-          // Calculate pixel coordinates from normalized values
-          const sourceX = boundingBox.x * img.width;
-          const sourceY = boundingBox.y * img.height;
-          const sourceWidth = boundingBox.width * img.width;
-          const sourceHeight = boundingBox.height * img.height;
+          // Add 10% padding to ensure we capture full garment
+          const padding = 0.1; // 10% padding in all directions
+
+          // Calculate pixel coordinates from normalized values with padding
+          let sourceX = (boundingBox.x - padding * boundingBox.width) * img.width;
+          let sourceY = (boundingBox.y - padding * boundingBox.height) * img.height;
+          let sourceWidth = boundingBox.width * (1 + 2 * padding) * img.width;
+          let sourceHeight = boundingBox.height * (1 + 2 * padding) * img.height;
+
+          // Clamp to image bounds to prevent overflow
+          sourceX = Math.max(0, sourceX);
+          sourceY = Math.max(0, sourceY);
+          sourceWidth = Math.min(img.width - sourceX, sourceWidth);
+          sourceHeight = Math.min(img.height - sourceY, sourceHeight);
+
+          console.log('✂️ [CROP] Applying bounds with 10% padding:', {
+            original: { x: boundingBox.x, y: boundingBox.y, w: boundingBox.width, h: boundingBox.height },
+            pixels: { x: sourceX, y: sourceY, w: sourceWidth, h: sourceHeight }
+          });
 
           // Set canvas size to cropped dimensions
           canvas.width = sourceWidth;
