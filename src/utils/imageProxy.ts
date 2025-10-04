@@ -15,7 +15,7 @@ export function getProxiedUrl(url: string): string {
   if (!url) return url;
 
   // Check if already proxied
-  if (url.startsWith('/api/proxy-image')) {
+  if (url.includes('/api/proxy-image')) {
     return url;
   }
 
@@ -24,13 +24,15 @@ export function getProxiedUrl(url: string): string {
     return url; // Data URLs don't need proxying
   }
 
-  // Check if it's already from our domain
-  if (url.startsWith('/') || url.includes(window.location.hostname)) {
+  // Check if it's already from our domain (but not a relative path)
+  if (url.startsWith('http') && url.includes(window.location.hostname)) {
     return url; // Internal URLs don't need proxying
   }
 
-  // Proxy external URLs
-  return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+  // IMPORTANT: Return absolute URL for external services like FASHN
+  // FASHN API can't resolve relative paths - it needs full https://... URLs
+  const baseUrl = window.location.origin; // e.g., https://fit-checked-app.vercel.app
+  return `${baseUrl}/api/proxy-image?url=${encodeURIComponent(url)}`;
 }
 
 /**
