@@ -229,12 +229,15 @@ Return ONLY the JSON object, no additional text.`
       const name = filename.toLowerCase();
       const hints = metadata.filenameHints;
 
-      // Check filename keywords
-      if (name.includes('shirt') || name.includes('blouse') || name.includes('top') || hints.includes('shirt')) {
+      // Check filename keywords (expanded for better coverage)
+      if (name.includes('shirt') || name.includes('blouse') || name.includes('top') ||
+          name.includes('tank') || name.includes('tee') || name.includes('cami') ||
+          name.includes('sweater') || name.includes('hoodie') || hints.includes('shirt')) {
         category = 'tops';
         subcategory = 'shirt';
         confidence = 0.7;
-      } else if (name.includes('pants') || name.includes('jeans') || name.includes('trouser') || hints.includes('pants')) {
+      } else if (name.includes('pants') || name.includes('jeans') || name.includes('trouser') ||
+                 name.includes('short') || name.includes('legging') || hints.includes('pants')) {
         category = 'bottoms';
         subcategory = 'pants';
         confidence = 0.7;
@@ -246,7 +249,8 @@ Return ONLY the JSON object, no additional text.`
         category = 'skirts';
         subcategory = 'skirt';
         confidence = 0.7;
-      } else if (name.includes('shoe') || name.includes('sneaker') || name.includes('boot') || hints.includes('shoes')) {
+      } else if (name.includes('shoe') || name.includes('sneaker') || name.includes('boot') ||
+                 name.includes('heel') || name.includes('sandal') || hints.includes('shoes')) {
         category = 'shoes';
         subcategory = 'footwear';
         confidence = 0.7;
@@ -254,7 +258,8 @@ Return ONLY the JSON object, no additional text.`
         category = 'jackets';
         subcategory = 'jacket';
         confidence = 0.7;
-      } else if (name.includes('accessory') || name.includes('bag') || name.includes('hat') || hints.includes('accessories')) {
+      } else if (name.includes('accessory') || name.includes('bag') || name.includes('hat') ||
+                 name.includes('scarf') || name.includes('belt') || hints.includes('accessories')) {
         category = 'accessories';
         subcategory = 'accessory';
         confidence = 0.6;
@@ -276,7 +281,7 @@ Return ONLY the JSON object, no additional text.`
       confidence = 0.3;
     }
 
-    return {
+    const result = {
       success: true,
       category: this.mapToClosetCategory(category),
       subcategory,
@@ -286,6 +291,10 @@ Return ONLY the JSON object, no additional text.`
       confidence,
       method: 'heuristic'
     };
+
+    console.log(`✅ [CATEGORIZATION-HEURISTIC] Detected: ${result.category} (${subcategory}) with ${Math.round(confidence * 100)}% confidence`);
+
+    return result;
   }
 
   /**
