@@ -23,6 +23,7 @@ import {
 import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import userDataService from '../services/userDataService';
+import outfitStorageService from '../services/outfitStorageService';
 import SmartOccasionPlanner from './SmartOccasionPlanner';
 
 interface EnhancedOutfitGeneratorProps {
@@ -273,6 +274,25 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
 
     console.log('✅ Clothing generated successfully:', imageUrl);
 
+    // Save to Supabase
+    try {
+      const userData = userDataService.getAllUserData();
+      const userId = userData?.profile?.email || 'anonymous';
+      const gender = userData?.profile?.gender || 'unisex';
+
+      await outfitStorageService.saveOutfit(userId, {
+        occasion: 'Quick Generate',
+        style: 'quick_generate',
+        imageUrl: imageUrl,
+        userPrompt: quickPrompt,
+        gender: gender
+      });
+      console.log('✅ [QUICK-GENERATE] Saved outfit to Supabase');
+    } catch (error) {
+      console.error('❌ [QUICK-GENERATE] Failed to save to Supabase:', error);
+      // Continue anyway - don't block UX
+    }
+
     // Auto-detect clothing category for future try-on
     const detectedCategory = detectClothingCategory(clothingPrompt);
     setClothingCategory(detectedCategory);
@@ -332,6 +352,25 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
 
     const clothingImageUrl = result.images[0].url;
     console.log('✅ Clothing generated:', clothingImageUrl);
+
+    // Save to Supabase
+    try {
+      const userData = userDataService.getAllUserData();
+      const userId = userData?.profile?.email || 'anonymous';
+      const gender = userData?.profile?.gender || 'unisex';
+
+      await outfitStorageService.saveOutfit(userId, {
+        occasion: `${selectedOccasion.category} - ${selectedOccasion.subcategory}`,
+        style: selectedOccasion.category,
+        imageUrl: clothingImageUrl,
+        userPrompt: occasionPrompt,
+        gender: gender
+      });
+      console.log('✅ [OCCASION-GENERATE] Saved outfit to Supabase');
+    } catch (error) {
+      console.error('❌ [OCCASION-GENERATE] Failed to save to Supabase:', error);
+      // Continue anyway - don't block UX
+    }
 
     // Update UI with clothing result
     if (onItemGenerated) {
