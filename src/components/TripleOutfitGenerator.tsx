@@ -77,34 +77,32 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [outfitToSave, setOutfitToSave] = useState<any>(null);
 
-  // Color palettes for variation
-  const allColors = [
-    // Bold colors
-    'coral', 'cobalt blue', 'emerald', 'fuchsia', 'electric purple',
-    // Romantic colors
-    'blush pink', 'lavender', 'sage green', 'cream', 'powder blue',
-    // Elegant colors
-    'navy', 'burgundy', 'black', 'champagne', 'deep emerald green'
-  ];
-
-  // Fabric types for variation
-  const allFabrics = [
-    // Bold fabrics
-    'structured cotton', 'ponte knit', 'scuba fabric',
-    // Romantic fabrics
-    'chiffon', 'silk', 'lace', 'organza',
-    // Elegant fabrics
-    'silk crepe', 'wool crepe', 'satin', 'velvet'
-  ];
-
-  // Style keywords for variation
-  const allStyleKeywords = [
-    // Bold keywords
-    'bright color blocking', 'asymmetric cut', 'statement sleeves',
-    // Romantic keywords
-    'floral print', 'ruffled details', 'wrap silhouette',
-    // Elegant keywords
-    'monochrome', 'fitted bodice', 'A-line skirt'
+  // Style interpretation categories for outfit variations
+  const styleInterpretations = [
+    {
+      name: 'Romantic',
+      description: 'flowing fabrics, delicate details, ruffles OR lace OR floral elements, dreamy feminine style, soft draping'
+    },
+    {
+      name: 'Elegant',
+      description: 'tailored silhouette, classic lines, refined details, structured pieces, timeless elegance'
+    },
+    {
+      name: 'Edgy',
+      description: 'leather OR metal details, bold cuts, asymmetric elements, statement pieces, urban aesthetic'
+    },
+    {
+      name: 'Minimalist',
+      description: 'clean lines, neutral colors, simple silhouettes, understated elegance'
+    },
+    {
+      name: 'Bohemian',
+      description: 'layered textures, earthy tones, loose fits, eclectic patterns, free-spirited'
+    },
+    {
+      name: 'Glam',
+      description: 'sequins OR metallics, statement jewelry, bold colors, luxury fabrics'
+    }
   ];
 
   // Simple variations without personality branding
@@ -157,6 +155,31 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       generateTripleOutfits();
     }
   }, [occasion]);
+
+  // Map occasion name to formality descriptor
+  const getFormalityDescriptor = (occasionName: string, formalityLevel: string): string => {
+    const occasionLower = occasionName.toLowerCase();
+
+    // Check specific occasions first
+    if (occasionLower.includes('wedding')) return 'formal attire';
+    if (occasionLower.includes('cocktail party')) return 'semi-formal attire';
+    if (occasionLower.includes('date night')) return 'semi-formal attire';
+    if (occasionLower.includes('business meeting')) return 'professional attire';
+    if (occasionLower.includes('casual brunch') || occasionLower.includes('brunch')) return 'casual attire';
+    if (occasionLower.includes('night out')) return 'party attire';
+    if (occasionLower.includes('job interview') || occasionLower.includes('interview')) return 'professional attire';
+    if (occasionLower.includes('festival')) return 'casual festival attire';
+
+    // Fall back to formality level
+    if (formalityLevel.includes('formal') || formalityLevel.includes('black-tie')) return 'formal attire';
+    if (formalityLevel.includes('semi-formal') || formalityLevel.includes('cocktail')) return 'semi-formal attire';
+    if (formalityLevel.includes('business') || formalityLevel.includes('professional')) return 'professional attire';
+    if (formalityLevel.includes('casual')) return 'casual attire';
+    if (formalityLevel.includes('athletic')) return 'athletic attire';
+    if (formalityLevel.includes('party')) return 'party attire';
+
+    return 'casual attire'; // default fallback
+  };
 
   // Garment type detection - detects specific garment from user input or defaults by formality
   const detectGarmentType = (userInput: string, formality: string): string => {
@@ -258,53 +281,35 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   };
 
   const createPersonalizedPrompt = async (variationIndex: number): Promise<string> => {
-    // Get base prompt from user input or occasion
-    const basePrompt = occasion.originalInput || occasion.occasion;
+    // PRESERVE user's exact input - NEVER modify this
+    const userExactInput = occasion.originalInput || occasion.occasion;
     const formality = occasion.formality || 'casual';
     const occasionName = occasion.occasion;
 
-    // Detect garment type from user input or formality
-    const garmentType = detectGarmentType(basePrompt, formality);
+    // Select style interpretation for this variation (3 different styles for 3 variations)
+    // Use different styles for each variation to ensure variety
+    const styleIndex = variationIndex % styleInterpretations.length;
+    const selectedStyle = styleInterpretations[styleIndex];
 
-    // Pick random color, fabric, and detail for this variation
-    // Each variation gets different random selections
-    const randomColor = allColors[Math.floor(Math.random() * allColors.length)];
-    const randomFabric = allFabrics[Math.floor(Math.random() * allFabrics.length)];
-    const keyDetail = allStyleKeywords[Math.floor(Math.random() * allStyleKeywords.length)];
+    // Get formality descriptor for the occasion
+    const formalityDescriptor = getFormalityDescriptor(occasionName, formality);
 
-    // Determine fit description based on formality
-    let fitDescription = 'tailored fit';
-    if (formality.includes('formal')) fitDescription = 'elegant silhouette';
-    if (formality.includes('casual')) fitDescription = 'relaxed fit';
-    if (formality.includes('athletic')) fitDescription = 'performance fit';
+    // Build the new prompt format that PRESERVES user input and ADDS context
+    const prompt = `SPECIFIC REQUEST: ${userExactInput}
 
-    // Build the new formula: {GARMENT_TYPE} for {OCCASION}, {COLOR}, {FABRIC}, {KEY_DETAIL}, {FIT}, on white background
-    const parts: string[] = [];
+STYLE INTERPRETATION - ${selectedStyle.name}: ${selectedStyle.description}
 
-    // 1. Garment type with occasion
-    parts.push(`${garmentType} for ${occasionName}`);
+FOR OCCASION: ${occasionName}, ${formalityDescriptor}
 
-    // 2. Color
-    parts.push(randomColor);
 
-    // 3. Fabric
-    parts.push(`${randomFabric} fabric`);
+Generate ONE SINGLE complete outfit matching the specific request above. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
 
-    // 4. Key visual detail
-    parts.push(keyDetail);
+    console.log(`✨ Variation ${variationIndex + 1} prompt:`);
+    console.log(`   User Request: "${userExactInput}"`);
+    console.log(`   Style: ${selectedStyle.name}`);
+    console.log(`   Occasion: ${occasionName}, ${formalityDescriptor}`);
 
-    // 5. Fit
-    parts.push(fitDescription);
-
-    // 6. Background (always last)
-    parts.push('on white background');
-
-    const optimizedPrompt = parts.join(', ');
-
-    console.log(`✨ Variation ${variationIndex + 1} prompt:`, optimizedPrompt);
-    console.log(`📊 Garment: ${garmentType}, Color: ${randomColor}, Fabric: ${randomFabric}, Detail: ${keyDetail}`);
-
-    return optimizedPrompt;
+    return prompt;
   };
 
   const createCleanSearchPrompt = (): string => {
@@ -486,7 +491,7 @@ NO explanations, just keywords.`
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: 'multiple outfits, 2 dresses, duplicate outfits, identical clothing, side by side, outfit comparison, variations, multiple options, costume, fantasy wear, theatrical clothing, halloween costume, cosplay, cape, wings, armor, princess dress, character outfit, stage costume',
+            negative_prompt: 'multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits',
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
