@@ -824,7 +824,7 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
           <textarea
             value={quickPrompt}
             onChange={(e) => setQuickPrompt(e.target.value)}
-            placeholder="e.g., Casual weekend outfit for brunch with friends, something comfortable but stylish..."
+            placeholder="Black mini dress with gold metallic color blocking, structured fit, geometric cutouts, cold-shoulder sleeves, bodycon silhouette, cocktail attire, professional product photo, white studio background, centered, high fashion photography (60 characters minimum)"
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             rows={4}
           />
