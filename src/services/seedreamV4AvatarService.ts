@@ -8,6 +8,7 @@ import { environmentConfig } from './environmentConfig';
 import { faceAnalysisService, FaceAnalysis } from './faceAnalysisService';
 import { klingVideoService, AnimatedAvatar } from './klingVideoService';
 import { PerfectAvatarConfig, PERFECT_GENERATION_PARAMS } from '../config/perfectAvatarConfig.js';
+import { getBestPromptForGeneration } from '../config/bestavatargenerated.js';
 import promptDebugService from './promptDebugService';
 
 console.log('🔧 FAL Client Configuration: Using /api/fal proxy');
@@ -312,7 +313,7 @@ export class SeedreamV4AvatarService {
     const startTime = Date.now();
 
     // Generate detailed body description from measurements and face analysis
-    const bodyPrompt = this.generateBodyPrompt(measurements, faceAnalysis);
+    const bodyPrompt = await this.generateBodyPrompt(measurements, faceAnalysis);
     console.log('📝 Generated enhanced body prompt:', bodyPrompt);
 
     // Create request using PERFECT AVATAR CONFIG parameters
@@ -470,7 +471,7 @@ export class SeedreamV4AvatarService {
 
       return {
         success: false,
-        prompt: this.generateBodyPrompt(measurements, faceAnalysis),
+        prompt: await this.generateBodyPrompt(measurements, faceAnalysis),
         processingTime: Date.now() - startTime,
         error: errorMessage
       };
@@ -622,11 +623,16 @@ export class SeedreamV4AvatarService {
    * Generate detailed body description prompt from measurements and face analysis
    * NOW USES PERFECT AVATAR CONFIG FOR HIGH-QUALITY FACIAL PRESERVATION
    */
-  private generateBodyPrompt(measurements: Measurements, faceAnalysis?: FaceAnalysis): string {
+  private async generateBodyPrompt(measurements: Measurements, faceAnalysis?: FaceAnalysis): Promise<string> {
     const height = typeof measurements.height === 'string' ?
       parseFloat(measurements.height) : measurements.height;
 
-    // START WITH PERFECT AVATAR CONFIG BASE
+    // GET BEST PROMPT (user's 5-star saved prompt or CURRENT_PERFECT_PROMPT fallback)
+    const bestPrompt = await getBestPromptForGeneration();
+    console.log(`🌟 [BEST-AVATAR] Using prompt from: ${bestPrompt.source}`);
+    console.log(`📝 [BEST-AVATAR] Prompt name: "${bestPrompt.name}"`);
+
+    // BUILD USER-SPECIFIC DETAILS
     let customContent = '';
 
     // Use face analysis for gender and age if available
@@ -680,7 +686,7 @@ export class SeedreamV4AvatarService {
       else customContent += 'balanced proportions, ';
     }
 
-    // Detailed measurements - will be added via extension, not in customContent
+    // Detailed measurements
     const measurementDetails = `Body measurements: chest ${measurements.chest}cm, waist ${measurements.waist}cm, hips ${measurements.hips}cm, height ${height}cm`;
 
     if (measurements.shoulders) {
@@ -693,20 +699,36 @@ export class SeedreamV4AvatarService {
 
     customContent += '. '; // End custom content with period
 
-    // BUILD COMPLETE PROMPT USING PERFECT AVATAR CONFIG
-    // BASE template already includes: white tank top, blue athletic shorts, FASHN-compatible pose,
-    // clean white background, full-body with feet visible, 9:16 aspect ratio
-    // Measurements are added via extension to avoid duplication
-    const perfectPrompt = PerfectAvatarConfig.buildPrompt(customContent, {
-      BODY_MEASUREMENTS: measurementDetails
-      // NOTE: POSE, CLOTHING_STYLE, ENVIRONMENT are already in BASE template
-    });
+    // BUILD COMPLETE PROMPT USING BEST SAVED PROMPT TEMPLATE
+    // If using user's saved prompt, use their exact prompt
+    // If using CURRENT_PERFECT_PROMPT fallback, build using PerfectAvatarConfig
+    let finalPrompt: string;
 
-    console.log('✨ [PERFECT-AVATAR] Using Perfect Avatar Config BASE template');
-    console.log('✨ [PERFECT-AVATAR] BASE includes: white tank top, blue athletic shorts, FASHN-compatible pose, clean white background, 9:16 aspect ratio');
-    console.log('✨ [PERFECT-AVATAR] User-specific details: age, gender, skin tone, build type');
-    console.log('✨ [PERFECT-AVATAR] Body measurements:', measurementDetails);
-    return perfectPrompt;
+    if (bestPrompt.source === 'user-saved') {
+      // Use user's saved prompt template and inject their measurements
+      finalPrompt = bestPrompt.prompt
+        .replace('${userMeasurements.chest}', measurements.chest.toString())
+        .replace('${userMeasurements.waist}', measurements.waist.toString())
+        .replace('${userMeasurements.hips}', measurements.hips.toString())
+        .replace('${userMeasurements.height}', height?.toString() || '170');
+
+      // Add user-specific details at the beginning
+      finalPrompt = customContent + finalPrompt;
+
+      console.log('✨ [BEST-AVATAR] Using user\'s saved prompt with measurements');
+    } else {
+      // Fallback to CURRENT_PERFECT_PROMPT using PerfectAvatarConfig
+      finalPrompt = PerfectAvatarConfig.buildPrompt(customContent, {
+        BODY_MEASUREMENTS: measurementDetails
+      });
+
+      console.log('✨ [BEST-AVATAR] Using CURRENT_PERFECT_PROMPT fallback');
+      console.log('✨ [BEST-AVATAR] BASE includes: white tank top, blue athletic shorts, FASHN-compatible pose, clean white background, 9:16 aspect ratio');
+    }
+
+    console.log('✨ [BEST-AVATAR] User-specific details: age, gender, skin tone, build type');
+    console.log('✨ [BEST-AVATAR] Body measurements:', measurementDetails);
+    return finalPrompt;
   }
 
   /**
