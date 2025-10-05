@@ -336,122 +336,174 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     }, 2000);
   };
 
-  // Helper function to analyze user context from avatar and style preferences
-  const analyzeUserContext = async (): Promise<{
-    gender: string;
-    ageDescriptors: string;
-    negativePrompts: string;
-  }> => {
-    // Load style profile to get gender
-    const profile = await stylePreferencesService.loadStyleProfile();
-    let gender = 'adult';
+  // Style modifier mappings - map existing archetypes to visual descriptors
+  const styleModifiers = {
+    Bold: {
+      keywords: ['vibrant colors', 'geometric design', 'structured silhouette', 'statement details', 'color blocking', 'asymmetric cut', 'dramatic elements'],
+      archetypes: ['edgy', 'trendy', 'sporty']
+    },
+    Romantic: {
+      keywords: ['soft fabric', 'delicate details', 'flowing silhouette', 'lace trim', 'floral elements', 'ruffles', 'feminine draping', 'pastel tones'],
+      archetypes: ['bohemian', 'vintage']
+    },
+    Elegant: {
+      keywords: ['clean lines', 'sophisticated cut', 'luxe fabric', 'minimal details', 'classic silhouette', 'tailored fit', 'timeless design'],
+      archetypes: ['formal', 'minimalist', 'casual']
+    }
+  };
 
-    // Extract gender from style preferences
-    if (profile?.sizes?.gender) {
-      if (profile.sizes.gender === 'women') {
-        gender = "women's";
-      } else if (profile.sizes.gender === 'men') {
-        gender = "men's";
-      } else {
-        gender = 'unisex adult';
+  // Map occasions to formality levels
+  const occasionFormality: Record<string, string> = {
+    // Formal Events
+    'wedding_guest': 'formal',
+    'gala': 'formal black-tie',
+    'conference': 'business formal',
+    'awards': 'formal',
+    'religious': 'formal',
+
+    // Social Occasions
+    'dinner_party': 'semi-formal',
+    'birthday': 'semi-formal',
+    'date_night': 'semi-formal',
+    'cocktail': 'semi-formal cocktail',
+    'festive': 'festive semi-formal',
+
+    // Daily Life
+    'work_office': 'business casual',
+    'work_home': 'casual comfortable',
+    'errands': 'casual',
+    'home_relax': 'casual relaxed',
+    'school': 'casual',
+
+    // Travel
+    'beach': 'casual resort',
+    'city': 'casual',
+    'mountain': 'casual outdoor',
+    'business_travel': 'business casual',
+    'cruise': 'semi-formal resort',
+
+    // Activities
+    'gym': 'athletic',
+    'sports_event': 'casual sporty',
+    'outdoor_activities': 'casual outdoor',
+    'concert': 'casual trendy'
+  };
+
+  // Helper function to determine style category from user's archetypes
+  const getStyleCategory = async (): Promise<keyof typeof styleModifiers> => {
+    const profile = await stylePreferencesService.loadStyleProfile();
+    const archetypes = profile?.fashionPersonality?.archetypes || [];
+
+    // Map user's archetypes to style categories
+    for (const [category, data] of Object.entries(styleModifiers)) {
+      for (const archetype of archetypes) {
+        const archetypeLower = archetype.toLowerCase().split(' - ')[0];
+        if (data.archetypes.some(a => archetypeLower.includes(a))) {
+          return category as keyof typeof styleModifiers;
+        }
       }
     }
 
-    // Age descriptors - this app is for adult fashion
-    const ageDescriptors = 'adult clothing for ages 25-35, mature styling, grown-up fashion, contemporary adult wear';
-
-    // Strong negative prompts to prevent children's clothing
-    const negativePrompts = 'NOT child clothing, NOT juvenile, NOT little girl dress, NOT little boy clothing, NOT kids fashion, NOT childish patterns, NOT youth sizing, adult sizing only, NOT teen clothing, NOT baby clothes';
-
-    console.log('🎯 User context analyzed:', { gender, ageDescriptors });
-
-    return { gender, ageDescriptors, negativePrompts };
+    // Default to Elegant if no match
+    return 'Elegant';
   };
 
-  // Helper function to enhance clothing prompts
-  const enhanceClothingPrompt = async (userPrompt: string): Promise<string> => {
-    // User's explicit prompt comes FIRST (highest priority)
-    let prompt = userPrompt;
+  // Smart prompt optimizer - transforms user descriptions into concise Seedream prompts
+  const optimizePromptForSeedream = async (
+    userDescription: string,
+    occasion?: OccasionData
+  ): Promise<string> => {
+    // Get style category and keywords
+    const styleCategory = await getStyleCategory();
+    const styleKeywords = styleModifiers[styleCategory].keywords;
 
-    // Add user context (gender and age) from avatar and preferences
-    const context = await analyzeUserContext();
-    prompt += `, ${context.gender} ${context.ageDescriptors}`;
+    // Select 2-3 relevant style keywords (not all)
+    const selectedKeywords = styleKeywords.slice(0, 3).join(', ');
 
-    // Add style preferences as reference/context (can be overridden by user's prompt)
-    const stylePrefs = await stylePreferencesService.formatPreferencesForPrompt();
-    if (stylePrefs.hasPreferences) {
-      prompt += `, ${stylePrefs.styleText}`;
-      console.log('✨ Added style preferences to prompt');
+    // Get formality level from occasion
+    let formality = '';
+    if (occasion?.subcategory) {
+      formality = occasionFormality[occasion.subcategory] || 'casual';
     }
 
-    // Add base descriptors and negative prompts
-    const basePrompt = `${prompt}, clothing item only, no person, no model, no mannequin, isolated garment, product photography, fashion flat lay, clean white background, centered composition, professional product photography, detailed fabric texture, well-lit, crisp details, garment display, fashion catalog style, FASHN-ready garment image, virtual try-on optimized, ${context.negativePrompts}`;
-    return basePrompt;
+    // Get gender context
+    const profile = await stylePreferencesService.loadStyleProfile();
+    const gender = profile?.sizes?.gender === 'women' ? "women's" :
+                   profile?.sizes?.gender === 'men' ? "men's" : '';
+
+    // Build concise prompt: user details + style + formality + product photography base
+    const parts: string[] = ['Product photography'];
+
+    // Add user's specific description first (highest priority)
+    if (userDescription.trim()) {
+      parts.push(userDescription.trim());
+    }
+
+    // Add gender if available
+    if (gender) {
+      parts.push(gender);
+    }
+
+    // Add selected style keywords
+    parts.push(selectedKeywords);
+
+    // Add formality
+    if (formality) {
+      parts.push(`${formality} attire`);
+    }
+
+    // Add product photography base (always last)
+    parts.push('white background, centered, high-end fashion photography');
+
+    const optimizedPrompt = parts.join(', ');
+
+    console.log('✨ Optimized Seedream prompt:', optimizedPrompt);
+    console.log(`📊 Word count: ${optimizedPrompt.split(' ').length} words`);
+
+    return optimizedPrompt;
+  };
+
+  // Helper function to enhance clothing prompts for Quick Generate
+  const enhanceClothingPrompt = async (userPrompt: string): Promise<string> => {
+    // Use the optimizer without occasion context
+    return await optimizePromptForSeedream(userPrompt);
   };
 
   // Helper function to generate occasion-specific prompts
   const generateOccasionPrompt = async (occasion: OccasionData): Promise<string> => {
-    let prompt = '';
+    // Build user description from occasion
+    const parts: string[] = [];
 
-    // Base occasion description
+    // Add occasion name
     const category = occasionCategories.find(cat => cat.id === occasion.category);
     const subcategory = category?.subcategories.find(sub => sub.id === occasion.subcategory);
-
     if (subcategory) {
-      prompt += `${subcategory.name} outfit, `;
+      parts.push(`${subcategory.name} outfit`);
     }
 
-    // Add occasion-specific context from user input
+    // Add user's additional context (highest priority - their specific request)
     if (occasion.additionalContext) {
-      prompt += `${occasion.additionalContext} style, `;
+      parts.push(occasion.additionalContext);
     }
 
-    // Add user context (gender and age) from avatar and preferences
-    const context = await analyzeUserContext();
-    prompt += `${context.gender} ${context.ageDescriptors}, `;
-
-    // Add user's style preferences as reference (can be overridden by occasion context)
-    const stylePrefs = await stylePreferencesService.formatPreferencesForPrompt();
-    if (stylePrefs.hasPreferences) {
-      prompt += `${stylePrefs.styleText}, `;
-      console.log('✨ Added style preferences to occasion prompt');
-    }
-
-    // Add time of day considerations
+    // Add time of day if specified
     if (occasion.timeOfDay) {
-      switch (occasion.timeOfDay) {
-        case 'morning':
-          prompt += 'suitable for morning hours, fresh and energetic styling, ';
-          break;
-        case 'afternoon':
-          prompt += 'perfect for afternoon activities, comfortable yet polished, ';
-          break;
-        case 'evening':
-          prompt += 'elegant evening wear, sophisticated and refined, ';
-          break;
-        case 'night':
-          prompt += 'stylish night out attire, fashionable and eye-catching, ';
-          break;
-      }
+      parts.push(`${occasion.timeOfDay} wear`);
     }
 
-    // Add weather considerations
+    // Add weather-appropriate descriptors
     if (occasion.weatherTemp) {
       if (occasion.weatherTemp < 50) {
-        prompt += 'warm layered clothing for cold weather, cozy fabrics, ';
-      } else if (occasion.weatherTemp < 70) {
-        prompt += 'comfortable moderate weather attire, light layers, ';
-      } else if (occasion.weatherTemp < 80) {
-        prompt += 'pleasant weather clothing, breathable fabrics, ';
-      } else {
-        prompt += 'light summer clothing, breathable and cooling fabrics, ';
+        parts.push('warm layered');
+      } else if (occasion.weatherTemp > 80) {
+        parts.push('light breathable');
       }
     }
 
-    // Add quality and style descriptors with negative prompts
-    prompt += `clothing item only, no person, no model, no mannequin, isolated garment, product photography, fashion flat lay, clean white background, centered composition, professional product photography, detailed fabric texture, well-lit, crisp details, garment display, fashion catalog style, FASHN-ready garment image, virtual try-on optimized, ${context.negativePrompts}`;
+    const userDescription = parts.join(', ');
 
-    return prompt;
+    // Use optimizer with occasion context
+    return await optimizePromptForSeedream(userDescription, occasion);
   };
 
   // Helper function to determine style based on occasion
