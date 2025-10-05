@@ -1196,13 +1196,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
             <div className="bg-sky-300/30 backdrop-blur-sm rounded-[3rem] shadow-lg p-6 border border-sky-200/50">
               <div className="space-y-3">
                 <button
-                  onClick={onNavigateToMeasurements}
-                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-sky-100/50 rounded-lg transition-colors"
-                >
-                  <User className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium text-slate-800 italic text-[0.95em]">Update Measurements</span>
-                </button>
-                <button
                   onClick={onNavigateToStyleProfile}
                   className="w-full flex items-center space-x-3 p-3 text-left hover:bg-sky-100/50 rounded-lg transition-colors"
                 >
