@@ -450,8 +450,17 @@ function App() {
       } : null
     }));
 
-    // Show save avatar modal
-    setPendingAvatarData(data);
+    // Navigate to try-on page (page 4)
+    setCurrentScreen('appFace');
+  };
+
+  // Handle navigation from AppFace (page 4) - show save modal before style profile
+  const handleAppFaceNext = () => {
+    // Prepare avatar data for save modal
+    setPendingAvatarData({
+      avatarData: appData.generatedAvatar,
+      measurements: appData.measurements
+    });
     setShowSaveAvatarModal(true);
   };
 
@@ -480,10 +489,10 @@ function App() {
       }
     }
 
-    // Navigate to try-on page
+    // Navigate to style profile page (page 5)
     setShowSaveAvatarModal(false);
     setPendingAvatarData(null);
-    setCurrentScreen('appFace');
+    setCurrentScreen('styleProfile');
   };
 
   // Handle avatar update when outfit is applied
@@ -639,7 +648,7 @@ function App() {
         try {
           return (
             <AppFacePage
-              onNext={() => setCurrentScreen('styleProfile')}
+              onNext={handleAppFaceNext}
               onBack={() => setCurrentScreen('avatarGeneration')}
               generatedAvatar={appData.generatedAvatar}
               onAvatarUpdate={handleAvatarUpdate}
