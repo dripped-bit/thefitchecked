@@ -189,6 +189,19 @@ const outfits = await outfitStorageService.getUserOutfits(userId);
 
 // Get outfits by occasion
 const dateOutfits = await outfitStorageService.getOutfitsByOccasion(userId, 'date night');
+
+// Toggle favorite
+await outfitStorageService.toggleFavorite(outfitId, true);
+
+// Get favorited outfits
+const favorites = await outfitStorageService.getFavoritedOutfits(userId);
+
+// Generate share link
+const shareUrl = await outfitStorageService.shareOutfit(outfitId);
+// Returns: https://yourapp.com/outfit/abc-123-xyz
+
+// Get outfit by share token (public access)
+const sharedOutfit = await outfitStorageService.getOutfitByShareToken('abc-123-xyz');
 \`\`\`
 
 ### `userPreferencesService`

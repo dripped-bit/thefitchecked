@@ -16,6 +16,8 @@ export interface OutfitData {
   seedream_seed?: number;
   clicked: boolean;
   purchased: boolean;
+  favorited: boolean;
+  share_token?: string;
   created_at: Date;
 }
 
@@ -246,6 +248,105 @@ class OutfitStorageService {
     } catch (error) {
       console.error('❌ [OUTFIT-STORAGE] Failed to track interaction:', error);
       return false;
+    }
+  }
+
+  /**
+   * Toggle outfit favorite status
+   */
+  async toggleFavorite(outfitId: string, favorited: boolean): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('outfits')
+        .update({ favorited })
+        .eq('id', outfitId);
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error toggling favorite:', error);
+        return false;
+      }
+
+      console.log(`${favorited ? '❤️' : '💔'} [OUTFIT-STORAGE] Outfit ${favorited ? 'favorited' : 'unfavorited'}`);
+      return true;
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to toggle favorite:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get favorited outfits
+   */
+  async getFavoritedOutfits(userId: string): Promise<OutfitData[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('favorited', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching favorited outfits:', error);
+        return [];
+      }
+
+      console.log(`❤️ [OUTFIT-STORAGE] Loaded ${data?.length || 0} favorited outfits`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to fetch favorited outfits:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Generate share link for outfit
+   */
+  async shareOutfit(outfitId: string): Promise<string | null> {
+    try {
+      // Generate unique share token
+      const shareToken = crypto.randomUUID();
+
+      const { error } = await supabase
+        .from('outfits')
+        .update({ share_token: shareToken })
+        .eq('id', outfitId);
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error generating share link:', error);
+        return null;
+      }
+
+      const shareUrl = `${window.location.origin}/outfit/${shareToken}`;
+      console.log('🔗 [OUTFIT-STORAGE] Share link generated:', shareUrl);
+      return shareUrl;
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to generate share link:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get outfit by share token (public access)
+   */
+  async getOutfitByShareToken(shareToken: string): Promise<OutfitData | null> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select('*')
+        .eq('share_token', shareToken)
+        .single();
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching shared outfit:', error);
+        return null;
+      }
+
+      console.log('👀 [OUTFIT-STORAGE] Loaded shared outfit');
+      return data;
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to fetch shared outfit:', error);
+      return null;
     }
   }
 }

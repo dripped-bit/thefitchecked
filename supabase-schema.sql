@@ -22,6 +22,8 @@ create table if not exists outfits (
   seedream_seed integer,
   clicked boolean default false,
   purchased boolean default false,
+  favorited boolean default false,
+  share_token text unique,
   created_at timestamp default now()
 );
 
@@ -40,6 +42,8 @@ create index if not exists outfits_user_id_idx on outfits(user_id);
 create index if not exists outfits_created_at_idx on outfits(created_at desc);
 create index if not exists outfits_style_idx on outfits(style);
 create index if not exists outfits_clicked_idx on outfits(clicked);
+create index if not exists outfits_favorited_idx on outfits(favorited);
+create index if not exists outfits_share_token_idx on outfits(share_token);
 create index if not exists interactions_user_id_idx on interactions(user_id);
 create index if not exists interactions_action_idx on interactions(action);
 
@@ -47,6 +51,8 @@ create index if not exists interactions_action_idx on interactions(action);
 -- alter table outfits add column if not exists user_prompt text;
 -- alter table outfits add column if not exists gender text;
 -- alter table outfits add column if not exists seedream_seed integer;
+-- alter table outfits add column if not exists favorited boolean default false;
+-- alter table outfits add column if not exists share_token text unique;
 
 -- Enable Row Level Security (RLS) for security
 alter table users enable row level security;
@@ -96,3 +102,10 @@ create policy "Allow anonymous interaction insertion" on interactions
 
 create policy "Allow anonymous outfit viewing" on outfits
   for select using (true);
+
+create policy "Allow anonymous outfit updates" on outfits
+  for update using (true);
+
+-- Public sharing policy: Allow anyone to view outfits with a share_token
+create policy "Allow public viewing of shared outfits" on outfits
+  for select using (share_token is not null);
