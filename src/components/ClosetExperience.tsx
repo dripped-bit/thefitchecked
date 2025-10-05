@@ -1368,11 +1368,6 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
               <span className="text-sm font-medium text-blue-800">{clothingItems.length} Items</span>
             </div>
 
-            <div className="flex items-center space-x-2 bg-green-100 rounded-full px-3 py-1">
-              <DollarSign className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium text-green-800">${closetValue}</span>
-            </div>
-
             <div className="flex items-center space-x-2 bg-purple-100 rounded-full px-3 py-1">
               <Leaf className="w-4 h-4 text-purple-600" />
               <span className="text-sm font-medium text-purple-800">{sustainabilityScore}% Eco</span>
