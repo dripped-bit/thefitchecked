@@ -339,17 +339,31 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
   // Style modifier mappings - map existing archetypes to visual descriptors
   const styleModifiers = {
     Bold: {
-      keywords: ['vibrant colors', 'geometric design', 'structured silhouette', 'statement details', 'color blocking', 'asymmetric cut', 'dramatic elements'],
+      keywords: ['bright color blocking', 'asymmetric cut', 'statement sleeves'],
       archetypes: ['edgy', 'trendy', 'sporty']
     },
     Romantic: {
-      keywords: ['soft fabric', 'delicate details', 'flowing silhouette', 'lace trim', 'floral elements', 'ruffles', 'feminine draping', 'pastel tones'],
+      keywords: ['floral print', 'ruffled details', 'wrap silhouette'],
       archetypes: ['bohemian', 'vintage']
     },
     Elegant: {
-      keywords: ['clean lines', 'sophisticated cut', 'luxe fabric', 'minimal details', 'classic silhouette', 'tailored fit', 'timeless design'],
+      keywords: ['monochrome', 'fitted bodice', 'A-line skirt'],
       archetypes: ['formal', 'minimalist', 'casual']
     }
+  };
+
+  // Color palettes for each style
+  const colorPalettes = {
+    Bold: ['coral', 'cobalt blue', 'emerald', 'fuchsia', 'electric purple'],
+    Romantic: ['blush pink', 'lavender', 'sage green', 'cream', 'powder blue'],
+    Elegant: ['navy', 'burgundy', 'black', 'champagne', 'deep emerald green']
+  };
+
+  // Fabric types for each style
+  const fabricTypes = {
+    Bold: ['structured cotton', 'ponte knit', 'scuba fabric'],
+    Romantic: ['chiffon', 'silk', 'lace', 'organza'],
+    Elegant: ['silk crepe', 'wool crepe', 'satin', 'velvet']
   };
 
   // Map occasions to formality levels
@@ -408,57 +422,97 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     return 'Elegant';
   };
 
-  // Smart prompt optimizer - transforms user descriptions into concise Seedream prompts
+  // Garment type detection - detects specific garment from user input or defaults by formality
+  const detectGarmentType = (userInput: string, formality: string): string => {
+    const inputLower = userInput.toLowerCase();
+
+    // Check for specific garments mentioned by user
+    if (inputLower.includes('dress')) return 'dress';
+    if (inputLower.includes('jumpsuit')) return 'jumpsuit';
+    if (inputLower.includes('suit')) return 'suit';
+    if (inputLower.includes('gown')) return 'gown';
+    if (inputLower.includes('blazer')) return 'blazer';
+    if (inputLower.includes('skirt')) return 'midi skirt';
+    if (inputLower.includes('pants') || inputLower.includes('trousers')) return 'tailored pants';
+    if (inputLower.includes('top')) return 'blouse';
+    if (inputLower.includes('shirt')) return 'shirt';
+
+    // Default by formality level
+    if (formality.includes('formal') || formality.includes('black-tie')) return 'floor-length gown';
+    if (formality.includes('semi-formal') || formality.includes('cocktail')) return 'knee-length cocktail dress';
+    if (formality.includes('business')) return 'tailored blazer and pants';
+    if (formality.includes('casual')) return 'casual dress';
+    if (formality.includes('athletic')) return 'activewear set';
+
+    return 'outfit'; // fallback
+  };
+
+  // Smart prompt optimizer - transforms user descriptions into concrete Seedream prompts
   const optimizePromptForSeedream = async (
     userDescription: string,
     occasion?: OccasionData
   ): Promise<string> => {
-    // Get style category and keywords
+    // Get style category
     const styleCategory = await getStyleCategory();
-    const styleKeywords = styleModifiers[styleCategory].keywords;
-
-    // Select 2-3 relevant style keywords (not all)
-    const selectedKeywords = styleKeywords.slice(0, 3).join(', ');
 
     // Get formality level from occasion
     let formality = '';
+    let occasionName = '';
     if (occasion?.subcategory) {
       formality = occasionFormality[occasion.subcategory] || 'casual';
+      occasionName = occasion.subcategory.replace(/_/g, ' ');
     }
 
-    // Get gender context
-    const profile = await stylePreferencesService.loadStyleProfile();
-    const gender = profile?.sizes?.gender === 'women' ? "women's" :
-                   profile?.sizes?.gender === 'men' ? "men's" : '';
+    // Detect garment type from user input or formality
+    const garmentType = detectGarmentType(userDescription, formality);
 
-    // Build concise prompt: user details + style + formality + product photography base
-    const parts: string[] = ['Product photography'];
+    // Pick random color from style palette
+    const colors = colorPalettes[styleCategory];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
-    // Add user's specific description first (highest priority)
-    if (userDescription.trim()) {
-      parts.push(userDescription.trim());
+    // Pick random fabric from style fabrics
+    const fabrics = fabricTypes[styleCategory];
+    const randomFabric = fabrics[Math.floor(Math.random() * fabrics.length)];
+
+    // Pick one style keyword (key visual detail)
+    const styleKeywords = styleModifiers[styleCategory].keywords;
+    const keyDetail = styleKeywords[Math.floor(Math.random() * styleKeywords.length)];
+
+    // Determine fit description based on formality
+    let fitDescription = 'tailored fit';
+    if (formality.includes('formal')) fitDescription = 'elegant silhouette';
+    if (formality.includes('casual')) fitDescription = 'relaxed fit';
+    if (formality.includes('athletic')) fitDescription = 'performance fit';
+
+    // Build the new formula: {GARMENT_TYPE} for {OCCASION}, {COLOR}, {FABRIC}, {KEY_DETAIL}, {FIT}, on white background
+    const parts: string[] = [];
+
+    // 1. Garment type with occasion
+    if (occasionName) {
+      parts.push(`${garmentType} for ${occasionName}`);
+    } else {
+      parts.push(garmentType);
     }
 
-    // Add gender if available
-    if (gender) {
-      parts.push(gender);
-    }
+    // 2. Color
+    parts.push(randomColor);
 
-    // Add selected style keywords
-    parts.push(selectedKeywords);
+    // 3. Fabric
+    parts.push(`${randomFabric} fabric`);
 
-    // Add formality
-    if (formality) {
-      parts.push(`${formality} attire`);
-    }
+    // 4. Key visual detail
+    parts.push(keyDetail);
 
-    // Add product photography base (always last)
-    parts.push('white background, centered, high-end fashion photography');
+    // 5. Fit
+    parts.push(fitDescription);
+
+    // 6. Background (always last)
+    parts.push('on white background');
 
     const optimizedPrompt = parts.join(', ');
 
     console.log('✨ Optimized Seedream prompt:', optimizedPrompt);
-    console.log(`📊 Word count: ${optimizedPrompt.split(' ').length} words`);
+    console.log(`📊 Style: ${styleCategory}, Garment: ${garmentType}, Color: ${randomColor}, Fabric: ${randomFabric}`);
 
     return optimizedPrompt;
   };
