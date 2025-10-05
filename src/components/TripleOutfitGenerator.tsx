@@ -77,33 +77,64 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [outfitToSave, setOutfitToSave] = useState<any>(null);
 
-  const personalities: OutfitPersonality[] = [
+  // Color palettes for variation
+  const allColors = [
+    // Bold colors
+    'coral', 'cobalt blue', 'emerald', 'fuchsia', 'electric purple',
+    // Romantic colors
+    'blush pink', 'lavender', 'sage green', 'cream', 'powder blue',
+    // Elegant colors
+    'navy', 'burgundy', 'black', 'champagne', 'deep emerald green'
+  ];
+
+  // Fabric types for variation
+  const allFabrics = [
+    // Bold fabrics
+    'structured cotton', 'ponte knit', 'scuba fabric',
+    // Romantic fabrics
+    'chiffon', 'silk', 'lace', 'organza',
+    // Elegant fabrics
+    'silk crepe', 'wool crepe', 'satin', 'velvet'
+  ];
+
+  // Style keywords for variation
+  const allStyleKeywords = [
+    // Bold keywords
+    'bright color blocking', 'asymmetric cut', 'statement sleeves',
+    // Romantic keywords
+    'floral print', 'ruffled details', 'wrap silhouette',
+    // Elegant keywords
+    'monochrome', 'fitted bodice', 'A-line skirt'
+  ];
+
+  // Simple variations without personality branding
+  const variations: OutfitPersonality[] = [
     {
-      id: 'elegant',
-      name: 'Elegant',
-      description: 'Timeless sophistication',
-      icon: <Star className="w-5 h-5" />,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50 border-blue-200',
-      promptModifier: 'tailored silhouette, classic lines, refined details, structured pieces, timeless elegance'
-    },
-    {
-      id: 'romantic',
-      name: 'Romantic',
-      description: 'Soft and feminine',
-      icon: <Heart className="w-5 h-5" />,
-      color: 'text-pink-600',
-      bgColor: 'bg-pink-50 border-pink-200',
-      promptModifier: 'flowing fabrics, delicate details, ruffles OR lace OR floral elements, dreamy feminine style, soft draping'
-    },
-    {
-      id: 'bold',
-      name: 'Bold',
-      description: 'Modern and striking',
-      icon: <Zap className="w-5 h-5" />,
+      id: 'option1' as 'elegant',
+      name: 'Option 1',
+      description: 'First variation',
+      icon: <Sparkles className="w-5 h-5" />,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50 border-purple-200',
-      promptModifier: 'statement pieces, contemporary cuts, striking details, edgy fashion-forward style, color blocking OR metallics'
+      promptModifier: ''
+    },
+    {
+      id: 'option2' as 'romantic',
+      name: 'Option 2',
+      description: 'Second variation',
+      icon: <Sparkles className="w-5 h-5" />,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50 border-purple-200',
+      promptModifier: ''
+    },
+    {
+      id: 'option3' as 'bold',
+      name: 'Option 3',
+      description: 'Third variation',
+      icon: <Sparkles className="w-5 h-5" />,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50 border-purple-200',
+      promptModifier: ''
     }
   ];
 
@@ -126,6 +157,31 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       generateTripleOutfits();
     }
   }, [occasion]);
+
+  // Garment type detection - detects specific garment from user input or defaults by formality
+  const detectGarmentType = (userInput: string, formality: string): string => {
+    const inputLower = userInput.toLowerCase();
+
+    // Check for specific garments mentioned by user
+    if (inputLower.includes('dress')) return 'dress';
+    if (inputLower.includes('jumpsuit')) return 'jumpsuit';
+    if (inputLower.includes('suit')) return 'suit';
+    if (inputLower.includes('gown')) return 'gown';
+    if (inputLower.includes('blazer')) return 'blazer';
+    if (inputLower.includes('skirt')) return 'midi skirt';
+    if (inputLower.includes('pants') || inputLower.includes('trousers')) return 'tailored pants';
+    if (inputLower.includes('top')) return 'blouse';
+    if (inputLower.includes('shirt')) return 'shirt';
+
+    // Default by formality level
+    if (formality.includes('formal') || formality.includes('black-tie')) return 'floor-length gown';
+    if (formality.includes('semi-formal') || formality.includes('cocktail')) return 'knee-length cocktail dress';
+    if (formality.includes('business')) return 'tailored blazer and pants';
+    if (formality.includes('casual')) return 'casual dress';
+    if (formality.includes('athletic')) return 'activewear set';
+
+    return 'outfit'; // fallback
+  };
 
   // Parse garment details from user input
   const parseGarmentDetails = (input: string): {
@@ -201,158 +257,54 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     return { garmentType, color, fabric, length, fit };
   };
 
-  const createPersonalizedPrompt = async (personality: OutfitPersonality): Promise<string> => {
-    // Combine user's typed input with selected occasion category
-    // If user typed custom details, prioritize those alongside the occasion
-    const hasCustomInput = occasion.originalInput &&
-                          occasion.originalInput.trim().length > 0 &&
-                          occasion.originalInput.trim().toLowerCase() !== occasion.occasion.trim().toLowerCase();
+  const createPersonalizedPrompt = async (variationIndex: number): Promise<string> => {
+    // Get base prompt from user input or occasion
+    const basePrompt = occasion.originalInput || occasion.occasion;
+    const formality = occasion.formality || 'casual';
+    const occasionName = occasion.occasion;
 
-    const basePrompt = hasCustomInput
-      ? occasion.originalInput  // Use EXACTLY what user typed
-      : occasion.occasion;
+    // Detect garment type from user input or formality
+    const garmentType = detectGarmentType(basePrompt, formality);
 
-    console.log('📝 [PROMPT] Building prompt with:', {
-      originalInput: occasion.originalInput,
-      occasion: occasion.occasion,
-      hasCustomInput,
-      basePrompt,
-      usingCustomInput: hasCustomInput ? 'YES - User typed custom details' : 'NO - Using occasion only'
-    });
+    // Pick random color, fabric, and detail for this variation
+    // Each variation gets different random selections
+    const randomColor = allColors[Math.floor(Math.random() * allColors.length)];
+    const randomFabric = allFabrics[Math.floor(Math.random() * allFabrics.length)];
+    const keyDetail = allStyleKeywords[Math.floor(Math.random() * allStyleKeywords.length)];
 
-    // Get user's gender from profile
-    const userData = userDataService.getAllUserData();
-    const userGender = userData?.profile?.gender;
-    console.log('👤 [GENDER] User gender detected:', userGender || 'unspecified');
+    // Determine fit description based on formality
+    let fitDescription = 'tailored fit';
+    if (formality.includes('formal')) fitDescription = 'elegant silhouette';
+    if (formality.includes('casual')) fitDescription = 'relaxed fit';
+    if (formality.includes('athletic')) fitDescription = 'performance fit';
 
-    // Build gender-specific clothing guidance with exclusions
-    let genderGuidance = '';
-    if (userGender === 'female') {
-      genderGuidance = "women's clothing, women's fashion, feminine style, for women. EXCLUDE: men's suits, ties, dress shirts, men's formal wear, masculine clothing";
-    } else if (userGender === 'male') {
-      genderGuidance = "men's clothing, men's fashion, masculine style, for men. EXCLUDE: dresses, skirts, women's blouses, feminine clothing";
-    }
+    // Build the new formula: {GARMENT_TYPE} for {OCCASION}, {COLOR}, {FABRIC}, {KEY_DETAIL}, {FIT}, on white background
+    const parts: string[] = [];
 
-    // Check if user explicitly specified a color in their request
-    const colorKeywords = ['pink', 'red', 'blue', 'green', 'black', 'white', 'yellow', 'purple', 'brown', 'orange', 'beige', 'navy', 'grey', 'gray', 'cream', 'tan', 'burgundy', 'teal', 'lavender', 'coral', 'emerald', 'olive'];
-    const hasExplicitColor = colorKeywords.some(color =>
-      basePrompt.toLowerCase().includes(color)
-    );
+    // 1. Garment type with occasion
+    parts.push(`${garmentType} for ${occasionName}`);
 
-    // Get user's style preferences
-    const stylePrefs = await stylePreferencesService.formatPreferencesForPrompt();
+    // 2. Color
+    parts.push(randomColor);
 
-    // Build style guidance WITHOUT colors if user specified a color
-    let styleGuidance = '';
-    if (stylePrefs.hasPreferences) {
-      const guidanceParts: string[] = [];
+    // 3. Fabric
+    parts.push(`${randomFabric} fabric`);
 
-      // Add non-color style elements
-      if (stylePrefs.archetypes.length > 0) {
-        guidanceParts.push(`style vibe: ${stylePrefs.archetypes.join(', ')}`);
-      }
-      if (stylePrefs.fits.length > 0) {
-        guidanceParts.push(`fit preference: ${stylePrefs.fits.join(', ')}`);
-      }
-      if (stylePrefs.materials.length > 0) {
-        guidanceParts.push(`materials: ${stylePrefs.materials.join(', ')}`);
-      }
-      if (stylePrefs.boundaries.length > 0) {
-        guidanceParts.push(`avoid: ${stylePrefs.boundaries.join(', ')}`);
-      }
+    // 4. Key visual detail
+    parts.push(keyDetail);
 
-      // ONLY add color preferences if user didn't specify a color
-      if (!hasExplicitColor && stylePrefs.colors.length > 0) {
-        guidanceParts.push(`preferred colors: ${stylePrefs.colors.join(', ')}`);
-      }
+    // 5. Fit
+    parts.push(fitDescription);
 
-      styleGuidance = guidanceParts.length > 0 ? `(Style guidance for details: ${guidanceParts.join(', ')}) ` : '';
+    // 6. Background (always last)
+    parts.push('on white background');
 
-      if (hasExplicitColor) {
-        console.log(`🎨 User specified color explicitly - excluding color preferences from style guidance`);
-      } else {
-        console.log('✨ No explicit color in request - including color preferences');
-      }
-    }
+    const optimizedPrompt = parts.join(', ');
 
-    // Parse garment details from user input
-    const garmentDetails = parseGarmentDetails(basePrompt);
+    console.log(`✨ Variation ${variationIndex + 1} prompt:`, optimizedPrompt);
+    console.log(`📊 Garment: ${garmentType}, Color: ${randomColor}, Fabric: ${randomFabric}, Detail: ${keyDetail}`);
 
-    // Build weather context
-    let weatherContext = '';
-    if (occasion.weather) {
-      const temp = occasion.weather.temperature;
-      if (temp < 60) {
-        weatherContext = 'Cool weather (warm layers recommended)';
-      } else if (temp > 80) {
-        weatherContext = 'Warm weather (breathable, lightweight fabric)';
-      } else {
-        weatherContext = 'Moderate weather (comfortable fabric)';
-      }
-    }
-
-    // Build requirements list
-    const requirements: string[] = [];
-    requirements.push(`- Style: ${personality.name}`);
-
-    if (garmentDetails.color) {
-      requirements.push(`- Color: ${garmentDetails.color}`);
-    } else if (!hasExplicitColor && stylePrefs.colors.length > 0) {
-      requirements.push(`- Color: ${stylePrefs.colors.join(' or ')}`);
-    }
-
-    if (garmentDetails.fabric) {
-      requirements.push(`- Fabric: ${garmentDetails.fabric}`);
-    } else if (stylePrefs.materials.length > 0) {
-      requirements.push(`- Fabric suggestion: ${stylePrefs.materials.join(', ')}`);
-    }
-
-    if (garmentDetails.length) {
-      requirements.push(`- Length: ${garmentDetails.length}`);
-    }
-
-    if (garmentDetails.fit) {
-      requirements.push(`- Fit: ${garmentDetails.fit}`);
-    } else if (stylePrefs.fits.length > 0) {
-      requirements.push(`- Fit preference: ${stylePrefs.fits.join(', ')}`);
-    }
-
-    if (genderGuidance) {
-      const genderType = userGender === 'female' ? "Women's clothing" : "Men's clothing";
-      requirements.push(`- Gender: ${genderType}`);
-    }
-
-    // Build exclusions
-    const exclusions: string[] = [];
-    if (userGender === 'female') {
-      exclusions.push("men's suits, ties, dress shirts, masculine formal wear");
-    } else if (userGender === 'male') {
-      exclusions.push("dresses, skirts, women's blouses, feminine clothing");
-    }
-    if (stylePrefs.boundaries.length > 0) {
-      exclusions.push(stylePrefs.boundaries.join(', '));
-    }
-
-    // NEW CLEAN PROMPT STRUCTURE
-    return `Generate a realistic, high-quality ${garmentDetails.garmentType} for ${occasion.occasion}.
-
-REQUIREMENTS:
-${requirements.join('\n')}
-
-MUST BE:
-- Real clothing (NO costumes, NO fantasy wear, NO theatrical clothing)
-- Professionally photographed quality
-- Clean white background
-- Single complete outfit
-- Wearable, modern fashion
-
-STYLE MODIFIER (${personality.name}):
-${personality.promptModifier}
-${exclusions.length > 0 ? `\nEXCLUDE: ${exclusions.join(', ')}` : ''}
-
-${weatherContext ? `Weather context: ${weatherContext}` : ''}
-
-Formality: ${occasion.formality} attire`;
+    return optimizedPrompt;
   };
 
   const createCleanSearchPrompt = (): string => {
@@ -477,7 +429,7 @@ NO explanations, just keywords.`
     }
   };
 
-  const generateReasoning = (personality: OutfitPersonality): string[] => {
+  const generateReasoning = (): string[] => {
     const reasons = [];
 
     // Occasion-based reasoning
@@ -488,41 +440,31 @@ NO explanations, just keywords.`
     }
 
     // Location-based reasoning
-    if (occasion.tags.includes('beach')) {
+    if (occasion.tags && occasion.tags.includes('beach')) {
       reasons.push('Won\'t drag in sand, beach-appropriate');
-    } else if (occasion.tags.includes('work')) {
+    } else if (occasion.tags && occasion.tags.includes('work')) {
       reasons.push('Professional and workplace-suitable');
     }
 
-    // Personality-specific reasoning
-    switch (personality.id) {
-      case 'elegant':
-        reasons.push('Timeless style that never goes out of fashion');
-        break;
-      case 'romantic':
-        reasons.push('Soft, feminine touches perfect for the occasion');
-        break;
-      case 'bold':
-        reasons.push('Modern statement piece that stands out');
-        break;
-    }
+    // General reasoning
+    reasons.push('Perfectly suited for the occasion');
 
     return reasons;
   };
 
-  // Generate unique seed for each personality using fixed ranges
-  const generatePersonalitySeed = (personalityId: string): number => {
-    // Fixed seed ranges for each personality to ensure distinct outputs
-    const seedRanges: { [key: string]: { min: number; max: number } } = {
-      'elegant': { min: 1000, max: 2000 },
-      'romantic': { min: 3000, max: 4000 },
-      'bold': { min: 5000, max: 6000 }
-    };
+  // Generate unique seed for each variation using fixed ranges
+  const generateVariationSeed = (variationIndex: number): number => {
+    // Fixed seed ranges for each variation to ensure distinct outputs
+    const seedRanges = [
+      { min: 1000, max: 2000 }, // Variation 1
+      { min: 3000, max: 4000 }, // Variation 2
+      { min: 5000, max: 6000 }  // Variation 3
+    ];
 
-    const range = seedRanges[personalityId] || { min: 1000, max: 2000 }; // Default to elegant range
+    const range = seedRanges[variationIndex] || { min: 1000, max: 2000 };
     const seed = range.min + Math.floor(Math.random() * (range.max - range.min));
 
-    console.log(`🎲 [SEED] ${personalityId} seed: ${seed} (range ${range.min}-${range.max})`);
+    console.log(`🎲 [SEED] Variation ${variationIndex + 1} seed: ${seed} (range ${range.min}-${range.max})`);
     return seed;
   };
 
@@ -531,10 +473,10 @@ NO explanations, just keywords.`
     setGenerationProgress('Generating your personalized outfit options...');
 
     try {
-      const outfitPromises = personalities.map(async (personality) => {
-        const prompt = await createPersonalizedPrompt(personality);
+      const outfitPromises = variations.map(async (variation, index) => {
+        const prompt = await createPersonalizedPrompt(index);
 
-        setGenerationProgress(`Creating ${personality.name.toLowerCase()} option...`);
+        setGenerationProgress(`Creating ${variation.name.toLowerCase()}...`);
 
         // Use proxy endpoint instead of direct FAL client to avoid 401 errors
         const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
@@ -548,7 +490,7 @@ NO explanations, just keywords.`
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
-            seed: generatePersonalitySeed(personality.id), // Force unique outputs per personality
+            seed: generateVariationSeed(index), // Force unique outputs per variation
             num_inference_steps: 28 // Increase quality and variation
           })
         });
@@ -559,19 +501,19 @@ NO explanations, just keywords.`
         }
 
         const result = await response.json();
-        setGenerationProgress(`Generating ${personality.name.toLowerCase()} outfit...`);
+        setGenerationProgress(`Generating ${variation.name.toLowerCase()}...`);
 
         if (!result.images || result.images.length === 0) {
-          throw new Error(`Failed to generate ${personality.name} outfit`);
+          throw new Error(`Failed to generate ${variation.name} outfit`);
         }
 
-        const reasoning = generateReasoning(personality);
+        const reasoning = generateReasoning();
 
         // Analyze the generated outfit image to create intelligent search prompts
-        const searchPrompt = await analyzeOutfitImage(result.images[0].url, personality.name);
+        const searchPrompt = await analyzeOutfitImage(result.images[0].url, variation.name);
 
         return {
-          personality,
+          personality: variation,
           imageUrl: result.images[0].url,
           reasoning,
           priceRange: '', // Will be set when user selects budget
@@ -754,16 +696,15 @@ NO explanations, just keywords.`
                 outfit.isSelected ? 'border-purple-500 shadow-lg ring-4 ring-purple-100' : 'border-gray-200'
               }`}
             >
-              {/* Personality Header */}
-              <div className={`p-4 border-b ${outfit.personality.bgColor} rounded-t-xl`}>
+              {/* Simple Header */}
+              <div className="p-4 border-b bg-purple-50 border-purple-200 rounded-t-xl">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className={`p-2 bg-white rounded-lg ${outfit.personality.color}`}>
-                      {outfit.personality.icon}
+                    <div className="p-2 bg-white rounded-lg text-purple-600">
+                      <Sparkles className="w-5 h-5" />
                     </div>
                     <div>
                       <h4 className="font-bold text-gray-900">{outfit.personality.name}</h4>
-                      <p className="text-sm text-gray-600">{outfit.personality.description}</p>
                     </div>
                   </div>
                   {outfit.isSelected && (
