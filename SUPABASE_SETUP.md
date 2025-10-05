@@ -202,6 +202,52 @@ const shareUrl = await outfitStorageService.shareOutfit(outfitId);
 
 // Get outfit by share token (public access)
 const sharedOutfit = await outfitStorageService.getOutfitByShareToken('abc-123-xyz');
+
+// Rate an outfit (1-5 stars)
+await outfitStorageService.rateOutfit(outfitId, 5, userId);
+
+// Get top-rated outfits
+const topRated = await outfitStorageService.getTopRatedOutfits(userId, 4); // min rating: 4
+
+// Track shop clicks
+await outfitStorageService.trackShopClick(outfitId, 'https://store.com/product', userId);
+
+// Track purchases
+await outfitStorageService.trackPurchase(outfitId, 89.99, userId);
+
+// Get conversion rate analytics
+const { total, purchased, rate } = await outfitStorageService.getConversionRate(userId);
+console.log(\`Conversion rate: ${rate.toFixed(2)}%\`);
+\`\`\`
+
+### `collectionsService`
+
+\`\`\`typescript
+import collectionsService from '@/services/collectionsService';
+
+// Create a new collection
+const collection = await collectionsService.createCollection(userId, 'Summer Weddings', 'Outfits for summer wedding season');
+
+// Get user's collections
+const collections = await collectionsService.getUserCollections(userId);
+
+// Add outfit to collection
+await collectionsService.addOutfitToCollection(collectionId, outfitId);
+
+// Remove outfit from collection
+await collectionsService.removeOutfitFromCollection(collectionId, outfitId);
+
+// Get collection with all outfits
+const collectionWithOutfits = await collectionsService.getCollectionWithOutfits(collectionId);
+
+// Update collection
+await collectionsService.updateCollection(collectionId, {
+  name: 'Updated Name',
+  description: 'New description'
+});
+
+// Delete collection
+await collectionsService.deleteCollection(collectionId);
 \`\`\`
 
 ### `userPreferencesService`
@@ -209,11 +255,14 @@ const sharedOutfit = await outfitStorageService.getOutfitByShareToken('abc-123-x
 \`\`\`typescript
 import userPreferencesService from '@/services/userPreferencesService';
 
-// Save/update preferences
+// Save/update preferences (including style profile)
 await userPreferencesService.savePreferences(userId, {
   preferred_style: 'elegant',
   favorite_colors: ['navy', 'burgundy'],
-  gender: 'female'
+  gender: 'female',
+  body_type: 'hourglass',
+  size: 'M',
+  budget_range: '$50-$100'
 });
 
 // Get preferences
@@ -234,12 +283,178 @@ const prefs = await userPreferencesService.getPreferences(userId);
 ### Want to require authentication?
 → Remove the "Allow anonymous" policies in the SQL schema and implement Supabase Auth
 
+## Advanced Features
+
+### 🌟 Favoriting Outfits
+
+```typescript
+// Toggle favorite
+await outfitStorageService.toggleFavorite(outfitId, true);
+
+// Get all favorited outfits
+const favorites = await outfitStorageService.getFavoritedOutfits(userId);
+```
+
+### 🔗 Sharing Outfits
+
+```typescript
+// Generate unique share link
+const shareUrl = await outfitStorageService.shareOutfit(outfitId);
+// Returns: https://yourapp.com/outfit/abc-123-xyz
+
+// Get outfit by share token (public access - no auth required)
+const sharedOutfit = await outfitStorageService.getOutfitByShareToken('abc-123-xyz');
+```
+
+### ⭐ Rating System
+
+```typescript
+// Rate an outfit (1-5 stars)
+await outfitStorageService.rateOutfit(outfitId, 5, userId);
+
+// Get highly-rated outfits
+const topRated = await outfitStorageService.getTopRatedOutfits(userId, 4);
+```
+
+### 📚 Collections (Outfit Boards)
+
+```typescript
+// Create collection
+const collection = await collectionsService.createCollection(
+  userId,
+  'Summer Weddings',
+  'Outfits for summer wedding season'
+);
+
+// Add outfits to collection
+await collectionsService.addOutfitToCollection(collectionId, outfitId);
+
+// Get collection with outfits
+const collectionWithOutfits = await collectionsService.getCollectionWithOutfits(collectionId);
+```
+
+### 💰 Purchase Tracking & Analytics
+
+```typescript
+// Track when user clicks shop link
+await outfitStorageService.trackShopClick(outfitId, 'https://store.com/product', userId);
+
+// Track purchase
+await outfitStorageService.trackPurchase(outfitId, 89.99, userId);
+
+// Get conversion rate
+const { total, purchased, rate } = await outfitStorageService.getConversionRate(userId);
+console.log(`Generated ${total} outfits, ${purchased} purchases (${rate.toFixed(2)}%)`);
+```
+
+### 🌤️ Weather Integration
+
+Store weather context with outfits for better recommendations:
+
+```typescript
+// Save outfit with weather data
+const outfitData = {
+  occasion: 'beach wedding',
+  style: 'elegant',
+  imageUrl: 'https://...',
+  userPrompt: 'red dress',
+  gender: 'female',
+  weather_temp: 75,
+  weather_condition: 'sunny',
+  location: 'Santa Monica, CA'
+};
+
+await outfitStorageService.saveOutfit(userId, outfitData);
+
+// Query outfits by weather
+// (You can add a custom query method for this)
+```
+
+### 👗 Style Profile
+
+Extended user preferences for personalized recommendations:
+
+```typescript
+await userPreferencesService.savePreferences(userId, {
+  preferred_style: 'elegant',
+  favorite_colors: ['navy', 'burgundy'],
+  gender: 'female',
+  body_type: 'hourglass',    // NEW
+  size: 'M',                 // NEW
+  budget_range: '$50-$100'   // NEW
+});
+```
+
+## Analytics Queries
+
+### Conversion Rate by Style
+
+```sql
+select
+  style,
+  count(*) as total_generated,
+  sum(case when purchased then 1 else 0 end) as purchased_count,
+  round(100.0 * sum(case when purchased then 1 else 0 end) / count(*), 2) as conversion_rate
+from outfits
+group by style
+order by conversion_rate desc;
+```
+
+### Top-Rated Outfits
+
+```sql
+select
+  occasion,
+  style,
+  rating,
+  image_url,
+  created_at
+from outfits
+where rating >= 4
+order by rating desc, created_at desc
+limit 20;
+```
+
+### Collection Popularity
+
+```sql
+select
+  c.name,
+  c.description,
+  count(co.outfit_id) as outfit_count
+from collections c
+left join collection_outfits co on c.id = co.collection_id
+group by c.id, c.name, c.description
+order by outfit_count desc;
+```
+
+### Weather-Based Recommendations
+
+```sql
+select
+  weather_condition,
+  weather_temp,
+  occasion,
+  style,
+  avg(rating) as avg_rating,
+  count(*) as outfit_count
+from outfits
+where weather_condition is not null and rating is not null
+group by weather_condition, weather_temp, occasion, style
+having count(*) >= 3
+order by avg_rating desc;
+```
+
 ## Next Steps
 
 1. ✅ Run `supabase-schema.sql` in your Supabase SQL Editor
 2. ✅ Test by generating outfits in your app
 3. ✅ View data in Supabase Table Editor
 4. 📊 Analyze which styles users prefer most
-5. 🔬 Use data for your research!
+5. ⭐ Implement rating UI in your app
+6. 📚 Add collections/boards feature to UI
+7. 💰 Track shop clicks and purchases
+8. 🌤️ Integrate weather API for contextual recommendations
+9. 🔬 Use data for your research!
 
 **Questions?** Check Supabase docs: https://supabase.com/docs

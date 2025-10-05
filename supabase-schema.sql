@@ -1,12 +1,15 @@
 -- Supabase Database Schema for Fit Checked App
 -- Run this in your Supabase SQL Editor
 
--- Users table (for preferences)
+-- Users table (for preferences and style profile)
 create table if not exists users (
   id uuid references auth.users primary key,
   preferred_style text,
   favorite_colors text[],
   gender text,
+  body_type text,
+  size text,
+  budget_range text,
   created_at timestamp default now()
 );
 
@@ -24,6 +27,10 @@ create table if not exists outfits (
   purchased boolean default false,
   favorited boolean default false,
   share_token text unique,
+  rating integer check (rating >= 1 and rating <= 5),
+  weather_temp integer,
+  weather_condition text,
+  location text,
   created_at timestamp default now()
 );
 
@@ -37,6 +44,23 @@ create table if not exists interactions (
   created_at timestamp default now()
 );
 
+-- Collections table (for outfit organization)
+create table if not exists collections (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users,
+  name text not null,
+  description text,
+  created_at timestamp default now()
+);
+
+-- Collection outfits (many-to-many relationship)
+create table if not exists collection_outfits (
+  collection_id uuid references collections on delete cascade,
+  outfit_id uuid references outfits on delete cascade,
+  added_at timestamp default now(),
+  primary key (collection_id, outfit_id)
+);
+
 -- Indexes for better query performance
 create index if not exists outfits_user_id_idx on outfits(user_id);
 create index if not exists outfits_created_at_idx on outfits(created_at desc);
@@ -44,8 +68,13 @@ create index if not exists outfits_style_idx on outfits(style);
 create index if not exists outfits_clicked_idx on outfits(clicked);
 create index if not exists outfits_favorited_idx on outfits(favorited);
 create index if not exists outfits_share_token_idx on outfits(share_token);
+create index if not exists outfits_rating_idx on outfits(rating);
+create index if not exists outfits_purchased_idx on outfits(purchased);
 create index if not exists interactions_user_id_idx on interactions(user_id);
 create index if not exists interactions_action_idx on interactions(action);
+create index if not exists collections_user_id_idx on collections(user_id);
+create index if not exists collection_outfits_collection_id_idx on collection_outfits(collection_id);
+create index if not exists collection_outfits_outfit_id_idx on collection_outfits(outfit_id);
 
 -- If you need to add columns to existing table (run only if outfits table already exists)
 -- alter table outfits add column if not exists user_prompt text;
@@ -53,11 +82,22 @@ create index if not exists interactions_action_idx on interactions(action);
 -- alter table outfits add column if not exists seedream_seed integer;
 -- alter table outfits add column if not exists favorited boolean default false;
 -- alter table outfits add column if not exists share_token text unique;
+-- alter table outfits add column if not exists rating integer check (rating >= 1 and rating <= 5);
+-- alter table outfits add column if not exists weather_temp integer;
+-- alter table outfits add column if not exists weather_condition text;
+-- alter table outfits add column if not exists location text;
+
+-- Add columns to users table
+-- alter table users add column if not exists body_type text;
+-- alter table users add column if not exists size text;
+-- alter table users add column if not exists budget_range text;
 
 -- Enable Row Level Security (RLS) for security
 alter table users enable row level security;
 alter table outfits enable row level security;
 alter table interactions enable row level security;
+alter table collections enable row level security;
+alter table collection_outfits enable row level security;
 
 -- RLS Policies (adjust based on your auth requirements)
 -- Allow users to read their own data
@@ -109,3 +149,45 @@ create policy "Allow anonymous outfit updates" on outfits
 -- Public sharing policy: Allow anyone to view outfits with a share_token
 create policy "Allow public viewing of shared outfits" on outfits
   for select using (share_token is not null);
+
+-- Collections policies
+create policy "Users can view own collections" on collections
+  for select using (user_id = auth.uid());
+
+create policy "Users can insert own collections" on collections
+  for insert with check (user_id = auth.uid());
+
+create policy "Users can update own collections" on collections
+  for update using (user_id = auth.uid());
+
+create policy "Users can delete own collections" on collections
+  for delete using (user_id = auth.uid());
+
+-- Collection outfits policies
+create policy "Users can view collection outfits" on collection_outfits
+  for select using (
+    exists (
+      select 1 from collections
+      where collections.id = collection_outfits.collection_id
+      and collections.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can manage collection outfits" on collection_outfits
+  for all using (
+    exists (
+      select 1 from collections
+      where collections.id = collection_outfits.collection_id
+      and collections.user_id = auth.uid()
+    )
+  );
+
+-- Anonymous collection policies
+create policy "Allow anonymous collection creation" on collections
+  for insert with check (true);
+
+create policy "Allow anonymous collection viewing" on collections
+  for select using (true);
+
+create policy "Allow anonymous collection outfit management" on collection_outfits
+  for all using (true);

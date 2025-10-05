@@ -18,6 +18,10 @@ export interface OutfitData {
   purchased: boolean;
   favorited: boolean;
   share_token?: string;
+  rating?: number;
+  weather_temp?: number;
+  weather_condition?: string;
+  location?: string;
   created_at: Date;
 }
 
@@ -347,6 +351,147 @@ class OutfitStorageService {
     } catch (error) {
       console.error('❌ [OUTFIT-STORAGE] Failed to fetch shared outfit:', error);
       return null;
+    }
+  }
+
+  /**
+   * Rate an outfit (1-5 stars)
+   */
+  async rateOutfit(outfitId: string, rating: number, userId: string): Promise<boolean> {
+    try {
+      // Validate rating
+      if (rating < 1 || rating > 5) {
+        console.error('❌ [OUTFIT-STORAGE] Invalid rating:', rating);
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('outfits')
+        .update({ rating })
+        .eq('id', outfitId);
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error rating outfit:', error);
+        return false;
+      }
+
+      // Track interaction
+      await this.trackInteraction(userId, 'outfit_rated', '', {
+        outfit_id: outfitId,
+        rating
+      });
+
+      console.log(`⭐ [OUTFIT-STORAGE] Outfit rated: ${rating} stars`);
+      return true;
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to rate outfit:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get highest-rated outfits
+   */
+  async getTopRatedOutfits(userId: string, minRating: number = 4): Promise<OutfitData[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('rating', minRating)
+        .order('rating', { ascending: false });
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching top rated outfits:', error);
+        return [];
+      }
+
+      console.log(`⭐ [OUTFIT-STORAGE] Loaded ${data?.length || 0} highly-rated outfits`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to fetch top rated outfits:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Track shop click
+   */
+  async trackShopClick(outfitId: string, productUrl: string, userId: string): Promise<boolean> {
+    try {
+      await this.trackInteraction(userId, 'shop_clicked', '', {
+        outfit_id: outfitId,
+        product_url: productUrl
+      });
+
+      console.log('🛍️ [OUTFIT-STORAGE] Shop click tracked');
+      return true;
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to track shop click:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Track purchase
+   */
+  async trackPurchase(outfitId: string, price: number, userId: string): Promise<boolean> {
+    try {
+      // Mark outfit as purchased
+      const { error: updateError } = await supabase
+        .from('outfits')
+        .update({ purchased: true })
+        .eq('id', outfitId);
+
+      if (updateError) {
+        console.error('❌ [OUTFIT-STORAGE] Error updating outfit as purchased:', updateError);
+        return false;
+      }
+
+      // Track purchase interaction
+      await this.trackInteraction(userId, 'purchase_confirmed', '', {
+        outfit_id: outfitId,
+        price
+      });
+
+      console.log('💰 [OUTFIT-STORAGE] Purchase tracked');
+      return true;
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to track purchase:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get conversion rate analytics
+   */
+  async getConversionRate(userId: string): Promise<{ total: number; purchased: number; rate: number }> {
+    try {
+      const { data: allOutfits, error: totalError } = await supabase
+        .from('outfits')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId);
+
+      const { data: purchasedOutfits, error: purchasedError } = await supabase
+        .from('outfits')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('purchased', true);
+
+      if (totalError || purchasedError) {
+        console.error('❌ [OUTFIT-STORAGE] Error calculating conversion rate');
+        return { total: 0, purchased: 0, rate: 0 };
+      }
+
+      const total = allOutfits?.length || 0;
+      const purchased = purchasedOutfits?.length || 0;
+      const rate = total > 0 ? (purchased / total) * 100 : 0;
+
+      console.log(`📊 [OUTFIT-STORAGE] Conversion rate: ${rate.toFixed(2)}%`);
+      return { total, purchased, rate };
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to calculate conversion rate:', error);
+      return { total: 0, purchased: 0, rate: 0 };
     }
   }
 }
