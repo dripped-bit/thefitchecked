@@ -18,6 +18,7 @@ import {
 import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import userDataService from '../services/userDataService';
+import outfitStorageService from '../services/outfitStorageService';
 import { ParsedOccasion } from './SmartOccasionInput';
 import ShareModal from './ShareModal';
 import CalendarEntryModal from './CalendarEntryModal';
@@ -42,6 +43,8 @@ export interface GeneratedOutfit {
   isSelected: boolean;
   originalPrompt: string;
   searchPrompt: string;
+  supabaseId?: string;  // Database ID for tracking
+  seed?: number;         // Seedream seed used
 }
 
 interface TripleOutfitGeneratorProps {
@@ -502,6 +505,7 @@ NO explanations, just keywords.`
     try {
       const outfitPromises = variations.map(async (variation, index) => {
         const prompt = await createPersonalizedPrompt(index);
+        const seed = generateVariationSeed(index);
 
         setGenerationProgress(`Creating ${variation.name.toLowerCase()}...`);
 
@@ -517,7 +521,7 @@ NO explanations, just keywords.`
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
-            seed: generateVariationSeed(index), // Force unique outputs per variation
+            seed, // Force unique outputs per variation
             num_inference_steps: 28 // Increase quality and variation
           })
         });
@@ -547,12 +551,44 @@ NO explanations, just keywords.`
           confidence: 0.85 + Math.random() * 0.1, // Mock confidence between 85-95%
           isSelected: false,
           originalPrompt: prompt,
-          searchPrompt: searchPrompt
+          searchPrompt: searchPrompt,
+          seed // Store seed for database
         };
       });
 
       const generatedOutfits = await Promise.all(outfitPromises);
       setOutfits(generatedOutfits);
+
+      // Save all 3 outfits to Supabase
+      try {
+        const userData = userDataService.getAllUserData();
+        const userId = userData?.profile?.email || 'anonymous'; // Use email as user ID or implement proper auth
+        const gender = userData?.profile?.gender || 'unisex';
+
+        const outfitsToSave = generatedOutfits.map(outfit => ({
+          occasion: occasion.name,
+          style: outfit.personality.id,
+          imageUrl: outfit.imageUrl,
+          userPrompt: occasion.userInput || occasion.name,
+          gender: gender,
+          seedreamSeed: outfit.seed
+        }));
+
+        const savedOutfits = await outfitStorageService.saveMultipleOutfits(userId, outfitsToSave);
+
+        // Update outfits with Supabase IDs
+        if (savedOutfits.length === generatedOutfits.length) {
+          const updatedOutfits = generatedOutfits.map((outfit, index) => ({
+            ...outfit,
+            supabaseId: savedOutfits[index]?.id
+          }));
+          setOutfits(updatedOutfits);
+          console.log('✅ [TRIPLE-OUTFIT] Saved 3 outfits to Supabase');
+        }
+      } catch (error) {
+        console.error('❌ [TRIPLE-OUTFIT] Failed to save outfits to Supabase:', error);
+        // Continue anyway - don't block user experience
+      }
 
       setGenerationProgress('All outfit options ready!');
       setTimeout(() => setGenerationProgress(''), 2000);
@@ -574,6 +610,32 @@ NO explanations, just keywords.`
     setOutfits(updatedOutfits);
     setSelectedOutfit(outfit);
     onOutfitSelected(outfit);
+
+    // Track click in Supabase
+    try {
+      if (outfit.supabaseId) {
+        await outfitStorageService.markOutfitClicked(outfit.supabaseId);
+
+        const userData = userDataService.getAllUserData();
+        const userId = userData?.profile?.email || 'anonymous';
+
+        await outfitStorageService.trackInteraction(
+          userId,
+          'outfit_clicked',
+          outfit.personality.id,
+          {
+            outfit_id: outfit.supabaseId,
+            occasion: occasion.name,
+            style: outfit.personality.name
+          }
+        );
+
+        console.log('✅ [TRIPLE-OUTFIT] Tracked outfit click');
+      }
+    } catch (error) {
+      console.error('❌ [TRIPLE-OUTFIT] Failed to track click:', error);
+      // Continue anyway - don't block user experience
+    }
 
     // Directly trigger try-on if avatar exists (budget selection moved to "Shop This Look")
     if (avatarData?.imageUrl) {
