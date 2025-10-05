@@ -192,8 +192,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   const [showDateModal, setShowDateModal] = useState(false);
   const [modalStep, setModalStep] = useState<'occasion' | 'notes' | 'outfit'>('occasion');
   const [outfitMode, setOutfitMode] = useState<'upload' | 'closet'>('closet');
-  const [currentMonth, setCurrentMonth] = useState(9); // 0-based: 9 = October
-  const [currentYear, setCurrentYear] = useState(2024);
+  const today = new Date();
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [dateOccasions, setDateOccasions] = useState<{[key: number]: {
     occasion: 'travel' | 'formal' | 'social' | 'daily' | 'activities';
     notes: string;

@@ -29,6 +29,8 @@ import smartCalendarService, {
   WeatherData,
   OutfitItem
 } from '../services/smartCalendarService';
+import PackingListGenerator from './PackingListGenerator';
+import WoreThisTodayTracker from './WoreThisTodayTracker';
 
 interface SmartCalendarDashboardProps {
   onBack?: () => void;
@@ -48,6 +50,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showOutfitPlanner, setShowOutfitPlanner] = useState(false);
+  const [showWoreThisToday, setShowWoreThisToday] = useState(false);
 
   useEffect(() => {
     initializeDashboard();
@@ -208,7 +211,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         </button>
 
         <button
-          onClick={() => recordOutfitWorn([])}
+          onClick={() => setShowWoreThisToday(true)}
           className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-4 rounded-xl hover:scale-105 transition-all"
         >
           <div className="flex items-center space-x-2">
@@ -577,9 +580,28 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
             {!isLoading && currentView === 'morning' && renderMorningMode()}
             {!isLoading && currentView === 'queue' && renderOutfitQueue()}
             {!isLoading && currentView === 'settings' && renderSettings()}
+            {!isLoading && currentView === 'packing' && (
+              <PackingListGenerator
+                onBack={() => setCurrentView('overview')}
+                clothingItems={clothingItems}
+              />
+            )}
           </div>
         </div>
       </div>
+
+      {/* Wore This Today Modal */}
+      {showWoreThisToday && (
+        <WoreThisTodayTracker
+          onClose={() => setShowWoreThisToday(false)}
+          clothingItems={clothingItems}
+          todaysEvents={upcomingEvents.filter(e => {
+            const today = new Date();
+            const eventDate = new Date(e.startTime);
+            return eventDate.toDateString() === today.toDateString();
+          })}
+        />
+      )}
     </div>
   );
 };

@@ -156,6 +156,28 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     }
   }, [occasion]);
 
+  // Get user gender-appropriate clothing text
+  const getClothingGenderText = (): string => {
+    const userData = userDataService.getAllUserData();
+    const gender = userData?.profile?.gender || '';
+
+    if (gender === 'male') return "ADULT MEN'S CLOTHING ONLY";
+    if (gender === 'female') return "ADULT WOMEN'S CLOTHING ONLY";
+    return "ADULT CLOTHING ONLY"; // unisex or not set
+  };
+
+  // Get gender-appropriate children's exclusion terms
+  const getChildrensExclusionTerms = (): string => {
+    const userData = userDataService.getAllUserData();
+    const gender = userData?.profile?.gender || '';
+
+    const base = "children's clothes, kids outfit, toddler dress, baby clothes, children's clothing, kids apparel, children wear, toddler outfit, kids fashion";
+
+    if (gender === 'male') return `${base}, boys' clothes, boys outfit, boy's clothing`;
+    if (gender === 'female') return `${base}, girls' clothes, girls outfit, girl's clothing`;
+    return base;
+  };
+
   // Map occasion name to formality descriptor
   const getFormalityDescriptor = (occasionName: string, formalityLevel: string): string => {
     const occasionLower = occasionName.toLowerCase();
@@ -302,7 +324,7 @@ STYLE INTERPRETATION - ${selectedStyle.name}: ${selectedStyle.description}
 FOR OCCASION: ${occasionName}, ${formalityDescriptor}
 
 
-Generate ONE SINGLE complete outfit matching the specific request above. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
+Generate ONE SINGLE complete outfit matching the specific request above. ${getClothingGenderText()} - absolutely no children's clothes, no kids' outfits, no toddler clothes, no baby clothes. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
 
     console.log(`✨ Variation ${variationIndex + 1} prompt:`);
     console.log(`   User Request: "${userExactInput}"`);
@@ -491,7 +513,7 @@ NO explanations, just keywords.`
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: 'multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits',
+            negative_prompt: `multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, ${getChildrensExclusionTerms()}`,
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,

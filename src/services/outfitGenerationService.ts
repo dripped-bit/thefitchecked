@@ -7,6 +7,7 @@ import { WeatherData } from './weatherService';
 import ClosetService, { ClothingItem } from './closetService';
 import enhancedPromptGenerationService, { EnhancedPromptResult, PromptGenerationRequest } from './enhancedPromptGenerationService';
 import promptDebugService from './promptDebugService';
+import userDataService from './userDataService';
 
 export interface OutfitSuggestion {
   id: number;
@@ -57,6 +58,28 @@ export interface OutfitGenerationRequest {
   month?: number; // 1-12
   usePersonalWardrobe?: boolean;
 }
+
+// Helper function to get user gender-appropriate clothing text
+const getClothingGenderText = (): string => {
+  const userData = userDataService.getAllUserData();
+  const gender = userData?.profile?.gender || '';
+
+  if (gender === 'male') return "ADULT MEN'S CLOTHING ONLY";
+  if (gender === 'female') return "ADULT WOMEN'S CLOTHING ONLY";
+  return "ADULT CLOTHING ONLY"; // unisex or not set
+};
+
+// Helper function to get gender-appropriate children's exclusion terms
+const getChildrensExclusionTerms = (): string => {
+  const userData = userDataService.getAllUserData();
+  const gender = userData?.profile?.gender || '';
+
+  const base = "children's clothes, kids outfit, toddler dress, baby clothes, children's clothing, kids apparel, children wear, toddler outfit, kids fashion";
+
+  if (gender === 'male') return `${base}, boys' clothes, boys outfit, boy's clothing`;
+  if (gender === 'female') return `${base}, girls' clothes, girls outfit, girl's clothing`;
+  return base;
+};
 
 class OutfitGenerationService {
   public readonly version = '2.1.0-two-step-process'; // Force cache invalidation
@@ -380,7 +403,7 @@ class OutfitGenerationService {
 
     try {
       // Prepare the enhanced prompt for garment-only generation (FASHN-optimized for complete visibility)
-      const enhancedPrompt = `${outfitPrompt}, product photography, fashion flat lay, isolated clothing items, clean white background, studio lighting, high resolution, detailed textures, professional fashion photography, clothing only, no person, no model, no human, no body, garment display, fashion catalog style, apparel showcase, full garment view, complete clothing item, no cropping, entire outfit visible, uncut garment edges, complete clothing piece, full item showcase, perfect garment framing, whole garment in frame, complete outfit display, FASHN-ready garment image, virtual try-on optimized`;
+      const enhancedPrompt = `${outfitPrompt}, ${getClothingGenderText()} - no children's clothes, product photography, fashion flat lay, isolated clothing items, clean white background, studio lighting, high resolution, detailed textures, professional fashion photography, clothing only, no person, no model, no human, no body, garment display, fashion catalog style, apparel showcase, full garment view, complete clothing item, no cropping, entire outfit visible, uncut garment edges, complete clothing piece, full item showcase, perfect garment framing, whole garment in frame, complete outfit display, FASHN-ready garment image, virtual try-on optimized`;
 
       console.log('🚀 Enhanced garment prompt:', enhancedPrompt);
       console.log('🔗 Calling FAL.ai API via proxy:', '/api/fal/fal-ai/flux/dev');

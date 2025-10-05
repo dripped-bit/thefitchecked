@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
+import userDataService from '../services/userDataService';
 import SmartOccasionPlanner from './SmartOccasionPlanner';
 
 interface EnhancedOutfitGeneratorProps {
@@ -89,6 +90,28 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     };
     loadPreferences();
   }, []);
+
+  // Get user gender-appropriate clothing text
+  const getClothingGenderText = (): string => {
+    const userData = userDataService.getAllUserData();
+    const gender = userData?.profile?.gender || '';
+
+    if (gender === 'male') return "ADULT MEN'S CLOTHING ONLY";
+    if (gender === 'female') return "ADULT WOMEN'S CLOTHING ONLY";
+    return "ADULT CLOTHING ONLY"; // unisex or not set
+  };
+
+  // Get gender-appropriate children's exclusion terms
+  const getChildrensExclusionTerms = (): string => {
+    const userData = userDataService.getAllUserData();
+    const gender = userData?.profile?.gender || '';
+
+    const base = "children's clothes, kids outfit, toddler dress, baby clothes, children's clothing, kids apparel, children wear, toddler outfit, kids fashion";
+
+    if (gender === 'male') return `${base}, boys' clothes, boys outfit, boy's clothing`;
+    if (gender === 'female') return `${base}, girls' clothes, girls outfit, girl's clothing`;
+    return base;
+  };
 
   // Weather icon helper
   const getWeatherIcon = (temp: number) => {
@@ -226,7 +249,8 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: clothingPrompt,
+        prompt: `${clothingPrompt}, ${getClothingGenderText()} - no children's clothes, no kids' outfits`,
+        negative_prompt: `${getChildrensExclusionTerms()}, multiple outfits, duplicate outfits`,
         image_size: { height: 2048, width: 2048 },
         num_images: 1,
         enable_safety_checker: true
@@ -286,7 +310,8 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: occasionPrompt,
+        prompt: `${occasionPrompt}, ${getClothingGenderText()} - no children's clothes, no kids' outfits`,
+        negative_prompt: `${getChildrensExclusionTerms()}, multiple outfits, duplicate outfits`,
         image_size: { height: 2048, width: 2048 },
         num_images: 1,
         enable_safety_checker: true
