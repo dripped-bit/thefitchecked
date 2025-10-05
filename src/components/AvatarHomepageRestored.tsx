@@ -25,8 +25,10 @@ import AvatarClothingAnalysisService, { AvatarClothingAnalysis } from '../servic
 import PerplexityService, { ProductSearchResult, ProductSearchOptions } from '../services/perplexityService';
 import affiliateLinkService from '../services/affiliateLinkService';
 import SavedPromptsModal from './SavedPromptsModal';
+import SavedAvatarsTab from './SavedAvatarsTab';
 import { CURRENT_PERFECT_PROMPT } from '../config/bestavatargenerated.js';
 import stylePreferencesService from '../services/stylePreferencesService';
+import avatarManagementService from '../services/avatarManagementService';
 
 interface AvatarHomepageProps {
   onBack: () => void;
@@ -164,6 +166,9 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
   // Share modal state
   const [showShareModal, setShowShareModal] = useState(false);
+
+  // Saved avatars tab state
+  const [showSavedAvatarsTab, setShowSavedAvatarsTab] = useState(false);
 
   // User's fashion rule from style preferences
   const [fashionRule, setFashionRule] = useState<string>('Today TheFitChecked');
@@ -1084,8 +1089,8 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
               </div>
             </div>
 
-            {/* Upload Button - Centered Under Avatar */}
-            <div className="mt-4 flex justify-center">
+            {/* Upload Button and Saved Avatars - Centered Under Avatar */}
+            <div className="mt-4 flex justify-center space-x-3">
               <button
                 onClick={handleSmartUpload}
                 disabled={uploadingClothing}
@@ -1102,6 +1107,14 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                     <span>Upload Outfit</span>
                   </>
                 )}
+              </button>
+
+              <button
+                onClick={() => setShowSavedAvatarsTab(true)}
+                className="flex items-center justify-center space-x-2 glass-blue text-white px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+              >
+                <Users className="w-4 h-4" />
+                <span>Saved Avatars</span>
               </button>
             </div>
 
@@ -1517,6 +1530,29 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
             console.log('Download outfit:', shareId);
             // TODO: Implement download functionality
           }}
+        />
+      )}
+
+      {/* Saved Avatars Tab */}
+      {showSavedAvatarsTab && (
+        <SavedAvatarsTab
+          onClose={() => setShowSavedAvatarsTab(false)}
+          onAvatarSelect={(avatarId) => {
+            // Load selected avatar
+            const avatarState = avatarManagementService.loadAvatarFromLibrary(avatarId);
+            if (avatarState && onAvatarUpdate) {
+              // Update the avatar on homepage
+              onAvatarUpdate({
+                imageUrl: avatarState.currentAvatar,
+                qualityScore: 85,
+                metadata: {
+                  style: 'realistic',
+                  quality: 'high'
+                }
+              });
+            }
+          }}
+          currentAvatarId={avatarManagementService.getCurrentAvatar()?.id}
         />
       )}
 

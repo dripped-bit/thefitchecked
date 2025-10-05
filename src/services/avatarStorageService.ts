@@ -30,7 +30,7 @@ export interface AvatarLibrary {
 
 class AvatarStorageService {
   private readonly STORAGE_KEY = 'avatarLibrary';
-  private readonly MAX_AVATARS = 10; // Limit to prevent localStorage overflow
+  private readonly MAX_AVATARS = 3; // Limit to 3 saved avatars for user management
   private readonly MAX_STORAGE_SIZE = 50 * 1024 * 1024; // 50MB limit
 
   /**

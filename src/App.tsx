@@ -11,6 +11,7 @@ import Page4Component from './components/Page4Component';
 import AvatarHomepage from './components/AvatarHomepageRestored';
 // import SeedreamTest from './components/SeedreamTest'; // DISABLED - test component not needed (fal.ai still active)
 import UserOnboardingPopup from './components/UserOnboardingPopup';
+import SaveAvatarModal from './components/SaveAvatarModal';
 import ClosetExperience from './components/ClosetExperience';
 import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
@@ -147,6 +148,8 @@ function App() {
   const [showDoorTransition, setShowDoorTransition] = useState(false);
   const [showExitDoorTransition, setShowExitDoorTransition] = useState(false);
   const [pendingScreen, setPendingScreen] = useState<Screen | null>(null);
+  const [showSaveAvatarModal, setShowSaveAvatarModal] = useState(false);
+  const [pendingAvatarData, setPendingAvatarData] = useState<any>(null);
   const [appData, setAppData] = useState<AppData>({
     capturedPhotos: [],
     uploadedPhoto: undefined,
@@ -225,9 +228,10 @@ function App() {
       // Try to load the default avatar
       const defaultAvatar = avatarManagementService.getDefaultAvatar();
       const hasOnboarding = UserService.hasShownOnboarding();
+      const hasCompletedStyleProfile = localStorage.getItem('styleProfile') !== null;
 
-      if (defaultAvatar && hasOnboarding) {
-        console.log('🎭 [APP] Found default avatar and completed onboarding - showing loading screen');
+      if (defaultAvatar && hasOnboarding && hasCompletedStyleProfile) {
+        console.log('🎭 [APP] Found default avatar, completed onboarding, and style profile - showing loading screen');
         console.log('🎭 [APP] Loading avatar:', defaultAvatar.name);
 
         // Set to loading screen
@@ -446,32 +450,40 @@ function App() {
       } : null
     }));
 
-    // Auto-save avatar to library for future use
-    if (data.avatarData && data.avatarData.imageUrl) {
+    // Show save avatar modal
+    setPendingAvatarData(data);
+    setShowSaveAvatarModal(true);
+  };
+
+  // Handle save avatar decision
+  const handleSaveAvatarDecision = (shouldSave: boolean, avatarName?: string) => {
+    if (pendingAvatarData && shouldSave && pendingAvatarData.avatarData?.imageUrl) {
       try {
         const isFirstAvatar = !avatarManagementService.hasStoredAvatars();
-        const avatarName = isFirstAvatar ? 'My Avatar' : `Avatar ${new Date().toLocaleDateString()}`;
+        const finalName = avatarName || (isFirstAvatar ? 'My Avatar' : `Avatar ${new Date().toLocaleDateString()}`);
 
         // Save to avatar library (set as default if it's the first one)
         const savedAvatar = avatarManagementService.saveAvatarToLibrary(
-          data.avatarData.imageUrl,
-          avatarName,
+          pendingAvatarData.avatarData.imageUrl,
+          finalName,
           isFirstAvatar // Set as default if first avatar
         );
 
         if (savedAvatar) {
-          console.log(`💾 [APP] Avatar auto-saved to library: ${savedAvatar.name}${isFirstAvatar ? ' (set as default)' : ''}`);
+          console.log(`💾 [APP] Avatar saved to library: ${savedAvatar.name}${isFirstAvatar ? ' (set as default)' : ''}`);
         }
 
         // Initialize avatar management session
-        avatarManagementService.initializeAvatar(data.avatarData.imageUrl, false); // Don't save again
+        avatarManagementService.initializeAvatar(pendingAvatarData.avatarData.imageUrl, false);
       } catch (error) {
-        console.error('❌ [APP] Failed to auto-save avatar:', error);
-        // Continue with normal flow even if save fails
+        console.error('❌ [APP] Failed to save avatar:', error);
       }
     }
 
-    setCurrentScreen('appFace'); // Navigate to try-on page
+    // Navigate to try-on page
+    setShowSaveAvatarModal(false);
+    setPendingAvatarData(null);
+    setCurrentScreen('appFace');
   };
 
   // Handle avatar update when outfit is applied
@@ -1010,6 +1022,13 @@ function App() {
           isOpen={showOnboardingPopup}
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
+        />
+
+        {/* Save Avatar Modal */}
+        <SaveAvatarModal
+          isOpen={showSaveAvatarModal}
+          onSave={(name) => handleSaveAvatarDecision(true, name)}
+          onSkip={() => handleSaveAvatarDecision(false)}
         />
 
         {/* Door Transition Animation */}
