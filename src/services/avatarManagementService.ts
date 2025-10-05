@@ -134,6 +134,13 @@ class AvatarManagementService {
   }
 
   /**
+   * Get the current avatar from library
+   */
+  getCurrentAvatar(): SavedAvatar | null {
+    return avatarStorageService.getCurrentAvatar();
+  }
+
+  /**
    * Load default avatar if available
    */
   loadDefaultAvatar(): AvatarState | null {
