@@ -218,6 +218,51 @@ await outfitStorageService.trackPurchase(outfitId, 89.99, userId);
 // Get conversion rate analytics
 const { total, purchased, rate } = await outfitStorageService.getConversionRate(userId);
 console.log(\`Conversion rate: ${rate.toFixed(2)}%\`);
+
+// Get similar outfits for recommendations
+const similarOutfits = await outfitStorageService.getSimilarOutfits(outfitId, 3);
+
+// A/B testing
+const version = outfitStorageService.getPromptVersion(); // 'A' or 'B'
+const abResults = await outfitStorageService.getPromptVersionAnalytics(userId);
+
+// Get weekly stats
+const weeklyStats = await outfitStorageService.getWeeklyStats(userId);
+\`\`\`
+
+### `notificationService`
+
+\`\`\`typescript
+import notificationService from '@/services/notificationService';
+
+// Create notification
+await notificationService.createNotification(
+  userId,
+  'rating_request',
+  '⭐ Rate Your Outfit',
+  'How did you like this outfit?',
+  { outfit_id: outfitId }
+);
+
+// Get user notifications
+const notifications = await notificationService.getUserNotifications(userId);
+const unreadOnly = await notificationService.getUserNotifications(userId, true);
+
+// Mark as opened
+await notificationService.markAsOpened(notificationId);
+
+// Send weekly recap
+const stats = await outfitStorageService.getWeeklyStats(userId);
+await notificationService.sendWeeklyRecap(userId, stats);
+
+// Send event reminder
+await notificationService.sendOutfitReminder(userId, 'Beach Wedding', new Date('2025-06-15'), outfitId);
+
+// Get unread count
+const count = await notificationService.getUnreadCount(userId);
+
+// Cleanup old notifications
+await notificationService.cleanupOldNotifications(userId, 30);
 \`\`\`
 
 ### `collectionsService`
@@ -385,6 +430,106 @@ await userPreferencesService.savePreferences(userId, {
 });
 ```
 
+### 🧪 A/B Testing (Prompt Optimization)
+
+Test which prompt style generates better engagement:
+
+```typescript
+// Get random prompt version
+const version = outfitStorageService.getPromptVersion(); // 'A' or 'B'
+
+const promptA = "Product photography, elegant dress...";
+const promptB = "Knee-length cocktail dress, emerald green...";
+
+// Save with version
+await outfitStorageService.saveOutfit(userId, {
+  occasion: 'date night',
+  style: 'romantic',
+  imageUrl: 'https://...',
+  prompt_version: version,
+  prompt_text: version === 'A' ? promptA : promptB
+});
+
+// Get analytics
+const results = await outfitStorageService.getPromptVersionAnalytics(userId);
+console.log(`Version A: ${results.versionA.clickRate}% click rate`);
+console.log(`Version B: ${results.versionB.clickRate}% click rate`);
+```
+
+### 💡 Outfit Recommendations
+
+Show "You might also like..." based on similar outfits:
+
+```typescript
+// Get similar outfits (same occasion, different style)
+const similarOutfits = await outfitStorageService.getSimilarOutfits(outfitId, 3);
+```
+
+### 📧 Notifications
+
+Send weekly recaps, event reminders, and more:
+
+```typescript
+import notificationService from '@/services/notificationService';
+
+// Send weekly recap
+const stats = await outfitStorageService.getWeeklyStats(userId);
+await notificationService.sendWeeklyRecap(userId, stats);
+
+// Send event reminder
+await notificationService.sendOutfitReminder(
+  userId,
+  'Beach Wedding',
+  new Date('2025-06-15'),
+  outfitId
+);
+
+// Get user's notifications
+const notifications = await notificationService.getUserNotifications(userId);
+
+// Mark as opened
+await notificationService.markAsOpened(notificationId);
+
+// Get unread count
+const unreadCount = await notificationService.getUnreadCount(userId);
+```
+
+### 🌤️ Weather Integration (Advanced)
+
+Use existing weatherService to enhance outfit generation:
+
+```typescript
+import weatherService from '@/services/weatherService';
+
+// Get current weather
+const weather = await weatherService.getCurrentWeather();
+
+// Get weather for specific date (requires WeatherAPI.com key)
+const forecast = await weatherService.getWeatherForDate('Miami, FL', '2025-06-15');
+
+// Save outfit with weather context
+await outfitStorageService.saveOutfit(userId, {
+  occasion: 'beach wedding',
+  style: 'elegant',
+  imageUrl: 'https://...',
+  weather_temp: weather.temperature,
+  weather_condition: weather.weatherDescription,
+  location: weather.location.city
+});
+
+// Get clothing recommendations
+const conditions = weatherService.analyzeWeatherConditions(weather);
+const recommendations = weatherService.getClothingRecommendations(conditions);
+
+// Adjust prompt based on weather
+let prompt = "Elegant dress for beach wedding";
+if (weather.temperature < 60) {
+  prompt += ", include light jacket or cardigan";
+} else if (weather.temperature > 85) {
+  prompt += ", lightweight and breathable fabrics";
+}
+```
+
 ## Analytics Queries
 
 ### Conversion Rate by Style
@@ -443,6 +588,33 @@ where weather_condition is not null and rating is not null
 group by weather_condition, weather_temp, occasion, style
 having count(*) >= 3
 order by avg_rating desc;
+```
+
+### A/B Test Results (Prompt Versions)
+
+```sql
+select
+  prompt_version,
+  count(*) as total_generated,
+  sum(case when clicked then 1 else 0 end) as clicked_count,
+  round(100.0 * sum(case when clicked then 1 else 0 end) / count(*), 2) as click_rate
+from outfits
+where prompt_version is not null
+group by prompt_version
+order by click_rate desc;
+```
+
+### Notification Analytics
+
+```sql
+select
+  type,
+  count(*) as total_sent,
+  sum(case when opened then 1 else 0 end) as opened_count,
+  round(100.0 * sum(case when opened then 1 else 0 end) / count(*), 2) as open_rate
+from notifications
+group by type
+order by open_rate desc;
 ```
 
 ## Next Steps

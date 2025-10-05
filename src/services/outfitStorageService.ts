@@ -22,6 +22,8 @@ export interface OutfitData {
   weather_temp?: number;
   weather_condition?: string;
   location?: string;
+  prompt_version?: string;
+  prompt_text?: string;
   created_at: Date;
 }
 
@@ -492,6 +494,185 @@ class OutfitStorageService {
     } catch (error) {
       console.error('❌ [OUTFIT-STORAGE] Failed to calculate conversion rate:', error);
       return { total: 0, purchased: 0, rate: 0 };
+    }
+  }
+
+  /**
+   * Get similar outfits for recommendations ("You might also like...")
+   */
+  async getSimilarOutfits(outfitId: string, limit: number = 3): Promise<OutfitData[]> {
+    try {
+      // First get the current outfit
+      const { data: currentOutfit, error: currentError } = await supabase
+        .from('outfits')
+        .select('*')
+        .eq('id', outfitId)
+        .single();
+
+      if (currentError || !currentOutfit) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching current outfit:', currentError);
+        return [];
+      }
+
+      // Find outfits with same occasion but different style
+      const { data, error } = await supabase
+        .from('outfits')
+        .select('*')
+        .eq('occasion', currentOutfit.occasion)
+        .eq('user_id', currentOutfit.user_id)
+        .neq('style', currentOutfit.style)
+        .neq('id', outfitId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching similar outfits:', error);
+        return [];
+      }
+
+      console.log(`🎯 [OUTFIT-STORAGE] Found ${data?.length || 0} similar outfits`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to fetch similar outfits:', error);
+      return [];
+    }
+  }
+
+  /**
+   * A/B test prompt versions - randomly assign version
+   */
+  getPromptVersion(): 'A' | 'B' {
+    return Math.random() > 0.5 ? 'A' : 'B';
+  }
+
+  /**
+   * Get A/B test analytics - which prompt gets more clicks?
+   */
+  async getPromptVersionAnalytics(userId: string): Promise<{
+    versionA: { total: number; clicked: number; clickRate: number };
+    versionB: { total: number; clicked: number; clickRate: number };
+  }> {
+    try {
+      // Get stats for version A
+      const { data: versionAOutfits, error: errorA } = await supabase
+        .from('outfits')
+        .select('clicked')
+        .eq('user_id', userId)
+        .eq('prompt_version', 'A');
+
+      // Get stats for version B
+      const { data: versionBOutfits, error: errorB } = await supabase
+        .from('outfits')
+        .select('clicked')
+        .eq('user_id', userId)
+        .eq('prompt_version', 'B');
+
+      if (errorA || errorB) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching A/B test analytics');
+        return {
+          versionA: { total: 0, clicked: 0, clickRate: 0 },
+          versionB: { total: 0, clicked: 0, clickRate: 0 }
+        };
+      }
+
+      const versionATotal = versionAOutfits?.length || 0;
+      const versionAClicked = versionAOutfits?.filter(o => o.clicked).length || 0;
+      const versionAClickRate = versionATotal > 0 ? (versionAClicked / versionATotal) * 100 : 0;
+
+      const versionBTotal = versionBOutfits?.length || 0;
+      const versionBClicked = versionBOutfits?.filter(o => o.clicked).length || 0;
+      const versionBClickRate = versionBTotal > 0 ? (versionBClicked / versionBTotal) * 100 : 0;
+
+      console.log(`📊 [OUTFIT-STORAGE] A/B Test Results:`);
+      console.log(`   Version A: ${versionAClickRate.toFixed(2)}% click rate (${versionAClicked}/${versionATotal})`);
+      console.log(`   Version B: ${versionBClickRate.toFixed(2)}% click rate (${versionBClicked}/${versionBTotal})`);
+
+      return {
+        versionA: {
+          total: versionATotal,
+          clicked: versionAClicked,
+          clickRate: versionAClickRate
+        },
+        versionB: {
+          total: versionBTotal,
+          clicked: versionBClicked,
+          clickRate: versionBClickRate
+        }
+      };
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to get A/B test analytics:', error);
+      return {
+        versionA: { total: 0, clicked: 0, clickRate: 0 },
+        versionB: { total: 0, clicked: 0, clickRate: 0 }
+      };
+    }
+  }
+
+  /**
+   * Get weekly stats for user (for weekly recap notifications)
+   */
+  async getWeeklyStats(userId: string): Promise<{
+    outfitsGenerated: number;
+    favoriteCount: number;
+    topStyle: string;
+    topOccasion: string;
+  }> {
+    try {
+      // Get outfits from last 7 days
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
+      const { data, error } = await supabase
+        .from('outfits')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('created_at', weekAgo.toISOString());
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching weekly stats:', error);
+        return {
+          outfitsGenerated: 0,
+          favoriteCount: 0,
+          topStyle: 'N/A',
+          topOccasion: 'N/A'
+        };
+      }
+
+      const outfits = data || [];
+      const favorited = outfits.filter(o => o.favorited);
+
+      // Find most popular style
+      const styleCounts: { [key: string]: number } = {};
+      outfits.forEach(o => {
+        styleCounts[o.style] = (styleCounts[o.style] || 0) + 1;
+      });
+      const topStyle = Object.keys(styleCounts).reduce((a, b) =>
+        styleCounts[a] > styleCounts[b] ? a : b, 'N/A'
+      );
+
+      // Find most popular occasion
+      const occasionCounts: { [key: string]: number } = {};
+      outfits.forEach(o => {
+        occasionCounts[o.occasion] = (occasionCounts[o.occasion] || 0) + 1;
+      });
+      const topOccasion = Object.keys(occasionCounts).reduce((a, b) =>
+        occasionCounts[a] > occasionCounts[b] ? a : b, 'N/A'
+      );
+
+      return {
+        outfitsGenerated: outfits.length,
+        favoriteCount: favorited.length,
+        topStyle,
+        topOccasion
+      };
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to get weekly stats:', error);
+      return {
+        outfitsGenerated: 0,
+        favoriteCount: 0,
+        topStyle: 'N/A',
+        topOccasion: 'N/A'
+      };
     }
   }
 }

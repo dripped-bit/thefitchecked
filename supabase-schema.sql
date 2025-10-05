@@ -31,6 +31,8 @@ create table if not exists outfits (
   weather_temp integer,
   weather_condition text,
   location text,
+  prompt_version text,
+  prompt_text text,
   created_at timestamp default now()
 );
 
@@ -61,6 +63,19 @@ create table if not exists collection_outfits (
   primary key (collection_id, outfit_id)
 );
 
+-- Notifications table (for email reminders and weekly recaps)
+create table if not exists notifications (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users,
+  type text,
+  title text,
+  message text,
+  metadata jsonb,
+  sent_at timestamp default now(),
+  opened boolean default false,
+  created_at timestamp default now()
+);
+
 -- Indexes for better query performance
 create index if not exists outfits_user_id_idx on outfits(user_id);
 create index if not exists outfits_created_at_idx on outfits(created_at desc);
@@ -75,6 +90,11 @@ create index if not exists interactions_action_idx on interactions(action);
 create index if not exists collections_user_id_idx on collections(user_id);
 create index if not exists collection_outfits_collection_id_idx on collection_outfits(collection_id);
 create index if not exists collection_outfits_outfit_id_idx on collection_outfits(outfit_id);
+create index if not exists outfits_prompt_version_idx on outfits(prompt_version);
+create index if not exists outfits_location_idx on outfits(location);
+create index if not exists notifications_user_id_idx on notifications(user_id);
+create index if not exists notifications_type_idx on notifications(type);
+create index if not exists notifications_opened_idx on notifications(opened);
 
 -- If you need to add columns to existing table (run only if outfits table already exists)
 -- alter table outfits add column if not exists user_prompt text;
@@ -86,6 +106,8 @@ create index if not exists collection_outfits_outfit_id_idx on collection_outfit
 -- alter table outfits add column if not exists weather_temp integer;
 -- alter table outfits add column if not exists weather_condition text;
 -- alter table outfits add column if not exists location text;
+-- alter table outfits add column if not exists prompt_version text;
+-- alter table outfits add column if not exists prompt_text text;
 
 -- Add columns to users table
 -- alter table users add column if not exists body_type text;
@@ -191,3 +213,19 @@ create policy "Allow anonymous collection viewing" on collections
 
 create policy "Allow anonymous collection outfit management" on collection_outfits
   for all using (true);
+
+-- Notifications policies
+create policy "Users can view own notifications" on notifications
+  for select using (user_id = auth.uid());
+
+create policy "Users can insert own notifications" on notifications
+  for insert with check (user_id = auth.uid());
+
+create policy "Users can update own notifications" on notifications
+  for update using (user_id = auth.uid());
+
+create policy "Allow anonymous notification viewing" on notifications
+  for select using (true);
+
+create policy "Allow anonymous notification insertion" on notifications
+  for insert with check (true);
