@@ -388,7 +388,7 @@ const SmartOccasionInput: React.FC<SmartOccasionInputProps> = ({
             <textarea
               value={input}
               onChange={(e) => handleInputChange(e.target.value)}
-              placeholder="Black mini dress with gold metallic color blocking, structured fit, geometric cutouts, cold-shoulder sleeves, bodycon silhouette, cocktail attire, professional product photo, white studio background, centered, high fashion photography (60 characters minimum)"
+              placeholder="Describe your occasion and outfit..."
               className="w-full p-6 text-lg border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all duration-200 resize-none"
               rows={4}
             />
