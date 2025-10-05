@@ -228,6 +228,48 @@ const abResults = await outfitStorageService.getPromptVersionAnalytics(userId);
 
 // Get weekly stats
 const weeklyStats = await outfitStorageService.getWeeklyStats(userId);
+
+// Color analysis and search
+await outfitStorageService.updateOutfitColors(outfitId, ['#FF5733', '#C70039'], palette);
+const colorOutfits = await outfitStorageService.getOutfitsByColor(userId, ['#FF5733']);
+const similarColors = await outfitStorageService.getOutfitsBySimilarColors(outfitId, 5);
+const colorStats = await outfitStorageService.getColorAnalytics(userId);
+\`\`\`
+
+### `colorAnalysisService`
+
+\`\`\`typescript
+import colorAnalysisService from '@/services/colorAnalysisService';
+
+// Extract colors from image
+const palette = await colorAnalysisService.extractColors(imageUrl);
+
+// Get primary colors array
+const primaryColors = colorAnalysisService.getPrimaryColors(palette);
+
+// Full color analysis
+const analysis = await colorAnalysisService.analyzeImage(imageUrl);
+
+// Get color family ('red', 'blue', 'green', 'orange', 'yellow', 'purple', 'black', 'white', 'gray')
+const family = colorAnalysisService.getColorFamily('#FF5733');
+
+// Get brightness level ('light', 'medium', 'dark')
+const brightness = colorAnalysisService.getBrightness('#FF5733');
+
+// Get saturation level ('vibrant', 'muted', 'neutral')
+const saturation = colorAnalysisService.getSaturation('#FF5733');
+
+// Get color harmonies
+const harmonies = colorAnalysisService.getColorHarmony('#FF5733');
+
+// Get complementary color
+const complement = colorAnalysisService.getComplementaryColor('#FF5733');
+
+// Check color similarity
+const similar = colorAnalysisService.areColorsSimilar('#FF5733', '#FF6644', 50);
+
+// Get human-readable color name
+const name = colorAnalysisService.getColorName('#FF5733'); // "vibrant red"
 \`\`\`
 
 ### `notificationService`
@@ -530,6 +572,54 @@ if (weather.temperature < 60) {
 }
 ```
 
+### 🎨 Color Analysis & Search
+
+Extract colors from outfit images and search by color:
+
+```typescript
+import colorAnalysisService from '@/services/colorAnalysisService';
+
+// Extract colors from generated outfit
+const analysis = await colorAnalysisService.analyzeImage(imageUrl);
+
+if (analysis) {
+  // Save color data to outfit
+  await outfitStorageService.updateOutfitColors(
+    outfitId,
+    analysis.primaryColors,
+    analysis.palette
+  );
+
+  console.log('Dominant color:', analysis.dominantColor);
+  console.log('Color family:', analysis.colorFamily); // 'red', 'blue', 'green', etc.
+  console.log('Brightness:', analysis.brightness); // 'light', 'medium', 'dark'
+  console.log('Saturation:', analysis.saturation); // 'vibrant', 'muted', 'neutral'
+}
+
+// Find outfits by color
+const redOutfits = await outfitStorageService.getOutfitsByColor(userId, ['#FF5733', '#C70039']);
+
+// Find outfits with similar colors
+const similarColorOutfits = await outfitStorageService.getOutfitsBySimilarColors(outfitId, 5);
+
+// Get color analytics
+const colorStats = await outfitStorageService.getColorAnalytics(userId);
+console.log('Top colors:', colorStats.topColors);
+
+// Get color harmonies for styling suggestions
+const harmonies = colorAnalysisService.getColorHarmony('#FF5733');
+console.log('Analogous colors:', harmonies.analogous);
+console.log('Triadic colors:', harmonies.triadic);
+console.log('Tetradic colors:', harmonies.tetradic);
+
+// Get color name for display
+const colorName = colorAnalysisService.getColorName('#FF5733');
+// Returns: "vibrant red" or "light muted blue", etc.
+
+// Check if colors are similar
+const areSimilar = colorAnalysisService.areColorsSimilar('#FF5733', '#FF6644', 50);
+```
+
 ## Analytics Queries
 
 ### Conversion Rate by Style
@@ -615,6 +705,35 @@ select
 from notifications
 group by type
 order by open_rate desc;
+```
+
+### Color Analytics
+
+```sql
+-- Most popular colors across all outfits
+select
+  unnest(primary_colors) as color,
+  count(*) as usage_count
+from outfits
+where primary_colors is not null
+group by color
+order by usage_count desc
+limit 20;
+
+-- Outfits with specific colors
+select *
+from outfits
+where primary_colors && ARRAY['#FF5733', '#C70039']
+order by created_at desc;
+
+-- Color diversity by user
+select
+  user_id,
+  count(distinct unnest(primary_colors)) as unique_colors
+from outfits
+where primary_colors is not null
+group by user_id
+order by unique_colors desc;
 ```
 
 ## Next Steps

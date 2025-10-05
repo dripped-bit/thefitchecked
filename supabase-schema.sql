@@ -33,6 +33,8 @@ create table if not exists outfits (
   location text,
   prompt_version text,
   prompt_text text,
+  primary_colors text[],
+  color_palette jsonb,
   created_at timestamp default now()
 );
 
@@ -95,6 +97,7 @@ create index if not exists outfits_location_idx on outfits(location);
 create index if not exists notifications_user_id_idx on notifications(user_id);
 create index if not exists notifications_type_idx on notifications(type);
 create index if not exists notifications_opened_idx on notifications(opened);
+create index if not exists outfits_primary_colors_idx on outfits using gin(primary_colors);
 
 -- If you need to add columns to existing table (run only if outfits table already exists)
 -- alter table outfits add column if not exists user_prompt text;
@@ -108,6 +111,8 @@ create index if not exists notifications_opened_idx on notifications(opened);
 -- alter table outfits add column if not exists location text;
 -- alter table outfits add column if not exists prompt_version text;
 -- alter table outfits add column if not exists prompt_text text;
+-- alter table outfits add column if not exists primary_colors text[];
+-- alter table outfits add column if not exists color_palette jsonb;
 
 -- Add columns to users table
 -- alter table users add column if not exists body_type text;

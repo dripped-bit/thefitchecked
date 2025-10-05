@@ -24,6 +24,8 @@ export interface OutfitData {
   location?: string;
   prompt_version?: string;
   prompt_text?: string;
+  primary_colors?: string[];
+  color_palette?: any;
   created_at: Date;
 }
 
@@ -673,6 +675,141 @@ class OutfitStorageService {
         topStyle: 'N/A',
         topOccasion: 'N/A'
       };
+    }
+  }
+
+  /**
+   * Update outfit with color analysis data
+   */
+  async updateOutfitColors(outfitId: string, primaryColors: string[], colorPalette: any): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('outfits')
+        .update({
+          primary_colors: primaryColors,
+          color_palette: colorPalette
+        })
+        .eq('id', outfitId);
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error updating outfit colors:', error);
+        return false;
+      }
+
+      console.log('🎨 [OUTFIT-STORAGE] Outfit colors updated');
+      return true;
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to update outfit colors:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Find outfits by color (contains any of the specified colors)
+   */
+  async getOutfitsByColor(userId: string, colors: string[]): Promise<OutfitData[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select('*')
+        .eq('user_id', userId)
+        .overlaps('primary_colors', colors)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching outfits by color:', error);
+        return [];
+      }
+
+      console.log(`🎨 [OUTFIT-STORAGE] Found ${data?.length || 0} outfits with specified colors`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to fetch outfits by color:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get outfits with similar color palettes
+   */
+  async getOutfitsBySimilarColors(outfitId: string, limit: number = 5): Promise<OutfitData[]> {
+    try {
+      // First get the outfit's colors
+      const { data: outfit, error: outfitError } = await supabase
+        .from('outfits')
+        .select('primary_colors, user_id')
+        .eq('id', outfitId)
+        .single();
+
+      if (outfitError || !outfit || !outfit.primary_colors) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching outfit colors:', outfitError);
+        return [];
+      }
+
+      // Find outfits with overlapping colors
+      const { data, error } = await supabase
+        .from('outfits')
+        .select('*')
+        .eq('user_id', outfit.user_id)
+        .overlaps('primary_colors', outfit.primary_colors)
+        .neq('id', outfitId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching similar colored outfits:', error);
+        return [];
+      }
+
+      console.log(`🎨 [OUTFIT-STORAGE] Found ${data?.length || 0} outfits with similar colors`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to fetch similar colored outfits:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get color analytics - most popular colors
+   */
+  async getColorAnalytics(userId: string): Promise<{
+    topColors: { color: string; count: number }[];
+    colorFamilies: { family: string; count: number }[];
+  }> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select('primary_colors')
+        .eq('user_id', userId)
+        .not('primary_colors', 'is', null);
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching color analytics:', error);
+        return { topColors: [], colorFamilies: [] };
+      }
+
+      // Count color occurrences
+      const colorCounts: { [key: string]: number } = {};
+      data?.forEach(outfit => {
+        outfit.primary_colors?.forEach((color: string) => {
+          colorCounts[color] = (colorCounts[color] || 0) + 1;
+        });
+      });
+
+      // Sort by count
+      const topColors = Object.entries(colorCounts)
+        .map(([color, count]) => ({ color, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      console.log(`🎨 [OUTFIT-STORAGE] Color analytics: ${topColors.length} unique colors`);
+      return {
+        topColors,
+        colorFamilies: [] // Can be expanded with color family grouping
+      };
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to get color analytics:', error);
+      return { topColors: [], colorFamilies: [] };
     }
   }
 }
