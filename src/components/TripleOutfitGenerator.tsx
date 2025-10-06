@@ -854,7 +854,7 @@ NO explanations, just keywords.`
 
               {/* Outfit Image */}
               <div className="p-6">
-                <div className="relative aspect-[2/3] min-h-[500px] bg-gray-100 rounded-xl overflow-hidden mb-4">
+                <div className="relative aspect-[3/4] min-h-[400px] max-w-sm mx-auto bg-gray-100 rounded-xl overflow-hidden mb-4">
                   <img
                     src={outfit.imageUrl}
                     alt={`${outfit.personality.name} outfit`}

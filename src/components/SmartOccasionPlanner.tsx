@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, ChevronRight } from 'lucide-react';
+import { ShoppingBag, ChevronRight, ChevronLeft } from 'lucide-react';
 import SmartOccasionInput, { ParsedOccasion, SmartSuggestion, BudgetRange } from './SmartOccasionInput';
 import TripleOutfitGenerator, { GeneratedOutfit } from './TripleOutfitGenerator';
 import IntegratedShopping from './IntegratedShopping';
@@ -40,6 +40,14 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
   // Budget selection modal state
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<BudgetRange | null>(null);
+  const [currentBudgetIndex, setCurrentBudgetIndex] = useState(0);
+
+  const budgetTiers = [
+    { label: 'Value', range: '$1-50', icon: '🏷️', min: 1, max: 50 },
+    { label: 'Budget', range: '$50-100', icon: '💰', min: 50, max: 100 },
+    { label: 'Mid-Range', range: '$100-250', icon: '💎', min: 100, max: 250 },
+    { label: 'Premium', range: '$250+', icon: '👑', min: 250, max: 1000 }
+  ];
 
   const handleOccasionParsed = (occasion: ParsedOccasion) => {
     setParsedOccasion(occasion);
@@ -364,38 +372,49 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
               </p>
             </div>
 
-            <div className="space-y-3">
-              {[
-                { label: 'Value', range: '$1-50', icon: '🏷️', min: 1, max: 50 },
-                { label: 'Budget', range: '$50-100', icon: '💰', min: 50, max: 100 },
-                { label: 'Mid-Range', range: '$100-250', icon: '💎', min: 100, max: 250 },
-                { label: 'Premium', range: '$250+', icon: '👑', min: 250, max: 1000 }
-              ].map((tier) => (
-                <button
-                  key={tier.label}
-                  onClick={() => handleBudgetSelect(tier)}
-                  className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white border-2 border-gray-200 rounded-xl hover:border-green-400 hover:shadow-md transition-all duration-200 group"
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">{tier.icon}</span>
-                    <div className="text-left">
-                      <div className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
-                        {tier.label}
-                      </div>
-                      <div className="text-sm text-gray-600">{tier.range}</div>
-                    </div>
+            {/* Budget Selector with Arrows */}
+            <div className="flex items-center justify-center gap-4 py-6">
+              <button
+                onClick={() => setCurrentBudgetIndex((prev) => (prev - 1 + budgetTiers.length) % budgetTiers.length)}
+                className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full hover:from-green-100 hover:to-blue-100 transition-all shadow-md active:scale-95"
+              >
+                <ChevronLeft className="w-6 h-6 text-gray-700" />
+              </button>
+
+              <div className="flex-1 max-w-xs">
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-2xl p-6 text-center shadow-lg">
+                  <div className="text-4xl mb-2">{budgetTiers[currentBudgetIndex].icon}</div>
+                  <div className="text-xl font-bold text-gray-900 mb-1">
+                    {budgetTiers[currentBudgetIndex].label}
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors" />
-                </button>
-              ))}
+                  <div className="text-lg text-gray-700 font-semibold">
+                    {budgetTiers[currentBudgetIndex].range}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setCurrentBudgetIndex((prev) => (prev + 1) % budgetTiers.length)}
+                className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full hover:from-green-100 hover:to-blue-100 transition-all shadow-md active:scale-95"
+              >
+                <ChevronRight className="w-6 h-6 text-gray-700" />
+              </button>
             </div>
 
-            <button
-              onClick={() => setShowBudgetModal(false)}
-              className="w-full mt-4 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Cancel
-            </button>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowBudgetModal(false)}
+                className="flex-1 px-4 py-3 text-gray-600 hover:text-gray-900 border-2 border-gray-300 rounded-xl transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleBudgetSelect(budgetTiers[currentBudgetIndex])}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl font-medium hover:shadow-lg transition-all active:scale-95"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       )}
