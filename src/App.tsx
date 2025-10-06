@@ -313,13 +313,8 @@ function App() {
         // Load avatar into management service
         avatarManagementService.loadAvatarFromLibrary(defaultAvatar.id);
 
-        // Transition to avatar homepage after loading delay
-        setTimeout(() => {
-          console.log('✅ [APP] Loading complete, navigating to Avatar Homepage');
-          setCurrentScreen('avatarHomepage');
-        }, 9000); // 9 second loading screen
-
-        console.log('✅ [APP] Default avatar restored for completed user');
+        // Note: Navigation to 'avatarHomepage' is now handled by LoadingScreen's onLoadingComplete callback
+        console.log('✅ [APP] Default avatar restored for completed user, waiting for loading screen...');
         return;
       }
 
@@ -363,13 +358,8 @@ function App() {
         // Load avatar into management service
         avatarManagementService.loadAvatarFromLibrary(defaultAvatar.id);
 
-        // Transition to avatar homepage after loading delay
-        setTimeout(() => {
-          console.log('✅ [APP] Loading complete, navigating to Avatar Homepage');
-          setCurrentScreen('avatarHomepage');
-        }, 9000); // 9 second loading screen
-
-        console.log('✅ [APP] Default avatar restored successfully');
+        // Note: Navigation to 'avatarHomepage' is now handled by LoadingScreen's onLoadingComplete callback
+        console.log('✅ [APP] Default avatar restored successfully, waiting for loading screen...');
       } else if (defaultAvatar && !hasOnboarding) {
         // Has avatar but hasn't completed onboarding yet
         console.log('🎭 [APP] Found default avatar but onboarding not complete - loading avatar only');
@@ -699,7 +689,17 @@ function App() {
 
     switch (currentScreen) {
       case 'loading':
-        return <LoadingScreen isLoading={true} message="Loading your wardrobe..." />;
+        return (
+          <LoadingScreen
+            isLoading={true}
+            message="Loading your wardrobe..."
+            onLoadingComplete={() => {
+              console.log('✅ [APP] Loading screen complete, navigating to Avatar Homepage');
+              setCurrentScreen('avatarHomepage');
+            }}
+            autoCompleteAfter={9000}
+          />
+        );
 
       case 'welcome':
         return (
@@ -846,7 +846,17 @@ function App() {
 
   // Show loading screen while checking auth (except for share links)
   if (authLoading && !shareId) {
-    return <LoadingScreen isLoading={true} />;
+    return (
+      <LoadingScreen
+        isLoading={true}
+        onLoadingComplete={() => {
+          // Auth should complete naturally via useEffect, but provide fallback
+          console.log('⚠️ [APP] Auth loading screen timeout - forcing auth complete');
+          setAuthLoading(false);
+        }}
+        autoCompleteAfter={10000} // 10 seconds max for auth check
+      />
+    );
   }
 
   // Auth Gate - Require login for all users (except share links)
