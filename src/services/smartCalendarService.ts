@@ -7,6 +7,15 @@ import { supabase } from './supabaseClient';
 import authService from './authService';
 
 // Types and Interfaces
+export interface ShoppingLink {
+  title?: string;
+  store: string;
+  url: string;
+  affiliateUrl?: string;
+  price?: string;
+  image?: string;
+}
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -19,6 +28,7 @@ export interface CalendarEvent {
   attendees?: string[];
   eventType: 'work' | 'personal' | 'travel' | 'formal' | 'casual' | 'other';
   weatherRequired?: boolean;
+  shoppingLinks?: ShoppingLink[];
 }
 
 export interface OutfitPlan {
@@ -107,12 +117,13 @@ class SmartCalendarService {
     isAllDay?: boolean;
     outfitId?: string;
     weatherRequired?: boolean;
+    shoppingLinks?: ShoppingLink[];
   }): Promise<CalendarEvent | null> {
     try {
       const user = await authService.getCurrentUser();
       const userId = user?.id || null;
 
-      const { data, error } = await supabase
+      const { data, error} = await supabase
         .from('calendar_events')
         .insert({
           user_id: userId,
@@ -124,7 +135,8 @@ class SmartCalendarService {
           event_type: eventData.eventType,
           is_all_day: eventData.isAllDay || false,
           outfit_id: eventData.outfitId || null,
-          weather_required: eventData.weatherRequired || false
+          weather_required: eventData.weatherRequired || false,
+          shopping_links: eventData.shoppingLinks || []
         })
         .select()
         .single();
@@ -245,6 +257,7 @@ class SmartCalendarService {
       isAllDay: dbEvent.is_all_day,
       eventType: dbEvent.event_type,
       weatherRequired: dbEvent.weather_required,
+      shoppingLinks: dbEvent.shopping_links || [],
       attendees: [],
       recurrence: undefined
     };

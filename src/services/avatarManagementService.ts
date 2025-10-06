@@ -151,6 +151,20 @@ class AvatarManagementService {
   }
 
   /**
+   * Delete an avatar from the library
+   */
+  deleteAvatar(avatarId: string): boolean {
+    try {
+      avatarStorageService.deleteAvatar(avatarId);
+      console.log('🗑️ [AVATAR-MGMT] Deleted avatar:', avatarId);
+      return true;
+    } catch (error) {
+      console.error('❌ [AVATAR-MGMT] Failed to delete avatar:', error);
+      return false;
+    }
+  }
+
+  /**
    * Load default avatar if available
    */
   loadDefaultAvatar(): AvatarState | null {

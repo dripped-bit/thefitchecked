@@ -106,11 +106,29 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
 
       console.log('💾 [CALENDAR-MODAL] Saving calendar entry:', calendarEntry);
 
-      // Save to calendar service
-      await smartCalendarService.saveOutfitToCalendar({
-        date: new Date(formData.eventDate),
-        occasion: formData.occasionName,
-        outfit: outfit,
+      // Save to Supabase via Smart Calendar service
+      const eventDate = new Date(formData.eventDate);
+      const startTime = new Date(eventDate);
+      startTime.setHours(9, 0, 0); // Default to 9 AM
+      const endTime = new Date(eventDate);
+      endTime.setHours(17, 0, 0); // Default to 5 PM
+
+      // Map occasion to event type
+      const mapOccasionToEventType = (occasion: string): 'work' | 'personal' | 'travel' | 'formal' | 'casual' | 'other' => {
+        const lowerOccasion = occasion.toLowerCase();
+        if (lowerOccasion.includes('work') || lowerOccasion.includes('meeting') || lowerOccasion.includes('interview')) return 'work';
+        if (lowerOccasion.includes('travel') || lowerOccasion.includes('vacation') || lowerOccasion.includes('trip')) return 'travel';
+        if (lowerOccasion.includes('formal') || lowerOccasion.includes('wedding') || lowerOccasion.includes('gala')) return 'formal';
+        if (lowerOccasion.includes('casual') || lowerOccasion.includes('daily') || lowerOccasion.includes('everyday')) return 'casual';
+        return 'personal';
+      };
+
+      const event = await smartCalendarService.createEvent({
+        title: formData.occasionName || 'Outfit Event',
+        description: formData.notes || getOutfitDescription(),
+        startTime: startTime,
+        endTime: endTime,
+        eventType: mapOccasionToEventType(formData.occasionName),
         shoppingLinks: processedLinks.map(link => ({
           url: link.url,
           store: link.store,
@@ -118,12 +136,11 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
         }))
       });
 
-      // Set up reminder if needed
-      if (formData.reminderDays > 0) {
-        scheduleReminder(calendarEntry);
+      if (!event) {
+        throw new Error('Failed to create calendar event');
       }
 
-      console.log('✅ [CALENDAR-MODAL] Successfully saved to calendar');
+      console.log('✅ [CALENDAR-MODAL] Successfully saved to Smart Calendar:', event.id);
       onSave(calendarEntry);
       onClose();
 

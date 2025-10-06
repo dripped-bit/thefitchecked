@@ -271,10 +271,21 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
                     </div>
                   )}
                   {event.weatherRequired && getWeatherIcon('partly_cloudy')}
+                  {event.shoppingLinks && event.shoppingLinks.length > 0 && (
+                    <div className="flex items-center space-x-1 text-green-600">
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>{event.shoppingLinks.length} link{event.shoppingLinks.length !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-center space-x-2">
+                {event.shoppingLinks && event.shoppingLinks.length > 0 && (
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                    🛍️ {event.shoppingLinks.length}
+                  </span>
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
