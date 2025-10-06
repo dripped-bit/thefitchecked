@@ -176,10 +176,10 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     const userData = userDataService.getAllUserData();
     const gender = userData?.profile?.gender || '';
 
-    const base = "children's clothes, kids outfit, toddler dress, baby clothes, children's clothing, kids apparel, children wear, toddler outfit, kids fashion";
+    const base = "children's clothes, kids outfit, toddler dress, baby clothes, children's clothing, kids apparel, children wear, toddler outfit, kids fashion, youth clothing, junior sizes, child clothing, juvenile wear, schoolwear, age 2T-16, infant sizes, nursery clothes, preschool outfit, elementary wear, kidswear, childrenwear";
 
-    if (gender === 'male') return `${base}, boys' clothes, boys outfit, boy's clothing`;
-    if (gender === 'female') return `${base}, girls' clothes, girls outfit, girl's clothing`;
+    if (gender === 'male') return `${base}, boys' clothes, boys outfit, boy's clothing, boys wear, boys sizes, boy sizes`;
+    if (gender === 'female') return `${base}, girls' clothes, girls outfit, girl's clothing, girls wear, girls sizes, girl sizes`;
     return base;
   };
 
@@ -328,8 +328,9 @@ STYLE INTERPRETATION - ${selectedStyle.name}: ${selectedStyle.description}
 
 FOR OCCASION: ${occasionName}, ${formalityDescriptor}
 
+SIZING REQUIREMENT: ADULT SIZES ONLY (S, M, L, XL, XXL) - ${getClothingGenderText()}
 
-Generate ONE SINGLE complete outfit matching the specific request above. ${getClothingGenderText()} - absolutely no children's clothes, no kids' outfits, no toddler clothes, no baby clothes. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
+Generate ONE SINGLE complete outfit matching the specific request above. MUST BE ADULT CLOTHING ONLY - absolutely no children's clothes, no kids' outfits, no toddler clothes, no baby clothes, no youth sizes. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
 
     console.log(`✨ Variation ${variationIndex + 1} prompt:`);
     console.log(`   User Request: "${userExactInput}"`);
@@ -563,7 +564,7 @@ NO explanations, just keywords.`
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: `multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, ${getChildrensExclusionTerms()}`,
+            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits`,
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
