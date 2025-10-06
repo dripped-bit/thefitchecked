@@ -6,7 +6,8 @@ import { UserData, UserGreeting, OnboardingFormData } from '../types/user';
 
 const STORAGE_KEYS = {
   USER_DATA: 'fitchecked_user_data',
-  ONBOARDING_SHOWN: 'fitchecked_onboarding_shown'
+  ONBOARDING_SHOWN: 'fitchecked_onboarding_shown',
+  FLOW_COMPLETED: 'fitchecked_flow_completed'
 } as const;
 
 export class UserService {
@@ -213,12 +214,38 @@ export class UserService {
   }
 
   /**
+   * Mark the full onboarding flow as completed
+   * (avatar generated, measurements taken, style profile completed)
+   */
+  static markFlowCompleted(): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.FLOW_COMPLETED, 'true');
+      console.log('✅ [USER-SERVICE] Full onboarding flow marked as completed');
+    } catch (error) {
+      console.error('Failed to mark flow as completed:', error);
+    }
+  }
+
+  /**
+   * Check if user has completed the full onboarding flow
+   * (avatar + measurements + style profile)
+   */
+  static hasCompletedFlow(): boolean {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.FLOW_COMPLETED) === 'true';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Clear all user data (for privacy/reset purposes)
    */
   static clearUserData(): void {
     try {
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
       localStorage.removeItem(STORAGE_KEYS.ONBOARDING_SHOWN);
+      localStorage.removeItem(STORAGE_KEYS.FLOW_COMPLETED);
     } catch (error) {
       console.error('Failed to clear user data:', error);
     }

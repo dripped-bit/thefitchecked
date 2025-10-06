@@ -258,8 +258,57 @@ function App() {
         return;
       }
 
-      // Try to load the default avatar
+      // PRIORITY CHECK: If user has completed full flow, always go to Avatar Homepage
+      const hasCompletedFlow = UserService.hasCompletedFlow();
       const defaultAvatar = avatarManagementService.getDefaultAvatar();
+
+      if (hasCompletedFlow && defaultAvatar) {
+        console.log('🎯 [APP] User has completed full flow - navigating to Avatar Homepage');
+        console.log('🎭 [APP] Loading avatar:', defaultAvatar.name);
+
+        // Set to loading screen
+        setCurrentScreen('loading');
+
+        // Convert saved avatar to app data format
+        const restoredAvatarData = {
+          imageUrl: defaultAvatar.imageUrl,
+          animatedVideoUrl: defaultAvatar.animatedVideoUrl,
+          metadata: {
+            demoMode: defaultAvatar.metadata.source === 'demo',
+            quality: defaultAvatar.metadata.quality,
+            source: defaultAvatar.metadata.source
+          }
+        };
+
+        // Update app state with restored avatar
+        setAppData(prev => ({
+          ...prev,
+          generatedAvatar: restoredAvatarData,
+          avatarData: {
+            imageUrl: defaultAvatar.imageUrl,
+            qualityScore: defaultAvatar.metadata.quality === 'high' ? 90 :
+                         defaultAvatar.metadata.quality === 'medium' ? 70 : 50,
+            metadata: {
+              style: 'realistic',
+              quality: defaultAvatar.metadata.quality
+            }
+          }
+        }));
+
+        // Load avatar into management service
+        avatarManagementService.loadAvatarFromLibrary(defaultAvatar.id);
+
+        // Transition to avatar homepage after loading delay
+        setTimeout(() => {
+          console.log('✅ [APP] Loading complete, navigating to Avatar Homepage');
+          setCurrentScreen('avatarHomepage');
+        }, 1800); // 1.8 second loading screen
+
+        console.log('✅ [APP] Default avatar restored for completed user');
+        return;
+      }
+
+      // FALLBACK: Check old logic for partial completion
       const hasOnboarding = UserService.hasShownOnboarding();
       const hasCompletedStyleProfile = localStorage.getItem('styleProfile') !== null;
 

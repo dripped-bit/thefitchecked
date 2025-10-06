@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ArrowRight, ArrowLeft, Upload, Save, CheckCircle, Camera, Loader2, Sparkles, Brain } from 'lucide-react';
 import styleAnalysisService, { StyleAnalysisResult } from '../services/styleAnalysisService';
 import stylePreferencesService from '../services/stylePreferencesService';
+import UserService from '../services/userService';
 
 interface Page4ComponentProps {
   onNext: () => void;
@@ -1245,7 +1246,12 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
           )}
 
           <button
-            onClick={onNext}
+            onClick={() => {
+              // Mark the full onboarding flow as completed
+              UserService.markFlowCompleted();
+              console.log('🎯 [STYLE-PROFILE] User completed full flow - marked as completed');
+              onNext();
+            }}
             className="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-amber-600 text-white px-8 py-3 rounded-2xl shadow-lg hover:scale-105 transition-all duration-300 hover:shadow-xl"
           >
             <span className="font-medium">Continue to Dashboard</span>
