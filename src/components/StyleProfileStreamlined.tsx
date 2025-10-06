@@ -958,48 +958,58 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
               <div className="prose prose-lg max-w-none">
                 <div className="bg-white/50 rounded-2xl p-6 space-y-6">
                   {/* Style Personality */}
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Your Style Personality</h3>
-                    <p className="text-gray-700 leading-relaxed">{styleAnalysisResult.analysis.stylePersonality}</p>
-                  </div>
+                  {styleAnalysisResult.analysis.stylePersonality && (
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Your Style Personality</h3>
+                      <p className="text-gray-700 leading-relaxed">{styleAnalysisResult.analysis.stylePersonality}</p>
+                    </div>
+                  )}
 
                   {/* Dominant Archetypes */}
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Style Archetypes</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {styleAnalysisResult.analysis.dominantArchetypes.map((archetype, i) => (
-                        <span key={i} className="px-3 py-1 bg-amber-100 text-amber-900 rounded-full text-sm font-medium">
-                          {archetype}
-                        </span>
-                      ))}
+                  {styleAnalysisResult.analysis.dominantArchetypes && styleAnalysisResult.analysis.dominantArchetypes.length > 0 && (
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Style Archetypes</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {styleAnalysisResult.analysis.dominantArchetypes.map((archetype, i) => (
+                          <span key={i} className="px-3 py-1 bg-amber-100 text-amber-900 rounded-full text-sm font-medium">
+                            {archetype}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Color Profile */}
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Your Color Profile</h3>
-                    <p className="text-gray-700 leading-relaxed">{styleAnalysisResult.analysis.colorProfile}</p>
-                  </div>
+                  {styleAnalysisResult.analysis.colorProfile && (
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Your Color Profile</h3>
+                      <p className="text-gray-700 leading-relaxed">{styleAnalysisResult.analysis.colorProfile}</p>
+                    </div>
+                  )}
 
                   {/* Wardrobe Essentials */}
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Wardrobe Essentials</h3>
-                    <ul className="list-disc list-inside text-gray-700 space-y-1">
-                      {styleAnalysisResult.analysis.wardrobe.essentials.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {styleAnalysisResult.analysis.wardrobe?.essentials && styleAnalysisResult.analysis.wardrobe.essentials.length > 0 && (
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Wardrobe Essentials</h3>
+                      <ul className="list-disc list-inside text-gray-700 space-y-1">
+                        {styleAnalysisResult.analysis.wardrobe.essentials.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   {/* Shopping Recommendations */}
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Shopping Recommendations</h3>
-                    <ul className="list-disc list-inside text-gray-700 space-y-1">
-                      {styleAnalysisResult.analysis.shoppingRecommendations.map((rec, i) => (
-                        <li key={i}>{rec}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {styleAnalysisResult.analysis.shoppingRecommendations && styleAnalysisResult.analysis.shoppingRecommendations.length > 0 && (
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Shopping Recommendations</h3>
+                      <ul className="list-disc list-inside text-gray-700 space-y-1">
+                        {styleAnalysisResult.analysis.shoppingRecommendations.map((rec, i) => (
+                          <li key={i}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                   {/* Recommended Brands */}
                   {styleAnalysisResult.analysis.brands && styleAnalysisResult.analysis.brands.length > 0 && (
@@ -1016,14 +1026,16 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
                   )}
 
                   {/* Next Steps */}
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Next Steps</h3>
-                    <ul className="list-disc list-inside text-gray-700 space-y-1">
-                      {styleAnalysisResult.analysis.nextSteps.map((step, i) => (
-                        <li key={i}>{step}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {styleAnalysisResult.analysis.nextSteps && styleAnalysisResult.analysis.nextSteps.length > 0 && (
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Next Steps</h3>
+                      <ul className="list-disc list-inside text-gray-700 space-y-1">
+                        {styleAnalysisResult.analysis.nextSteps.map((step, i) => (
+                          <li key={i}>{step}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
