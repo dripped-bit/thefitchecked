@@ -11,9 +11,10 @@ interface UserMenuProps {
   user: AuthUser | null;
   onLoginClick: () => void;
   onLogout?: () => void;
+  onNavigateToCloset?: () => void;
 }
 
-const UserMenu: React.FC<UserMenuProps> = ({ user, onLoginClick, onLogout }) => {
+const UserMenu: React.FC<UserMenuProps> = ({ user, onLoginClick, onLogout, onNavigateToCloset }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -92,34 +93,12 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLoginClick, onLogout }) => 
             <button
               onClick={() => {
                 setIsOpen(false);
-                // Navigate to profile/settings
-              }}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4 text-gray-600" />
-              <span>Settings</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                // Navigate to favorites
-              }}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-            >
-              <Heart className="w-4 h-4 text-gray-600" />
-              <span>My Favorites</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                // Navigate to saved outfits
+                onNavigateToCloset?.();
               }}
               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
             >
               <ShoppingBag className="w-4 h-4 text-gray-600" />
-              <span>My Outfits</span>
+              <span>My Closet</span>
             </button>
           </div>
 

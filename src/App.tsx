@@ -814,6 +814,7 @@ function App() {
               setCurrentScreen('welcome');
               console.log('🔓 [AUTH] User logged out, redirecting to login');
             }}
+            onNavigateToCloset={handleNavigateToCloset}
           />
         </div>
       )}
