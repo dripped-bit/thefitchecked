@@ -198,6 +198,32 @@ create policy "Allow anonymous outfit updates" on outfits
 create policy "Allow public viewing of shared outfits" on outfits
   for select using (share_token is not null);
 
+-- User uploads table (for photo upload tracking and storage)
+create table if not exists user_uploads (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users,
+  created_at timestamp default now(),
+  avatar_url text not null,
+  upload_method text check (upload_method in ('camera', 'photo_library', 'file')),
+  device_type text check (device_type in ('mobile', 'desktop')),
+  user_agent text,
+  image_width integer,
+  image_height integer,
+  file_size integer
+);
+
+-- RLS policies for user_uploads
+alter table user_uploads enable row level security;
+
+create policy "Users can view own uploads" on user_uploads
+  for select using (user_id = auth.uid());
+
+create policy "Users can insert own uploads" on user_uploads
+  for insert with check (user_id = auth.uid());
+
+create policy "Users can delete own uploads" on user_uploads
+  for delete using (user_id = auth.uid());
+
 -- Collections policies
 create policy "Users can view own collections" on collections
   for select using (user_id = auth.uid());

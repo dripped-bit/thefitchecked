@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, RotateCcw, CheckCircle, ArrowRight, User, ArrowLeft, Sparkles, AlertCircle, Info } from 'lucide-react';
+import { Camera, RotateCcw, CheckCircle, ArrowRight, User, ArrowLeft, Sparkles, AlertCircle, Info, Image as ImageIcon, Upload } from 'lucide-react';
 import { CapturedPhoto } from '../types/photo';
 import { faceAnalysisService, PhotoValidation } from '../services/faceAnalysisService';
+import photoUploadService from '../services/photoUploadService';
 
 interface PhotoCaptureFlowProps {
   onNext: (photos: CapturedPhoto[]) => void;
@@ -12,9 +13,13 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
   const [isCapturing, setIsCapturing] = useState(false);
   const [photoValidation, setPhotoValidation] = useState<PhotoValidation | null>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const photoLibraryInputRef = useRef<HTMLInputElement>(null);
   const [displayedText, setDisplayedText] = useState('');
   const fullText = 'Create Avatar';
+  const isMobile = photoUploadService.isMobile();
 
   const photoStep = {
     id: 'front',
@@ -39,18 +44,45 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
     return () => clearTimeout(timeoutId);
   }, [displayedText, fullText]);
 
-  const handlePhotoCapture = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+  const handleTakePhoto = () => {
+    setUploadError(null);
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
     }
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChooseFromPhotos = () => {
+    setUploadError(null);
+    if (photoLibraryInputRef.current) {
+      photoLibraryInputRef.current.click();
+    }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>, uploadMethod: 'camera' | 'photo_library') => {
     const file = event.target.files?.[0];
     if (file) {
+      setUploadError(null);
+      setUploadProgress('Reading file...');
+
       const reader = new FileReader();
       reader.onload = async (e) => {
         const imageData = e.target?.result as string;
+
+        // Upload to Supabase
+        setUploadProgress('Uploading to cloud storage...');
+        const uploadResult = await photoUploadService.uploadPhoto(
+          imageData,
+          `avatar-${photoStep.view}`,
+          uploadMethod
+        );
+
+        if (!uploadResult.success) {
+          setUploadError(uploadResult.error || 'Upload failed');
+          setUploadProgress(null);
+          return;
+        }
+
+        setUploadProgress('Processing photo...');
 
         const newCapturedPhoto: CapturedPhoto = {
           id: `${photoStep.id}_${Date.now()}`,
@@ -62,11 +94,12 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
         };
 
         setCapturedPhoto(newCapturedPhoto);
-        console.log('📸 Photo captured:', newCapturedPhoto);
+        console.log('📸 Photo captured and uploaded:', uploadResult.data);
 
         // Validate the photo
         setIsValidating(true);
         setPhotoValidation(null);
+        setUploadProgress(null);
 
         try {
           console.log('🔍 Validating photo quality and face detection...');
@@ -96,12 +129,17 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
       };
       reader.readAsDataURL(file);
     }
+
+    // Reset input
+    event.target.value = '';
   };
 
   const handleRetakePhoto = () => {
     setCapturedPhoto(null);
     setPhotoValidation(null);
     setIsValidating(false);
+    setUploadError(null);
+    setUploadProgress(null);
   };
 
   return (
@@ -236,25 +274,79 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="w-full max-w-sm mx-auto">
-          {!capturedPhoto ? (
-            <button
-              onClick={handlePhotoCapture}
-              disabled={isCapturing}
-              className="relative w-full group transition-all duration-300 hover:scale-[1.02] focus:outline-none"
-            >
-              <div className="bg-gradient-to-r from-stone-200/25 via-amber-100/25 to-stone-200/25 rounded-2xl px-8 py-4 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-lg font-bold text-black">
-                    Take Photo
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {photoStep.title}
-                  </div>
+        {/* Upload Progress/Error Messages */}
+        {uploadProgress && (
+          <div className="w-full max-w-sm mx-auto mb-4">
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-200">
+              <div className="flex items-center justify-center space-x-3">
+                <div className="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                <span className="text-sm text-gray-700">{uploadProgress}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {uploadError && (
+          <div className="w-full max-w-sm mx-auto mb-4">
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-4 border border-red-200">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-red-800">{uploadError}</p>
+                  <button
+                    onClick={() => setUploadError(null)}
+                    className="text-xs text-red-600 hover:text-red-700 mt-1 underline"
+                  >
+                    Dismiss
+                  </button>
                 </div>
               </div>
-            </button>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="w-full max-w-sm mx-auto space-y-3">
+          {!capturedPhoto ? (
+            <>
+              {/* Take Photo Button (Camera) */}
+              <button
+                onClick={handleTakePhoto}
+                disabled={isCapturing || !!uploadProgress}
+                className="relative w-full group transition-all duration-300 hover:scale-[1.02] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl px-8 py-4 flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow">
+                  <Camera className="w-5 h-5 text-white mr-3" />
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-white">
+                      {isMobile ? 'Take Photo' : 'Use Camera'}
+                    </div>
+                    <div className="text-sm text-purple-100">
+                      Open camera
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              {/* Choose from Photos Button */}
+              <button
+                onClick={handleChooseFromPhotos}
+                disabled={isCapturing || !!uploadProgress}
+                className="relative w-full group transition-all duration-300 hover:scale-[1.02] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="bg-gradient-to-r from-stone-200/25 via-amber-100/25 to-stone-200/25 rounded-2xl px-8 py-4 flex items-center justify-center border-2 border-stone-200/50 hover:border-stone-300/50 transition-colors">
+                  <ImageIcon className="w-5 h-5 text-gray-700 mr-3" />
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-black">
+                      {isMobile ? 'Choose from Photos' : 'Upload Photo'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Select from {isMobile ? 'photo library' : 'files'}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </>
           ) : (
             <button
               onClick={() => {
@@ -282,13 +374,23 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
       </div>
 
 
-      {/* Hidden File Input */}
+      {/* Hidden File Inputs */}
+      {/* Camera Input - Opens camera directly on mobile */}
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
-        onChange={handleFileSelect}
+        onChange={(e) => handleFileSelect(e, 'camera')}
+        className="hidden"
+      />
+
+      {/* Photo Library Input - Opens file/photo picker */}
+      <input
+        ref={photoLibraryInputRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => handleFileSelect(e, 'photo_library')}
         className="hidden"
       />
     </div>
