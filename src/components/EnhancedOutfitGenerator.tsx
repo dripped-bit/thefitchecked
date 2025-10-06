@@ -24,7 +24,8 @@ import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import userDataService from '../services/userDataService';
 import outfitStorageService from '../services/outfitStorageService';
-import colorAnalysisService from '../services/colorAnalysisService';
+// Color analysis temporarily disabled for deployment
+// import colorAnalysisService from '../services/colorAnalysisService';
 import SmartOccasionPlanner from './SmartOccasionPlanner';
 
 interface EnhancedOutfitGeneratorProps {
@@ -212,6 +213,11 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
    * Extract colors from outfit in background (non-blocking)
    */
   const extractColorsInBackground = async (outfit: any) => {
+    // Temporarily disabled for deployment
+    console.log('🎨 [COLOR-EXTRACTION] Color analysis temporarily disabled');
+    return;
+
+    /* Commented out for deployment
     console.log('🎨 [COLOR-EXTRACTION] Starting color analysis for outfit', outfit.id);
 
     try {
@@ -238,6 +244,7 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
       console.error(`❌ [COLOR-EXTRACTION] Failed to extract colors for outfit ${outfit.id}:`, error);
       // Don't throw - just log
     }
+    */
   };
 
   const handleGenerateOutfit = async () => {

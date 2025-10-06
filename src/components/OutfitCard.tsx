@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import outfitStorageService, { OutfitData } from '../services/outfitStorageService';
 import collectionsService from '../services/collectionsService';
-import colorAnalysisService from '../services/colorAnalysisService';
+// Color analysis temporarily disabled for deployment
+// import colorAnalysisService from '../services/colorAnalysisService';
 
 interface OutfitCardProps {
   outfit: OutfitData;
@@ -102,7 +103,8 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
    * Get color name for display
    */
   const getColorName = (hexColor: string): string => {
-    return colorAnalysisService.getColorName(hexColor);
+    // Temporarily return hex code until color analysis is re-enabled
+    return hexColor;
   };
 
   /**

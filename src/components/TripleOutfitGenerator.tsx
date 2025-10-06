@@ -19,7 +19,8 @@ import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import userDataService from '../services/userDataService';
 import outfitStorageService from '../services/outfitStorageService';
-import colorAnalysisService from '../services/colorAnalysisService';
+// Color analysis temporarily disabled for deployment
+// import colorAnalysisService from '../services/colorAnalysisService';
 import { ParsedOccasion } from './SmartOccasionInput';
 import ShareModal from './ShareModal';
 import CalendarEntryModal from './CalendarEntryModal';
@@ -466,6 +467,8 @@ NO explanations, just keywords.`
   const extractColorsInBackground = async (savedOutfits: any[]) => {
     console.log('🎨 [COLOR-EXTRACTION] Starting background color analysis for', savedOutfits.length, 'outfits');
 
+    // Color extraction temporarily disabled for deployment
+    /* Commented out for deployment
     // Process each outfit's colors in parallel (non-blocking)
     Promise.all(
       savedOutfits.map(async (outfit) => {
@@ -499,6 +502,7 @@ NO explanations, just keywords.`
     }).catch((error) => {
       console.error('❌ [COLOR-EXTRACTION] Background color analysis failed:', error);
     });
+    */
   };
 
   const generateReasoning = (): string[] => {
