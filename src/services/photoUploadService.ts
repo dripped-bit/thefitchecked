@@ -121,9 +121,27 @@ class PhotoUploadService {
 
       if (uploadError) {
         console.error('❌ [PHOTO-UPLOAD] Storage upload error:', uploadError);
+        console.error('❌ [PHOTO-UPLOAD] Error details:', {
+          message: uploadError.message,
+          statusCode: uploadError.statusCode,
+          error: uploadError.error
+        });
+
+        // Provide specific error messages
+        let errorMessage = 'Upload failed. ';
+        if (uploadError.message?.includes('not found') || uploadError.message?.includes('does not exist')) {
+          errorMessage += 'Storage bucket not configured. Please contact support.';
+        } else if (uploadError.message?.includes('policy')) {
+          errorMessage += 'Permission denied. Please contact support.';
+        } else if (uploadError.message?.includes('size')) {
+          errorMessage += 'File too large (max 5MB).';
+        } else {
+          errorMessage += uploadError.message || 'Please try again.';
+        }
+
         return {
           success: false,
-          error: 'Upload failed. Please try again.'
+          error: errorMessage
         };
       }
 

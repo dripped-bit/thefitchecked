@@ -68,18 +68,25 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
       reader.onload = async (e) => {
         const imageData = e.target?.result as string;
 
-        // Upload to Supabase
+        // Upload to Supabase (optional - continue even if fails)
         setUploadProgress('Uploading to cloud storage...');
-        const uploadResult = await photoUploadService.uploadPhoto(
-          imageData,
-          `avatar-${photoStep.view}`,
-          uploadMethod
-        );
+        let uploadResult;
+        try {
+          uploadResult = await photoUploadService.uploadPhoto(
+            imageData,
+            `avatar-${photoStep.view}`,
+            uploadMethod
+          );
 
-        if (!uploadResult.success) {
-          setUploadError(uploadResult.error || 'Upload failed');
-          setUploadProgress(null);
-          return;
+          if (!uploadResult.success) {
+            console.warn('⚠️ [PHOTO-CAPTURE] Cloud upload failed, continuing with local photo:', uploadResult.error);
+            setUploadError(`Cloud storage unavailable: ${uploadResult.error}. Photo saved locally.`);
+            // Continue anyway - photo is still usable
+          }
+        } catch (error) {
+          console.error('❌ [PHOTO-CAPTURE] Upload error:', error);
+          setUploadError('Cloud storage unavailable. Photo saved locally.');
+          // Continue anyway
         }
 
         setUploadProgress('Processing photo...');
