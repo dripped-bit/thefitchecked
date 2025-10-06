@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowRight, ArrowLeft, Upload, Save, CheckCircle, Camera, Loader2, Sparkles, Brain, X, Check } from 'lucide-react';
-import styleAnalysisService, { StyleAnalysisResult } from '../services/styleAnalysisService';
+import { ArrowRight, ArrowLeft, Upload, Save, CheckCircle, Camera, Loader2, X, Check } from 'lucide-react';
 import stylePreferencesService from '../services/stylePreferencesService';
+import userPreferencesService from '../services/userPreferencesService';
+import authService from '../services/authService';
 import UserService from '../services/userService';
 
 interface StyleProfileStreamlinedProps {
@@ -66,9 +67,7 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
     boundaries: []
   });
 
-  const [showStyleAnalysis, setShowStyleAnalysis] = useState(false);
-  const [styleAnalysisResult, setStyleAnalysisResult] = useState<StyleAnalysisResult | null>(null);
-  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
@@ -144,95 +143,69 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
     return progress >= 50 && hasImage && hasThreeWords;
   };
 
-  // Transform new data structure to old format for AI analysis compatibility
-  const transformToOldFormat = (newProfile: UserProfile) => {
-    return {
-      lifestyle: {
-        morningRoutine: [],
-        workEnvironment: newProfile.lifestyle || []
-      },
-      fashionPersonality: {
-        archetypes: newProfile.styleVibes || [],
-        colorPalette: newProfile.favoriteColors || [],
-        avoidColors: newProfile.avoidColors || []
-      },
-      creative: {
-        outlets: [],
-        inspirations: []
-      },
-      shopping: {
-        habits: [],
-        favoriteStores: newProfile.favoriteStores || [],
-        customStores: newProfile.customStores || []
-      },
-      preferences: {
-        materials: [],
-        fits: newProfile.fitPreference ? [newProfile.fitPreference] : []
-      },
-      occasions: {
-        weekend: newProfile.occasionPriorities?.slice(0, 2) || [],
-        nightOut: newProfile.occasionPriorities?.slice(2, 3) || []
-      },
-      influences: {
-        eras: [],
-        sources: []
-      },
-      boundaries: newProfile.boundaries || [],
-      uploads: {
-        goToOutfit: newProfile.uploads.inspiration1,
-        dreamPurchase: null,
-        inspiration: newProfile.uploads.inspiration2,
-        favoritePiece: null
-      },
-      descriptions: {
-        threeWords: newProfile.threeWords || ['', '', ''],
-        alwaysFollow: '',
-        loveToBreak: '',
-        neverThrowAway: ''
-      },
-      seasonal: []
-    };
-  };
-
-  const generateStyleAnalysis = async () => {
-    setIsGeneratingAnalysis(true);
-    setStyleAnalysisResult(null);
+  const saveStyleProfileToSupabase = async () => {
+    setIsSaving(true);
 
     try {
-      console.log('🎨 Starting AI-powered style analysis...');
+      console.log('💾 Saving style profile to Supabase...');
 
-      // Transform new data structure to old format for compatibility
-      const transformedProfile = transformToOldFormat(userProfile);
-      console.log('🔄 Transformed profile data for AI analysis:', transformedProfile);
+      // Get current user
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        throw new Error('User must be authenticated to save style preferences');
+      }
 
-      const result = await styleAnalysisService.analyzeUserStyle(transformedProfile as any);
+      // Save to Supabase
+      const success = await userPreferencesService.saveStyleProfile(user.id, {
+        style_vibes: userProfile.styleVibes,
+        favorite_colors: userProfile.favoriteColors,
+        avoid_colors: userProfile.avoidColors,
+        lifestyle: userProfile.lifestyle,
+        favorite_stores: userProfile.favoriteStores,
+        custom_stores: userProfile.customStores,
+        fit_preference: userProfile.fitPreference,
+        occasion_priorities: userProfile.occasionPriorities,
+        boundaries: userProfile.boundaries,
+        three_words: userProfile.threeWords,
+        inspiration_images: userProfile.uploads
+      });
 
-      if (result.success && result.analysis) {
-        setStyleAnalysisResult(result);
-        setShowStyleAnalysis(true);
+      if (success) {
+        console.log('✅ Style profile saved to Supabase successfully');
 
-        // Save to localStorage
-        localStorage.setItem('styleProfile', JSON.stringify(userProfile));
-        console.log('✅ Style analysis completed successfully');
+        // Also save to IndexedDB for local access
+        await stylePreferencesService.saveStyleProfile({
+          fashionPersonality: {
+            archetypes: userProfile.styleVibes,
+            colorPalette: userProfile.favoriteColors,
+            avoidColors: userProfile.avoidColors
+          },
+          shopping: {
+            favoriteStores: userProfile.favoriteStores,
+            customStores: userProfile.customStores
+          },
+          preferences: {
+            fits: userProfile.fitPreference ? [userProfile.fitPreference] : []
+          }
+        } as any);
+
+        setIsSaved(true);
+
+        // Mark flow as completed
+        UserService.markFlowCompleted();
+
+        // Navigate to next screen after brief delay
+        setTimeout(() => {
+          onNext();
+        }, 1000);
       } else {
-        throw new Error(result.error || 'Failed to generate analysis');
+        throw new Error('Failed to save style profile');
       }
     } catch (error) {
-      console.error('❌ Style analysis failed:', error);
-
-      // The service should have already fallen back to basic analysis
-      // But if it still failed, show friendly error
-      const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
-
-      setStyleAnalysisResult({
-        success: false,
-        error: errorMessage.includes('quota') || errorMessage.includes('QUOTA')
-          ? 'AI analysis temporarily unavailable. Generating personalized analysis using your style preferences...'
-          : 'Analysis failed - please try again'
-      });
-      setShowStyleAnalysis(true);
+      console.error('❌ Failed to save style profile:', error);
+      alert('Failed to save your style preferences. Please try again.');
     } finally {
-      setIsGeneratingAnalysis(false);
+      setIsSaving(false);
     }
   };
 
@@ -943,174 +916,6 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
     }
   };
 
-  // Show style analysis result screen
-  if (showStyleAnalysis && styleAnalysisResult) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-amber-50 flex items-center justify-center px-4 py-8">
-        <div className="max-w-3xl w-full glass-beige rounded-3xl shadow-2xl p-6 sm:p-8">
-          {styleAnalysisResult.success && styleAnalysisResult.analysis ? (
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-amber-500 rounded-full mb-4">
-                  <Sparkles className="w-8 h-8 text-white" />
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-                  Your Style Profile is Ready!
-                </h2>
-                <p className="text-lg text-gray-600">
-                  AI-powered insights based on your preferences
-                </p>
-              </div>
-
-              <div className="prose prose-lg max-w-none">
-                <div className="bg-white/50 rounded-2xl p-6 space-y-6">
-                  {/* Style Personality */}
-                  {styleAnalysisResult.analysis.stylePersonality && (
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Your Style Personality</h3>
-                      <p className="text-gray-700 leading-relaxed">{styleAnalysisResult.analysis.stylePersonality}</p>
-                    </div>
-                  )}
-
-                  {/* Dominant Archetypes */}
-                  {styleAnalysisResult.analysis.dominantArchetypes && styleAnalysisResult.analysis.dominantArchetypes.length > 0 && (
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Style Archetypes</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {styleAnalysisResult.analysis.dominantArchetypes.map((archetype, i) => (
-                          <span key={i} className="px-3 py-1 bg-amber-100 text-amber-900 rounded-full text-sm font-medium">
-                            {archetype}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Color Profile */}
-                  {styleAnalysisResult.analysis.colorProfile && (
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Your Color Profile</h3>
-                      <p className="text-gray-700 leading-relaxed">{styleAnalysisResult.analysis.colorProfile}</p>
-                    </div>
-                  )}
-
-                  {/* Wardrobe Essentials */}
-                  {styleAnalysisResult.analysis.wardrobe?.essentials && styleAnalysisResult.analysis.wardrobe.essentials.length > 0 && (
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Wardrobe Essentials</h3>
-                      <ul className="list-disc list-inside text-gray-700 space-y-1">
-                        {styleAnalysisResult.analysis.wardrobe.essentials.map((item, i) => (
-                          <li key={i}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Shopping Recommendations */}
-                  {styleAnalysisResult.analysis.shoppingRecommendations && styleAnalysisResult.analysis.shoppingRecommendations.length > 0 && (
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Shopping Recommendations</h3>
-                      <ul className="list-disc list-inside text-gray-700 space-y-1">
-                        {styleAnalysisResult.analysis.shoppingRecommendations.map((rec, i) => (
-                          <li key={i}>{rec}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Recommended Brands */}
-                  {styleAnalysisResult.analysis.brands && styleAnalysisResult.analysis.brands.length > 0 && (
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Recommended Brands</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {styleAnalysisResult.analysis.brands.map((brand, i) => (
-                          <span key={i} className="px-3 py-1 bg-purple-100 text-purple-900 rounded-full text-sm">
-                            {brand}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Next Steps */}
-                  {styleAnalysisResult.analysis.nextSteps && styleAnalysisResult.analysis.nextSteps.length > 0 && (
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Next Steps</h3>
-                      <ul className="list-disc list-inside text-gray-700 space-y-1">
-                        {styleAnalysisResult.analysis.nextSteps.map((step, i) => (
-                          <li key={i}>{step}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                <button
-                  onClick={() => {
-                    localStorage.setItem('styleAnalysisResult', JSON.stringify(styleAnalysisResult));
-                    generateStyleAnalysis();
-                  }}
-                  className="
-                    flex items-center justify-center gap-2
-                    glass-beige-light text-purple-700 px-6 py-3 rounded-2xl
-                    shadow-lg hover:scale-105 transition-all duration-300
-                    min-h-[48px] touch-manipulation
-                  "
-                >
-                  <Brain className="w-5 h-5" />
-                  <span className="font-medium">Regenerate</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    UserService.markFlowCompleted();
-                    console.log('🎯 [STYLE-PROFILE] User completed full flow - marked as completed');
-                    onNext();
-                  }}
-                  className="
-                    flex items-center justify-center gap-2
-                    bg-gradient-to-r from-purple-600 to-amber-600 text-white
-                    px-8 py-3 rounded-2xl shadow-lg hover:scale-105
-                    transition-all duration-300 hover:shadow-xl
-                    min-h-[48px] touch-manipulation
-                  "
-                >
-                  <span className="font-medium">Continue to Dashboard</span>
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center space-y-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-                <X className="w-8 h-8 text-red-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Oops! Something went wrong
-              </h2>
-              <p className="text-gray-600">
-                {styleAnalysisResult.error || 'Failed to generate analysis'}
-              </p>
-              <button
-                onClick={() => {
-                  setShowStyleAnalysis(false);
-                  setStyleAnalysisResult(null);
-                }}
-                className="
-                  px-6 py-3 bg-gray-600 text-white rounded-xl
-                  hover:bg-gray-700 transition-all min-h-[48px]
-                  touch-manipulation
-                "
-              >
-                Try Again
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   const progress = calculateProgress();
   const canProceed = currentSection === sections.length - 1 ? canCompleteProfile() : true;
@@ -1189,8 +994,8 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
               </button>
             ) : (
               <button
-                onClick={canCompleteProfile() ? generateStyleAnalysis : undefined}
-                disabled={!canCompleteProfile() || isGeneratingAnalysis}
+                onClick={canCompleteProfile() ? saveStyleProfileToSupabase : undefined}
+                disabled={!canCompleteProfile() || isSaving}
                 className="
                   flex items-center justify-center gap-2
                   px-8 py-3 rounded-xl min-h-[48px]
@@ -1200,14 +1005,19 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
                   sm:w-auto w-full sm:ml-auto
                 "
               >
-                {isGeneratingAnalysis ? (
+                {isSaving ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Generating...
+                    Saving...
+                  </>
+                ) : isSaved ? (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    Saved!
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-5 h-5" />
+                    <Save className="w-5 h-5" />
                     Complete Profile
                   </>
                 )}

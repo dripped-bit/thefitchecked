@@ -261,18 +261,19 @@ Focus on actionable, personalized advice that reflects their unique preferences,
   private generateBasicAnalysis(userProfile: UserProfile): StyleAnalysisResult {
     console.log('📝 [STYLE_ANALYSIS] Using basic analysis fallback');
 
-    const { fashionPersonality, creative, shopping, influences, descriptions } = userProfile;
+    try {
+      const { fashionPersonality, creative, shopping, influences, descriptions } = userProfile;
 
-    const primaryArchetype = fashionPersonality.archetypes[0] || 'Classic';
-    const secondaryArchetype = fashionPersonality.archetypes[1] || 'Minimalist';
-    const dominantColors = fashionPersonality.colorPalette.slice(0, 2).join(' and ') || 'Neutral tones';
-    const topInfluence = creative.inspirations[0] || 'Contemporary culture';
-    const shoppingStyle = shopping.habits[0] || 'Thoughtful curation';
-    const threeWords = descriptions.threeWords.filter(w => w.trim()).join(', ') || 'Personal, Authentic, Evolving';
+      const primaryArchetype = fashionPersonality?.archetypes?.[0] || 'Classic';
+      const secondaryArchetype = fashionPersonality?.archetypes?.[1] || 'Minimalist';
+      const dominantColors = fashionPersonality?.colorPalette?.slice(0, 2).join(' and ') || 'Neutral tones';
+      const topInfluence = creative?.inspirations?.[0] || 'Contemporary culture';
+      const shoppingStyle = shopping?.habits?.[0] || 'Thoughtful curation';
+      const threeWords = descriptions?.threeWords?.filter(w => w && w.trim()).join(', ') || 'Personal, Authentic, Evolving';
 
-    return {
-      success: true,
-      analysis: {
+      return {
+        success: true,
+        analysis: {
         stylePersonality: `Your style blends ${primaryArchetype} and ${secondaryArchetype} influences, creating a ${threeWords.toLowerCase()} approach to fashion. You're drawn to ${dominantColors.toLowerCase()} and find inspiration in ${topInfluence.toLowerCase()}.`,
         dominantArchetypes: [primaryArchetype, secondaryArchetype].filter(Boolean),
         colorProfile: `Your color story centers around ${dominantColors}, creating a cohesive palette that reflects your personal aesthetic.`,
@@ -288,7 +289,7 @@ Focus on actionable, personalized advice that reflects their unique preferences,
             'Versatile pieces that work across occasions',
             'Investment outerwear that reflects your style'
           ],
-          avoid: fashionPersonality.avoidColors.length > 0
+          avoid: fashionPersonality?.avoidColors && fashionPersonality.avoidColors.length > 0
             ? [`Items in colors you avoid: ${fashionPersonality.avoidColors.join(', ')}`]
             : ['Trendy pieces that don\'t reflect your personal style'],
           invest: [
@@ -299,19 +300,53 @@ Focus on actionable, personalized advice that reflects their unique preferences,
         },
         occasions: {
           work: ['Elevated versions of your preferred style archetype'],
-          weekend: userProfile.occasions.weekend.length > 0
+          weekend: userProfile.occasions?.weekend && userProfile.occasions.weekend.length > 0
             ? userProfile.occasions.weekend.slice(0, 3)
             : ['Comfortable pieces in your signature style'],
           special: ['Refined interpretations of your personal aesthetic']
         },
-        brands: shopping.favoriteStores.concat(shopping.customStores).slice(0, 5),
+        brands: (shopping?.favoriteStores || []).concat(shopping?.customStores || []).slice(0, 5),
         nextSteps: [
           'Audit your current wardrobe against your identified style',
           'Create a shopping list based on your essential items',
           'Experiment with new ways to wear your existing pieces'
         ]
-      }
-    };
+        }
+      };
+    } catch (error) {
+      console.error('❌ [STYLE_ANALYSIS] Basic analysis failed, using minimal fallback:', error);
+      // Ultra-minimal fallback that should never fail
+      return {
+        success: true,
+        analysis: {
+          stylePersonality: 'Your unique style reflects your personal preferences and lifestyle. You have a thoughtful approach to fashion that balances comfort and expression.',
+          dominantArchetypes: ['Classic', 'Contemporary'],
+          colorProfile: 'Your color preferences create a cohesive and personalized palette.',
+          shoppingRecommendations: [
+            'Focus on quality pieces that align with your lifestyle',
+            'Build a versatile wardrobe with timeless essentials',
+            'Invest in items that make you feel confident'
+          ],
+          styleEvolution: 'Your style will continue to evolve as you discover what works best for you.',
+          wardrobe: {
+            essentials: ['Well-fitted basics', 'Versatile pieces', 'Quality outerwear'],
+            avoid: ['Items that don\'t reflect your personal style'],
+            invest: ['Timeless pieces', 'Quality basics', 'Signature items']
+          },
+          occasions: {
+            work: ['Professional pieces that suit your environment'],
+            weekend: ['Comfortable and stylish casual wear'],
+            special: ['Elevated pieces for special occasions']
+          },
+          brands: [],
+          nextSteps: [
+            'Audit your current wardrobe',
+            'Identify gaps in your closet',
+            'Build a wishlist of key pieces'
+          ]
+        }
+      };
+    }
   }
 
   /**

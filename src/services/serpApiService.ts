@@ -1,9 +1,12 @@
 /**
  * SerpAPI Shopping Service
  * Provides real product search with images via Google Shopping
+ * Now enhanced with user style preferences for personalized results
  */
 
 import { PRIMARY_PRIORITY_STORES, SECONDARY_PRIORITY_STORES } from '../config/priorityStores';
+import authService from './authService';
+import userPreferencesService, { StyleProfilePreferences } from './userPreferencesService';
 
 export interface ProductSearchResult {
   id: string;
@@ -29,8 +32,62 @@ export interface ProductSearchOptions {
 }
 
 class SerpApiService {
+  private userStyleProfile: StyleProfilePreferences | null = null;
+
   constructor() {
     console.log('✅ [SERPAPI] Service initialized - using backend API route');
+    this.loadUserPreferences();
+  }
+
+  /**
+   * Load user's style preferences from Supabase
+   */
+  private async loadUserPreferences(): Promise<void> {
+    try {
+      const user = await authService.getCurrentUser();
+      if (user) {
+        this.userStyleProfile = await userPreferencesService.getStyleProfile(user.id);
+        if (this.userStyleProfile) {
+          console.log('✨ [SERPAPI] Loaded user style preferences for personalized search');
+        }
+      }
+    } catch (error) {
+      console.log('ℹ️ [SERPAPI] No user preferences loaded, using default search');
+    }
+  }
+
+  /**
+   * Enhance search query with user's style preferences
+   */
+  private enhanceQueryWithPreferences(query: string): string {
+    let enhancedQuery = query;
+
+    if (this.userStyleProfile) {
+      // Add style vibes to refine results
+      if (this.userStyleProfile.style_vibes && this.userStyleProfile.style_vibes.length > 0) {
+        const styleKeywords = this.userStyleProfile.style_vibes.slice(0, 2).join(' ');
+        enhancedQuery = `${styleKeywords} ${enhancedQuery}`;
+      }
+
+      // Add favorite colors if relevant to the search
+      if (this.userStyleProfile.favorite_colors && this.userStyleProfile.favorite_colors.length > 0) {
+        // Only add colors if the query doesn't already specify colors
+        if (!query.match(/\b(black|white|blue|red|green|yellow|pink|purple|brown|gray|beige|navy|cream)\b/i)) {
+          const topColor = this.userStyleProfile.favorite_colors[0];
+          enhancedQuery = `${enhancedQuery} ${topColor}`;
+        }
+      }
+
+      // Add fit preference
+      if (this.userStyleProfile.fit_preference) {
+        enhancedQuery = `${enhancedQuery} ${this.userStyleProfile.fit_preference} fit`;
+      }
+    }
+
+    // Add model wearing front view for better try-on compatibility
+    enhancedQuery = `${enhancedQuery} model wearing front view -back -backside -"back view" -rear`;
+
+    return enhancedQuery;
   }
 
   /**
@@ -42,9 +99,11 @@ class SerpApiService {
   ): Promise<ProductSearchResult[]> {
     const { budgetMin, budgetMax, stores, maxResults = 20 } = options;
 
-    // Enhance query for better try-on compatible images (front-facing model photos)
-    // Use negative keywords to exclude back-facing images
-    const enhancedQuery = `${query} model wearing front view -back -backside -"back view" -rear`;
+    // Reload preferences on each search to get latest
+    await this.loadUserPreferences();
+
+    // Enhance query with user preferences and try-on compatibility
+    const enhancedQuery = this.enhanceQueryWithPreferences(query);
 
     console.log('🛍️ [SERPAPI] Searching Google Shopping:', {
       originalQuery: query,
