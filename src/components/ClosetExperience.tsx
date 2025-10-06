@@ -4,7 +4,8 @@ import {
   Sparkles, ShoppingBag, Heart, Mic, Calendar, DollarSign,
   Leaf, TrendingUp, Award, Gift, CheckCircle, X, Play,
   Palette, Shuffle, Share2, Volume2, VolumeX, Crown,
-  Tag, Package, Zap, Users, MapPin, Clock, ChevronLeft, ChevronRight, ExternalLink
+  Tag, Package, Zap, Users, MapPin, Clock, ChevronLeft, ChevronRight, ExternalLink,
+  Menu
 } from 'lucide-react';
 import ClosetDoors from './ClosetDoors';
 import OutfitCreator from './OutfitCreator';
@@ -265,6 +266,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     displayMode: 'original',
     currentIndex: 0
   });
+
+  // Sidebar state (for mobile collapsible sidebar)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1333,54 +1337,48 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       {/* Header with stats */}
       <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200 p-4">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
-          {/* Left: Close Closet */}
-          <button
-            onClick={onBack}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Close Closet</span>
-          </button>
-
-          {/* Center: Navigation */}
-          <div className="flex items-center space-x-4">
+          {/* Left: Close Closet + Door Icon (mobile) */}
+          <div className="flex items-center space-x-3">
             <button
-              onClick={() => setCurrentView('monthly-planner')}
-              className="flex items-center space-x-2 text-purple-600 hover:text-purple-800 transition-colors"
+              onClick={onBack}
+              className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
             >
-              <Calendar className="w-6 h-6" />
-              <span className="text-lg font-semibold">Monthly Planner</span>
+              <ArrowLeft className="w-5 h-5" />
+              <span>Close Closet</span>
             </button>
 
+            {/* Menu Icon - Mobile Only */}
             <button
-              onClick={() => setCurrentView('smart-calendar')}
-              className="flex items-center space-x-2 text-indigo-600 hover:text-indigo-800 transition-colors"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="md:hidden p-2 rounded-lg bg-purple-100 text-purple-600 hover:bg-purple-200 transition-colors"
+              title="Toggle Sidebar"
             >
-              <Sparkles className="w-6 h-6" />
-              <span className="text-lg font-semibold">Smart Calendar</span>
+              <Menu className="w-5 h-5" />
             </button>
           </div>
 
           {/* Right: Stats Bar */}
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-3 md:space-x-6">
+            {/* Item Count - Always visible */}
             <div className="flex items-center space-x-2 bg-blue-100 rounded-full px-3 py-1">
               <Package className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-800">{clothingItems.length} Items</span>
             </div>
 
-            <div className="flex items-center space-x-2 bg-purple-100 rounded-full px-3 py-1">
+            {/* Desktop Stats - Hidden on mobile */}
+            <div className="hidden md:flex items-center space-x-2 bg-purple-100 rounded-full px-3 py-1">
               <Leaf className="w-4 h-4 text-purple-600" />
               <span className="text-sm font-medium text-purple-800">{sustainabilityScore}% Eco</span>
             </div>
 
-            <div className="flex items-center space-x-2 bg-yellow-100 rounded-full px-3 py-1">
+            <div className="hidden md:flex items-center space-x-2 bg-yellow-100 rounded-full px-3 py-1">
               <Star className="w-4 h-4 text-yellow-600" />
               <span className="text-sm font-medium text-yellow-800">Level {currentLevel}</span>
             </div>
 
             <button
               onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-              className={`p-2 rounded-full transition-colors ${
+              className={`hidden md:block p-2 rounded-full transition-colors ${
                 isVoiceEnabled ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'
               }`}
             >
@@ -1391,9 +1389,51 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex h-[calc(100vh-80px)]">
-        {/* Sidebar */}
-        <div className="w-80 bg-white/80 backdrop-blur-sm border-r border-gray-200 p-6 overflow-y-auto">
+      <div className="flex h-[calc(100vh-80px)] relative">
+        {/* Sidebar - Collapsible on mobile */}
+        <div className={`
+          fixed md:relative inset-y-0 left-0 z-40
+          w-80 bg-white/95 md:bg-white/80 backdrop-blur-sm border-r border-gray-200 p-6 overflow-y-auto
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          md:block
+        `}>
+          {/* Close sidebar button - Mobile only */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden absolute top-4 right-4 p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+
+          {/* Monthly Planner & Smart Calendar - NEW SECTION */}
+          <div className="mb-6 pt-8 md:pt-0">
+            <h3 className="font-semibold text-gray-800 mb-3">Calendars</h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  setCurrentView('monthly-planner');
+                  setSidebarOpen(false); // Close sidebar on mobile after selection
+                }}
+                className="w-full flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white py-2 px-4 rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Monthly Planner</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setCurrentView('smart-calendar');
+                  setSidebarOpen(false); // Close sidebar on mobile after selection
+                }}
+                className="w-full flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-indigo-600 hover:to-blue-700 transition-all"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Smart Calendar</span>
+              </button>
+            </div>
+          </div>
+
           {/* Upload Section */}
           <div className="mb-6">
             <h3 className="font-semibold text-gray-800 mb-3">Add to Closet</h3>
@@ -1567,19 +1607,14 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
             <h3 className="font-semibold text-gray-800 mb-3">Quick Actions</h3>
             <div className="space-y-2">
               <button
-                onClick={generateOutfitOfTheDay}
+                onClick={() => {
+                  generateOutfitOfTheDay();
+                  setSidebarOpen(false); // Close sidebar on mobile after action
+                }}
                 className="w-full flex items-center space-x-2 bg-gradient-to-r from-orange-500 to-yellow-600 text-white py-2 px-4 rounded-lg hover:from-orange-600 hover:to-yellow-700 transition-all"
               >
                 <Shuffle className="w-4 h-4" />
                 <span>Outfit of the Day</span>
-              </button>
-
-              <button
-                onClick={() => setCurrentView('smart-calendar')}
-                className="w-full flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-indigo-600 hover:to-blue-700 transition-all"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>Smart Calendar</span>
               </button>
             </div>
           </div>
@@ -1661,6 +1696,14 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Mobile Overlay - Click to close sidebar */}
+        {sidebarOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
         {/* Main Content Area */}
         <div className="flex-1 p-6 overflow-y-auto">
