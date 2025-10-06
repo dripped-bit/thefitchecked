@@ -19,7 +19,15 @@ interface MyOutfitsPageAdvancedProps {
  */
 export default function MyOutfitsPageAdvanced({ onBack }: MyOutfitsPageAdvancedProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+    <div className="min-h-screen relative bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+      {/* Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
+        style={{ backgroundImage: "url('/avatarhomepage.png')" }}
+      />
+
+      {/* Content */}
+      <div className="relative z-10">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -67,6 +75,7 @@ export default function MyOutfitsPageAdvanced({ onBack }: MyOutfitsPageAdvancedP
             <li>• Click color chips to see the full color palette analysis</li>
           </ul>
         </div>
+      </div>
       </div>
     </div>
   );
