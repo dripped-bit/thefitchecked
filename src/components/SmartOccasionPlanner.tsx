@@ -6,6 +6,7 @@ import IntegratedShopping from './IntegratedShopping';
 import ExternalTryOnModal from './ExternalTryOnModal';
 import CalendarEntryModal from './CalendarEntryModal';
 import { ProductSearchResult } from '../services/perplexityService';
+import outfitStorageService from '../services/outfitStorageService';
 
 interface SmartOccasionPlannerProps {
   onOutfitGenerate?: (outfitData: any) => void;
@@ -129,7 +130,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
     }
   };
 
-  const handleOutfitApplied = (outfit: GeneratedOutfit, avatarUrl: string) => {
+  const handleOutfitApplied = async (outfit: GeneratedOutfit, avatarUrl: string) => {
     setHasTriedOn(true); // Mark that user has tried on the outfit
 
     if (onAvatarUpdate) {
@@ -144,6 +145,24 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
           occasion: parsedOccasion?.occasion
         }
       });
+    }
+
+    // Auto-save to My Outfits
+    try {
+      const savedOutfit = await outfitStorageService.saveOutfit({
+        occasion: parsedOccasion?.occasion || 'Unknown Occasion',
+        style: outfit.personality.name,
+        imageUrl: avatarUrl, // Save the try-on result image
+        userPrompt: outfit.originalPrompt || outfit.searchPrompt || `${outfit.personality.name} outfit for ${parsedOccasion?.occasion}`,
+        gender: outfit.personality.targetAudience || undefined
+      });
+
+      if (savedOutfit) {
+        console.log('✅ [PLANNER] Outfit auto-saved to My Outfits:', savedOutfit.id);
+      }
+    } catch (error) {
+      console.error('❌ [PLANNER] Failed to auto-save outfit:', error);
+      // Don't show error to user - auto-save is a convenience feature
     }
   };
 

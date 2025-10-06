@@ -970,21 +970,23 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
 
           {/* Navigation Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
-            <button
-              onClick={() => setCurrentSection(prev => Math.max(0, prev - 1))}
-              disabled={currentSection === 0}
-              className="
-                flex items-center justify-center gap-2
-                px-6 py-3 rounded-xl border-2 border-gray-300
-                text-gray-700 font-medium min-h-[48px]
-                hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed
-                transition-all touch-manipulation active:scale-95
-                sm:w-auto w-full
-              "
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back
-            </button>
+            {currentSection !== 6 && (
+              <button
+                onClick={() => setCurrentSection(prev => Math.max(0, prev - 1))}
+                disabled={currentSection === 0}
+                className="
+                  flex items-center justify-center gap-2
+                  px-6 py-3 rounded-xl border-2 border-gray-300
+                  text-gray-700 font-medium min-h-[48px]
+                  hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-all touch-manipulation active:scale-95
+                  sm:w-auto w-full
+                "
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Back
+              </button>
+            )}
 
             {currentSection < sections.length - 1 ? (
               <button

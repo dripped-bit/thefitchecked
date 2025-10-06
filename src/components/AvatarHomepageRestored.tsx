@@ -775,15 +775,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Back Button */}
-          <button
-            onClick={onBack}
-            className="flex items-center space-x-1 text-slate-600 hover:text-slate-800 transition-colors bg-white/60 rounded-xl px-3 py-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back</span>
-          </button>
         </div>
 
         {/* Settings */}
