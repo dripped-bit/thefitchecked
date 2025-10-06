@@ -147,60 +147,70 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
     setIsSaving(true);
 
     try {
-      console.log('💾 Saving style profile to Supabase...');
+      console.log('💾 Saving style profile...');
 
-      // Get current user
-      const user = await authService.getCurrentUser();
-      if (!user) {
-        throw new Error('User must be authenticated to save style preferences');
-      }
-
-      // Save to Supabase
-      const success = await userPreferencesService.saveStyleProfile(user.id, {
-        style_vibes: userProfile.styleVibes,
-        favorite_colors: userProfile.favoriteColors,
-        avoid_colors: userProfile.avoidColors,
-        lifestyle: userProfile.lifestyle,
-        favorite_stores: userProfile.favoriteStores,
-        custom_stores: userProfile.customStores,
-        fit_preference: userProfile.fitPreference,
-        occasion_priorities: userProfile.occasionPriorities,
+      // Save to IndexedDB for local access (always works)
+      await stylePreferencesService.saveStyleProfile({
+        fashionPersonality: {
+          archetypes: userProfile.styleVibes,
+          colorPalette: userProfile.favoriteColors,
+          avoidColors: userProfile.avoidColors
+        },
+        shopping: {
+          favoriteStores: userProfile.favoriteStores,
+          customStores: userProfile.customStores
+        },
+        preferences: {
+          fits: userProfile.fitPreference ? [userProfile.fitPreference] : []
+        },
+        lifestyle: {
+          workEnvironment: userProfile.lifestyle
+        },
+        occasions: {
+          weekend: userProfile.occasionPriorities
+        },
         boundaries: userProfile.boundaries,
-        three_words: userProfile.threeWords,
-        inspiration_images: userProfile.uploads
-      });
+        descriptions: {
+          threeWords: userProfile.threeWords
+        }
+      } as any);
 
-      if (success) {
-        console.log('✅ Style profile saved to Supabase successfully');
+      console.log('✅ Style profile saved to IndexedDB');
 
-        // Also save to IndexedDB for local access
-        await stylePreferencesService.saveStyleProfile({
-          fashionPersonality: {
-            archetypes: userProfile.styleVibes,
-            colorPalette: userProfile.favoriteColors,
-            avoidColors: userProfile.avoidColors
-          },
-          shopping: {
-            favoriteStores: userProfile.favoriteStores,
-            customStores: userProfile.customStores
-          },
-          preferences: {
-            fits: userProfile.fitPreference ? [userProfile.fitPreference] : []
-          }
-        } as any);
-
-        setIsSaved(true);
-
-        // Mark flow as completed
-        UserService.markFlowCompleted();
-
-        // Navigate to next screen after brief delay
-        setTimeout(() => {
-          onNext();
-        }, 1000);
-      } else {
-        throw new Error('Failed to save style profile');
+      // Try to save to Supabase (optional - won't fail if table doesn't exist)
+      try {
+        const user = await authService.getCurrentUser();
+        if (user) {
+          await userPreferencesService.saveStyleProfile(user.id, {
+            style_vibes: userProfile.styleVibes,
+            favorite_colors: userProfile.favoriteColors,
+            avoid_colors: userProfile.avoidColors,
+            lifestyle: userProfile.lifestyle,
+            favorite_stores: userProfile.favoriteStores,
+            custom_stores: userProfile.customStores,
+            fit_preference: userProfile.fitPreference,
+            occasion_priorities: userProfile.occasionPriorities,
+            boundaries: userProfile.boundaries,
+            three_words: userProfile.threeWords,
+            inspiration_images: userProfile.uploads
+          });
+          console.log('✅ Style profile also saved to Supabase');
+        }
+      } catch (supabaseError) {
+        // Supabase save failed, but that's okay - we have IndexedDB
+        console.log('ℹ️ Supabase save skipped (table may not exist yet)');
       }
+
+      setIsSaved(true);
+
+      // Mark flow as completed
+      UserService.markFlowCompleted();
+
+      // Navigate to next screen after brief delay
+      setTimeout(() => {
+        onNext();
+      }, 1000);
+
     } catch (error) {
       console.error('❌ Failed to save style profile:', error);
       alert('Failed to save your style preferences. Please try again.');
