@@ -1284,27 +1284,6 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
             </div>
           )}
 
-          {/* NEW FEATURE CALLOUT - Size Preferences */}
-          <div className="mt-4 max-w-2xl mx-auto bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-400 rounded-xl p-4 shadow-lg">
-            <div className="flex items-center justify-center space-x-3">
-              <Sparkles className="w-5 h-5 text-amber-600 animate-pulse" />
-              <div className="text-center">
-                <p className="text-sm font-bold text-amber-900">
-                  NEW: Size Preferences for Everyone!
-                </p>
-                <p className="text-xs text-amber-700 mt-1">
-                  Section 12 "Your Sizes" now supports Women's, Men's & Unisex sizing for better recommendations
-                </p>
-              </div>
-              <button
-                onClick={() => setCurrentSection(11)}
-                className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md hover:scale-105 transition-all"
-              >
-                Go There →
-              </button>
-            </div>
-          </div>
-
           {/* Progress Bar */}
           <div className="mt-6 max-w-md mx-auto">
             <div className="flex justify-between text-xs text-gray-500 mb-2">
