@@ -31,6 +31,7 @@ import smartCalendarService, {
 } from '../services/smartCalendarService';
 import PackingListGenerator from './PackingListGenerator';
 import WoreThisTodayTracker from './WoreThisTodayTracker';
+import AddEventModal from './AddEventModal';
 
 interface SmartCalendarDashboardProps {
   onBack?: () => void;
@@ -42,7 +43,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   clothingItems = []
 }) => {
   const [currentView, setCurrentView] = useState<'overview' | 'morning' | 'queue' | 'settings' | 'packing'>('overview');
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // Always connected with manual entry
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [morningOptions, setMorningOptions] = useState<MorningOptions | null>(null);
   const [outfitQueue, setOutfitQueue] = useState<OutfitPlan[]>([]);
@@ -51,6 +52,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showOutfitPlanner, setShowOutfitPlanner] = useState(false);
   const [showWoreThisToday, setShowWoreThisToday] = useState(false);
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
 
   useEffect(() => {
     initializeDashboard();
@@ -226,12 +228,21 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold text-gray-800">Upcoming Events</h3>
-          <button
-            onClick={initializeDashboard}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowAddEventModal(true)}
+              className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Event</span>
+            </button>
+            <button
+              onClick={initializeDashboard}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -602,6 +613,16 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
           })}
         />
       )}
+
+      {/* Add Event Modal */}
+      <AddEventModal
+        isOpen={showAddEventModal}
+        onClose={() => setShowAddEventModal(false)}
+        onEventCreated={() => {
+          initializeDashboard();
+          setShowAddEventModal(false);
+        }}
+      />
     </div>
   );
 };

@@ -677,10 +677,6 @@ class SmartCalendarService {
   // Public API Methods
   // =====================
 
-  isConnected(): boolean {
-    return this.calendarProvider !== null;
-  }
-
   getConnectedProvider(): string | null {
     return this.calendarProvider;
   }
