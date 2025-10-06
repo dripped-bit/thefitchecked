@@ -78,6 +78,22 @@ create table if not exists notifications (
   created_at timestamp default now()
 );
 
+-- Avatars table (for persistent avatar storage across devices)
+create table if not exists avatars (
+  id uuid primary key default uuid_generate_v4(),
+  user_id text not null,  -- email or anonymous ID (not using auth.users for anonymous support)
+  name text not null,
+  storage_path text not null,  -- Supabase Storage path (e.g., 'avatars/user123/avatar1.png')
+  original_photo_path text,  -- Path to original photo in Storage
+  animated_video_path text,  -- Path to animated video in Storage
+  is_default boolean default false,
+  is_perfect boolean default false,  -- Flag for avatars generated with perfect avatar config
+  metadata jsonb,  -- {quality, source, dimensions, fileSize, usedPerfectConfig}
+  try_on_history text[],  -- Array of clothing URLs tried on this avatar
+  created_at timestamp default now(),
+  updated_at timestamp default now()
+);
+
 -- Indexes for better query performance
 create index if not exists outfits_user_id_idx on outfits(user_id);
 create index if not exists outfits_created_at_idx on outfits(created_at desc);
@@ -98,6 +114,10 @@ create index if not exists notifications_user_id_idx on notifications(user_id);
 create index if not exists notifications_type_idx on notifications(type);
 create index if not exists notifications_opened_idx on notifications(opened);
 create index if not exists outfits_primary_colors_idx on outfits using gin(primary_colors);
+create index if not exists avatars_user_id_idx on avatars(user_id);
+create index if not exists avatars_created_at_idx on avatars(created_at desc);
+create index if not exists avatars_is_default_idx on avatars(is_default);
+create index if not exists avatars_is_perfect_idx on avatars(is_perfect);
 
 -- If you need to add columns to existing table (run only if outfits table already exists)
 -- alter table outfits add column if not exists user_prompt text;
@@ -125,6 +145,7 @@ alter table outfits enable row level security;
 alter table interactions enable row level security;
 alter table collections enable row level security;
 alter table collection_outfits enable row level security;
+alter table avatars enable row level security;
 
 -- RLS Policies (adjust based on your auth requirements)
 -- Allow users to read their own data
@@ -234,3 +255,16 @@ create policy "Allow anonymous notification viewing" on notifications
 
 create policy "Allow anonymous notification insertion" on notifications
   for insert with check (true);
+
+-- Avatars policies
+create policy "Users can view own avatars" on avatars
+  for select using (user_id = current_setting('app.user_id', true) or true);  -- Support anonymous
+
+create policy "Users can insert own avatars" on avatars
+  for insert with check (true);  -- Allow anonymous avatar creation
+
+create policy "Users can update own avatars" on avatars
+  for update using (true);  -- Allow anonymous avatar updates
+
+create policy "Users can delete own avatars" on avatars
+  for delete using (true);  -- Allow anonymous avatar deletion

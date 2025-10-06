@@ -1,7 +1,11 @@
 /**
  * Avatar Storage Service
  * Manages persistent storage and retrieval of user avatars across sessions
+ * Now with Supabase integration for cross-device synchronization!
  */
+
+import { supabase } from './supabaseClient';
+import userDataService from './userDataService';
 
 export interface SavedAvatar {
   id: string;
@@ -113,6 +117,11 @@ class AvatarStorageService {
       name: savedAvatar.name,
       isPerfect: savedAvatar.isPerfect,
       totalAvatars: library.savedAvatars.length
+    });
+
+    // Sync to Supabase in background (don't block)
+    this.syncAvatarToSupabase(savedAvatar).catch(error => {
+      console.error('⚠️ [AVATAR-STORAGE] Background sync to Supabase failed:', error);
     });
 
     return savedAvatar;
@@ -427,6 +436,271 @@ class AvatarStorageService {
       }
       return total + size;
     }, 0);
+  }
+
+  // ===== SUPABASE INTEGRATION METHODS =====
+
+  /**
+   * Get current user ID (email or anonymous)
+   */
+  private getUserId(): string {
+    const userData = userDataService.getAllUserData();
+    return userData?.profile?.email || 'anonymous';
+  }
+
+  /**
+   * Upload image data to Supabase Storage
+   * Converts base64 data URL to blob and uploads
+   */
+  async uploadImageToStorage(imageDataUrl: string, filename: string): Promise<string | null> {
+    try {
+      if (!imageDataUrl || !imageDataUrl.startsWith('data:')) {
+        console.warn('⚠️ [AVATAR-STORAGE] Cannot upload non-data URL to Storage');
+        return imageDataUrl; // Return as-is if it's already a URL
+      }
+
+      console.log('☁️ [AVATAR-STORAGE] Uploading image to Supabase Storage:', filename);
+
+      // Convert base64 data URL to blob
+      const base64Data = imageDataUrl.split(',')[1];
+      const mimeType = imageDataUrl.match(/data:([^;]+);/)?.[1] || 'image/png';
+      const blob = this.base64ToBlob(base64Data, mimeType);
+
+      const userId = this.getUserId();
+      const storagePath = `${userId}/${filename}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(storagePath, blob, {
+          cacheControl: '3600',
+          upsert: true, // Overwrite if exists
+          contentType: mimeType
+        });
+
+      if (error) {
+        console.error('❌ [AVATAR-STORAGE] Failed to upload to Storage:', error);
+        return null;
+      }
+
+      // Get public URL
+      const { data: publicData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(storagePath);
+
+      console.log('✅ [AVATAR-STORAGE] Image uploaded successfully:', publicData.publicUrl);
+      return publicData.publicUrl;
+
+    } catch (error) {
+      console.error('❌ [AVATAR-STORAGE] Upload error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Convert base64 string to Blob
+   */
+  private base64ToBlob(base64: string, mimeType: string): Blob {
+    const byteCharacters = atob(base64);
+    const byteArrays = [];
+
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512);
+      const byteNumbers = new Array(slice.length);
+
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+
+    return new Blob(byteArrays, { type: mimeType });
+  }
+
+  /**
+   * Sync avatar to Supabase database
+   */
+  async syncAvatarToSupabase(avatar: SavedAvatar): Promise<boolean> {
+    try {
+      console.log('📤 [AVATAR-STORAGE] Syncing avatar to Supabase:', avatar.name);
+
+      const userId = this.getUserId();
+
+      // Upload images to Storage first
+      const imageUrl = await this.uploadImageToStorage(avatar.imageUrl, `${avatar.id}_main.png`);
+      const originalPhotoPath = avatar.originalPhoto
+        ? await this.uploadImageToStorage(avatar.originalPhoto, `${avatar.id}_original.png`)
+        : null;
+      const animatedVideoPath = avatar.animatedVideoUrl
+        ? await this.uploadImageToStorage(avatar.animatedVideoUrl, `${avatar.id}_animated.mp4`)
+        : null;
+
+      if (!imageUrl) {
+        console.error('❌ [AVATAR-STORAGE] Failed to upload main image');
+        return false;
+      }
+
+      // Insert/update avatar metadata in database
+      const { error } = await supabase
+        .from('avatars')
+        .upsert({
+          id: avatar.id,
+          user_id: userId,
+          name: avatar.name,
+          storage_path: imageUrl,
+          original_photo_path: originalPhotoPath,
+          animated_video_path: animatedVideoPath,
+          is_default: avatar.isDefault,
+          is_perfect: avatar.isPerfect || false,
+          metadata: avatar.metadata,
+          try_on_history: avatar.tryOnHistory || [],
+          created_at: avatar.createdAt,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('❌ [AVATAR-STORAGE] Failed to sync to database:', error);
+        return false;
+      }
+
+      console.log('✅ [AVATAR-STORAGE] Avatar synced successfully to Supabase');
+      return true;
+
+    } catch (error) {
+      console.error('❌ [AVATAR-STORAGE] Sync error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Load all avatars from Supabase for current user
+   */
+  async loadAvatarsFromSupabase(): Promise<SavedAvatar[]> {
+    try {
+      const userId = this.getUserId();
+      console.log('📥 [AVATAR-STORAGE] Loading avatars from Supabase for:', userId);
+
+      const { data, error } = await supabase
+        .from('avatars')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ [AVATAR-STORAGE] Failed to load from Supabase:', error);
+        return [];
+      }
+
+      if (!data || data.length === 0) {
+        console.log('📭 [AVATAR-STORAGE] No avatars found in Supabase');
+        return [];
+      }
+
+      // Convert Supabase format to SavedAvatar format
+      const avatars: SavedAvatar[] = data.map(dbAvatar => ({
+        id: dbAvatar.id,
+        name: dbAvatar.name,
+        imageUrl: dbAvatar.storage_path,
+        originalPhoto: dbAvatar.original_photo_path,
+        animatedVideoUrl: dbAvatar.animated_video_path,
+        createdAt: dbAvatar.created_at,
+        isDefault: dbAvatar.is_default,
+        isPerfect: dbAvatar.is_perfect,
+        metadata: dbAvatar.metadata || {
+          quality: 'medium',
+          source: 'photo',
+          usedPerfectConfig: dbAvatar.is_perfect
+        },
+        tryOnHistory: dbAvatar.try_on_history || []
+      }));
+
+      console.log(`✅ [AVATAR-STORAGE] Loaded ${avatars.length} avatars from Supabase`);
+      return avatars;
+
+    } catch (error) {
+      console.error('❌ [AVATAR-STORAGE] Load error:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Migrate avatars from localStorage to Supabase (one-time operation)
+   */
+  async migrateLocalStorageAvatars(): Promise<number> {
+    try {
+      const localLibrary = this.getAvatarLibrary();
+
+      if (localLibrary.savedAvatars.length === 0) {
+        console.log('📭 [AVATAR-STORAGE] No local avatars to migrate');
+        return 0;
+      }
+
+      console.log(`🔄 [AVATAR-STORAGE] Starting migration of ${localLibrary.savedAvatars.length} local avatars...`);
+
+      let migratedCount = 0;
+
+      for (const avatar of localLibrary.savedAvatars) {
+        const success = await this.syncAvatarToSupabase(avatar);
+        if (success) {
+          migratedCount++;
+        }
+      }
+
+      console.log(`✅ [AVATAR-STORAGE] Migration complete: ${migratedCount}/${localLibrary.savedAvatars.length} avatars migrated`);
+      return migratedCount;
+
+    } catch (error) {
+      console.error('❌ [AVATAR-STORAGE] Migration error:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Sync local and Supabase avatars (smart merge)
+   * Loads from Supabase, merges with localStorage, saves back
+   */
+  async syncWithSupabase(): Promise<void> {
+    try {
+      console.log('🔄 [AVATAR-STORAGE] Starting sync with Supabase...');
+
+      // Load from Supabase
+      const supabaseAvatars = await this.loadAvatarsFromSupabase();
+      const localLibrary = this.getAvatarLibrary();
+
+      if (supabaseAvatars.length > 0) {
+        // Supabase has avatars - use them as source of truth
+        console.log(`✅ [AVATAR-STORAGE] Using ${supabaseAvatars.length} avatars from Supabase`);
+
+        localLibrary.savedAvatars = supabaseAvatars;
+        this.saveLibrary(localLibrary);
+
+      } else if (localLibrary.savedAvatars.length > 0) {
+        // No Supabase avatars but have local - migrate them
+        console.log('📤 [AVATAR-STORAGE] Migrating local avatars to Supabase...');
+        await this.migrateLocalStorageAvatars();
+      }
+
+      console.log('✅ [AVATAR-STORAGE] Sync complete');
+
+    } catch (error) {
+      console.error('❌ [AVATAR-STORAGE] Sync error:', error);
+    }
+  }
+
+  /**
+   * Initialize avatar storage (call on app startup)
+   * Automatically syncs with Supabase
+   */
+  async initialize(): Promise<void> {
+    try {
+      console.log('🚀 [AVATAR-STORAGE] Initializing avatar storage...');
+      await this.syncWithSupabase();
+      console.log('✅ [AVATAR-STORAGE] Initialization complete');
+    } catch (error) {
+      console.error('❌ [AVATAR-STORAGE] Initialization error:', error);
+    }
   }
 }
 

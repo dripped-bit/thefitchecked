@@ -44,7 +44,58 @@ VITE_SUPABASE_URL=https://scyprstpwxjxvnszoquy.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGci...
 \`\`\`
 
-### 3. Test the Integration
+### 3. Set Up Supabase Storage for Avatars
+
+**Avatar images are now stored in Supabase Storage for cross-device persistence!**
+
+1. Go to your Supabase project: https://app.supabase.com
+2. Navigate to **Storage** in the left sidebar
+3. Click **New bucket**
+4. Configure the bucket:
+   - **Name**: `avatars`
+   - **Public**: ✅ Checked (allows viewing avatar images)
+   - **File size limit**: 50MB (optional)
+   - **Allowed MIME types**: `image/*` (optional)
+5. Click **Create bucket**
+
+**Configure Storage Policies:**
+
+6. Click on the `avatars` bucket
+7. Go to **Policies** tab
+8. Click **New policy**
+9. Add the following policies:
+
+**Policy 1: Allow public viewing**
+```sql
+CREATE POLICY "Public Avatar Viewing"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'avatars');
+```
+
+**Policy 2: Allow authenticated and anonymous uploads**
+```sql
+CREATE POLICY "Avatar Upload"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'avatars');
+```
+
+**Policy 3: Allow users to update their avatars**
+```sql
+CREATE POLICY "Avatar Update"
+ON storage.objects FOR UPDATE
+USING (bucket_id = 'avatars');
+```
+
+**Policy 4: Allow users to delete their avatars**
+```sql
+CREATE POLICY "Avatar Delete"
+ON storage.objects FOR DELETE
+USING (bucket_id = 'avatars');
+```
+
+**✅ Your avatars will now persist across devices and survive browser clearing!**
+
+### 4. Test the Integration
 
 1. **Start your app**:
    \`\`\`bash

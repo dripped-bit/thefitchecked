@@ -77,6 +77,17 @@ function App() {
     runMigration();
   }, []);
 
+  // Initialize avatar storage and sync with Supabase
+  React.useEffect(() => {
+    const initializeAvatarStorage = async () => {
+      console.log('🎭 [APP] Initializing avatar storage with Supabase sync...');
+      await avatarManagementService.initializeAvatarStorage();
+      console.log('✅ [APP] Avatar storage initialized and synced');
+    };
+
+    initializeAvatarStorage();
+  }, []);
+
   // Add error handling
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {

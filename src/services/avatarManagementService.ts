@@ -61,6 +61,16 @@ class AvatarManagementService {
   }
 
   /**
+   * Initialize avatar storage and sync with Supabase
+   * Call this on app startup to enable cross-device avatar sync
+   */
+  async initializeAvatarStorage(): Promise<void> {
+    console.log('🚀 [AVATAR-MGMT] Initializing avatar storage with Supabase sync...');
+    await avatarStorageService.initialize();
+    console.log('✅ [AVATAR-MGMT] Avatar storage initialized');
+  }
+
+  /**
    * Save current avatar to the persistent library
    */
   saveAvatarToLibrary(avatarUrl: string, name?: string, setAsDefault: boolean = false): SavedAvatar | null {
