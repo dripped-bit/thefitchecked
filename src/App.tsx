@@ -759,6 +759,11 @@ function App() {
     }
   };
 
+  // Show loading screen while checking auth (except for share links)
+  if (authLoading && !shareId) {
+    return <LoadingScreen isLoading={true} />;
+  }
+
   // Auth Gate - Require login for all users (except share links)
   if (!authLoading && !authUser && !shareId) {
     return (
