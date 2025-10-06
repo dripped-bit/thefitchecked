@@ -88,9 +88,9 @@ function App() {
       const user = await authService.getCurrentUser();
       setAuthUser(user);
 
-      // Ensure minimum loading time of 1.8 seconds to show MP4 animation
+      // Ensure minimum loading time of 3.6 seconds to show MP4 animation twice
       const elapsedTime = Date.now() - startTime;
-      const remainingTime = Math.max(0, 1800 - elapsedTime);
+      const remainingTime = Math.max(0, 3600 - elapsedTime);
 
       setTimeout(() => {
         setAuthLoading(false);
@@ -311,7 +311,7 @@ function App() {
         setTimeout(() => {
           console.log('✅ [APP] Loading complete, navigating to Avatar Homepage');
           setCurrentScreen('avatarHomepage');
-        }, 1800); // 1.8 second loading screen
+        }, 3600); // 3.6 second loading screen (play MP4 twice)
 
         console.log('✅ [APP] Default avatar restored for completed user');
         return;
@@ -361,7 +361,7 @@ function App() {
         setTimeout(() => {
           console.log('✅ [APP] Loading complete, navigating to Avatar Homepage');
           setCurrentScreen('avatarHomepage');
-        }, 1800); // 1.8 second loading screen
+        }, 3600); // 3.6 second loading screen (play MP4 twice)
 
         console.log('✅ [APP] Default avatar restored successfully');
       } else if (defaultAvatar && !hasOnboarding) {
