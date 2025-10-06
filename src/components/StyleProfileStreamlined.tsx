@@ -144,13 +144,68 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
     return progress >= 50 && hasImage && hasThreeWords;
   };
 
+  // Transform new data structure to old format for AI analysis compatibility
+  const transformToOldFormat = (newProfile: UserProfile) => {
+    return {
+      lifestyle: {
+        morningRoutine: [],
+        workEnvironment: newProfile.lifestyle || []
+      },
+      fashionPersonality: {
+        archetypes: newProfile.styleVibes || [],
+        colorPalette: newProfile.favoriteColors || [],
+        avoidColors: newProfile.avoidColors || []
+      },
+      creative: {
+        outlets: [],
+        inspirations: []
+      },
+      shopping: {
+        habits: [],
+        favoriteStores: newProfile.favoriteStores || [],
+        customStores: newProfile.customStores || []
+      },
+      preferences: {
+        materials: [],
+        fits: newProfile.fitPreference ? [newProfile.fitPreference] : []
+      },
+      occasions: {
+        weekend: newProfile.occasionPriorities?.slice(0, 2) || [],
+        nightOut: newProfile.occasionPriorities?.slice(2, 3) || []
+      },
+      influences: {
+        eras: [],
+        sources: []
+      },
+      boundaries: newProfile.boundaries || [],
+      uploads: {
+        goToOutfit: newProfile.uploads.inspiration1,
+        dreamPurchase: null,
+        inspiration: newProfile.uploads.inspiration2,
+        favoritePiece: null
+      },
+      descriptions: {
+        threeWords: newProfile.threeWords || ['', '', ''],
+        alwaysFollow: '',
+        loveToBreak: '',
+        neverThrowAway: ''
+      },
+      seasonal: []
+    };
+  };
+
   const generateStyleAnalysis = async () => {
     setIsGeneratingAnalysis(true);
     setStyleAnalysisResult(null);
 
     try {
       console.log('🎨 Starting AI-powered style analysis...');
-      const result = await styleAnalysisService.analyzeUserStyle(userProfile as any);
+
+      // Transform new data structure to old format for compatibility
+      const transformedProfile = transformToOldFormat(userProfile);
+      console.log('🔄 Transformed profile data for AI analysis:', transformedProfile);
+
+      const result = await styleAnalysisService.analyzeUserStyle(transformedProfile as any);
 
       if (result.success && result.analysis) {
         setStyleAnalysisResult(result);
