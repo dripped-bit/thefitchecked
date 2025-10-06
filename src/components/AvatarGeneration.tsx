@@ -375,20 +375,20 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
   });
 
   return (
-    <div className="min-h-screen flex flex-col px-6 py-8 relative overflow-hidden bg-gray-50">
+    <div className="min-h-screen flex flex-col px-4 sm:px-6 py-4 sm:py-8 relative overflow-hidden bg-gray-50">
       {/* Animation Keyframes - Direct Kling Video Animation */}
       {/* Background Pattern Overlay */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-stone-900 via-transparent to-slate-900"></div>
       </div>
 
-      {/* Floating Elements */}
-      <div className="absolute top-20 left-10 w-3 h-3 bg-amber-300 rounded-full animate-bounce opacity-60"></div>
-      <div className="absolute bottom-32 right-8 w-3 h-3 bg-stone-300 rounded-full animate-pulse opacity-60"></div>
+      {/* Floating Elements - Hidden on mobile */}
+      <div className="hidden sm:block absolute top-20 left-10 w-3 h-3 bg-amber-300 rounded-full animate-bounce opacity-60"></div>
+      <div className="hidden sm:block absolute bottom-32 right-8 w-3 h-3 bg-stone-300 rounded-full animate-pulse opacity-60"></div>
 
-      {/* Photo Preview - Top Corner */}
+      {/* Photo Preview - Top Corner - Mobile responsive */}
       {uploadedPhoto && (
-        <div className="absolute top-8 right-8 w-16 h-16 rounded-full overflow-hidden border-2 border-amber-300 shadow-lg z-20">
+        <div className="absolute top-4 right-4 sm:top-8 sm:right-8 w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-amber-300 shadow-lg z-20">
           <img
             src={uploadedPhoto}
             alt="Your photo"
@@ -398,14 +398,14 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
       )}
 
 
-      {/* Loading State */}
+      {/* Loading State - Mobile optimized */}
       {isLoading && (
-        <div className="flex-1 flex flex-col items-center justify-center z-10">
-          <div className="relative mb-8">
-            {/* Animated Avatar Preview */}
+        <div className="flex-1 flex flex-col items-center justify-center z-10 px-4">
+          <div className="relative mb-6 sm:mb-8">
+            {/* Animated Avatar Preview - Mobile responsive */}
             <div
               ref={avatarRef}
-              className="relative w-48 aspect-[9/16] rounded-2xl bg-gradient-to-b from-amber-100 to-stone-200 border-2 border-amber-300 overflow-hidden shadow-lg"
+              className="relative w-40 sm:w-48 aspect-[9/16] rounded-2xl bg-gradient-to-b from-amber-100 to-stone-200 border-2 border-amber-300 overflow-hidden shadow-lg"
             >
               {uploadedPhoto ? (
                 <img
@@ -415,7 +415,7 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <User className="w-12 h-12 text-amber-600" />
+                  <User className="w-10 h-10 sm:w-12 sm:h-12 text-amber-600" />
                 </div>
               )}
               {/* Loading overlay */}
@@ -428,46 +428,46 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
               </div>
             </div>
           </div>
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">Creating Your Avatar...</h2>
-          <p className="text-gray-600 text-center max-w-md">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-2 text-center">Creating Your Avatar...</h2>
+          <p className="text-gray-600 text-center max-w-md text-sm sm:text-base px-4">
             We're processing your photo and preparing your personalized avatar experience
           </p>
-          <p className="text-amber-600 text-sm mt-2 animate-pulse">
+          <p className="text-amber-600 text-sm mt-2 animate-pulse text-center">
             Watch your avatar come to life! ✨
           </p>
         </div>
       )}
 
-      {/* Measurements Form */}
+      {/* Measurements Form - Mobile optimized */}
       {showMeasurements && (
         <div className="flex-1 z-10">
-          <div className="max-w-2xl mx-auto glass-beige rounded-2xl shadow-xl p-8">
-            <div className="flex items-center justify-between mb-6">
+          <div className="max-w-2xl mx-auto glass-beige rounded-2xl shadow-xl p-4 sm:p-8">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
               <div className="flex items-center">
-                <Ruler className="w-6 h-6 text-amber-600 mr-3" />
-                <h2 className="text-2xl font-semibold text-gray-800">Tell us your measurements</h2>
+                <Ruler className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 mr-2 sm:mr-3" />
+                <h2 className="text-lg sm:text-2xl font-semibold text-gray-800">Tell us your measurements</h2>
               </div>
               {devModeEnabled && (
                 <button
                   onClick={prefillMeasurements}
-                  className="flex items-center space-x-2 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-sm font-medium transition-colors"
+                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1.5 bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 rounded-lg text-xs sm:text-sm font-medium transition-colors touch-manipulation"
                   title="Developer: Prefill with demo measurements"
                 >
-                  <Settings className="w-4 h-4" />
-                  <span>Prefill</span>
+                  <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Prefill</span>
                 </button>
               )}
             </div>
 
-            <div className="space-y-6">
-              {/* Height */}
+            <div className="space-y-4 sm:space-y-6">
+              {/* Height - Mobile optimized */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Height</label>
-                <div className="flex space-x-4">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Height</label>
+                <div className="flex space-x-3 sm:space-x-4">
                   <select
                     value={measurements.heightFeet}
                     onChange={(e) => handleInputChange('heightFeet', e.target.value)}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent touch-manipulation"
                   >
                     <option value="">Feet</option>
                     {feetOptions.map(feet => (
@@ -477,7 +477,7 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
                   <select
                     value={measurements.heightInches}
                     onChange={(e) => handleInputChange('heightInches', e.target.value)}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent touch-manipulation"
                   >
                     <option value="">Inches</option>
                     {inchesOptions.map(inches => (
@@ -487,123 +487,123 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
                 </div>
               </div>
 
-              {/* Body Measurements */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Body Measurements - Mobile optimized grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Chest/Bust (inches)</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Chest/Bust (inches)</label>
                   <input
                     type="number"
                     value={measurements.chest}
                     onChange={(e) => handleInputChange('chest', e.target.value)}
                     placeholder="36"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent touch-manipulation"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Waist (inches)</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Waist (inches)</label>
                   <input
                     type="number"
                     value={measurements.waist}
                     onChange={(e) => handleInputChange('waist', e.target.value)}
                     placeholder="28"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent touch-manipulation"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hips (inches)</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Hips (inches)</label>
                   <input
                     type="number"
                     value={measurements.hips}
                     onChange={(e) => handleInputChange('hips', e.target.value)}
                     placeholder="38"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent touch-manipulation"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Shoulder Width (inches)</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Shoulder Width (inches)</label>
                   <input
                     type="number"
                     value={measurements.shoulderWidth}
                     onChange={(e) => handleInputChange('shoulderWidth', e.target.value)}
                     placeholder="16"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent touch-manipulation"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Inseam (inches)</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Inseam (inches)</label>
                 <input
                   type="number"
                   value={measurements.inseam}
                   onChange={(e) => handleInputChange('inseam', e.target.value)}
                   placeholder="32"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent touch-manipulation"
                 />
               </div>
 
-              {/* Gender Selector */}
+              {/* Gender Selector - Mobile optimized */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-4">Gender</label>
-                <div className="grid grid-cols-3 gap-4">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-3 sm:mb-4">Gender</label>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <div
                     onClick={() => handleInputChange('gender', 'male')}
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                    className={`p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 touch-manipulation active:scale-95 ${
                       measurements.gender === 'male'
                         ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
-                        : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
+                        : 'border-gray-200 active:border-amber-300 active:bg-gray-50'
                     }`}
                   >
                     <div className="text-center">
-                      <div className="text-3xl mb-2">👨</div>
-                      <h3 className="font-semibold text-gray-800">Man</h3>
+                      <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">👨</div>
+                      <h3 className="font-semibold text-gray-800 text-xs sm:text-base">Man</h3>
                     </div>
                   </div>
                   <div
                     onClick={() => handleInputChange('gender', 'female')}
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                    className={`p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 touch-manipulation active:scale-95 ${
                       measurements.gender === 'female'
                         ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
-                        : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
+                        : 'border-gray-200 active:border-amber-300 active:bg-gray-50'
                     }`}
                   >
                     <div className="text-center">
-                      <div className="text-3xl mb-2">👩</div>
-                      <h3 className="font-semibold text-gray-800">Woman</h3>
+                      <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">👩</div>
+                      <h3 className="font-semibold text-gray-800 text-xs sm:text-base">Woman</h3>
                     </div>
                   </div>
                   <div
                     onClick={() => handleInputChange('gender', 'unisex')}
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                    className={`p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 touch-manipulation active:scale-95 ${
                       measurements.gender === 'unisex'
                         ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
-                        : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
+                        : 'border-gray-200 active:border-amber-300 active:bg-gray-50'
                     }`}
                   >
                     <div className="text-center">
-                      <div className="text-3xl mb-2">⚧️</div>
-                      <h3 className="font-semibold text-gray-800">Unisex</h3>
+                      <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">⚧️</div>
+                      <h3 className="font-semibold text-gray-800 text-xs sm:text-base">Unisex</h3>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Body Type Selector */}
+              {/* Body Type Selector - Mobile optimized */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-4">Body Type</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-3 sm:mb-4">Body Type</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {bodyTypes.map((type) => (
                     <div
                       key={type.value}
                       onClick={() => handleInputChange('bodyType', type.value)}
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      className={`p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 touch-manipulation active:scale-[0.98] ${
                         measurements.bodyType === type.value
                           ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
-                          : 'border-gray-200 hover:border-amber-300 hover:bg-gray-50'
+                          : 'border-gray-200 active:border-amber-300 active:bg-gray-50'
                       }`}
                     >
-                      <h3 className="font-semibold text-gray-800">{type.label}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{type.description}</p>
+                      <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{type.label}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1">{type.description}</p>
                     </div>
                   ))}
                 </div>
@@ -731,25 +731,25 @@ const AvatarGeneration: React.FC<AvatarGenerationProps> = ({ uploadedPhoto, meas
               </div>
             )}
 
-            {/* Continue Button */}
-            <div className="mt-8">
+            {/* Continue Button - Mobile optimized */}
+            <div className="mt-6 sm:mt-8">
               <button
                 onClick={handleContinue}
                 disabled={!isFormComplete() || isGenerating}
-                className={`relative w-full group transition-all duration-300 hover:scale-[1.02] focus:outline-none ${
+                className={`relative w-full group transition-all duration-300 active:scale-[0.98] focus:outline-none touch-manipulation ${
                   (!isFormComplete() || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                <div className="bg-gradient-to-r from-stone-200/50 via-amber-100/50 to-stone-200/50 rounded-2xl px-8 py-4 flex items-center justify-center space-x-3">
+                <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl px-6 py-4 sm:px-8 sm:py-4 flex items-center justify-center space-x-2 sm:space-x-3 shadow-lg min-h-[64px]">
                   <div className="text-center">
-                    <div className="text-lg font-bold text-black">
+                    <div className="text-base sm:text-lg font-bold text-white">
                       {directKlingAvatarService.getDemoModeStatus().enabled ? '🎭 Demo Avatar' : 'Continue to Avatar'}
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-xs sm:text-sm text-purple-100">
                       {directKlingAvatarService.getDemoModeStatus().enabled ? 'Use demo 3D avatar' : 'Generate your 3D avatar'}
                     </div>
                   </div>
-                  <ArrowRight className="w-6 h-6 text-black" />
+                  <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
               </button>
             </div>
