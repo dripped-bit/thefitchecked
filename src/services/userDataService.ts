@@ -8,6 +8,7 @@
 import type { UserProfile, ClothingItem } from '../types';
 import type { StyleProfile } from './outfitGenerationService';
 import type { DailySuggestions, PersonalizedSuggestion, OccasionType } from './personalizedFashionService';
+import authService from './authService';
 
 export interface UserMeasurements {
   height: number; // in inches
@@ -136,6 +137,14 @@ class UserDataService {
   constructor() {
     this.currentSessionId = this.generateSessionId();
     this.initializeIfNeeded();
+  }
+
+  /**
+   * Get user ID - uses authenticated user ID if logged in, otherwise falls back to 'anonymous'
+   */
+  async getUserId(): Promise<string> {
+    const user = await authService.getCurrentUser();
+    return user?.email || 'anonymous';
   }
 
   /**

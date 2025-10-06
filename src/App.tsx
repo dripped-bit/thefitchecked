@@ -18,9 +18,12 @@ import ApiTestPage from './pages/ApiTestPage';
 import MyOutfitsPage from './pages/MyOutfitsPageAdvanced';
 import GlobalDemoModeToggle from './components/GlobalDemoModeToggle';
 import SharedOutfit from './components/SharedOutfit';
+import AuthModal from './components/AuthModal';
+import UserMenu from './components/UserMenu';
 import { CapturedPhoto, AvatarData } from './types/photo';
 import { UserData, OnboardingFormData } from './types/user';
 import UserService from './services/userService';
+import authService, { AuthUser } from './services/authService';
 import avatarManagementService from './services/avatarManagementService';
 import weatherService from './services/weatherService';
 import outfitGenerationService from './services/outfitGenerationService';
@@ -50,6 +53,11 @@ interface AppData {
 function App() {
   console.log('TheFitChecked App - Full Avatar Generation Workflow');
 
+  // Authentication state
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+
   // Check for share URL parameter
   const [shareId, setShareId] = useState<string | null>(null);
 
@@ -61,6 +69,28 @@ function App() {
       console.log('🔗 [SHARE] Share link detected:', shareParam);
       setShareId(shareParam);
     }
+  }, []);
+
+  // Initialize authentication on app startup
+  React.useEffect(() => {
+    const initAuth = async () => {
+      const user = await authService.getCurrentUser();
+      setAuthUser(user);
+      setAuthLoading(false);
+      console.log('🔐 [AUTH] Initial auth state:', user ? `Logged in as ${user.email}` : 'Not logged in');
+    };
+
+    initAuth();
+
+    // Listen for auth state changes
+    const subscription = authService.onAuthStateChange((user) => {
+      setAuthUser(user);
+      console.log('🔐 [AUTH] Auth state changed:', user ? `${user.email}` : 'Logged out');
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Run localStorage → IndexedDB migration on app startup
@@ -731,6 +761,30 @@ function App() {
 
   return (
     <div className="min-h-screen relative">
+      {/* User Menu - Top Right */}
+      {!shareId && currentScreen !== 'loading' && (
+        <div className="fixed top-4 right-4 z-50">
+          <UserMenu
+            user={authUser}
+            onLoginClick={() => setShowAuthModal(true)}
+            onLogout={() => {
+              setAuthUser(null);
+              // Optionally navigate to welcome screen
+            }}
+          />
+        </div>
+      )}
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={(user) => {
+          setAuthUser(user);
+          console.log('✅ [AUTH] User authenticated:', user.email);
+        }}
+      />
+
       {/* If share link detected, show SharedOutfit */}
       {shareId ? (
         <SharedOutfit
