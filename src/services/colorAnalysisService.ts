@@ -1,4 +1,5 @@
-import * as Vibrant from 'node-vibrant';
+// @ts-ignore - node-vibrant excluded from Vite optimization
+import Vibrant from 'node-vibrant';
 
 /**
  * Color Analysis Service

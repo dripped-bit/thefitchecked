@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     optimizeDeps: {
-      exclude: ['lucide-react'],
+      exclude: ['lucide-react', 'node-vibrant'],
     },
     server: {
       proxy: {
