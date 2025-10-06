@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import './LoadingScreen.css';
 
 interface LoadingScreenProps {
-  isLoading: boolean;
+  isLoading?: boolean;
+  message?: string;
 }
 
-export function LoadingScreen({ isLoading }: LoadingScreenProps) {
+export function LoadingScreen({ isLoading = true, message }: LoadingScreenProps) {
   const [show, setShow] = useState(isLoading);
   const [fadeOut, setFadeOut] = useState(false);
 
@@ -24,15 +25,20 @@ export function LoadingScreen({ isLoading }: LoadingScreenProps) {
   return (
     <div className={`loading-screen ${fadeOut ? 'fade-out' : 'fade-in'}`}>
       <div className="loading-content">
-        <video 
-          autoPlay 
-          loop 
-          muted 
+        <video
+          autoPlay
+          loop
+          muted
           playsInline
           className="loading-video"
         >
           <source src="/loading-animation.mp4" type="video/mp4" />
         </video>
+        {message && (
+          <div className="loading-message">
+            <p className="text-white text-lg font-medium mt-4">{message}</p>
+          </div>
+        )}
       </div>
     </div>
   );

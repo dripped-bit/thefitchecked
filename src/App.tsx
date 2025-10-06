@@ -84,10 +84,18 @@ function App() {
   // Initialize authentication on app startup
   React.useEffect(() => {
     const initAuth = async () => {
+      const startTime = Date.now();
       const user = await authService.getCurrentUser();
       setAuthUser(user);
-      setAuthLoading(false);
-      console.log('🔐 [AUTH] Initial auth state:', user ? `Logged in as ${user.email}` : 'Not logged in');
+
+      // Ensure minimum loading time of 1.8 seconds to show MP4 animation
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, 1800 - elapsedTime);
+
+      setTimeout(() => {
+        setAuthLoading(false);
+        console.log('🔐 [AUTH] Initial auth state:', user ? `Logged in as ${user.email}` : 'Not logged in');
+      }, remainingTime);
     };
 
     initAuth();
@@ -685,7 +693,7 @@ function App() {
 
     switch (currentScreen) {
       case 'loading':
-        return <LoadingScreen message="Loading your wardrobe..." />;
+        return <LoadingScreen isLoading={true} message="Loading your wardrobe..." />;
 
       case 'welcome':
         return (
