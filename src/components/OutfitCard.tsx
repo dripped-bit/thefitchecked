@@ -8,7 +8,10 @@ import {
   Eye,
   MoreVertical,
   Palette,
-  X
+  X,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import outfitStorageService, { OutfitData } from '../services/outfitStorageService';
 import collectionsService from '../services/collectionsService';
@@ -36,6 +39,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showColorPalette, setShowColorPalette] = useState(false);
+  const [isPromptExpanded, setIsPromptExpanded] = useState(false);
 
   /**
    * Toggle favorite status
@@ -206,11 +210,46 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
           </div>
         )}
 
-        {/* User Prompt */}
-        {!compact && outfit.user_prompt && (
-          <p className="text-xs text-gray-500 italic line-clamp-2">
-            "{outfit.user_prompt}"
-          </p>
+        {/* User Prompt Box */}
+        {outfit.user_prompt && (
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <MessageSquare className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-purple-800 mb-1">Your Prompt:</p>
+                <p
+                  className={`text-xs text-gray-700 ${
+                    !isPromptExpanded && !compact ? 'line-clamp-2' : ''
+                  } ${
+                    compact && !isPromptExpanded ? 'line-clamp-1' : ''
+                  }`}
+                >
+                  "{outfit.user_prompt}"
+                </p>
+                {outfit.user_prompt.length > 80 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPromptExpanded(!isPromptExpanded);
+                    }}
+                    className="mt-1 text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+                  >
+                    {isPromptExpanded ? (
+                      <>
+                        <ChevronUp className="w-3 h-3" />
+                        Show less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-3 h-3" />
+                        Show more
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Actions */}
