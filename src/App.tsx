@@ -32,6 +32,7 @@ import reminderMonitorService from './services/reminderMonitorService';
 import './utils/testApiConnection';
 import './utils/testCgiPrompts';
 import './utils/testFashnCredits';
+import './utils/testSupabaseStorage';
 import clearCacheUtil from './utils/clearCache';
 // import './utils/debugApis';
 // import './utils/directApiTest';
