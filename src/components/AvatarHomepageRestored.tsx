@@ -1186,19 +1186,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                 </button>
 
                 <button
-                  onClick={() => setActiveView('wishlist')}
-                  className="w-full flex items-center justify-center space-x-2 bg-sky-300/30 text-black px-4 py-3 rounded-xl text-sm font-medium italic transition-colors hover:bg-sky-400/40 relative"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  <span>Wishlist</span>
-                  {wishlistItems.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-                      {wishlistItems.length}
-                    </span>
-                  )}
-                </button>
-
-                <button
                   onClick={() => setShowShareModal(true)}
                   className="w-full flex items-center justify-center space-x-2 bg-sky-300/30 text-black px-4 py-3 rounded-xl text-sm font-medium italic transition-colors hover:bg-sky-400/40"
                 >
