@@ -259,6 +259,12 @@ function App() {
   // Load saved avatar and determine initial screen on app initialization
   useEffect(() => {
     const checkAndLoadSavedAvatar = () => {
+      // Wait for auth to complete before checking saved state
+      if (authLoading) {
+        console.log('⏳ [APP] Waiting for auth to complete before checking saved avatars...');
+        return;
+      }
+
       console.log('🔍 [APP] Checking for saved avatars on initialization...');
 
       // Check if we already have an avatar in current session
@@ -404,7 +410,7 @@ function App() {
     };
 
     checkAndLoadSavedAvatar();
-  }, []); // Run only once on mount
+  }, [authLoading, authUser]); // Re-run when auth state changes
 
   // Helper functions for style profile auto-fill
   const getSavedStyleProfile = () => {
