@@ -1,7 +1,10 @@
 /**
  * Smart Calendar Integration Service
- * Handles external calendar sync, weather integration, and intelligent outfit planning
+ * Handles calendar event management, weather integration, and intelligent outfit planning
  */
+
+import { supabase } from './supabaseClient';
+import authService from './authService';
 
 // Types and Interfaces
 export interface CalendarEvent {
@@ -88,82 +91,171 @@ class SmartCalendarService {
   }
 
   // =====================
-  // Calendar Integration
+  // Calendar Event Management (Supabase)
   // =====================
 
-  async connectGoogleCalendar(): Promise<boolean> {
+  /**
+   * Create a new calendar event
+   */
+  async createEvent(eventData: {
+    title: string;
+    description?: string;
+    startTime: Date;
+    endTime: Date;
+    location?: string;
+    eventType: 'work' | 'personal' | 'travel' | 'formal' | 'casual' | 'other';
+    isAllDay?: boolean;
+    outfitId?: string;
+    weatherRequired?: boolean;
+  }): Promise<CalendarEvent | null> {
     try {
-      console.log('🗓️ Connecting to Google Calendar...');
+      const user = await authService.getCurrentUser();
+      const userId = user?.id || null;
 
-      // For demo purposes, simulate successful connection
-      // In production, this would use Google Calendar API
-      this.calendarProvider = 'google';
-      localStorage.setItem('calendarProvider', 'google');
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .insert({
+          user_id: userId,
+          title: eventData.title,
+          description: eventData.description,
+          start_time: eventData.startTime.toISOString(),
+          end_time: eventData.endTime.toISOString(),
+          location: eventData.location,
+          event_type: eventData.eventType,
+          is_all_day: eventData.isAllDay || false,
+          outfit_id: eventData.outfitId || null,
+          weather_required: eventData.weatherRequired || false
+        })
+        .select()
+        .single();
 
-      return true;
+      if (error) {
+        console.error('❌ Error creating calendar event:', error);
+        return null;
+      }
+
+      console.log('✅ Calendar event created:', data.id);
+      return this.transformDatabaseEvent(data);
     } catch (error) {
-      console.error('❌ Google Calendar connection failed:', error);
-      return false;
+      console.error('❌ Failed to create calendar event:', error);
+      return null;
     }
   }
 
-  async connectAppleCalendar(): Promise<boolean> {
+  /**
+   * Fetch upcoming events from Supabase
+   */
+  async fetchUpcomingEvents(days: number = 30): Promise<CalendarEvent[]> {
     try {
-      console.log('🗓️ Connecting to Apple Calendar...');
+      const user = await authService.getCurrentUser();
+      const userId = user?.id || null;
 
-      // For demo purposes, simulate successful connection
-      // In production, this would use CalDAV or EventKit
-      this.calendarProvider = 'apple';
-      localStorage.setItem('calendarProvider', 'apple');
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + days);
 
-      return true;
-    } catch (error) {
-      console.error('❌ Apple Calendar connection failed:', error);
-      return false;
-    }
-  }
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('start_time', startDate.toISOString())
+        .lte('start_time', endDate.toISOString())
+        .order('start_time', { ascending: true });
 
-  async fetchUpcomingEvents(days: number = 7): Promise<CalendarEvent[]> {
-    try {
-      // Demo events - in production, fetch from actual calendar API
-      const mockEvents: CalendarEvent[] = [
-        {
-          id: 'evt_1',
-          title: 'Team Meeting',
-          startTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
-          endTime: new Date(Date.now() + 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
-          location: 'Conference Room A',
-          isAllDay: false,
-          eventType: 'work',
-          weatherRequired: false
-        },
-        {
-          id: 'evt_2',
-          title: 'Weekend Brunch',
-          startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-          endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000),
-          location: 'Outdoor Cafe',
-          isAllDay: false,
-          eventType: 'personal',
-          weatherRequired: true
-        },
-        {
-          id: 'evt_3',
-          title: 'Business Trip to NYC',
-          startTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-          endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          location: 'New York City',
-          isAllDay: true,
-          eventType: 'travel',
-          weatherRequired: true
-        }
-      ];
+      if (error) {
+        console.error('❌ Error fetching calendar events:', error);
+        return [];
+      }
 
-      return mockEvents;
+      console.log(`✅ Fetched ${data?.length || 0} upcoming events`);
+      return (data || []).map(event => this.transformDatabaseEvent(event));
     } catch (error) {
       console.error('❌ Failed to fetch calendar events:', error);
       return [];
     }
+  }
+
+  /**
+   * Update an existing calendar event
+   */
+  async updateEvent(eventId: string, updates: Partial<CalendarEvent>): Promise<boolean> {
+    try {
+      const updateData: any = {};
+      if (updates.title) updateData.title = updates.title;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.startTime) updateData.start_time = updates.startTime.toISOString();
+      if (updates.endTime) updateData.end_time = updates.endTime.toISOString();
+      if (updates.location !== undefined) updateData.location = updates.location;
+      if (updates.eventType) updateData.event_type = updates.eventType;
+      if (updates.isAllDay !== undefined) updateData.is_all_day = updates.isAllDay;
+      if (updates.weatherRequired !== undefined) updateData.weather_required = updates.weatherRequired;
+
+      const { error } = await supabase
+        .from('calendar_events')
+        .update(updateData)
+        .eq('id', eventId);
+
+      if (error) {
+        console.error('❌ Error updating calendar event:', error);
+        return false;
+      }
+
+      console.log('✅ Calendar event updated:', eventId);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to update calendar event:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Delete a calendar event
+   */
+  async deleteEvent(eventId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) {
+        console.error('❌ Error deleting calendar event:', error);
+        return false;
+      }
+
+      console.log('✅ Calendar event deleted:', eventId);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to delete calendar event:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Transform database row to CalendarEvent interface
+   */
+  private transformDatabaseEvent(dbEvent: any): CalendarEvent {
+    return {
+      id: dbEvent.id,
+      title: dbEvent.title,
+      description: dbEvent.description,
+      startTime: new Date(dbEvent.start_time),
+      endTime: new Date(dbEvent.end_time),
+      location: dbEvent.location,
+      isAllDay: dbEvent.is_all_day,
+      eventType: dbEvent.event_type,
+      weatherRequired: dbEvent.weather_required,
+      attendees: [],
+      recurrence: undefined
+    };
+  }
+
+  /**
+   * Check if user is connected (has events)
+   */
+  isConnected(): boolean {
+    // Always return true since we're using manual entry now
+    return true;
   }
 
   // =====================
