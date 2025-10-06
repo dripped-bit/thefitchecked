@@ -746,14 +746,14 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Describe your style in 3 words:
                 </label>
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
                   {[0, 1, 2].map(index => (
                     <input
                       key={index}
                       type="text"
                       value={userProfile.descriptions.threeWords[index] || ''}
                       onChange={(e) => handleThreeWordsChange(index, e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md touch-manipulation"
                       placeholder={`Word ${index + 1}`}
                     />
                   ))}
@@ -1299,33 +1299,48 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
           </div>
         </div>
 
-      {/* Section Navigation - Mobile scrollable */}
+      {/* Section Navigation - Mobile dropdown, desktop tabs */}
       <div className="z-10 max-w-4xl mx-auto mb-6">
-        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex gap-1.5 sm:gap-2 sm:flex-wrap sm:justify-center min-w-max sm:min-w-0">
+        {/* Mobile Dropdown */}
+        <div className="sm:hidden">
+          <select
+            value={currentSection}
+            onChange={(e) => setCurrentSection(Number(e.target.value))}
+            className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm border-2 border-amber-300 rounded-xl text-sm font-medium text-gray-800 shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-500 touch-manipulation"
+          >
+            {sections.map((section, index) => (
+              <option key={section} value={index}>
+                {index + 1}. {section}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop Tabs */}
+        <div className="hidden sm:block">
+          <div className="flex flex-wrap gap-2 justify-center">
             {sections.map((section, index) => (
               <button
                 key={section}
                 onClick={() => setCurrentSection(index)}
-                className={`relative px-2.5 sm:px-3 py-1.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap ${
+                className={`relative px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
                   currentSection === index
-                    ? 'bg-white/20 backdrop-blur-sm text-black shadow-md border border-white/30 scale-105 sm:scale-110'
+                    ? 'bg-white/20 backdrop-blur-sm text-black shadow-md border border-white/30 scale-110'
                     : index === 11
-                    ? 'glass-beige-light text-gray-700 hover:glass-beige ring-1 sm:ring-2 ring-amber-400 shadow-lg'
+                    ? 'glass-beige-light text-gray-700 hover:glass-beige ring-2 ring-amber-400 shadow-lg'
                     : 'glass-beige-light text-gray-700 hover:glass-beige'
                 }`}
               >
-                <span className="flex items-center gap-0.5 sm:gap-1">
-                  <span className="hidden sm:inline">{index + 1}. </span>
-                  {section}
+                <span className="flex items-center gap-1">
+                  {index + 1}. {section}
                   {index === 11 && (
-                    <span className="ml-0.5 sm:ml-1">
-                      <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-500 inline" />
+                    <span className="ml-1">
+                      <Sparkles className="w-3 h-3 text-amber-500 inline" />
                     </span>
                   )}
                 </span>
                 {index === 11 && (
-                  <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[7px] sm:text-[8px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
+                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
                     NEW
                   </span>
                 )}
