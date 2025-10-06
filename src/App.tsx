@@ -20,6 +20,7 @@ import GlobalDemoModeToggle from './components/GlobalDemoModeToggle';
 import SharedOutfit from './components/SharedOutfit';
 import AuthModal from './components/AuthModal';
 import UserMenu from './components/UserMenu';
+import AuthCallback from './components/AuthCallback';
 import { CapturedPhoto, AvatarData } from './types/photo';
 import { UserData, OnboardingFormData } from './types/user';
 import UserService from './services/userService';
@@ -58,12 +59,20 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Check for share URL parameter
+  // Check for share URL parameter and auth callback
   const [shareId, setShareId] = useState<string | null>(null);
+  const [isAuthCallback, setIsAuthCallback] = useState(false);
 
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const shareParam = urlParams.get('share');
+
+    // Check if this is an auth callback route
+    if (window.location.pathname === '/auth/callback') {
+      console.log('🔐 [AUTH] Auth callback route detected');
+      setIsAuthCallback(true);
+      return;
+    }
 
     if (shareParam) {
       console.log('🔗 [SHARE] Share link detected:', shareParam);
@@ -758,6 +767,18 @@ function App() {
         return <WelcomeScreen onNext={() => setCurrentScreen('photoCapture')} />;
     }
   };
+
+  // Handle auth callback route
+  if (isAuthCallback) {
+    return (
+      <AuthCallback
+        onSuccess={() => {
+          console.log('✅ [AUTH] Email confirmed, redirecting to app');
+          window.location.href = '/';
+        }}
+      />
+    );
+  }
 
   // Show loading screen while checking auth (except for share links)
   if (authLoading && !shareId) {

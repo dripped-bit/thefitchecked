@@ -18,6 +18,10 @@
     {
       "source": "/api/fashn/:path*",
       "destination": "/api/fashn?path=/:path*"
+    },
+    {
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
