@@ -140,11 +140,14 @@ class UserDataService {
   }
 
   /**
-   * Get user ID - uses authenticated user ID if logged in, otherwise falls back to 'anonymous'
+   * Get user ID - requires authenticated user (no anonymous access)
    */
   async getUserId(): Promise<string> {
     const user = await authService.getCurrentUser();
-    return user?.email || 'anonymous';
+    if (!user?.email) {
+      throw new Error('User must be authenticated to access this feature');
+    }
+    return user.email;
   }
 
   /**

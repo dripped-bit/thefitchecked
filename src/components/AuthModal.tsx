@@ -279,15 +279,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
           )}
         </div>
 
-        {/* Anonymous Mode Option */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="w-full text-sm text-gray-600 hover:text-gray-800 font-medium"
-          >
-            Continue as guest →
-          </button>
-        </div>
       </div>
     </div>
   );

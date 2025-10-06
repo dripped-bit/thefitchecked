@@ -36,7 +36,7 @@ const OutfitGallery: React.FC<OutfitGalleryProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showColorPicker, setShowColorPicker] = useState(false);
 
-  const userId = userDataService.getAllUserData()?.profile?.email || 'anonymous';
+  const userId = userDataService.getAllUserData()?.profile?.email || '';
 
   // Popular colors for quick filtering
   const popularColors = [

@@ -759,23 +759,40 @@ function App() {
     }
   };
 
+  // Auth Gate - Require login for all users (except share links)
+  if (!authLoading && !authUser && !shareId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+        <AuthModal
+          isOpen={true}
+          onClose={() => {}} // Can't close - login required
+          onSuccess={(user) => {
+            setAuthUser(user);
+            console.log('✅ [AUTH] User authenticated and granted access:', user.email);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen relative">
       {/* User Menu - Top Right */}
-      {!shareId && currentScreen !== 'loading' && (
+      {!shareId && currentScreen !== 'loading' && !authLoading && authUser && (
         <div className="fixed top-4 right-4 z-50">
           <UserMenu
             user={authUser}
             onLoginClick={() => setShowAuthModal(true)}
             onLogout={() => {
               setAuthUser(null);
-              // Optionally navigate to welcome screen
+              setCurrentScreen('welcome');
+              console.log('🔓 [AUTH] User logged out, redirecting to login');
             }}
           />
         </div>
       )}
 
-      {/* Authentication Modal */}
+      {/* Authentication Modal (for password changes, etc) */}
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}

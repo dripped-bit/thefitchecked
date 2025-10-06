@@ -441,11 +441,14 @@ class AvatarStorageService {
   // ===== SUPABASE INTEGRATION METHODS =====
 
   /**
-   * Get current user ID (email or anonymous)
+   * Get current user ID (email - authentication required)
    */
   private getUserId(): string {
     const userData = userDataService.getAllUserData();
-    return userData?.profile?.email || 'anonymous';
+    if (!userData?.profile?.email) {
+      throw new Error('User must be authenticated to save avatars');
+    }
+    return userData.profile.email;
   }
 
   /**
