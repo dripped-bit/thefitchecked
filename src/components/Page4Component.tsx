@@ -699,14 +699,14 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
       case 9: // Style Samples
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {[
                 { key: 'goToOutfit', label: 'Your GO-TO Outfit' },
                 { key: 'dreamPurchase', label: 'Dream Purchase' },
                 { key: 'inspiration', label: 'Style Inspiration Photo' },
                 { key: 'favoritePiece', label: 'Favorite Current Piece' }
               ].map(({ key, label }) => (
-                <div key={key} className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                <div key={key} className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 text-center touch-manipulation">
                   <input
                     ref={el => fileInputRefs.current[key] = el}
                     type="file"
@@ -723,18 +723,18 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
                       <img
                         src={userProfile.uploads[key as keyof UserProfile['uploads']] || ''}
                         alt={label}
-                        className="w-full h-24 object-cover rounded"
+                        className="w-full h-20 sm:h-24 object-cover rounded"
                       />
                       <p className="text-xs text-green-600">✓ Uploaded</p>
                     </div>
                   ) : (
                     <div
                       onClick={() => fileInputRefs.current[key]?.click()}
-                      className="cursor-pointer space-y-2"
+                      className="cursor-pointer space-y-2 min-h-[100px] sm:min-h-[120px] flex flex-col justify-center"
                     >
-                      <Camera className="w-8 h-8 mx-auto text-gray-400" />
-                      <p className="text-sm font-medium">{label}</p>
-                      <Upload className="w-4 h-4 mx-auto text-gray-400" />
+                      <Camera className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-gray-400" />
+                      <p className="text-xs sm:text-sm font-medium">{label}</p>
+                      <Upload className="w-3 h-3 sm:w-4 sm:h-4 mx-auto text-gray-400" />
                     </div>
                   )}
                 </div>
@@ -836,22 +836,22 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
               Help us find the perfect fit! Select your typical sizes for better product recommendations.
             </p>
 
-            {/* Gender Selector */}
-            <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-6">
-              <label className="block text-sm font-bold text-gray-800 mb-3">
+            {/* Gender Selector - Mobile optimized */}
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+              <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-2 sm:mb-3">
                 Select Size Category
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setUserProfile(prev => ({
                     ...prev,
                     sizes: { ...prev.sizes, gender: 'women' }
                   }))}
-                  className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                  className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all touch-manipulation ${
                     userProfile.sizes.gender === 'women'
-                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg scale-105'
-                      : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200'
+                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg scale-[1.02] sm:scale-105'
+                      : 'bg-white text-gray-700 active:bg-gray-50 border-2 border-gray-200'
                   }`}
                 >
                   Women's
@@ -862,10 +862,10 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
                     ...prev,
                     sizes: { ...prev.sizes, gender: 'men' }
                   }))}
-                  className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                  className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all touch-manipulation ${
                     userProfile.sizes.gender === 'men'
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg scale-105'
-                      : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg scale-[1.02] sm:scale-105'
+                      : 'bg-white text-gray-700 active:bg-gray-50 border-2 border-gray-200'
                   }`}
                 >
                   Men's
@@ -876,10 +876,10 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
                     ...prev,
                     sizes: { ...prev.sizes, gender: 'unisex' }
                   }))}
-                  className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                  className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all touch-manipulation ${
                     userProfile.sizes.gender === 'unisex'
-                      ? 'bg-gradient-to-r from-purple-500 to-amber-500 text-white shadow-lg scale-105'
-                      : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200'
+                      ? 'bg-gradient-to-r from-purple-500 to-amber-500 text-white shadow-lg scale-[1.02] sm:scale-105'
+                      : 'bg-white text-gray-700 active:bg-gray-50 border-2 border-gray-200'
                   }`}
                 >
                   Unisex
@@ -1265,8 +1265,8 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
         <div className="absolute bottom-1/3 right-1/4 w-24 h-24 border border-amber-300 rotate-12 opacity-20"></div>
       </div>
 
-      {/* Form Content */}
-      <div className="flex flex-col px-6 py-8">
+      {/* Form Content - Mobile optimized padding */}
+      <div className="flex flex-col px-4 sm:px-6 py-6 sm:py-8">
         {/* Header */}
         <div className="z-10 text-center mb-8">
           <h1 className="font-dancing-script text-5xl md:text-6xl mb-4 text-black">
@@ -1320,36 +1320,39 @@ const Page4Component: React.FC<Page4ComponentProps> = ({
           </div>
         </div>
 
-      {/* Section Navigation */}
+      {/* Section Navigation - Mobile scrollable */}
       <div className="z-10 max-w-4xl mx-auto mb-6">
-        <div className="flex flex-wrap gap-2 justify-center">
-          {sections.map((section, index) => (
-            <button
-              key={section}
-              onClick={() => setCurrentSection(index)}
-              className={`relative px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-                currentSection === index
-                  ? 'bg-white/20 backdrop-blur-sm text-black shadow-md border border-white/30 scale-110'
-                  : index === 11
-                  ? 'glass-beige-light text-gray-700 hover:glass-beige ring-2 ring-amber-400 shadow-lg'
-                  : 'glass-beige-light text-gray-700 hover:glass-beige'
-              }`}
-            >
-              <span className="flex items-center gap-1">
-                {index + 1}. {section}
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex gap-1.5 sm:gap-2 sm:flex-wrap sm:justify-center min-w-max sm:min-w-0">
+            {sections.map((section, index) => (
+              <button
+                key={section}
+                onClick={() => setCurrentSection(index)}
+                className={`relative px-2.5 sm:px-3 py-1.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium transition-all duration-200 whitespace-nowrap ${
+                  currentSection === index
+                    ? 'bg-white/20 backdrop-blur-sm text-black shadow-md border border-white/30 scale-105 sm:scale-110'
+                    : index === 11
+                    ? 'glass-beige-light text-gray-700 hover:glass-beige ring-1 sm:ring-2 ring-amber-400 shadow-lg'
+                    : 'glass-beige-light text-gray-700 hover:glass-beige'
+                }`}
+              >
+                <span className="flex items-center gap-0.5 sm:gap-1">
+                  <span className="hidden sm:inline">{index + 1}. </span>
+                  {section}
+                  {index === 11 && (
+                    <span className="ml-0.5 sm:ml-1">
+                      <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-500 inline" />
+                    </span>
+                  )}
+                </span>
                 {index === 11 && (
-                  <span className="ml-1">
-                    <Sparkles className="w-3 h-3 text-amber-500 inline" />
+                  <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[7px] sm:text-[8px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
+                    NEW
                   </span>
                 )}
-              </span>
-              {index === 11 && (
-                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-md animate-pulse">
-                  NEW
-                </span>
-              )}
-            </button>
-          ))}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
