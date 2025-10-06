@@ -1113,7 +1113,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
               <button
                 onClick={() => setShowSavedAvatarsTab(true)}
-                className="flex items-center justify-center space-x-2 glass-blue text-white px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+                className="flex items-center justify-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 shadow-lg"
               >
                 <Users className="w-4 h-4" />
                 <span>Saved Avatars</span>
