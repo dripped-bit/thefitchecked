@@ -18,7 +18,6 @@ import ApiTestPage from './pages/ApiTestPage';
 import MyOutfitsPage from './pages/MyOutfitsPageAdvanced';
 import GlobalDemoModeToggle from './components/GlobalDemoModeToggle';
 import SharedOutfit from './components/SharedOutfit';
-import DevPromptPanel from './components/DevPromptPanel';
 import { CapturedPhoto, AvatarData } from './types/photo';
 import { UserData, OnboardingFormData } from './types/user';
 import UserService from './services/userService';
@@ -105,23 +104,6 @@ function App() {
     return () => window.removeEventListener('error', handleError);
   }, []);
 
-  // Developer Prompt Debug Panel - Keyboard shortcut (Ctrl+Shift+D / Cmd+Shift+D)
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Check for Ctrl+Shift+D (Windows/Linux) or Cmd+Shift+D (Mac)
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'D') {
-        event.preventDefault();
-        setShowDevPromptPanel(prev => {
-          const newState = !prev;
-          console.log(`🔍 [DEV-PANEL] Prompt Debug Panel ${newState ? 'opened' : 'closed'}`);
-          return newState;
-        });
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // Setup global cache clearing functions for console access
   React.useEffect(() => {
@@ -155,7 +137,6 @@ function App() {
   const [useAutoFillUserData, setUseAutoFillUserData] = useState(false);
   const [useAutoFillClothingPrompts, setUseAutoFillClothingPrompts] = useState(false);
   const [useAutoFillOutfitNames, setUseAutoFillOutfitNames] = useState(false);
-  const [showDevPromptPanel, setShowDevPromptPanel] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [showOnboardingPopup, setShowOnboardingPopup] = useState(false);
   const [showDoorTransition, setShowDoorTransition] = useState(false);
@@ -1074,11 +1055,6 @@ function App() {
           onComplete={handleExitDoorTransitionComplete}
         />
 
-        {/* Developer Prompt Debug Panel */}
-        <DevPromptPanel
-          isOpen={showDevPromptPanel}
-          onClose={() => setShowDevPromptPanel(false)}
-        />
       </div>
       </>
     )}
