@@ -18,13 +18,18 @@ import {
   Star,
   Clock,
   Users,
-  Camera
+  Camera,
+  Sparkles,
+  Shirt,
+  X
 } from 'lucide-react';
 import smartCalendarService, {
   CalendarEvent,
   OutfitItem,
   WeatherData
 } from '../services/smartCalendarService';
+import OutfitSuggestionModal from './OutfitSuggestionModal';
+import { OutfitSuggestion } from '../services/claudeOutfitService';
 
 interface PackingListGeneratorProps {
   travelEvent?: CalendarEvent;
@@ -59,6 +64,18 @@ const PackingListGenerator: React.FC<PackingListGeneratorProps> = ({
   const [upcomingTravelEvents, setUpcomingTravelEvents] = useState<CalendarEvent[]>([]);
   const [customItems, setCustomItems] = useState<string>('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualTripData, setManualTripData] = useState({
+    destination: '',
+    startDate: '',
+    endDate: '',
+    tripType: 'vacation' as 'vacation' | 'business' | 'weekend'
+  });
+  const [viewMode, setViewMode] = useState<'byDay' | 'allItems'>('byDay');
+  const [dailyOutfits, setDailyOutfits] = useState<{[key: string]: OutfitItem[]}>({});
+  const [showOutfitSuggestions, setShowOutfitSuggestions] = useState(false);
+  const [outfitSuggestionDate, setOutfitSuggestionDate] = useState<Date | null>(null);
+  const [outfitSuggestionDayKey, setOutfitSuggestionDayKey] = useState<string>('');
 
   useEffect(() => {
     if (selectedEvent) {
@@ -242,6 +259,69 @@ const PackingListGenerator: React.FC<PackingListGeneratorProps> = ({
     }
   };
 
+  const handleManualTripCreate = () => {
+    if (!manualTripData.startDate || !manualTripData.endDate || !manualTripData.destination) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const start = new Date(manualTripData.startDate);
+    const end = new Date(manualTripData.endDate);
+    end.setHours(23, 59, 59);
+
+    const manualEvent: CalendarEvent = {
+      id: `manual_${Date.now()}`,
+      title: `${manualTripData.destination} Trip`,
+      startTime: start,
+      endTime: end,
+      location: manualTripData.destination,
+      isAllDay: true,
+      eventType: manualTripData.tripType === 'business' ? 'work' : 'travel',
+      description: `Manually created ${manualTripData.tripType} trip`
+    };
+
+    setSelectedEvent(manualEvent);
+    setShowManualEntry(false);
+  };
+
+  const planOutfitForDay = (dayKey: string) => {
+    // Extract date from dayKey format: "Day 1 (MM/DD/YYYY)"
+    const dateMatch = dayKey.match(/\(([^)]+)\)/);
+    if (dateMatch) {
+      const dateStr = dateMatch[1];
+      const date = new Date(dateStr);
+      setOutfitSuggestionDate(date);
+      setOutfitSuggestionDayKey(dayKey);
+      setShowOutfitSuggestions(true);
+    }
+  };
+
+  const handleSelectOutfit = (suggestion: OutfitSuggestion) => {
+    // Save outfit to daily outfits
+    setDailyOutfits(prev => ({
+      ...prev,
+      [outfitSuggestionDayKey]: suggestion.outfitItems
+    }));
+
+    // Update packing list to include the outfit items for that day
+    if (packingList) {
+      const updatedByDay = { ...packingList.byDay };
+      updatedByDay[outfitSuggestionDayKey] = suggestion.outfitItems.map(item => ({
+        ...item,
+        packed: false,
+        essential: false,
+        quantity: 1
+      }));
+
+      setPackingList({
+        ...packingList,
+        byDay: updatedByDay
+      });
+    }
+
+    console.log('✅ Outfit saved for', outfitSuggestionDayKey);
+  };
+
   const exportPackingList = () => {
     if (!packingList || !selectedEvent) return;
 
@@ -251,6 +331,10 @@ const PackingListGenerator: React.FC<PackingListGeneratorProps> = ({
       dates: `${selectedEvent.startTime.toDateString()} - ${selectedEvent.endTime.toDateString()}`,
       essentials: packingList.essentials.map(item => `${item.packed ? '✓' : '☐'} ${item.name} (${item.quantity})`),
       byDay: packingList.byDay,
+      dailyPlannedOutfits: Object.entries(dailyOutfits).map(([day, items]) => ({
+        day,
+        outfit: items.map(item => item.name)
+      })),
       tips: packingList.tips,
       generatedOn: new Date().toLocaleString()
     };
@@ -289,14 +373,22 @@ const PackingListGenerator: React.FC<PackingListGeneratorProps> = ({
                 <Plane className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-700 mb-2">No Travel Events Found</h3>
                 <p className="text-gray-500 mb-6">
-                  Connect your calendar and add travel events to generate smart packing lists
+                  Connect your calendar and add travel events, or create a manual packing list
                 </p>
-                <button
-                  onClick={onBack}
-                  className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  Back to Calendar
-                </button>
+                <div className="flex flex-col md:flex-row gap-3 justify-center">
+                  <button
+                    onClick={() => setShowManualEntry(true)}
+                    className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Create Manual Packing List
+                  </button>
+                  <button
+                    onClick={onBack}
+                    className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Back to Calendar
+                  </button>
+                </div>
               </div>
             ) : (
               <div>
@@ -329,10 +421,107 @@ const PackingListGenerator: React.FC<PackingListGeneratorProps> = ({
                     </button>
                   ))}
                 </div>
+                <button
+                  onClick={() => setShowManualEntry(true)}
+                  className="mt-4 w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Create Manual Packing List</span>
+                </button>
               </div>
             )}
           </div>
         </div>
+
+        {/* Manual Entry Modal */}
+        {showManualEntry && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Create Manual Packing List</h3>
+                <button
+                  onClick={() => setShowManualEntry(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Destination *
+                  </label>
+                  <input
+                    type="text"
+                    value={manualTripData.destination}
+                    onChange={(e) => setManualTripData({...manualTripData, destination: e.target.value})}
+                    placeholder="e.g., Paris, Hawaii, New York"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={manualTripData.startDate}
+                      onChange={(e) => setManualTripData({...manualTripData, startDate: e.target.value})}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      End Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={manualTripData.endDate}
+                      onChange={(e) => setManualTripData({...manualTripData, endDate: e.target.value})}
+                      min={manualTripData.startDate || new Date().toISOString().split('T')[0]}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Trip Type
+                  </label>
+                  <select
+                    value={manualTripData.tripType}
+                    onChange={(e) => setManualTripData({...manualTripData, tripType: e.target.value as any})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="vacation">Vacation</option>
+                    <option value="business">Business</option>
+                    <option value="weekend">Weekend Getaway</option>
+                  </select>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={() => setShowManualEntry(false)}
+                    className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleManualTripCreate}
+                    className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -452,18 +641,46 @@ const PackingListGenerator: React.FC<PackingListGeneratorProps> = ({
 
             {/* Main Packing Lists */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Essentials */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Travel Essentials</h3>
+              {/* View Mode Toggle */}
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center justify-center space-x-2">
                   <button
-                    onClick={() => setShowCustomInput(!showCustomInput)}
-                    className="flex items-center space-x-2 text-purple-600 hover:text-purple-800"
+                    onClick={() => setViewMode('byDay')}
+                    className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                      viewMode === 'byDay'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Custom</span>
+                    By Day
+                  </button>
+                  <button
+                    onClick={() => setViewMode('allItems')}
+                    className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                      viewMode === 'allItems'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    All Items
                   </button>
                 </div>
+              </div>
+
+              {viewMode === 'allItems' && (
+                <>
+                  {/* Essentials */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800">Travel Essentials</h3>
+                      <button
+                        onClick={() => setShowCustomInput(!showCustomInput)}
+                        className="flex items-center space-x-2 text-purple-600 hover:text-purple-800"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Custom</span>
+                      </button>
+                    </div>
 
                 {showCustomInput && (
                   <div className="mb-4 p-3 bg-gray-50 rounded-lg">
@@ -526,50 +743,116 @@ const PackingListGenerator: React.FC<PackingListGeneratorProps> = ({
                 </div>
               </div>
 
+                </>
+              )}
+
               {/* Day-by-Day Planning */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Day-by-Day Outfits</h3>
-                <div className="space-y-4">
-                  {Object.entries(packingList.byDay).map(([day, items]) => (
-                    <div key={day} className="border border-gray-100 rounded-lg p-4">
+              {viewMode === 'byDay' && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Day-by-Day Vacation Plan</h3>
+                  <p className="text-sm text-gray-600 mb-6">Plan what you'll wear each day of your trip</p>
+                  <div className="space-y-4">
+                    {Object.entries(packingList.byDay).map(([day, items]) => (
+                      <div key={day} className="border border-gray-100 rounded-lg p-4">
                       <h4 className="font-medium text-gray-800 mb-3 flex items-center">
                         <Clock className="w-4 h-4 mr-2 text-purple-600" />
                         {day}
                       </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {items.map((item) => (
-                          <div
-                            key={`${day}-${item.id}`}
-                            className={`flex items-center space-x-2 p-2 rounded ${
-                              item.packed ? 'bg-green-50' : 'bg-gray-50'
-                            }`}
-                          >
-                            <button
-                              onClick={() => toggleItemPacked(item.id, 'byDay', day)}
-                              className={`w-4 h-4 rounded border flex items-center justify-center ${
-                                item.packed
-                                  ? 'bg-green-600 border-green-600 text-white'
-                                  : 'border-gray-300'
-                              }`}
-                            >
-                              {item.packed && <CheckCircle2 className="w-2.5 h-2.5" />}
-                            </button>
-                            <span className={`text-sm ${item.packed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>
-                              {item.name}
-                            </span>
+                      {/* Show planned outfit if exists */}
+                      {dailyOutfits[day] ? (
+                        <div className="space-y-2">
+                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2 text-purple-700">
+                                <Sparkles className="w-4 h-4" />
+                                <span className="text-sm font-medium">AI Planned Outfit</span>
+                              </div>
+                              <button
+                                onClick={() => planOutfitForDay(day)}
+                                className="text-xs text-purple-600 hover:text-purple-800"
+                              >
+                                Change
+                              </button>
+                            </div>
+                            <div className="space-y-1">
+                              {dailyOutfits[day].map((item) => (
+                                <div key={item.id} className="flex items-center space-x-2 text-sm text-purple-700">
+                                  <Shirt className="w-3 h-3 flex-shrink-0" />
+                                  <span>{item.name}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        ))}
-                      </div>
+                          <button
+                            onClick={() => planOutfitForDay(day)}
+                            className="w-full flex items-center justify-center space-x-2 border border-purple-300 text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-50 transition-all text-sm"
+                          >
+                            <Sparkles className="w-4 h-4" />
+                            <span>Get New Suggestions</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {items.map((item) => (
+                              <div
+                                key={`${day}-${item.id}`}
+                                className={`flex items-center space-x-2 p-2 rounded ${
+                                  item.packed ? 'bg-green-50' : 'bg-gray-50'
+                                }`}
+                              >
+                                <button
+                                  onClick={() => toggleItemPacked(item.id, 'byDay', day)}
+                                  className={`w-4 h-4 rounded border flex items-center justify-center ${
+                                    item.packed
+                                      ? 'bg-green-600 border-green-600 text-white'
+                                      : 'border-gray-300'
+                                  }`}
+                                >
+                                  {item.packed && <CheckCircle2 className="w-2.5 h-2.5" />}
+                                </button>
+                                <span className={`text-sm ${item.packed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>
+                                  {item.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Plan Outfit for Day Button */}
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <button
+                              onClick={() => planOutfitForDay(day)}
+                              className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all text-sm"
+                            >
+                              <Sparkles className="w-4 h-4" />
+                              <span>Plan Outfit for This Day</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
+              )}
             </div>
           </div>
         ) : null}
       </div>
+
+      {/* Outfit Suggestion Modal */}
+      {showOutfitSuggestions && outfitSuggestionDate && (
+        <OutfitSuggestionModal
+          date={outfitSuggestionDate}
+          event={selectedEvent}
+          clothingItems={clothingItems}
+          onClose={() => setShowOutfitSuggestions(false)}
+          onSelectOutfit={handleSelectOutfit}
+        />
+      )}
     </div>
   );
 };
+
 
 export default PackingListGenerator;

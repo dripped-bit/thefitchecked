@@ -24,6 +24,7 @@ import smartCalendarService, {
   OutfitHistory,
   WeatherData
 } from '../services/smartCalendarService';
+import outfitHistoryService from '../services/outfitHistoryService';
 
 interface WoreThisTodayTrackerProps {
   onClose?: () => void;
@@ -62,17 +63,17 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
   const loadTodaysData = async () => {
     try {
       // Get today's weather
-      const weather = await smartCalendarService.getWeatherForecast('current_location', new Date());
+      const weather = await smartCalendarService.getWeatherForecast('auto:ip', new Date());
       setTodaysWeather(weather);
 
-      // Load recent outfit history for insights
-      const history = JSON.parse(localStorage.getItem('outfitHistory') || '[]')
-        .map((entry: any) => ({ ...entry, date: new Date(entry.date) }))
-        .filter((entry: OutfitHistory) => {
-          const daysDiff = (Date.now() - entry.date.getTime()) / (1000 * 60 * 60 * 24);
-          return daysDiff <= 7; // Last 7 days
-        });
-      setRecentHistory(history);
+      // Load recent outfit history for insights from Supabase
+      const history = await outfitHistoryService.getOutfitHistory(7); // Last 7 days
+      setRecentHistory(history.map(record => ({
+        date: record.worn_date,
+        outfitItems: record.outfit_items,
+        eventId: record.event_id,
+        rating: record.user_rating
+      })));
     } catch (error) {
       console.error('Failed to load today\'s data:', error);
     }
@@ -111,23 +112,26 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
     setTodaysOutfit(prev => ({ ...prev, notes }));
   };
 
-  const completeTracking = () => {
-    // Record the outfit in smart calendar service
+  const completeTracking = async () => {
+    // Save to Supabase via outfit history service
+    const historyRecord = {
+      worn_date: new Date(),
+      outfit_items: todaysOutfit.items,
+      event_id: selectedEvent?.id,
+      event_type: selectedEvent?.eventType,
+      weather_data: todaysOutfit.weather,
+      user_rating: todaysOutfit.rating,
+      mood: todaysOutfit.mood,
+      notes: todaysOutfit.notes
+    };
+
+    await outfitHistoryService.saveOutfitHistory(historyRecord);
+
+    // Also record in smart calendar service for backward compatibility
     smartCalendarService.recordOutfitWorn(
       todaysOutfit.items,
       selectedEvent?.id
     );
-
-    // Store additional metadata
-    const outfitRecord = {
-      ...todaysOutfit,
-      date: new Date(),
-      completedAt: new Date().toISOString()
-    };
-
-    const existingHistory = JSON.parse(localStorage.getItem('dailyOutfitTracking') || '[]');
-    existingHistory.push(outfitRecord);
-    localStorage.setItem('dailyOutfitTracking', JSON.stringify(existingHistory));
 
     setCurrentStep('complete');
   };

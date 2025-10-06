@@ -19,7 +19,8 @@ import {
   Star,
   Users,
   Plane,
-  Camera
+  Camera,
+  ShoppingBag
 } from 'lucide-react';
 import smartCalendarService, {
   CalendarEvent,
@@ -32,6 +33,10 @@ import smartCalendarService, {
 import PackingListGenerator from './PackingListGenerator';
 import WoreThisTodayTracker from './WoreThisTodayTracker';
 import AddEventModal from './AddEventModal';
+import MonthlyCalendarGrid from './MonthlyCalendarGrid';
+import OutfitSuggestionModal from './OutfitSuggestionModal';
+import WeeklyOutfitQueue from './WeeklyOutfitQueue';
+import CalendarConnectionSettings from './CalendarConnectionSettings';
 
 interface SmartCalendarDashboardProps {
   onBack?: () => void;
@@ -42,7 +47,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   onBack,
   clothingItems = []
 }) => {
-  const [currentView, setCurrentView] = useState<'overview' | 'morning' | 'queue' | 'settings' | 'packing'>('overview');
+  const [currentView, setCurrentView] = useState<'calendar' | 'morning' | 'queue' | 'settings' | 'packing'>('calendar');
   const [isConnected, setIsConnected] = useState(true); // Always connected with manual entry
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [morningOptions, setMorningOptions] = useState<MorningOptions | null>(null);
@@ -50,9 +55,12 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   const [repeatWarnings, setRepeatWarnings] = useState<RepeatWarning[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [showOutfitPlanner, setShowOutfitPlanner] = useState(false);
   const [showWoreThisToday, setShowWoreThisToday] = useState(false);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [showDateDetails, setShowDateDetails] = useState(false);
+  const [showOutfitSuggestions, setShowOutfitSuggestions] = useState(false);
 
   useEffect(() => {
     initializeDashboard();
@@ -175,147 +183,141 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
     </div>
   );
 
-  const renderOverview = () => (
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date);
+    setShowDateDetails(true);
+  };
+
+  const renderCalendarView = () => (
     <div className="space-y-6">
       {/* Quick Actions Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <button
           onClick={generateMorningOptions}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-xl hover:scale-105 transition-all"
+          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 md:p-4 rounded-xl hover:scale-105 transition-all"
         >
           <div className="flex items-center space-x-2">
-            <Zap className="w-5 h-5" />
-            <span className="font-medium">Morning Mode</span>
+            <Zap className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-sm md:text-base font-medium">Morning Mode</span>
           </div>
-          <p className="text-xs mt-1 opacity-90">3 outfit options for today</p>
+          <p className="text-xs mt-1 opacity-90 hidden md:block">3 outfit options for today</p>
         </button>
 
         <button
           onClick={() => setCurrentView('queue')}
-          className="bg-gradient-to-r from-green-500 to-teal-600 text-white p-4 rounded-xl hover:scale-105 transition-all"
+          className="bg-gradient-to-r from-green-500 to-teal-600 text-white p-3 md:p-4 rounded-xl hover:scale-105 transition-all"
         >
           <div className="flex items-center space-x-2">
-            <Clock className="w-5 h-5" />
-            <span className="font-medium">Outfit Queue</span>
+            <Clock className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-sm md:text-base font-medium">Outfit Queue</span>
           </div>
-          <p className="text-xs mt-1 opacity-90">{outfitQueue.length} planned outfits</p>
+          <p className="text-xs mt-1 opacity-90 hidden md:block">{outfitQueue.length} planned outfits</p>
         </button>
 
         <button
           onClick={() => setCurrentView('packing')}
-          className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-4 rounded-xl hover:scale-105 transition-all"
+          className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-3 md:p-4 rounded-xl hover:scale-105 transition-all"
         >
           <div className="flex items-center space-x-2">
-            <Package className="w-5 h-5" />
-            <span className="font-medium">Packing Lists</span>
+            <Package className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-sm md:text-base font-medium">Packing Lists</span>
           </div>
-          <p className="text-xs mt-1 opacity-90">Smart travel planning</p>
+          <p className="text-xs mt-1 opacity-90 hidden md:block">Smart travel planning</p>
         </button>
 
         <button
           onClick={() => setShowWoreThisToday(true)}
-          className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-4 rounded-xl hover:scale-105 transition-all"
+          className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-3 md:p-4 rounded-xl hover:scale-105 transition-all"
         >
           <div className="flex items-center space-x-2">
-            <Camera className="w-5 h-5" />
-            <span className="font-medium">Wore This Today</span>
+            <Camera className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-sm md:text-base font-medium">Wore This</span>
           </div>
-          <p className="text-xs mt-1 opacity-90">Track your outfit</p>
+          <p className="text-xs mt-1 opacity-90 hidden md:block">Track your outfit</p>
         </button>
       </div>
 
-      {/* Upcoming Events */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-gray-800">Upcoming Events</h3>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setShowAddEventModal(true)}
-              className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Event</span>
-            </button>
-            <button
-              onClick={initializeDashboard}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <RefreshCw className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+      {/* Monthly Calendar Grid */}
+      <MonthlyCalendarGrid
+        events={upcomingEvents}
+        onDateClick={handleDateClick}
+        onAddEvent={() => setShowAddEventModal(true)}
+        selectedDate={selectedDate}
+      />
 
-        <div className="space-y-3">
-          {upcomingEvents.slice(0, 5).map((event) => (
-            <div
-              key={event.id}
-              className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 cursor-pointer"
-              onClick={() => setSelectedEvent(event)}
-            >
-              <div className="flex-1">
-                <div className="flex items-center space-x-3">
-                  <div className={`px-2 py-1 rounded-full text-xs font-medium border ${getEventTypeColor(event.eventType)}`}>
+      {/* Date Details Panel (shows when date is clicked on mobile) */}
+      {showDateDetails && selectedDate && (
+        <div className="fixed inset-0 bg-black/50 z-50 md:hidden" onClick={() => setShowDateDetails(false)}>
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-800">
+                {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </h3>
+              <button onClick={() => setShowDateDetails(false)}>
+                <X className="w-6 h-6 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Events for selected date */}
+            <div className="space-y-3">
+              {upcomingEvents.filter(e =>
+                new Date(e.startTime).toDateString() === selectedDate.toDateString()
+              ).map(event => (
+                <div key={event.id} className="border border-gray-200 rounded-lg p-3">
+                  <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-2 ${getEventTypeColor(event.eventType)}`}>
                     {event.eventType}
                   </div>
                   <h4 className="font-medium text-gray-800">{event.title}</h4>
-                </div>
-                <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
-                  <div className="flex items-center space-x-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{event.startTime.toLocaleDateString()}</span>
-                  </div>
                   {event.location && (
-                    <div className="flex items-center space-x-1">
+                    <p className="text-sm text-gray-600 flex items-center space-x-1 mt-1">
                       <MapPin className="w-4 h-4" />
                       <span>{event.location}</span>
-                    </div>
+                    </p>
                   )}
-                  {event.weatherRequired && getWeatherIcon('partly_cloudy')}
-                  {event.shoppingLinks && event.shoppingLinks.length > 0 && (
-                    <div className="flex items-center space-x-1 text-green-600">
-                      <ShoppingBag className="w-4 h-4" />
-                      <span>{event.shoppingLinks.length} link{event.shoppingLinks.length !== 1 ? 's' : ''}</span>
-                    </div>
-                  )}
+                  <button
+                    onClick={() => {
+                      setSelectedEvent(event);
+                      setShowOutfitPlanner(true);
+                      setShowDateDetails(false);
+                    }}
+                    className="mt-2 w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Plan Outfit
+                  </button>
                 </div>
-              </div>
+              ))}
 
-              <div className="flex items-center space-x-2">
-                {event.shoppingLinks && event.shoppingLinks.length > 0 && (
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                    🛍️ {event.shoppingLinks.length}
-                  </span>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedEvent(event);
-                    setShowOutfitPlanner(true);
-                  }}
-                  className="text-purple-600 hover:text-purple-800 text-sm font-medium"
-                >
-                  Plan Outfit
-                </button>
-              </div>
+              {upcomingEvents.filter(e =>
+                new Date(e.startTime).toDateString() === selectedDate.toDateString()
+              ).length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No events scheduled</p>
+                  <div className="flex flex-col space-y-2 mt-3">
+                    <button
+                      onClick={() => {
+                        setShowAddEventModal(true);
+                        setShowDateDetails(false);
+                      }}
+                      className="text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Add Event
+                    </button>
+                    {clothingItems.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setShowOutfitSuggestions(true);
+                          setShowDateDetails(false);
+                        }}
+                        className="flex items-center justify-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>Get AI Outfit Ideas</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Repeat Warnings */}
-      {repeatWarnings.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-          <div className="flex items-center space-x-2 mb-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-600" />
-            <h3 className="font-medium text-yellow-800">Outfit Repeat Warnings</h3>
-          </div>
-          <div className="space-y-2">
-            {repeatWarnings.map((warning, index) => (
-              <div key={index} className="text-sm text-yellow-700">
-                <p>You wore a similar outfit {Math.floor((Date.now() - warning.lastWornDate.getTime()) / (1000 * 60 * 60 * 24))} days ago</p>
-                {warning.suggestion && <p className="text-yellow-600">💡 {warning.suggestion}</p>}
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -427,111 +429,55 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
       <div className="flex justify-center">
         <button
-          onClick={() => setCurrentView('overview')}
+          onClick={() => setCurrentView('calendar')}
           className="text-gray-600 hover:text-gray-800 transition-colors"
         >
-          ← Back to Overview
+          ← Back to Calendar
         </button>
       </div>
     </div>
   );
 
   const renderOutfitQueue = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800">Outfit Queue</h2>
-        <button
-          onClick={() => setCurrentView('overview')}
-          className="text-gray-600 hover:text-gray-800"
-        >
-          ← Back
-        </button>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <p className="text-gray-600 mb-4">Your planned outfits for the upcoming week</p>
-
-        {outfitQueue.length === 0 ? (
-          <div className="text-center py-8">
-            <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 mb-4">No outfits planned yet</p>
-            <button
-              onClick={() => setCurrentView('overview')}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Start Planning
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {outfitQueue.map((plan) => (
-              <div key={plan.id} className="border border-gray-100 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-gray-800">{plan.plannedDate.toDateString()}</h4>
-                    <p className="text-sm text-gray-600 capitalize">{plan.occasion} • {plan.notes}</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-green-600">{plan.confidence}% match</span>
-                    <button
-                      onClick={() => smartCalendarService.removeFromOutfitQueue(plan.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    <WeeklyOutfitQueue
+      onBack={() => setCurrentView('calendar')}
+      clothingItems={clothingItems}
+      events={upcomingEvents}
+      onPlanOutfit={(date, event) => {
+        setSelectedDate(date);
+        setSelectedEvent(event || null);
+        setShowOutfitSuggestions(true);
+      }}
+    />
   );
+
+  const handleGoogleCalendarSync = async (events: CalendarEvent[]) => {
+    // Save synced events to local state and Supabase
+    setUpcomingEvents(prevEvents => {
+      // Merge Google events with existing events
+      const googleEventIds = events.map(e => e.id);
+      const nonGoogleEvents = prevEvents.filter(e => !e.id.startsWith('google_'));
+      return [...nonGoogleEvents, ...events];
+    });
+
+    console.log(`✅ Synced ${events.length} events from Google Calendar`);
+  };
 
   const renderSettings = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-800">Calendar Settings</h2>
         <button
-          onClick={() => setCurrentView('overview')}
+          onClick={() => setCurrentView('calendar')}
           className="text-gray-600 hover:text-gray-800"
         >
           ← Back
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium text-gray-800">Connected Calendar</h3>
-              <p className="text-sm text-gray-600">
-                {isConnected
-                  ? `Connected to ${smartCalendarService.getConnectedProvider()} Calendar`
-                  : 'No calendar connected'
-                }
-              </p>
-            </div>
-            <button
-              onClick={smartCalendarService.disconnect}
-              className="text-red-600 hover:text-red-800 text-sm font-medium"
-            >
-              Disconnect
-            </button>
-          </div>
-
-          <div className="border-t pt-4">
-            <button
-              onClick={() => smartCalendarService.syncCalendar()}
-              className="flex items-center space-x-2 text-blue-600 hover:text-blue-800"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Sync Calendar Now</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <CalendarConnectionSettings
+        onSync={handleGoogleCalendarSync}
+      />
     </div>
   );
 
@@ -598,13 +544,13 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
               </div>
             )}
 
-            {!isLoading && currentView === 'overview' && renderOverview()}
+            {!isLoading && currentView === 'calendar' && renderCalendarView()}
             {!isLoading && currentView === 'morning' && renderMorningMode()}
             {!isLoading && currentView === 'queue' && renderOutfitQueue()}
             {!isLoading && currentView === 'settings' && renderSettings()}
             {!isLoading && currentView === 'packing' && (
               <PackingListGenerator
-                onBack={() => setCurrentView('overview')}
+                onBack={() => setCurrentView('calendar')}
                 clothingItems={clothingItems}
               />
             )}
@@ -634,6 +580,21 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
           setShowAddEventModal(false);
         }}
       />
+
+      {/* Outfit Suggestion Modal */}
+      {showOutfitSuggestions && selectedDate && (
+        <OutfitSuggestionModal
+          date={selectedDate}
+          event={selectedEvent || undefined}
+          clothingItems={clothingItems}
+          onClose={() => setShowOutfitSuggestions(false)}
+          onSelectOutfit={(suggestion) => {
+            console.log('Selected outfit:', suggestion);
+            // TODO: Save outfit plan to calendar
+            setShowOutfitSuggestions(false);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -97,7 +97,7 @@ class SmartCalendarService {
 
   constructor() {
     this.loadStoredData();
-    this.weatherApiKey = import.meta.env.VITE_WEATHER_API_KEY;
+    this.weatherApiKey = import.meta.env.VITE_WEATHER_API_KEY || '0ab6ad071c324e63a3d225838252509';
   }
 
   // =====================
@@ -272,27 +272,95 @@ class SmartCalendarService {
   }
 
   // =====================
-  // Weather Integration
+  // Weather Integration (WeatherAPI.com)
   // =====================
 
-  async getWeatherForecast(location: string, date: Date): Promise<WeatherData | null> {
+  async getWeatherForecast(location: string = 'auto:ip', date?: Date): Promise<WeatherData | null> {
     try {
-      // Demo weather data - in production, use actual weather API
-      const mockWeather: WeatherData = {
-        temperature: 72,
-        condition: 'partly_cloudy',
-        humidity: 65,
-        windSpeed: 8,
-        precipitationChance: 20,
-        uvIndex: 6,
-        feels_like: 75
+      if (!this.weatherApiKey) {
+        console.warn('⚠️ Weather API key not configured');
+        return this.getMockWeather();
+      }
+
+      const daysAhead = date ? Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+
+      // WeatherAPI.com supports up to 14 days forecast on paid plans, 3 days on free
+      // Use current weather for past dates or immediate forecast
+      const endpoint = daysAhead > 0 && daysAhead <= 14
+        ? `https://api.weatherapi.com/v1/forecast.json?key=${this.weatherApiKey}&q=${location}&days=${Math.min(daysAhead + 1, 14)}`
+        : `https://api.weatherapi.com/v1/current.json?key=${this.weatherApiKey}&q=${location}`;
+
+      console.log(`🌤️ [WEATHER] Fetching weather for ${location}...`);
+
+      const response = await fetch(endpoint);
+
+      if (!response.ok) {
+        console.error('❌ Weather API error:', response.status);
+        return this.getMockWeather();
+      }
+
+      const data = await response.json();
+
+      // Parse current or forecast weather
+      let weatherInfo;
+      if (daysAhead > 0 && data.forecast?.forecastday) {
+        // Get forecast for specific date
+        const targetDate = date?.toISOString().split('T')[0];
+        const forecastDay = data.forecast.forecastday.find((day: any) => day.date === targetDate)
+          || data.forecast.forecastday[0];
+        weatherInfo = forecastDay?.day || data.current;
+      } else {
+        // Use current weather
+        weatherInfo = data.current;
+      }
+
+      const weatherData: WeatherData = {
+        temperature: Math.round(weatherInfo.temp_f || weatherInfo.avgtemp_f || 72),
+        condition: this.mapWeatherCondition(weatherInfo.condition?.text || 'Clear'),
+        humidity: weatherInfo.humidity || weatherInfo.avghumidity || 50,
+        windSpeed: Math.round(weatherInfo.wind_mph || weatherInfo.maxwind_mph || 0),
+        precipitationChance: Math.round(weatherInfo.daily_chance_of_rain || weatherInfo.cloud || 0),
+        uvIndex: weatherInfo.uv || weatherInfo.uv || 5,
+        feels_like: Math.round(weatherInfo.feelslike_f || weatherInfo.temp_f || weatherInfo.avgtemp_f || 72)
       };
 
-      return mockWeather;
+      console.log('✅ [WEATHER] Weather data retrieved:', weatherData.temperature + '°F', weatherData.condition);
+      return weatherData;
+
     } catch (error) {
       console.error('❌ Weather fetch failed:', error);
-      return null;
+      return this.getMockWeather();
     }
+  }
+
+  /**
+   * Map WeatherAPI.com condition text to our simplified conditions
+   */
+  private mapWeatherCondition(conditionText: string): string {
+    const text = conditionText.toLowerCase();
+
+    if (text.includes('sunny') || text.includes('clear')) return 'sunny';
+    if (text.includes('rain') || text.includes('drizzle')) return 'rainy';
+    if (text.includes('snow') || text.includes('blizzard')) return 'snowy';
+    if (text.includes('partly cloudy') || text.includes('overcast')) return 'partly_cloudy';
+    if (text.includes('cloud')) return 'cloudy';
+
+    return 'partly_cloudy';
+  }
+
+  /**
+   * Fallback mock weather data
+   */
+  private getMockWeather(): WeatherData {
+    return {
+      temperature: 72,
+      condition: 'partly_cloudy',
+      humidity: 65,
+      windSpeed: 8,
+      precipitationChance: 20,
+      uvIndex: 6,
+      feels_like: 75
+    };
   }
 
   // =====================
@@ -333,7 +401,7 @@ class SmartCalendarService {
   async generateMorningOptions(date: Date = new Date()): Promise<MorningOptions | null> {
     try {
       const todaysEvents = await this.fetchTodaysEvents(date);
-      const weather = await this.getWeatherForecast('current_location', date);
+      const weather = await this.getWeatherForecast('auto:ip', date);
 
       // Generate 3 outfit options using AI
       const option1: OutfitPlan = {
