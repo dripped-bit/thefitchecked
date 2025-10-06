@@ -317,10 +317,9 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     // Save to Supabase with color extraction
     try {
       const userData = userDataService.getAllUserData();
-      const userId = userData?.profile?.email || 'anonymous';
       const gender = userData?.profile?.gender || 'unisex';
 
-      const savedOutfit = await outfitStorageService.saveOutfit(userId, {
+      const savedOutfit = await outfitStorageService.saveOutfit({
         occasion: 'Quick Generate',
         style: 'quick_generate',
         imageUrl: imageUrl,
@@ -402,10 +401,9 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     // Save to Supabase with color extraction
     try {
       const userData = userDataService.getAllUserData();
-      const userId = userData?.profile?.email || 'anonymous';
       const gender = userData?.profile?.gender || 'unisex';
 
-      const savedOutfit = await outfitStorageService.saveOutfit(userId, {
+      const savedOutfit = await outfitStorageService.saveOutfit({
         occasion: `${selectedOccasion.category} - ${selectedOccasion.subcategory}`,
         style: selectedOccasion.category,
         imageUrl: clothingImageUrl,

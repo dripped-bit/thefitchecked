@@ -1,4 +1,5 @@
-import { supabase } from './supabaseClient'
+import { supabase } from './supabaseClient';
+import authService from './authService';
 
 /**
  * Outfit Storage Service
@@ -31,9 +32,20 @@ export interface OutfitData {
 
 class OutfitStorageService {
   /**
+   * Get authenticated user's UUID
+   */
+  private async getUserId(): Promise<string> {
+    const user = await authService.getCurrentUser();
+    if (!user) {
+      throw new Error('User must be authenticated to save outfits');
+    }
+    return user.id; // Return UUID from auth.users
+  }
+
+  /**
    * Save generated outfit to Supabase
    */
-  async saveOutfit(userId: string, outfitData: {
+  async saveOutfit(outfitData: {
     occasion: string;
     style: string;
     imageUrl: string;
@@ -42,6 +54,8 @@ class OutfitStorageService {
     seedreamSeed?: number;
   }): Promise<OutfitData | null> {
     try {
+      const userId = await this.getUserId();
+
       const { data, error} = await supabase
         .from('outfits')
         .insert({
@@ -75,7 +89,7 @@ class OutfitStorageService {
   /**
    * Save multiple outfits at once (for triple outfit generation)
    */
-  async saveMultipleOutfits(userId: string, outfits: Array<{
+  async saveMultipleOutfits(outfits: Array<{
     occasion: string;
     style: string;
     imageUrl: string;
@@ -84,6 +98,8 @@ class OutfitStorageService {
     seedreamSeed?: number;
   }>): Promise<OutfitData[]> {
     try {
+      const userId = await this.getUserId();
+
       const outfitsToInsert = outfits.map(outfit => ({
         user_id: userId,
         occasion: outfit.occasion,

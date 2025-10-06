@@ -608,7 +608,6 @@ NO explanations, just keywords.`
       // Save all 3 outfits to Supabase with color analysis
       try {
         const userData = userDataService.getAllUserData();
-        const userId = userData?.profile?.email || 'anonymous'; // Use email as user ID or implement proper auth
         const gender = userData?.profile?.gender || 'unisex';
 
         const outfitsToSave = generatedOutfits.map(outfit => ({
@@ -620,7 +619,7 @@ NO explanations, just keywords.`
           seedreamSeed: outfit.seed
         }));
 
-        const savedOutfits = await outfitStorageService.saveMultipleOutfits(userId, outfitsToSave);
+        const savedOutfits = await outfitStorageService.saveMultipleOutfits(outfitsToSave);
 
         // Update outfits with Supabase IDs
         if (savedOutfits.length === generatedOutfits.length) {
