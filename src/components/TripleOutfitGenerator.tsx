@@ -19,6 +19,7 @@ import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import userDataService from '../services/userDataService';
 import outfitStorageService from '../services/outfitStorageService';
+import colorAnalysisService from '../services/colorAnalysisService';
 import { ParsedOccasion } from './SmartOccasionInput';
 import ShareModal from './ShareModal';
 import CalendarEntryModal from './CalendarEntryModal';
@@ -459,6 +460,47 @@ NO explanations, just keywords.`
     }
   };
 
+  /**
+   * Extract colors from outfits in background (non-blocking)
+   */
+  const extractColorsInBackground = async (savedOutfits: any[]) => {
+    console.log('🎨 [COLOR-EXTRACTION] Starting background color analysis for', savedOutfits.length, 'outfits');
+
+    // Process each outfit's colors in parallel (non-blocking)
+    Promise.all(
+      savedOutfits.map(async (outfit) => {
+        try {
+          // Extract colors from the image
+          const analysis = await colorAnalysisService.analyzeImage(outfit.image_url);
+
+          if (analysis) {
+            // Save color data to Supabase
+            await outfitStorageService.updateOutfitColors(
+              outfit.id,
+              analysis.primaryColors,
+              analysis.palette
+            );
+
+            console.log(`🎨 [COLOR-EXTRACTION] Extracted colors for outfit ${outfit.id}:`, {
+              primaryColors: analysis.primaryColors,
+              dominantColor: analysis.dominantColor,
+              colorFamily: analysis.colorFamily,
+              brightness: analysis.brightness,
+              saturation: analysis.saturation
+            });
+          }
+        } catch (error) {
+          console.error(`❌ [COLOR-EXTRACTION] Failed to extract colors for outfit ${outfit.id}:`, error);
+          // Don't throw - just log and continue with other outfits
+        }
+      })
+    ).then(() => {
+      console.log('✅ [COLOR-EXTRACTION] Background color analysis complete');
+    }).catch((error) => {
+      console.error('❌ [COLOR-EXTRACTION] Background color analysis failed:', error);
+    });
+  };
+
   const generateReasoning = (): string[] => {
     const reasons = [];
 
@@ -559,7 +601,7 @@ NO explanations, just keywords.`
       const generatedOutfits = await Promise.all(outfitPromises);
       setOutfits(generatedOutfits);
 
-      // Save all 3 outfits to Supabase
+      // Save all 3 outfits to Supabase with color analysis
       try {
         const userData = userDataService.getAllUserData();
         const userId = userData?.profile?.email || 'anonymous'; // Use email as user ID or implement proper auth
@@ -584,6 +626,9 @@ NO explanations, just keywords.`
           }));
           setOutfits(updatedOutfits);
           console.log('✅ [TRIPLE-OUTFIT] Saved 3 outfits to Supabase');
+
+          // Extract colors from all outfits in background (non-blocking)
+          extractColorsInBackground(savedOutfits);
         }
       } catch (error) {
         console.error('❌ [TRIPLE-OUTFIT] Failed to save outfits to Supabase:', error);

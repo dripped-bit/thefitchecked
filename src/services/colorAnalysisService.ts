@@ -1,4 +1,4 @@
-import Vibrant from 'node-vibrant';
+import * as Vibrant from 'node-vibrant';
 
 /**
  * Color Analysis Service

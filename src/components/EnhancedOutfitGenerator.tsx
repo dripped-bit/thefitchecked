@@ -24,6 +24,7 @@ import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import userDataService from '../services/userDataService';
 import outfitStorageService from '../services/outfitStorageService';
+import colorAnalysisService from '../services/colorAnalysisService';
 import SmartOccasionPlanner from './SmartOccasionPlanner';
 
 interface EnhancedOutfitGeneratorProps {
@@ -207,6 +208,38 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     setCurrentStep(3);
   };
 
+  /**
+   * Extract colors from outfit in background (non-blocking)
+   */
+  const extractColorsInBackground = async (outfit: any) => {
+    console.log('🎨 [COLOR-EXTRACTION] Starting color analysis for outfit', outfit.id);
+
+    try {
+      // Extract colors from the image
+      const analysis = await colorAnalysisService.analyzeImage(outfit.image_url);
+
+      if (analysis) {
+        // Save color data to Supabase
+        await outfitStorageService.updateOutfitColors(
+          outfit.id,
+          analysis.primaryColors,
+          analysis.palette
+        );
+
+        console.log(`🎨 [COLOR-EXTRACTION] Extracted colors for outfit ${outfit.id}:`, {
+          primaryColors: analysis.primaryColors,
+          dominantColor: analysis.dominantColor,
+          colorFamily: analysis.colorFamily,
+          brightness: analysis.brightness,
+          saturation: analysis.saturation
+        });
+      }
+    } catch (error) {
+      console.error(`❌ [COLOR-EXTRACTION] Failed to extract colors for outfit ${outfit.id}:`, error);
+      // Don't throw - just log
+    }
+  };
+
   const handleGenerateOutfit = async () => {
     if (isGenerating) return;
 
@@ -274,20 +307,26 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
 
     console.log('✅ Clothing generated successfully:', imageUrl);
 
-    // Save to Supabase
+    // Save to Supabase with color extraction
     try {
       const userData = userDataService.getAllUserData();
       const userId = userData?.profile?.email || 'anonymous';
       const gender = userData?.profile?.gender || 'unisex';
 
-      await outfitStorageService.saveOutfit(userId, {
+      const savedOutfit = await outfitStorageService.saveOutfit(userId, {
         occasion: 'Quick Generate',
         style: 'quick_generate',
         imageUrl: imageUrl,
         userPrompt: quickPrompt,
         gender: gender
       });
-      console.log('✅ [QUICK-GENERATE] Saved outfit to Supabase');
+
+      if (savedOutfit) {
+        console.log('✅ [QUICK-GENERATE] Saved outfit to Supabase');
+
+        // Extract colors in background (non-blocking)
+        extractColorsInBackground(savedOutfit);
+      }
     } catch (error) {
       console.error('❌ [QUICK-GENERATE] Failed to save to Supabase:', error);
       // Continue anyway - don't block UX
@@ -353,20 +392,26 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     const clothingImageUrl = result.images[0].url;
     console.log('✅ Clothing generated:', clothingImageUrl);
 
-    // Save to Supabase
+    // Save to Supabase with color extraction
     try {
       const userData = userDataService.getAllUserData();
       const userId = userData?.profile?.email || 'anonymous';
       const gender = userData?.profile?.gender || 'unisex';
 
-      await outfitStorageService.saveOutfit(userId, {
+      const savedOutfit = await outfitStorageService.saveOutfit(userId, {
         occasion: `${selectedOccasion.category} - ${selectedOccasion.subcategory}`,
         style: selectedOccasion.category,
         imageUrl: clothingImageUrl,
         userPrompt: occasionPrompt,
         gender: gender
       });
-      console.log('✅ [OCCASION-GENERATE] Saved outfit to Supabase');
+
+      if (savedOutfit) {
+        console.log('✅ [OCCASION-GENERATE] Saved outfit to Supabase');
+
+        // Extract colors in background (non-blocking)
+        extractColorsInBackground(savedOutfit);
+      }
     } catch (error) {
       console.error('❌ [OCCASION-GENERATE] Failed to save to Supabase:', error);
       // Continue anyway - don't block UX
