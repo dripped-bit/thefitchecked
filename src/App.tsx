@@ -159,7 +159,7 @@ function App() {
   }, []);
 
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome'); // DEBUG: Back to normal flow with debug logging enabled
-  const [isDevelopment] = useState(true);
+  const [isDevelopment] = useState(import.meta.env.MODE === 'development');
   const [showDevPanel, setShowDevPanel] = useState(true);
   const [isDevPanelCollapsed, setIsDevPanelCollapsed] = useState(false);
   const [useDefaultMeasurements, setUseDefaultMeasurements] = useState(false);
