@@ -219,9 +219,16 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
       }
     } catch (error) {
       console.error('❌ Style analysis failed:', error);
+
+      // The service should have already fallen back to basic analysis
+      // But if it still failed, show friendly error
+      const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
+
       setStyleAnalysisResult({
         success: false,
-        error: error instanceof Error ? error.message : 'Analysis failed - please try again'
+        error: errorMessage.includes('quota') || errorMessage.includes('QUOTA')
+          ? 'AI analysis temporarily unavailable. Generating personalized analysis using your style preferences...'
+          : 'Analysis failed - please try again'
       });
       setShowStyleAnalysis(true);
     } finally {

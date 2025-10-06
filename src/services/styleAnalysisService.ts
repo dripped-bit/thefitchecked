@@ -92,6 +92,7 @@ class StyleAnalysisService {
 
     } catch (error) {
       console.error('❌ [STYLE_ANALYSIS] Analysis failed:', error);
+      console.log('🔄 [STYLE_ANALYSIS] Falling back to basic personalized analysis');
       // Fall back to basic analysis on error
       return this.generateBasicAnalysis(userProfile);
     }
@@ -150,8 +151,20 @@ Focus on actionable, personalized advice that reflects their unique preferences,
         })
       });
 
+      // Handle quota exceeded or other API errors
       if (!response.ok) {
-        throw new Error(`Claude API failed: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || errorData.message || `API error: ${response.status}`;
+
+        console.warn(`⚠️ [STYLE_ANALYSIS] Claude API error (${response.status}): ${errorMessage}`);
+
+        // Check if it's a quota/rate limit error
+        if (response.status === 429 || response.status === 402 || errorMessage.toLowerCase().includes('quota')) {
+          console.log('📊 [STYLE_ANALYSIS] Quota exceeded - using basic analysis fallback');
+          throw new Error('QUOTA_EXCEEDED');
+        }
+
+        throw new Error(`Claude API failed: ${response.status} - ${errorMessage}`);
       }
 
       const data = await response.json();
