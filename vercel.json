@@ -4,22 +4,6 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/fal/:path*",
-      "destination": "/api/fal?path=/:path*"
-    },
-    {
-      "source": "/api/claude/:path*",
-      "destination": "/api/claude?path=/:path*"
-    },
-    {
-      "source": "/api/perplexity/:path*",
-      "destination": "/api/perplexity?path=/:path*"
-    },
-    {
-      "source": "/api/fashn/:path*",
-      "destination": "/api/fashn?path=/:path*"
-    },
-    {
       "source": "/((?!api).*)",
       "destination": "/index.html"
     }
