@@ -8,6 +8,7 @@ import AvatarGeneration from './components/AvatarGeneration';
 import AvatarMeasurementsPage from './components/AvatarMeasurementsPage';
 import AppFacePage from './components/AppFacePage';
 import Page4Component from './components/Page4Component';
+import StyleProfileStreamlined from './components/StyleProfileStreamlined';
 import AvatarHomepage from './components/AvatarHomepageRestored';
 // import SeedreamTest from './components/SeedreamTest'; // DISABLED - test component not needed (fal.ai still active)
 import UserOnboardingPopup from './components/UserOnboardingPopup';
@@ -742,12 +743,12 @@ function App() {
         }
 
       case 'styleProfile':
-        console.log('🔍 RENDER DEBUG - Attempting to render Page4Component');
+        console.log('🔍 RENDER DEBUG - Attempting to render StyleProfileStreamlined');
         console.log('🔍 RENDER DEBUG - avatarData:', appData.avatarData);
         console.log('🔍 RENDER DEBUG - measurements:', appData.measurements);
         try {
           return (
-            <Page4Component
+            <StyleProfileStreamlined
               onNext={navigateToAvatarHomepage}
               onBack={() => setCurrentScreen('appFace')}
               avatarData={appData.avatarData}
@@ -756,8 +757,8 @@ function App() {
             />
           );
         } catch (error) {
-          console.error('❌ RENDER ERROR - Page4Component failed:', error);
-          return <div>Page4Component Error: {error.message}</div>;
+          console.error('❌ RENDER ERROR - StyleProfileStreamlined failed:', error);
+          return <div>StyleProfileStreamlined Error: {error.message}</div>;
         }
 
       case 'avatarHomepage':
