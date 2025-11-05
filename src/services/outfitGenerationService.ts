@@ -212,23 +212,23 @@ class OutfitGenerationService {
       prompts.push({
         name: 'Perfect Balance',
         description: 'Comfortable layers for mild weather',
-        pieces: ['Cotton t-shirt', 'Light cardigan', 'Jeans', 'Sneakers'],
+        pieces: ['Cotton t-shirt', 'Light cardigan', 'Jeans'],
         colors: ['Navy', 'Gray', 'White'],
         style: 'Smart casual',
         occasion: 'Everyday',
         temperature_range: { min: 60, max: 75 },
-        falPrompt: 'wearing smart casual outfit, cotton t-shirt with light cardigan, jeans, comfortable sneakers'
+        falPrompt: 'wearing smart casual outfit, cotton t-shirt with light cardigan, jeans'
       });
     } else {
       prompts.push({
         name: 'Cozy Layers',
         description: 'Warm and stylish for cooler weather',
-        pieces: ['Wool sweater', 'Dark jeans', 'Ankle boots', 'Scarf'],
+        pieces: ['Wool sweater', 'Dark jeans', 'Long coat'],
         colors: ['Burgundy', 'Black', 'Cream'],
         style: 'Cozy chic',
         occasion: 'Cool weather outings',
         temperature_range: { min: 30, max: 60 },
-        falPrompt: 'wearing cozy winter outfit, wool sweater, dark jeans, ankle boots, warm scarf'
+        falPrompt: 'wearing cozy winter outfit, wool sweater, dark jeans, long coat'
       });
     }
 
@@ -239,12 +239,12 @@ class OutfitGenerationService {
       prompts.push({
         name: 'Clean Minimal',
         description: 'Simple, elegant, timeless',
-        pieces: ['White button-down', 'Black trousers', 'White sneakers'],
+        pieces: ['White button-down', 'Black trousers'],
         colors: ['White', 'Black', 'Gray'],
         style: 'Minimalist',
         occasion: 'Professional casual',
         temperature_range: { min: 60, max: 80 },
-        falPrompt: 'wearing minimalist outfit, white button-down shirt, black trousers, clean white sneakers, modern minimal style'
+        falPrompt: 'wearing minimalist outfit, white button-down shirt, black trousers, modern minimal style'
       });
     }
 
@@ -252,12 +252,12 @@ class OutfitGenerationService {
       prompts.push({
         name: 'Urban Edge',
         description: 'Bold and confident street style',
-        pieces: ['Leather jacket', 'Black jeans', 'Combat boots', 'Graphic tee'],
+        pieces: ['Leather jacket', 'Black jeans', 'Graphic tee'],
         colors: ['Black', 'Dark gray', 'Red'],
         style: 'Edgy',
         occasion: 'Night out',
         temperature_range: { min: 50, max: 70 },
-        falPrompt: 'wearing edgy street style, leather jacket, black jeans, combat boots, urban background'
+        falPrompt: 'wearing edgy street style, leather jacket, black jeans, urban background'
       });
     }
 
@@ -265,12 +265,12 @@ class OutfitGenerationService {
       prompts.push({
         name: 'Soft Romance',
         description: 'Feminine and dreamy',
-        pieces: ['Floral dress', 'Cardigan', 'Ballet flats', 'Delicate jewelry'],
+        pieces: ['Floral dress', 'Cardigan'],
         colors: ['Pink', 'Cream', 'Soft blue'],
         style: 'Romantic',
         occasion: 'Date night',
         temperature_range: { min: 65, max: 80 },
-        falPrompt: 'wearing romantic outfit, floral dress, soft cardigan, ballet flats, feminine and dreamy style'
+        falPrompt: 'wearing romantic outfit, floral dress, soft cardigan, feminine and dreamy style'
       });
     }
 

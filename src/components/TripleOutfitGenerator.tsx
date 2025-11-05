@@ -106,7 +106,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     },
     {
       name: 'Glam',
-      description: 'sequins OR metallics, statement jewelry, bold colors, luxury fabrics'
+      description: 'sequins OR metallics, bold colors, luxury fabrics, embellished details'
     }
   ];
 
@@ -330,7 +330,15 @@ FOR OCCASION: ${occasionName}, ${formalityDescriptor}
 
 REQUIREMENTS: Full-sized adult clothing proportions only - ${getClothingGenderText()}
 
-Generate ONE SINGLE complete outfit matching the specific request above. MUST BE ADULT CLOTHING ONLY - absolutely no children's clothes, no kids' outfits, no toddler clothes, no baby clothes, no youth sizes. Flat-lay product photography style, clean white background, professional lighting, no person, no model, no text, no labels, no tags, no size indicators.`;
+Generate ONE SINGLE complete outfit matching the specific request above.
+
+MUST INCLUDE: Complete clothing items only (tops, bottoms, dresses, jumpsuits, blazers, jackets, coats, cardigans, skirts, pants, rompers). All clothing pieces must be visible in flat-lay arrangement.
+
+MUST EXCLUDE: All accessories including shoes, footwear, bags, purses, scarves, jewelry, hats, belts, sunglasses, gloves. No accessories of any kind.
+
+MUST BE ADULT CLOTHING ONLY - absolutely no children's clothes, no kids' outfits, no toddler clothes, no baby clothes, no youth sizes.
+
+Flat-lay product photography style, clean white background, professional lighting, no person, no model, no text, no labels, no tags, no size indicators. Result must be one cohesive, wearable outfit suitable for virtual try-on.`;
 
     console.log(`✨ Variation ${variationIndex + 1} prompt:`);
     console.log(`   User Request: "${userExactInput}"`);
@@ -564,7 +572,7 @@ Return ONLY the search query, nothing else.`
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits`,
+            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, shoes, footwear, boots, sneakers, heels, sandals, slippers, pumps, wedges, flats, loafers, oxfords, mules, espadrilles, bags, purse, handbag, shoulder bag, clutch, tote, backpack, crossbody, satchel, wallet, pouch, scarves, scarf, shawl, wrap, pashmina, bandana, jewelry, necklace, bracelet, earrings, rings, watch, chain, pendant, anklet, accessories, accessory, belt, hat, cap, beanie, fedora, beret, visor, headband, hair accessories, sunglasses, glasses, eyewear, gloves, mittens`,
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
