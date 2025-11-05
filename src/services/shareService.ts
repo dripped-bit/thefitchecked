@@ -23,7 +23,7 @@ export interface SharedOutfitData {
     price?: string;
     store?: string;
   }>;
-  generatedBy: 'quick-generate' | 'occasion-planner' | 'closet';
+  generatedBy: 'occasion-planner' | 'closet';
   timestamp: string;
   privacy: {
     hideFace: boolean;

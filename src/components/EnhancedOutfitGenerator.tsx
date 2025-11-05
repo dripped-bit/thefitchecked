@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Zap,
   Calendar,
   MapPin,
   Clock,
@@ -36,7 +35,6 @@ interface EnhancedOutfitGeneratorProps {
   className?: string;
 }
 
-type GeneratorMode = 'quick' | 'occasion';
 type Step = 1 | 2 | 3;
 
 interface OccasionData {
@@ -56,22 +54,13 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
   onItemGenerated,
   className = ''
 }) => {
-  const [mode, setMode] = useState<GeneratorMode>('quick');
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [selectedOccasion, setSelectedOccasion] = useState<OccasionData>({
     category: '',
     weatherTemp: 72
   });
-  const [quickPrompt, setQuickPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState('');
-
-  // Enhanced workflow state for clothing preview
-  const [generatedClothingImage, setGeneratedClothingImage] = useState<string | null>(null);
-  const [showClothingPreview, setShowClothingPreview] = useState(false);
-  const [enhancedClothingPrompt, setEnhancedClothingPrompt] = useState('');
-  const [isApplyingToAvatar, setIsApplyingToAvatar] = useState(false);
-  const [clothingCategory, setClothingCategory] = useState<'tops' | 'bottoms' | 'one-pieces' | 'auto'>('auto');
 
   // Style preferences state
   const [hasStylePreferences, setHasStylePreferences] = useState(false);
@@ -192,13 +181,6 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     }
   ];
 
-  const handleModeSwitch = () => {
-    setMode(mode === 'quick' ? 'occasion' : 'quick');
-    setCurrentStep(1);
-    setSelectedOccasion({ category: '', weatherTemp: 72 });
-    setQuickPrompt('');
-  };
-
   const handleCategorySelect = (categoryId: string) => {
     setSelectedOccasion(prev => ({ ...prev, category: categoryId }));
     setCurrentStep(2);
@@ -254,11 +236,7 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     setGenerationProgress('Starting outfit generation...');
 
     try {
-      if (mode === 'quick') {
-        await handleQuickGenerate();
-      } else {
-        await handleOccasionGenerate();
-      }
+      await handleOccasionGenerate();
     } catch (error) {
       console.error('❌ Outfit generation failed:', error);
       setGenerationProgress('Generation failed. Please try again.');
@@ -267,95 +245,6 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
         setGenerationProgress('');
       }, 3000);
     }
-  };
-
-  const handleQuickGenerate = async () => {
-    console.log('🚀 Starting clothing generation with Seedream V4...');
-
-    if (!isSeamlessServiceAvailable) {
-      throw new Error('Seamless Try-On Service is not available. Please check your API configuration.');
-    }
-
-    const clothingPrompt = await enhanceClothingPrompt(quickPrompt);
-    console.log('📝 Enhanced clothing prompt:', clothingPrompt);
-    setEnhancedClothingPrompt(clothingPrompt);
-
-    // Step 1: Generate clothing only using Seedream V4
-    setGenerationProgress('Generating clothing from your description...');
-
-    // Use proxy endpoint instead of direct FAL client to avoid 401 errors
-    const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: `${clothingPrompt}, ${getClothingGenderText()} - no children's clothes, no kids' outfits`,
-        negative_prompt: `${getChildrensExclusionTerms()}, multiple outfits, duplicate outfits`,
-        image_size: { height: 2048, width: 2048 },
-        num_images: 1,
-        enable_safety_checker: true
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API request failed: ${response.status} - ${errorText}`);
-    }
-
-    const result = await response.json();
-    setGenerationProgress('Generating clothing...');
-
-    if (!result.images || result.images.length === 0) {
-      throw new Error('Failed to generate clothing image');
-    }
-
-    const imageUrl = result.images[0].url;
-
-    console.log('✅ Clothing generated successfully:', imageUrl);
-
-    // Save to Supabase with color extraction
-    try {
-      const userData = userDataService.getAllUserData();
-      const gender = userData?.profile?.gender || 'unisex';
-
-      const savedOutfit = await outfitStorageService.saveOutfit({
-        occasion: 'Quick Generate',
-        style: 'quick_generate',
-        imageUrl: imageUrl,
-        userPrompt: quickPrompt,
-        gender: gender
-      });
-
-      if (savedOutfit) {
-        console.log('✅ [QUICK-GENERATE] Saved outfit to Supabase');
-
-        // Extract colors in background (non-blocking)
-        extractColorsInBackground(savedOutfit);
-      }
-    } catch (error) {
-      console.error('❌ [QUICK-GENERATE] Failed to save to Supabase:', error);
-      // Continue anyway - don't block UX
-    }
-
-    // Auto-detect clothing category for future try-on
-    const detectedCategory = detectClothingCategory(clothingPrompt);
-    setClothingCategory(detectedCategory);
-
-    // Store generated clothing and show preview
-    setGeneratedClothingImage(imageUrl);
-    setShowClothingPreview(true);
-    setGenerationProgress('Clothing generated! Choose your next step.');
-
-    // Notify item generation for immediate feedback
-    if (onItemGenerated) {
-      onItemGenerated(imageUrl, quickPrompt);
-    }
-
-    // Keep generating state active until user makes a choice
-    setTimeout(() => {
-      setGenerationProgress('');
-    }, 2000);
   };
 
   const handleOccasionGenerate = async () => {
@@ -631,12 +520,6 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     return optimizedPrompt;
   };
 
-  // Helper function to enhance clothing prompts for Quick Generate
-  const enhanceClothingPrompt = async (userPrompt: string): Promise<string> => {
-    // Use the optimizer without occasion context
-    return await optimizePromptForSeedream(userPrompt);
-  };
-
   // Helper function to generate occasion-specific prompts
   const generateOccasionPrompt = async (occasion: OccasionData): Promise<string> => {
     // Build user description from occasion
@@ -691,264 +574,6 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     }
   };
 
-  // Helper function to detect clothing category from description
-  const detectClothingCategory = (description: string): 'tops' | 'bottoms' | 'one-pieces' | 'auto' => {
-    const lowerDesc = description.toLowerCase();
-
-    // Tops - upper body garments
-    const topKeywords = [
-      'shirt', 'top', 'blouse', 'tee', 't-shirt', 'tank', 'camisole',
-      'jacket', 'sweater', 'cardigan', 'hoodie', 'pullover', 'sweatshirt',
-      'blazer', 'coat', 'vest', 'polo', 'henley', 'crop', 'tube', 'halter',
-      'bodysuit', 'corset', 'bra', 'bikini top'
-    ];
-
-    // Bottoms - lower body garments
-    const bottomKeywords = [
-      'pants', 'shorts', 'jeans', 'skirt', 'trouser', 'slacks',
-      'leggings', 'joggers', 'sweatpants', 'chinos', 'cargo',
-      'capri', 'culottes', 'palazzo', 'bermuda',
-      'mini skirt', 'midi skirt', 'maxi skirt', 'pencil skirt', 'a-line skirt',
-      'bikini bottom', 'underwear', 'panties'
-    ];
-
-    // One-pieces - full body garments
-    const onePieceKeywords = [
-      'dress', 'jumpsuit', 'romper', 'overall', 'overalls',
-      'playsuit', 'catsuit', 'bodycon', 'wrap dress',
-      'shift dress', 'cocktail dress', 'gown', 'sundress',
-      'maxi dress', 'midi dress', 'mini dress', 'evening dress',
-      'wedding dress', 'prom dress', 'bikini', 'swimsuit', 'bathing suit'
-    ];
-
-    // Check for one-pieces first (most specific)
-    if (onePieceKeywords.some(keyword => lowerDesc.includes(keyword))) {
-      return 'one-pieces';
-    }
-
-    // Check for tops
-    if (topKeywords.some(keyword => lowerDesc.includes(keyword))) {
-      return 'tops';
-    }
-
-    // Check for bottoms
-    if (bottomKeywords.some(keyword => lowerDesc.includes(keyword))) {
-      return 'bottoms';
-    }
-
-    // Use auto for unknown or complex descriptions
-    return 'auto';
-  };
-
-  // Apply generated clothing to avatar using FASHN API
-  const handleApplyToAvatar = async () => {
-    if (!generatedClothingImage || !avatarData?.imageUrl) {
-      console.error('Missing generated clothing or avatar image');
-      return;
-    }
-
-    setIsApplyingToAvatar(true);
-    setGenerationProgress('Applying outfit to your avatar...');
-
-    try {
-      console.log('🎭 Starting FASHN virtual try-on...');
-
-      const tryOnResult = await directFashnService.tryOnClothing(
-        avatarData.imageUrl,
-        generatedClothingImage,
-        {
-          category: clothingCategory,
-          timeout: 90000  // 90 seconds - FASHN typically takes 40-50s
-        }
-      );
-
-      if (tryOnResult?.success && tryOnResult?.imageUrl) {
-        const finalImageUrl = tryOnResult.imageUrl;
-        console.log('✅ Virtual try-on completed:', finalImageUrl);
-
-        // Update avatar with new outfit
-        if (onAvatarUpdate) {
-          onAvatarUpdate({
-            ...avatarData,
-            imageUrl: finalImageUrl,
-            lastGenerated: {
-              type: 'quick_generate_enhanced',
-              prompt: quickPrompt,
-              enhancedPrompt: enhancedClothingPrompt,
-              clothingImageUrl: generatedClothingImage,
-              finalImageUrl,
-              timestamp: new Date().toISOString(),
-              clothingCategory
-            }
-          });
-        }
-
-        // Notify item generation with final result
-        if (onItemGenerated) {
-          onItemGenerated(finalImageUrl, quickPrompt);
-        }
-
-        // Call legacy callback
-        if (onOutfitGenerate) {
-          onOutfitGenerate({
-            mode: 'quick',
-            prompt: quickPrompt,
-            clothingImageUrl: generatedClothingImage,
-            finalImageUrl,
-            type: 'enhanced_try_on_generation',
-            clothingCategory
-          });
-        }
-
-        setGenerationProgress('Outfit applied successfully!');
-
-        // Reset preview state
-        setTimeout(() => {
-          setShowClothingPreview(false);
-          setGeneratedClothingImage(null);
-          setIsGenerating(false);
-          setIsApplyingToAvatar(false);
-          setGenerationProgress('');
-        }, 2000);
-
-      } else {
-        throw new Error('No result from virtual try-on');
-      }
-
-    } catch (error) {
-      console.error('❌ Virtual try-on failed:', error);
-      setGenerationProgress('Try-on failed. Keeping clothing preview.');
-
-      setTimeout(() => {
-        setIsApplyingToAvatar(false);
-        setGenerationProgress('');
-      }, 3000);
-    }
-  };
-
-  // Generate new clothing with same or different prompt
-  const handleGenerateAgain = (newPrompt?: string) => {
-    const promptToUse = newPrompt || quickPrompt;
-
-    // Reset preview state
-    setShowClothingPreview(false);
-    setGeneratedClothingImage(null);
-    setIsApplyingToAvatar(false);
-
-    // Update prompt if provided
-    if (newPrompt) {
-      setQuickPrompt(newPrompt);
-    }
-
-    // Clear previous progress
-    setGenerationProgress('');
-
-    // Small delay to allow UI reset, then generate again
-    setTimeout(() => {
-      handleGenerateOutfit();
-    }, 100);
-  };
-
-  // Render clothing preview with Try-On and Generate Again options
-  const renderClothingPreview = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <div className="h-12 w-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Heart className="w-6 h-6 text-white" />
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Here's Your Generated Outfit!</h2>
-        <p className="text-gray-600">Choose what you'd like to do next</p>
-      </div>
-
-      {/* Generated Clothing Image */}
-      <div className="flex justify-center">
-        <div className="glass-beige rounded-2xl p-6 max-w-md w-full">
-          {generatedClothingImage && (
-            <img
-              src={generatedClothingImage}
-              alt="Generated clothing"
-              className="w-full h-auto rounded-lg shadow-lg"
-              style={{ maxHeight: '400px', objectFit: 'contain' }}
-            />
-          )}
-
-          {/* Clothing Details */}
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600 mb-2">
-              <strong>Style:</strong> {clothingCategory.charAt(0).toUpperCase() + clothingCategory.slice(1)}
-            </p>
-            <p className="text-xs text-gray-500">
-              "{quickPrompt}"
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-        {/* Try-On Button */}
-        <button
-          onClick={handleApplyToAvatar}
-          disabled={isApplyingToAvatar || !avatarData?.imageUrl}
-          className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 px-6 rounded-lg font-medium hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-all transform hover:scale-105"
-        >
-          {isApplyingToAvatar ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              <span>Applying to Avatar...</span>
-            </>
-          ) : (
-            <>
-              <Users className="w-5 h-5" />
-              <span>Try-On</span>
-            </>
-          )}
-        </button>
-
-        {/* Generate Again Button */}
-        <button
-          onClick={() => handleGenerateAgain()}
-          disabled={isApplyingToAvatar}
-          className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-4 px-6 rounded-lg font-medium hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-all transform hover:scale-105"
-        >
-          <Zap className="w-5 h-5" />
-          <span>Generate Again</span>
-        </button>
-      </div>
-
-      {/* Additional Options */}
-      <div className="flex justify-center space-x-4">
-        <button
-          onClick={() => {
-            // Copy prompt to clipboard for easy modification
-            navigator.clipboard.writeText(quickPrompt);
-            alert('Prompt copied to clipboard!');
-          }}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center space-x-2 text-sm"
-        >
-          <Heart className="w-4 h-4 text-gray-400" />
-          <span>Copy Prompt</span>
-        </button>
-      </div>
-
-      {/* Progress/Status */}
-      {generationProgress && (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-          <p className="text-blue-800 text-sm font-medium">{generationProgress}</p>
-        </div>
-      )}
-
-      {/* Disclaimer */}
-      {!avatarData?.imageUrl && (
-        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-center">
-          <p className="text-amber-800 text-sm">
-            💡 Create an avatar first to use the Try-On feature!
-          </p>
-        </div>
-      )}
-    </div>
-  );
-
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center space-x-4 mb-8">
       {[1, 2, 3].map((step) => (
@@ -967,52 +592,6 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
           )}
         </div>
       ))}
-    </div>
-  );
-
-  const renderQuickMode = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <Zap className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Quick Generate</h2>
-
-        {hasStylePreferences && (
-          <div className="mt-3 inline-flex items-center space-x-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full text-sm font-medium">
-            <Sparkles className="w-4 h-4" />
-            <span>Using your style: {styleSummary}</span>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-lg font-bold text-gray-700 mb-2 text-center">
-            Describe your desired outfit in detail (colors, style, fabrics, fits)
-          </label>
-          <textarea
-            value={quickPrompt}
-            onChange={(e) => setQuickPrompt(e.target.value)}
-            placeholder="Describe your outfit..."
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            rows={4}
-          />
-        </div>
-
-        <button
-          onClick={handleGenerateOutfit}
-          disabled={!quickPrompt.trim() || isGenerating}
-          className="w-full bg-gradient-to-r from-amber-400 to-orange-400 text-white py-3 px-4 rounded-full font-medium hover:from-amber-500 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-        >
-          <Zap className={`w-5 h-5 ${isGenerating ? 'animate-spin' : ''}`} />
-          <span className="text-black italic text-lg">{isGenerating ? 'Generating...' : 'Generate Outfit'}</span>
-        </button>
-
-        {generationProgress && (
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-blue-800 text-sm font-medium">{generationProgress}</p>
-          </div>
-        )}
-      </div>
     </div>
   );
 
@@ -1253,47 +832,12 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
   return (
     <div className={`enhanced-outfit-generator ${className}`}>
       <div className="max-w-4xl mx-auto p-6">
-        {/* Mode Toggle */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-gray-100 rounded-lg p-1 flex">
-            <button
-              onClick={() => mode !== 'quick' && handleModeSwitch()}
-              className={`px-6 py-2 rounded-md font-medium transition-all ${
-                mode === 'quick'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Zap className="w-4 h-4 inline mr-2" />
-              Quick Generate
-            </button>
-            <button
-              onClick={() => mode !== 'occasion' && handleModeSwitch()}
-              className={`px-6 py-2 rounded-md font-medium transition-all ${
-                mode === 'occasion'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Occasion Planner
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        {showClothingPreview ? (
-          renderClothingPreview()
-        ) : mode === 'quick' ? (
-          renderQuickMode()
-        ) : (
-          <SmartOccasionPlanner
-            onOutfitGenerate={onOutfitGenerate}
-            avatarData={avatarData}
-            onAvatarUpdate={onAvatarUpdate}
-            onItemGenerated={onItemGenerated}
-          />
-        )}
+        <SmartOccasionPlanner
+          onOutfitGenerate={onOutfitGenerate}
+          avatarData={avatarData}
+          onAvatarUpdate={onAvatarUpdate}
+          onItemGenerated={onItemGenerated}
+        />
       </div>
     </div>
   );
