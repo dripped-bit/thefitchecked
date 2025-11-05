@@ -1012,6 +1012,35 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
           {/* Avatar Display - Center Column */}
           <div className="lg:col-span-2 flex flex-col items-center">
+            {/* Navigation Links - Above Avatar */}
+            <div className="flex items-center justify-center space-x-6 mb-4">
+              <button
+                onClick={() => {
+                  if (onNavigateToCloset) {
+                    onNavigateToCloset();
+                  } else {
+                    console.log('Navigate to closet - door transition not available');
+                  }
+                }}
+                className="text-gray-700 hover:text-blue-600 hover:underline font-medium text-lg transition-colors"
+              >
+                My Closet
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                onClick={() => {
+                  if (onNavigateToMyOutfits) {
+                    onNavigateToMyOutfits();
+                  } else {
+                    console.log('Navigate to my outfits - callback not available');
+                  }
+                }}
+                className="text-gray-700 hover:text-blue-600 hover:underline font-medium text-lg transition-colors"
+              >
+                My Outfits
+              </button>
+            </div>
+
             <div
               ref={avatarRef}
               className="relative w-[312px] aspect-[9/16] rounded-3xl bg-white shadow-2xl overflow-hidden"
@@ -1148,34 +1177,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
             {/* Navigation Buttons */}
               <div className="space-y-3">
-                <button
-                  onClick={() => {
-                    if (onNavigateToCloset) {
-                      onNavigateToCloset();
-                    } else {
-                      console.log('Navigate to closet - door transition not available');
-                    }
-                  }}
-                  className="w-full flex items-center justify-center space-x-2 bg-sky-300/30 text-black px-4 py-3 rounded-full text-3xl font-medium italic transition-colors hover:bg-sky-400/40 animate-heartbeat"
-                >
-                  <span>👗</span>
-                  <span>My Closet</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (onNavigateToMyOutfits) {
-                      onNavigateToMyOutfits();
-                    } else {
-                      console.log('Navigate to my outfits - callback not available');
-                    }
-                  }}
-                  className="w-full flex items-center justify-center space-x-2 bg-purple-300/30 text-black px-4 py-3 rounded-full text-2xl font-medium italic transition-colors hover:bg-purple-400/40 animate-pulse"
-                >
-                  <span>✨</span>
-                  <span>My Outfits</span>
-                </button>
-
                 <button
                   onClick={() => setShowShareModal(true)}
                   className="w-full flex items-center justify-center space-x-2 bg-sky-300/30 text-black px-4 py-3 rounded-xl text-sm font-medium italic transition-colors hover:bg-sky-400/40"
