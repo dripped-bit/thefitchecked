@@ -84,8 +84,8 @@ class SerpApiService {
       }
     }
 
-    // Add model wearing front view for better try-on compatibility
-    enhancedQuery = `${enhancedQuery} model wearing front view -back -backside -"back view" -rear`;
+    // Removed try-on filters - they're for virtual try-on, not shopping search
+    // These filters were excluding valid product listings
 
     return enhancedQuery;
   }
@@ -102,16 +102,40 @@ class SerpApiService {
     // Reload preferences on each search to get latest
     await this.loadUserPreferences();
 
-    // Enhance query with user preferences and try-on compatibility
-    const enhancedQuery = this.enhanceQueryWithPreferences(query);
+    console.log('🔍 [SERPAPI] Starting search with exact user query:', query);
 
-    console.log('🛍️ [SERPAPI] Searching Google Shopping:', {
-      originalQuery: query,
-      enhancedQuery,
-      budgetMin,
-      budgetMax,
-      maxResults
-    });
+    // Try exact query first
+    let results = await this.searchWithExactQuery(query, options);
+
+    // If insufficient results, try enhanced query as fallback
+    if (results.length < 5) {
+      console.log('🔄 [SERPAPI] Insufficient results, trying enhanced query...');
+      const enhancedQuery = this.enhanceQueryWithPreferences(query);
+      console.log('✨ [SERPAPI] Enhanced query:', enhancedQuery);
+
+      const enhancedResults = await this.searchWithExactQuery(enhancedQuery, options);
+
+      // Merge results, prioritizing exact matches
+      const seenUrls = new Set(results.map(r => r.url));
+      const newResults = enhancedResults.filter(r => !seenUrls.has(r.url));
+      results = [...results, ...newResults].slice(0, maxResults);
+
+      console.log(`✅ [SERPAPI] Combined results: ${results.length} (exact: ${results.length - newResults.length}, enhanced: ${newResults.length})`);
+    } else {
+      console.log(`✅ [SERPAPI] Sufficient results from exact query: ${results.length}`);
+    }
+
+    return results;
+  }
+
+  /**
+   * Search with exact query (no enhancement)
+   */
+  private async searchWithExactQuery(
+    query: string,
+    options: ProductSearchOptions = {}
+  ): Promise<ProductSearchResult[]> {
+    const { budgetMin, budgetMax, stores, maxResults = 20 } = options;
 
     try {
       // Call both Google Shopping AND Amazon in parallel

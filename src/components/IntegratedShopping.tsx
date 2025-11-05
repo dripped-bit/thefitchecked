@@ -97,10 +97,14 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
     setSearchProgress('Searching Google Shopping for your outfit...');
 
     try {
-      const baseQuery = selectedOutfit.searchPrompt;
+      // Preserve user's original search intent
+      const userOriginalInput = occasion.originalInput || occasion.occasion;
+      const baseQuery = userOriginalInput; // Use raw user input instead of AI-analyzed query
+
       console.log('🛍️ [SHOPPING] ========== SEARCH DEBUG START ==========');
-      console.log('📝 [SHOPPING] User\'s original input:', occasion.originalInput || occasion.occasion);
-      console.log('🔍 [SHOPPING] Generated search query:', baseQuery);
+      console.log('📝 [SHOPPING] User\'s original input:', userOriginalInput);
+      console.log('🔍 [SHOPPING] AI-analyzed query (not used):', selectedOutfit.searchPrompt);
+      console.log('🛍️ [SHOPPING] Query sent to search:', baseQuery);
       console.log('🎨 [SHOPPING] Outfit personality:', selectedOutfit.personality.name);
 
       let allProducts: ProductSearchResult[] = [];

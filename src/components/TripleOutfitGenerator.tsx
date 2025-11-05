@@ -328,9 +328,9 @@ STYLE INTERPRETATION - ${selectedStyle.name}: ${selectedStyle.description}
 
 FOR OCCASION: ${occasionName}, ${formalityDescriptor}
 
-SIZING REQUIREMENT: ADULT SIZES ONLY (S, M, L, XL, XXL) - ${getClothingGenderText()}
+REQUIREMENTS: Full-sized adult clothing proportions only - ${getClothingGenderText()}
 
-Generate ONE SINGLE complete outfit matching the specific request above. MUST BE ADULT CLOTHING ONLY - absolutely no children's clothes, no kids' outfits, no toddler clothes, no baby clothes, no youth sizes. Flat-lay product photography style, clean white background, professional lighting, no person, no model.`;
+Generate ONE SINGLE complete outfit matching the specific request above. MUST BE ADULT CLOTHING ONLY - absolutely no children's clothes, no kids' outfits, no toddler clothes, no baby clothes, no youth sizes. Flat-lay product photography style, clean white background, professional lighting, no person, no model, no text, no labels, no tags, no size indicators.`;
 
     console.log(`✨ Variation ${variationIndex + 1} prompt:`);
     console.log(`   User Request: "${userExactInput}"`);
@@ -395,25 +395,25 @@ Generate ONE SINGLE complete outfit matching the specific request above. MUST BE
                 },
                 {
                   type: 'text',
-                  text: `Analyze this ${personalityName} outfit for ${occasion.occasion}.
+                  text: `User searched for: "${occasion.originalInput || occasion.occasion}"
 
-USER REQUESTED: "${occasion.originalInput || occasion.occasion}"
+Analyze this outfit image and create a SHORT shopping search query.
 
-Build a PRECISE shopping search query that prioritizes the user's exact request:
+RULES:
+1. START with user's exact keywords (e.g., if they said "blue dress", START with "blue dress")
+2. Add ONLY 1-2 core visible details (length/style if obvious)
+3. Keep query under 5 words total
+4. DO NOT over-describe or add excessive adjectives
 
-STEP 1: Start with user's exact keywords (e.g., if they said "blue dress", START with "blue dress")
-STEP 2: Add visible garment details:
-- GARMENT TYPE (dress/skirt/top/pants/jumpsuit/romper)
-- LENGTH if visible (maxi/midi/mini/long/short)
-- FIT STYLE (fitted/flowy/loose/bodycon/a-line)
-STEP 3: Add ONLY obvious details:
-- PRIMARY COLOR if not already in user request
-- PATTERN if clearly visible (floral/solid/striped/polka dot)
+Examples:
+- User: "blue dress" → Return: "blue maxi dress"
+- User: "casual top" → Return: "casual striped top"
+- User: "black pants" → Return: "black wide leg pants"
+- User: "red skirt" → Return: "red midi skirt"
 
-CRITICAL: If user said "blue dress", query MUST start with "blue dress" not generic terms.
+CRITICAL: Preserve user's original intent. Less is more.
 
-Return ONLY the search query like: "blue dress maxi flowy bohemian" or "red skirt midi fitted leather"
-NO explanations, just keywords.`
+Return ONLY the search query, nothing else.`
                 }
               ]
             }
@@ -564,7 +564,7 @@ NO explanations, just keywords.`
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits`,
+            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits`,
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
