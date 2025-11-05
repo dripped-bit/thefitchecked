@@ -12,7 +12,6 @@ import StyleProfileStreamlined from './components/StyleProfileStreamlined';
 import AvatarHomepage from './components/AvatarHomepageRestored';
 // import SeedreamTest from './components/SeedreamTest'; // DISABLED - test component not needed (fal.ai still active)
 import UserOnboardingPopup from './components/UserOnboardingPopup';
-import SaveAvatarModal from './components/SaveAvatarModal';
 import ClosetExperience from './components/ClosetExperience';
 import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
@@ -191,8 +190,6 @@ function App() {
   const [showDoorTransition, setShowDoorTransition] = useState(false);
   const [showExitDoorTransition, setShowExitDoorTransition] = useState(false);
   const [pendingScreen, setPendingScreen] = useState<Screen | null>(null);
-  const [showSaveAvatarModal, setShowSaveAvatarModal] = useState(false);
-  const [pendingAvatarData, setPendingAvatarData] = useState<any>(null);
   const [appData, setAppData] = useState<AppData>({
     capturedPhotos: [],
     uploadedPhoto: undefined,
@@ -538,48 +535,36 @@ function App() {
       } : null
     }));
 
-    // Navigate to try-on page (page 4)
-    setCurrentScreen('appFace');
-  };
-
-  // Handle navigation from AppFace (page 4) - show save modal before style profile
-  const handleAppFaceNext = () => {
-    // Prepare avatar data for save modal
-    setPendingAvatarData({
-      avatarData: appData.generatedAvatar,
-      measurements: appData.measurements
-    });
-    setShowSaveAvatarModal(true);
-  };
-
-  // Handle save avatar decision
-  const handleSaveAvatarDecision = (shouldSave: boolean, avatarName?: string) => {
-    if (pendingAvatarData && shouldSave && pendingAvatarData.avatarData?.imageUrl) {
+    // Auto-save avatar to library (first avatar is set as default)
+    if (data.avatarData?.imageUrl) {
       try {
         const isFirstAvatar = !avatarManagementService.hasStoredAvatars();
-        const finalName = avatarName || (isFirstAvatar ? 'My Avatar' : `Avatar ${new Date().toLocaleDateString()}`);
+        const avatarName = isFirstAvatar ? 'My Avatar' : `Avatar ${new Date().toLocaleDateString()}`;
 
-        // Save to avatar library (set as default if it's the first one)
         const savedAvatar = avatarManagementService.saveAvatarToLibrary(
-          pendingAvatarData.avatarData.imageUrl,
-          finalName,
+          data.avatarData.imageUrl,
+          avatarName,
           isFirstAvatar // Set as default if first avatar
         );
 
         if (savedAvatar) {
-          console.log(`💾 [APP] Avatar saved to library: ${savedAvatar.name}${isFirstAvatar ? ' (set as default)' : ''}`);
+          console.log(`💾 [APP] Avatar auto-saved to library: ${savedAvatar.name}${isFirstAvatar ? ' (set as default)' : ''}`);
         }
 
         // Initialize avatar management session
-        avatarManagementService.initializeAvatar(pendingAvatarData.avatarData.imageUrl, false);
+        avatarManagementService.initializeAvatar(data.avatarData.imageUrl, false);
       } catch (error) {
-        console.error('❌ [APP] Failed to save avatar:', error);
+        console.error('❌ [APP] Failed to auto-save avatar:', error);
       }
     }
 
-    // Navigate to style profile page (page 5)
-    setShowSaveAvatarModal(false);
-    setPendingAvatarData(null);
+    // Navigate to try-on page (page 4)
+    setCurrentScreen('appFace');
+  };
+
+  // Handle navigation from AppFace (page 4) - go directly to style profile
+  const handleAppFaceNext = () => {
+    // Avatar already auto-saved, proceed to style profile
     setCurrentScreen('styleProfile');
   };
 
@@ -1213,13 +1198,6 @@ function App() {
           isOpen={showOnboardingPopup}
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
-        />
-
-        {/* Save Avatar Modal */}
-        <SaveAvatarModal
-          isOpen={showSaveAvatarModal}
-          onSave={(name) => handleSaveAvatarDecision(true, name)}
-          onSkip={() => handleSaveAvatarDecision(false)}
         />
 
         {/* Door Transition Animation */}
