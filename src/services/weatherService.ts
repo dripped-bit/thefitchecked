@@ -197,6 +197,7 @@ class WeatherService {
         `latitude=${latitude}&longitude=${longitude}&` +
         `current=temperature_2m,apparent_temperature,relative_humidity_2m,` +
         `wind_speed_10m,weather_code,is_day,precipitation,uv_index&` +
+        `temperature_unit=fahrenheit&` +
         `timezone=auto&forecast_days=1`
       );
 

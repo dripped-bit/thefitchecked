@@ -743,36 +743,28 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
       <div className="relative z-10">
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm border-b border-gray-200">
-        {/* Personalized Greeting */}
+        {/* Personalized Greeting with Time */}
         <div className="flex flex-col">
           <h1 className="text-xl font-bold text-slate-800">
             {getTimeBasedGreeting()} {getUserFirstName()}
           </h1>
-          <p className="text-sm text-slate-600 tracking-wide">
-            {fashionRule}
-          </p>
+          <div className="text-sm text-slate-600">
+            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
         </div>
 
-        {/* Time and Weather */}
-        <div className="flex items-center space-x-6">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-slate-800">
-              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        {/* Weather with Date */}
+        <div className="flex items-center space-x-3 bg-white/60 rounded-2xl px-4 py-2">
+          {getWeatherIcon()}
+          <div className="text-sm">
+            <div className="font-semibold text-slate-800">
+              {weather ? `${weather.temperature}°F` : '--°F'}
             </div>
-            <div className="text-sm text-slate-600">
+            <div className="text-slate-600 capitalize">
+              {weather ? weather.condition : 'Loading...'}
+            </div>
+            <div className="text-xs text-slate-500 mt-0.5">
               {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3 bg-white/60 rounded-2xl px-4 py-2">
-            {getWeatherIcon()}
-            <div className="text-sm">
-              <div className="font-semibold text-slate-800">
-                {weather ? `${weather.temperature}°` : '--°'}
-              </div>
-              <div className="text-slate-600 capitalize">
-                {weather ? weather.condition : 'Loading...'}
-              </div>
             </div>
           </div>
         </div>
