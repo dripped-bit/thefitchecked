@@ -62,18 +62,10 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLoginClick, onLogout, onNav
       {/* User Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+        className="flex items-center transition-opacity hover:opacity-80"
       >
-        <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
-          <User className="w-5 h-5 text-white" />
-        </div>
-        <div className="text-left hidden sm:block">
-          <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
-            {user.email}
-          </p>
-          {!user.emailConfirmed && (
-            <p className="text-xs text-amber-600">Email not verified</p>
-          )}
+        <div className="w-6 h-6 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
+          <User className="w-4 h-4 text-white" />
         </div>
       </button>
 
