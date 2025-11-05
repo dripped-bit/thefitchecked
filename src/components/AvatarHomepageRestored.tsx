@@ -5,7 +5,8 @@ import {
   Shirt, Palette, User, AlertCircle, Loader, MapPin, Clock,
   TrendingUp, Camera, Share2, ShoppingCart, ShoppingBag, Heart,
   RotateCcw, Trash2, ArrowRightCircle, X, Check, DollarSign,
-  Search, ExternalLink, Tag, Package, Users, MessageCircle, BookOpen
+  Search, ExternalLink, Tag, Package, Users, MessageCircle, BookOpen,
+  DoorOpen, Pencil
 } from 'lucide-react';
 import { weatherService, WeatherData } from '../services/weatherService';
 import { outfitGenerationService, OutfitSuggestion, StyleProfile } from '../services/outfitGenerationService';
@@ -1014,9 +1015,10 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                     console.log('Navigate to closet - door transition not available');
                   }
                 }}
-                className="text-blue-800 hover:text-blue-900 hover:underline font-bold text-lg transition-colors uppercase"
+                className="flex items-center space-x-2 text-blue-800 hover:text-blue-900 hover:underline font-bold text-lg transition-colors uppercase"
               >
-                MY CLOSET
+                <DoorOpen className="w-5 h-5" />
+                <span>MY CLOSET</span>
               </button>
               <span className="text-gray-300">|</span>
               <button
@@ -1027,9 +1029,10 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                     console.log('Navigate to my outfits - callback not available');
                   }
                 }}
-                className="text-blue-800 hover:text-blue-900 hover:underline font-bold text-lg transition-colors uppercase"
+                className="flex items-center space-x-2 text-blue-800 hover:text-blue-900 hover:underline font-bold text-lg transition-colors uppercase"
               >
-                CREATIONS
+                <Pencil className="w-5 h-5" />
+                <span>CREATIONS</span>
               </button>
             </div>
 
