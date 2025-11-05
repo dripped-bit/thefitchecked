@@ -387,7 +387,9 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
             imageUrl: selectedOutfit.imageUrl,
             avatarUrl: selectedOutfit.imageUrl,
             description: `${selectedOutfit.personality.name} style outfit`,
-            personality: selectedOutfit.personality
+            personality: selectedOutfit.personality,
+            searchPrompt: selectedOutfit.searchPrompt || '',
+            originalPrompt: selectedOutfit.originalPrompt || ''
           }}
           initialShoppingLinks={collectedShoppingLinks.map(p => p.url)}
           onSave={handleCalendarSaveComplete}

@@ -72,8 +72,10 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('📝 [CALENDAR-MODAL] Form submitted:', formData);
+    console.log('📝 [CALENDAR-MODAL] Outfit data:', outfit);
 
     if (!formData.eventDate) {
+      console.error('❌ [CALENDAR-MODAL] Validation failed: Missing event date');
       alert('Please select a date for your event');
       return;
     }
@@ -84,6 +86,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
       // Process shopping links if provided
       let processedLinks: ProcessedLink[] = [];
       if (formData.shoppingLinks.trim()) {
+        console.log('🔗 [CALENDAR-MODAL] Processing shopping links...');
         processedLinks = await processShoppingLinks(formData.shoppingLinks);
         console.log(`✅ [CALENDAR-MODAL] Processed ${processedLinks.length} shopping links`);
       }
@@ -146,6 +149,12 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
 
     } catch (error) {
       console.error('❌ [CALENDAR-MODAL] Error saving to calendar:', error);
+      console.error('❌ [CALENDAR-MODAL] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        formData: formData,
+        outfit: outfit
+      });
       alert('Failed to save outfit to calendar. Please try again.');
     } finally {
       setIsProcessing(false);
