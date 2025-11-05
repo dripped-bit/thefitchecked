@@ -722,14 +722,14 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
       <div className="min-h-screen relative overflow-hidden">
       {/* Background Image */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
         style={{ backgroundImage: "url('/avatarhomepage.png')" }}
       />
 
       {/* Content Layer */}
       <div className="relative z-10">
       {/* Header */}
-      <div className="relative z-10 flex items-center justify-between p-6 bg-white/80 backdrop-blur-sm border-b border-gray-200">
+      <div className="relative z-10 flex items-center justify-between p-6 bg-white/70 backdrop-blur-sm border-b border-gray-200">
         {/* Personalized Greeting with Time */}
         <div className="flex flex-col">
           <h1 className="text-xl font-bold text-slate-800">
@@ -741,7 +741,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
         </div>
 
         {/* Weather with Date */}
-        <div className="flex items-center space-x-3 bg-white/60 rounded-2xl px-4 py-2">
+        <div className="flex items-center space-x-3 bg-white/50 rounded-2xl px-4 py-2">
           {getWeatherIcon()}
           <div className="text-sm">
             <div className="font-semibold text-slate-800">
@@ -775,7 +775,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
             {/* Shopping Prompt */}
             {showShoppingPrompt && currentGeneratedItem && (
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6 mb-4">
+              <div className="bg-white/75 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6 mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   <ShoppingCart className="w-5 h-5 mr-2 text-indigo-500" />
                   Find Similar Items?
@@ -806,7 +806,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
             {/* Shopping Form */}
             {showShoppingForm && currentGeneratedItem && (
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6 mb-4">
+              <div className="bg-white/75 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6 mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   <DollarSign className="w-5 h-5 mr-2 text-green-500" />
                   Shopping Preferences
@@ -889,7 +889,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
             {/* Shopping Results */}
             {shoppingResults.length > 0 && (
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
+              <div className="bg-white/75 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   <Package className="w-5 h-5 mr-2 text-purple-500" />
                   Similar Items Found
@@ -1062,8 +1062,8 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
               {/* Loading overlay */}
               {(applyingOutfit || isSeamlessTryOn) && (
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <div className="bg-white/90 rounded-2xl px-6 py-4 flex flex-col items-center space-y-3 shadow-lg">
+                <div className="absolute inset-0 bg-black/15 flex items-center justify-center">
+                  <div className="bg-white/75 rounded-2xl px-6 py-4 flex flex-col items-center space-y-3 shadow-lg">
                     <Loader className="w-6 h-6 animate-spin text-blue-600" />
                     <span className="font-medium text-slate-800 text-center">
                       {tryOnProgress?.message || 'Generating and applying outfit...'}
@@ -1086,7 +1086,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
               )}
 
               {/* Weather indicator */}
-              <div className="absolute bottom-4 left-4 bg-white/80 backdrop-blur-sm text-slate-700 px-3 py-2 rounded-full text-sm font-medium flex items-center space-x-2 shadow-sm">
+              <div className="absolute bottom-4 left-4 bg-white/70 backdrop-blur-sm text-slate-700 px-3 py-2 rounded-full text-sm font-medium flex items-center space-x-2 shadow-sm">
                 {getWeatherIcon()}
                 <span>{weather ? `${weather.temperature}°` : 'Loading...'}</span>
               </div>
