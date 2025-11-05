@@ -145,7 +145,7 @@ class SerpApiService {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            query: enhancedQuery,
+            query: query,
             num: Math.ceil(maxResults * 0.6), // 60% Google Shopping
             budgetMin,
             budgetMax
