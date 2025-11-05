@@ -86,6 +86,64 @@ class AuthService {
   }
 
   /**
+   * Sign in with Google OAuth
+   */
+  async signInWithGoogle(): Promise<{ user: AuthUser | null; error: string | null }> {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
+
+      if (error) {
+        console.error('❌ [AUTH] Google OAuth error:', error);
+        return { user: null, error: error.message };
+      }
+
+      console.log('✅ [AUTH] Google OAuth redirect initiated');
+      // OAuth will redirect, so we return null user for now
+      // The actual user will be available after callback
+      return { user: null, error: null };
+    } catch (error) {
+      console.error('❌ [AUTH] Google OAuth failed:', error);
+      return { user: null, error: error instanceof Error ? error.message : 'Google sign in failed' };
+    }
+  }
+
+  /**
+   * Sign in with Apple OAuth
+   */
+  async signInWithApple(): Promise<{ user: AuthUser | null; error: string | null }> {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+
+      if (error) {
+        console.error('❌ [AUTH] Apple OAuth error:', error);
+        return { user: null, error: error.message };
+      }
+
+      console.log('✅ [AUTH] Apple OAuth redirect initiated');
+      // OAuth will redirect, so we return null user for now
+      // The actual user will be available after callback
+      return { user: null, error: null };
+    } catch (error) {
+      console.error('❌ [AUTH] Apple OAuth failed:', error);
+      return { user: null, error: error instanceof Error ? error.message : 'Apple sign in failed' };
+    }
+  }
+
+  /**
    * Sign out the current user
    */
   async signOut(): Promise<{ error: string | null }> {

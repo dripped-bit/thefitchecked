@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { X, Mail, Lock, User, AlertCircle, CheckCircle, Loader, Chrome, Apple as AppleIcon } from 'lucide-react';
 import authService from '../services/authService';
 
 interface AuthModalProps {
@@ -114,6 +114,34 @@ const AuthModal: React.FC<AuthModalProps> = ({
     resetForm();
   };
 
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    const { error: authError } = await authService.signInWithGoogle();
+
+    if (authError) {
+      setError(authError);
+      setIsLoading(false);
+    }
+    // If successful, browser will redirect to Google OAuth
+  };
+
+  const handleAppleSignIn = async () => {
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    const { error: authError } = await authService.signInWithApple();
+
+    if (authError) {
+      setError(authError);
+      setIsLoading(false);
+    }
+    // If successful, browser will redirect to Apple OAuth
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
@@ -138,8 +166,49 @@ const AuthModal: React.FC<AuthModalProps> = ({
           </p>
         </div>
 
+        {/* OAuth Sign-In Options (Only for login/signup, not reset) */}
+        {mode !== 'reset' && (
+          <div className="p-6 pb-0 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Google Sign In Button */}
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 hover:border-blue-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Chrome className="w-5 h-5 text-blue-500" />
+                <span className="hidden sm:inline">Continue with Google</span>
+                <span className="sm:hidden">Google</span>
+              </button>
+
+              {/* Apple Sign In Button */}
+              <button
+                type="button"
+                onClick={handleAppleSignIn}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-black border-2 border-black rounded-lg font-semibold text-white hover:bg-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <AppleIcon className="w-5 h-5" />
+                <span className="hidden sm:inline">Continue with Apple</span>
+                <span className="sm:hidden">Apple</span>
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">or</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className={`px-6 space-y-4 ${mode !== 'reset' ? 'pt-2 pb-6' : 'py-6'}`}>
           {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
