@@ -1162,6 +1162,24 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                 }}
               />
             </div>
+
+            {/* Bottom Navigation Links */}
+            <div className="flex items-center justify-center space-x-6 mt-6">
+              <button
+                onClick={onNavigateToStyleProfile}
+                className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors"
+              >
+                <Palette className="w-5 h-5" />
+                <span className="font-medium text-sm">Style Preferences</span>
+              </button>
+              <button
+                onClick={onResetAvatar}
+                className="flex items-center space-x-2 text-gray-700 hover:text-red-600 transition-colors"
+              >
+                <RotateCcw className="w-5 h-5" />
+                <span className="font-medium text-sm">Reset Avatar</span>
+              </button>
+            </div>
           </div>
 
           {/* Right Sidebar */}
@@ -1178,26 +1196,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                 </button>
 
               </div>
-
-            {/* Navigation Quick Actions */}
-            <div className="bg-sky-300/30 backdrop-blur-sm rounded-[3rem] shadow-lg p-6 border border-sky-200/50">
-              <div className="space-y-3">
-                <button
-                  onClick={onNavigateToStyleProfile}
-                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-sky-100/50 rounded-lg transition-colors"
-                >
-                  <Palette className="w-5 h-5 text-purple-600" />
-                  <span className="font-medium text-slate-800 italic text-[0.95em]">Style Preferences</span>
-                </button>
-                <button
-                  onClick={onResetAvatar}
-                  className="w-full flex items-center space-x-3 p-3 text-left hover:bg-sky-100/50 rounded-lg transition-colors"
-                >
-                  <RotateCcw className="w-5 h-5 text-red-600" />
-                  <span className="font-medium text-slate-800 italic text-[0.95em]">Reset Avatar</span>
-                </button>
-              </div>
-            </div>
 
           </div>
         </div>
