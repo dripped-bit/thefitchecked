@@ -1014,9 +1014,9 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                     console.log('Navigate to closet - door transition not available');
                   }
                 }}
-                className="text-gray-700 hover:text-blue-600 hover:underline font-medium text-lg transition-colors"
+                className="text-blue-800 hover:text-blue-900 hover:underline font-bold text-lg transition-colors uppercase"
               >
-                My Closet
+                MY CLOSET
               </button>
               <span className="text-gray-300">|</span>
               <button
@@ -1027,9 +1027,9 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                     console.log('Navigate to my outfits - callback not available');
                   }
                 }}
-                className="text-gray-700 hover:text-blue-600 hover:underline font-medium text-lg transition-colors"
+                className="text-blue-800 hover:text-blue-900 hover:underline font-bold text-lg transition-colors uppercase"
               >
-                My Outfits
+                CREATIONS
               </button>
             </div>
 
