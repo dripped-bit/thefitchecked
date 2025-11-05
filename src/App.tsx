@@ -17,6 +17,7 @@ import ClosetExperience from './components/ClosetExperience';
 import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
 import MyOutfitsPage from './pages/MyOutfitsPageAdvanced';
+import MyCreationsPage from './pages/MyCreationsPage';
 import GlobalDemoModeToggle from './components/GlobalDemoModeToggle';
 import SharedOutfit from './components/SharedOutfit';
 import AuthModal from './components/AuthModal';
@@ -42,7 +43,7 @@ import clearCacheUtil from './utils/clearCache';
 // import './utils/directApiTest';
 // import './utils/keyChecker';
 
-type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits';
+type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations';
 
 interface AppData {
   capturedPhotos: CapturedPhoto[];
@@ -788,6 +789,7 @@ function App() {
               onNavigateToStyleProfile={() => setCurrentScreen('styleProfile')}
               onNavigateToCloset={handleNavigateToCloset}
               onNavigateToMyOutfits={() => setCurrentScreen('myOutfits')}
+              onNavigateToMyCreations={() => setCurrentScreen('myCreations')}
               onResetAvatar={handleResetAvatar}
               onAvatarUpdate={handleAvatarUpdate}
               avatarData={appData.avatarData}
@@ -820,6 +822,13 @@ function App() {
       case 'myOutfits':
         return (
           <MyOutfitsPage
+            onBack={() => setCurrentScreen('avatarHomepage')}
+          />
+        );
+
+      case 'myCreations':
+        return (
+          <MyCreationsPage
             onBack={() => setCurrentScreen('avatarHomepage')}
           />
         );

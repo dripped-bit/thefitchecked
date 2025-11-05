@@ -7,6 +7,8 @@ import ExternalTryOnModal from './ExternalTryOnModal';
 import CalendarEntryModal from './CalendarEntryModal';
 import { ProductSearchResult } from '../services/perplexityService';
 import outfitStorageService from '../services/outfitStorageService';
+import { supabase } from '../services/supabaseClient';
+import authService from '../services/authService';
 
 interface SmartOccasionPlannerProps {
   onOutfitGenerate?: (outfitData: any) => void;
@@ -147,21 +149,37 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
       });
     }
 
-    // Auto-save to My Outfits
+    // Auto-save to Creations
     try {
-      const savedOutfit = await outfitStorageService.saveOutfit({
-        occasion: parsedOccasion?.occasion || 'Unknown Occasion',
-        style: outfit.personality.name,
-        imageUrl: avatarUrl, // Save the try-on result image
-        userPrompt: outfit.originalPrompt || outfit.searchPrompt || `${outfit.personality.name} outfit for ${parsedOccasion?.occasion}`,
-        gender: outfit.personality.targetAudience || undefined
-      });
+      // Use the original user input from parsedOccasion for generation_prompt
+      const generationPrompt = parsedOccasion?.originalInput || outfit.originalPrompt || outfit.searchPrompt || `${outfit.personality.name} outfit for ${parsedOccasion?.occasion}`;
 
-      if (savedOutfit) {
-        console.log('✅ [PLANNER] Outfit auto-saved to My Outfits:', savedOutfit.id);
+      const { data, error } = await supabase
+        .from('outfits')
+        .insert({
+          user_id: await authService.getCurrentUser().then(u => u?.id),
+          occasion: parsedOccasion?.occasion || 'Unknown Occasion',
+          style: outfit.personality.name,
+          image_url: avatarUrl, // Save the try-on result image (avatar wearing outfit)
+          user_prompt: outfit.originalPrompt || outfit.searchPrompt || `${outfit.personality.name} outfit for ${parsedOccasion?.occasion}`,
+          gender: outfit.personality.targetAudience || undefined,
+          is_creation: true, // Flag this as an AI-generated creation
+          generation_prompt: generationPrompt, // Store the user's original prompt
+          clicked: false,
+          purchased: false,
+          favorited: false,
+          created_at: new Date()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ [PLANNER] Error saving creation:', error);
+      } else {
+        console.log('✅ [PLANNER] Creation auto-saved:', data.id);
       }
     } catch (error) {
-      console.error('❌ [PLANNER] Failed to auto-save outfit:', error);
+      console.error('❌ [PLANNER] Failed to auto-save creation:', error);
       // Don't show error to user - auto-save is a convenience feature
     }
   };

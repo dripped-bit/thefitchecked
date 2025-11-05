@@ -27,6 +27,8 @@ export interface OutfitData {
   prompt_text?: string;
   primary_colors?: string[];
   color_palette?: any;
+  is_creation?: boolean;
+  generation_prompt?: string;
   created_at: Date;
 }
 
@@ -151,6 +153,31 @@ class OutfitStorageService {
       return data || [];
     } catch (error) {
       console.error('❌ [OUTFIT-STORAGE] Failed to fetch outfits:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user's AI-generated creations (outfits that were tried on avatar)
+   */
+  async getCreations(userId: string): Promise<OutfitData[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_creation', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ [OUTFIT-STORAGE] Error fetching creations:', error);
+        return [];
+      }
+
+      console.log(`🎨 [OUTFIT-STORAGE] Loaded ${data?.length || 0} creations for user`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ [OUTFIT-STORAGE] Failed to fetch creations:', error);
       return [];
     }
   }

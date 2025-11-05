@@ -38,6 +38,7 @@ interface AvatarHomepageProps {
   onNavigateToStyleProfile?: () => void;
   onNavigateToCloset?: () => void;
   onNavigateToMyOutfits?: () => void;
+  onNavigateToMyCreations?: () => void;
   onResetAvatar?: () => void;
   onAvatarUpdate?: (avatarData: any) => void;
   avatarData?: any;
@@ -66,6 +67,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   onNavigateToStyleProfile,
   onNavigateToCloset,
   onNavigateToMyOutfits,
+  onNavigateToMyCreations,
   onResetAvatar,
   onAvatarUpdate,
   avatarData,
@@ -1023,10 +1025,10 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
               <span className="text-gray-300">|</span>
               <button
                 onClick={() => {
-                  if (onNavigateToMyOutfits) {
-                    onNavigateToMyOutfits();
+                  if (onNavigateToMyCreations) {
+                    onNavigateToMyCreations();
                   } else {
-                    console.log('Navigate to my outfits - callback not available');
+                    console.log('Navigate to my creations - callback not available');
                   }
                 }}
                 className="flex items-center space-x-2 text-blue-800 hover:text-blue-900 hover:underline font-bold text-lg transition-colors uppercase"
