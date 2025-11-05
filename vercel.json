@@ -8,6 +8,10 @@
       "destination": "/api/fal?path=/:path*"
     },
     {
+      "source": "/api/fashn/:path*",
+      "destination": "/api/fashn"
+    },
+    {
       "source": "/((?!api).*)",
       "destination": "/index.html"
     }
