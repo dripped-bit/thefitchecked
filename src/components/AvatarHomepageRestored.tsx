@@ -23,7 +23,7 @@ import ShareModal from './ShareModal';
 import SaveToClosetModal, { SavedItemData } from './SaveToClosetModal';
 import directFashnService from '../services/directFashnService';
 import AvatarClothingAnalysisService, { AvatarClothingAnalysis } from '../services/avatarClothingAnalysisService';
-import PerplexityService, { ProductSearchResult, ProductSearchOptions } from '../services/perplexityService';
+import serpApiService, { ProductSearchResult, ProductSearchOptions } from '../services/serpApiService';
 import affiliateLinkService from '../services/affiliateLinkService';
 import SavedPromptsModal from './SavedPromptsModal';
 import SavedAvatarsTab from './SavedAvatarsTab';
@@ -602,52 +602,36 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
         }
       }
 
-      // Step 2: Generate search queries prioritizing exact generated clothing description
-      let searchQueries: string[];
+      // Step 2: Build search query with enhanced details
+      let searchQuery = currentGeneratedItem.description;
 
-      // Primary strategy: Use the exact generated clothing description first (most accurate)
-      searchQueries = [
-        `${currentGeneratedItem.description} buy online shopping`,
-        `${currentGeneratedItem.description} ${currentGeneratedItem.category} online store`
-      ];
-
-      // Add budget-specific query if specified
-      if (budgetRange.max) {
-        searchQueries.push(`${currentGeneratedItem.category} under $${budgetRange.max} fashion`);
-      } else {
-        // Add category-specific query for broader coverage
-        searchQueries.push(`${currentGeneratedItem.category} similar fashion clothing`);
-      }
-
-      // If we have avatar analysis, only use it to enhance the existing queries, not replace them
+      // Enhance with color from analysis if available
       if (analysis && analysis.items.length > 0) {
         const primaryItem = analysis.items[0];
-        // Enhance with color/style information if available and different from description
         if (primaryItem.color && !currentGeneratedItem.description.toLowerCase().includes(primaryItem.color)) {
-          searchQueries[1] = `${primaryItem.color} ${currentGeneratedItem.description} buy online`;
+          searchQuery = `${primaryItem.color} ${searchQuery}`;
         }
       }
 
-      console.log('🎯 [SEARCH] Using clothing-focused queries:', searchQueries);
+      console.log('🎯 [SEARCH] Using Google Shopping query:', searchQuery);
 
-      // Step 3: Search for similar products using Perplexity
+      // Step 3: Search for similar products using Google Shopping via SerpAPI
       const searchOptions: ProductSearchOptions = {
         budgetMin: budgetRange.min ? parseInt(budgetRange.min) : undefined,
         budgetMax: budgetRange.max ? parseInt(budgetRange.max) : undefined,
         stores: preferredStores.length > 0 ? preferredStores : undefined,
-        sizes: clothingSize ? [clothingSize] : undefined,
-        maxResults: 3 // Limit to top 3 most relevant results
+        maxResults: 12 // Get more results from Google Shopping
       };
 
-      console.log('🛍️ Searching with options:', searchOptions);
-      const productResults = await PerplexityService.searchProductsMultiQuery(searchQueries, searchOptions);
+      console.log('🛍️ Searching Google Shopping with options:', searchOptions);
+      const productResults = await serpApiService.searchProducts(searchQuery, searchOptions);
 
       if (productResults.length === 0) {
-        // Fallback search with broader terms
+        // Fallback search with broader category-only terms
         console.log('🔄 No results found, trying broader search...');
-        const fallbackResults = await PerplexityService.searchSimilarProducts(
-          `${currentGeneratedItem.category} fashion shopping`,
-          { maxResults: 3 }
+        const fallbackResults = await serpApiService.searchProducts(
+          currentGeneratedItem.category,
+          { maxResults: 12 }
         );
         setShoppingResults(fallbackResults);
       } else {
