@@ -15,11 +15,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Get the path from query parameter
-    const path = req.query.path as string || '';
-    const targetUrl = `https://api.fashn.ai/v1${path}`;
+    // Extract path from URL (e.g., /api/fashn/v1/run -> /v1/run)
+    const urlPath = req.url?.replace(/^\/api\/fashn/, '') || '';
+    const targetUrl = `https://api.fashn.ai${urlPath}`;
 
-    console.log('👗 [FASHN-PROXY] Proxying request to:', targetUrl, 'Method:', req.method);
+    console.log('👗 [FASHN-PROXY] Request Details:', {
+      originalUrl: req.url,
+      extractedPath: urlPath,
+      targetUrl: targetUrl,
+      method: req.method,
+      hasKey: !!fashnKey,
+      keyPreview: fashnKey ? fashnKey.substring(0, 20) + '...' : 'none'
+    });
 
     const fetchOptions: RequestInit = {
       method: req.method,

@@ -105,9 +105,11 @@ export class FashnApiService {
 
   /**
    * Check if API is configured and available
+   * Returns true because the /api/fashn proxy is always available
+   * (API keys are handled server-side by the proxy/serverless function)
    */
   isConfigured(): boolean {
-    return !!this.apiKey;
+    return true;
   }
 
   /**
@@ -168,7 +170,7 @@ export class FashnApiService {
       const response = await fetch(`${this.apiUrl}/try-on`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          // Authorization header added by serverless function
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(params)
@@ -257,7 +259,7 @@ export class FashnApiService {
       const response = await fetch(`${this.apiUrl}/product-to-model`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          // Authorization header added by serverless function
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(params)

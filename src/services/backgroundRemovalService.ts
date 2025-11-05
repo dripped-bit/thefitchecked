@@ -34,7 +34,7 @@ class BackgroundRemovalService {
       console.log('🎨 [BACKGROUND-REMOVAL] Starting background removal via proxy...');
 
       // Use /api/fal proxy instead of direct fal.run call
-      const response = await fetch(`${this.API_BASE}/birefnet`, {
+      const response = await fetch(`${this.API_BASE}/fal-ai/birefnet`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

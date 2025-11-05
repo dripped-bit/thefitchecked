@@ -123,7 +123,7 @@ export class FashnTryOnService {
       }
 
       console.log('📤 [FASHN-ONLY] Submitting FormData to FASHN API:', {
-        endpoint: `${this.baseUrl}/run`,
+        endpoint: `${this.baseUrl}/v1/run`,
         category,
         preserve_pose: options.preserve_pose,
         auto_align: options.auto_align,
@@ -131,7 +131,7 @@ export class FashnTryOnService {
       });
 
       // Submit to FASHN API via proxy
-      const response = await fetch(`${this.baseUrl}/run`, {
+      const response = await fetch(`${this.baseUrl}/v1/run`, {
         method: 'POST',
         headers: {
           'User-Agent': 'FitChecked-App-FASHN-Only/1.0'
@@ -199,7 +199,7 @@ export class FashnTryOnService {
   private async pollForCompletion(jobId: string, startTime: number): Promise<FashnTryOnResult> {
     const maxPollTime = 120000; // 2 minutes
     const pollInterval = 2000; // 2 seconds
-    const statusUrl = `${this.baseUrl}/status/${jobId}`;
+    const statusUrl = `${this.baseUrl}/v1/status/${jobId}`;
 
     console.log('🔄 [FASHN-ONLY] Starting status polling:', {
       jobId,

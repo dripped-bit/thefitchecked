@@ -112,6 +112,45 @@ export default defineConfig(({ mode }) => {
             });
           },
         },
+        '/api/fashn': {
+          target: 'https://api.fashn.ai',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => {
+            // Remove /api/fashn prefix, keep the rest (e.g., /v1/run)
+            const rewritten = path.replace(/^\/api\/fashn/, '');
+            return rewritten;
+          },
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              const fashnKey = env.VITE_FASHN_API_KEY || env.FASHN_API_KEY;
+              console.log('👗 [FASHN-PROXY] Request Details:', {
+                originalPath: req.url,
+                rewrittenPath: proxyReq.path,
+                target: 'https://api.fashn.ai',
+                method: proxyReq.method,
+                hasKey: !!fashnKey,
+                keyPreview: fashnKey ? fashnKey.substring(0, 20) + '...' : 'none'
+              });
+              if (fashnKey) {
+                proxyReq.setHeader('Authorization', `Bearer ${fashnKey}`);
+                proxyReq.setHeader('Content-Type', 'application/json');
+              } else {
+                console.error('❌ [FASHN-PROXY] No FASHN API key found!');
+              }
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('📨 [FASHN-PROXY] Response:', {
+                status: proxyRes.statusCode,
+                statusMessage: proxyRes.statusMessage,
+                headers: Object.keys(proxyRes.headers)
+              });
+            });
+            proxy.on('error', (err, req, res) => {
+              console.error('❌ [FASHN-PROXY] Proxy error:', err);
+            });
+          },
+        },
       },
     },
   };

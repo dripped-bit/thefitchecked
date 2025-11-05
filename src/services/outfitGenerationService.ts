@@ -83,7 +83,7 @@ const getChildrensExclusionTerms = (): string => {
 
 class OutfitGenerationService {
   public readonly version = '2.1.0-two-step-process'; // Force cache invalidation
-  private readonly API_BASE_URL = 'http://localhost:3000/api'; // avatar-app API
+  private readonly API_BASE_URL = '/api'; // Relative URL works in all environments
   private cache: Map<string, { suggestions: OutfitSuggestion[]; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 

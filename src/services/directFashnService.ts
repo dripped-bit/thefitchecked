@@ -468,7 +468,7 @@ class DirectFashnService {
       }
     };
 
-    const endpoint = `${this.baseUrl}/run`;
+    const endpoint = `${this.baseUrl}/v1/run`;
 
     // Log detailed payload information for debugging
     console.log('📤 [NATIVE-FASHN] Submitting to native FASHN API with enhanced parameters:', {
@@ -708,7 +708,7 @@ class DirectFashnService {
     const maxPollTime = 90000; // 90 seconds max - FASHN typically takes 40-60s, need generous buffer
     const basePollInterval = 2000; // Base poll every 2 seconds for faster feedback
     const startTime = Date.now();
-    const statusUrl = `${this.baseUrl}/status/${jobId}`;
+    const statusUrl = `${this.baseUrl}/v1/status/${jobId}`;
     let consecutiveFailures = 0;
 
     console.log('🔄 [NATIVE-FASHN] Starting optimized native FASHN status polling:', {
@@ -1266,13 +1266,13 @@ class DirectFashnService {
       return analysis;
     } catch (error) {
       console.error('❌ [GARMENT-ANALYSIS] Analysis failed:', error);
-      // Return default parameters
+      // Return default parameters with maximum quality settings
       return {
         type: 'auto',
         fittingType: 'fitted',
         complexity: 'moderate',
         recommendedMode: 'quality',
-        recommendedSamples: 2,
+        recommendedSamples: 4,
         recommendedSegmentationFree: true
       };
     }
@@ -1441,10 +1441,10 @@ class DirectFashnService {
    * Get recommended sample count based on complexity (official API parameter: 1-4)
    */
   private getRecommendedSamples(complexity: string): number {
-    // Generate 2 samples for good quality with reasonable processing time
-    // With Claude Vision analysis, 2 samples is sufficient to select the best result
-    // Trade-off: Faster processing (~20-30s) with still excellent quality selection
-    return 2;
+    // Generate 4 samples for maximum quality selection
+    // More samples = better chance of getting the perfect result
+    // Trade-off: Slightly longer processing (~30-40s) but significantly better quality
+    return 4;
   }
 
   /**
