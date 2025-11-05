@@ -357,22 +357,22 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
                 <button
                   key={vibe.id}
                   onClick={() => {
-                    if (userProfile.styleVibes.includes(vibe.id)) {
+                    if (userProfile?.styleVibes?.includes(vibe.id)) {
                       handleArrayChange('styleVibes', vibe.id);
-                    } else if (userProfile.styleVibes.length < 3) {
+                    } else if ((userProfile?.styleVibes?.length || 0) < 3) {
                       handleArrayChange('styleVibes', vibe.id);
                     }
                   }}
-                  disabled={!userProfile.styleVibes.includes(vibe.id) && userProfile.styleVibes.length >= 3}
+                  disabled={!userProfile?.styleVibes?.includes(vibe.id) && (userProfile?.styleVibes?.length || 0) >= 3}
                   className={`
                     min-h-[120px] sm:min-h-[140px] p-4 rounded-xl border-2
                     transition-all duration-200 active:scale-95 touch-manipulation
                     flex flex-col items-center justify-center gap-2
-                    ${userProfile.styleVibes.includes(vibe.id)
+                    ${userProfile?.styleVibes?.includes(vibe.id)
                       ? 'border-amber-500 bg-amber-50 shadow-md'
                       : 'border-gray-200 bg-white hover:border-amber-300'
                     }
-                    ${!userProfile.styleVibes.includes(vibe.id) && userProfile.styleVibes.length >= 3
+                    ${!userProfile?.styleVibes?.includes(vibe.id) && (userProfile?.styleVibes?.length || 0) >= 3
                       ? 'opacity-50 cursor-not-allowed'
                       : 'cursor-pointer'
                     }
@@ -382,16 +382,16 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
                   <span className="text-base sm:text-lg font-medium text-gray-900">
                     {vibe.label}
                   </span>
-                  {userProfile.styleVibes.includes(vibe.id) && (
+                  {userProfile?.styleVibes?.includes(vibe.id) && (
                     <Check className="w-5 h-5 text-amber-600 absolute top-2 right-2" />
                   )}
                 </button>
               ))}
             </div>
 
-            {userProfile.styleVibes.length > 0 && (
+            {(userProfile?.styleVibes?.length || 0) > 0 && (
               <p className="text-sm text-center text-gray-500">
-                {userProfile.styleVibes.length} of 3 selected
+                {userProfile?.styleVibes?.length || 0} of 3 selected
               </p>
             )}
           </div>
