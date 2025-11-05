@@ -4,6 +4,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/fal/:path*",
+      "destination": "/api/fal?path=/:path*"
+    },
+    {
       "source": "/((?!api).*)",
       "destination": "/index.html"
     }
