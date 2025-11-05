@@ -107,29 +107,32 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
   ];
 
   const calculateProgress = () => {
+    // Guard against undefined userProfile
+    if (!userProfile) return 0;
+
     let totalFields = 0;
     let filledFields = 0;
 
-    // Count filled sections
-    if (userProfile.styleVibes.length >= 2) filledFields++;
+    // Count filled sections with null-safe checks
+    if (userProfile.styleVibes?.length >= 2) filledFields++;
     totalFields++;
 
-    if (userProfile.uploads.inspiration1 && userProfile.uploads.inspiration2) filledFields++;
+    if (userProfile.uploads?.inspiration1 && userProfile.uploads?.inspiration2) filledFields++;
     totalFields++;
 
-    if (userProfile.favoriteColors.length >= 3) filledFields++;
+    if (userProfile.favoriteColors?.length >= 3) filledFields++;
     totalFields++;
 
-    if (userProfile.favoriteStores.length >= 3) filledFields++;
+    if (userProfile.favoriteStores?.length >= 3) filledFields++;
     totalFields++;
 
-    if (userProfile.occasionPriorities.length === 3) filledFields++;
+    if (userProfile.occasionPriorities?.length === 3) filledFields++;
     totalFields++;
 
     if (userProfile.fitPreference) filledFields++;
     totalFields++;
 
-    const threeWordsCount = userProfile.threeWords.filter(word => word.trim() !== '').length;
+    const threeWordsCount = userProfile.threeWords?.filter(word => word.trim() !== '').length || 0;
     if (threeWordsCount >= 3) filledFields++;
     totalFields++;
 
@@ -137,9 +140,11 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
   };
 
   const canCompleteProfile = () => {
+    if (!userProfile) return false;
+
     const progress = calculateProgress();
-    const hasImage = userProfile.uploads.inspiration1 || userProfile.uploads.inspiration2;
-    const hasThreeWords = userProfile.threeWords.filter(word => word.trim() !== '').length >= 3;
+    const hasImage = userProfile.uploads?.inspiration1 || userProfile.uploads?.inspiration2;
+    const hasThreeWords = (userProfile.threeWords?.filter(word => word.trim() !== '').length || 0) >= 3;
     return progress >= 50 && hasImage && hasThreeWords;
   };
 
