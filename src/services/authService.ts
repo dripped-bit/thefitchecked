@@ -195,6 +195,63 @@ class AuthService {
   }
 
   /**
+   * Wait for auth to be fully resolved
+   * Returns when auth state is stable (SIGNED_IN, INITIAL_SESSION, or definitely logged out)
+   * This is critical for preventing race conditions during app initialization
+   */
+  async waitForAuth(): Promise<AuthUser | null> {
+    return new Promise((resolve) => {
+      let resolved = false;
+
+      console.log('⏳ [AUTH] Waiting for auth to resolve...');
+
+      // Check current state first
+      this.getCurrentUser().then(user => {
+        if (!resolved) {
+          resolved = true;
+          console.log('✅ [AUTH] Auth resolved (current user check):', user ? user.email : 'Not logged in');
+          resolve(user);
+        }
+      });
+
+      // Listen for auth state changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log('🔔 [AUTH] Auth event during waitForAuth:', event);
+
+        // Wait for definitive auth events
+        if (!resolved && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'SIGNED_OUT')) {
+          resolved = true;
+          subscription.unsubscribe();
+
+          if (session?.user) {
+            const authUser: AuthUser = {
+              id: session.user.id,
+              email: session.user.email || '',
+              emailConfirmed: session.user.email_confirmed_at !== null,
+              createdAt: session.user.created_at
+            };
+            console.log('✅ [AUTH] Auth resolved (event):', authUser.email);
+            resolve(authUser);
+          } else {
+            console.log('✅ [AUTH] Auth resolved: Not logged in');
+            resolve(null);
+          }
+        }
+      });
+
+      // Timeout after 10 seconds as safety fallback
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          subscription.unsubscribe();
+          console.warn('⚠️ [AUTH] Auth resolution timeout - proceeding without auth');
+          resolve(null);
+        }
+      }, 10000);
+    });
+  }
+
+  /**
    * Listen to authentication state changes
    */
   onAuthStateChange(callback: (user: AuthUser | null) => void) {

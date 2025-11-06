@@ -62,6 +62,7 @@ function App() {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isOAuthInProgress, setIsOAuthInProgress] = useState(false);
 
   // Check for share URL parameter and auth callback
   const [shareId, setShareId] = useState<string | null>(null);
@@ -91,29 +92,60 @@ function App() {
     }
   }, []);
 
-  // Initialize authentication on app startup
+  // Check for OAuth in progress flag from sessionStorage
   React.useEffect(() => {
-    const initAuth = async () => {
-      const startTime = Date.now();
-      const user = await authService.getCurrentUser();
-      setAuthUser(user);
+    const oauthFlag = sessionStorage.getItem('oauth_in_progress');
+    if (oauthFlag === 'true') {
+      console.log('🔄 [APP] OAuth callback detected - preventing homepage redirect');
+      setIsOAuthInProgress(true);
+      sessionStorage.removeItem('oauth_in_progress');
 
-      // Ensure minimum loading time of 9 seconds to show MP4 animation
-      const elapsedTime = Date.now() - startTime;
-      const remainingTime = Math.max(0, 9000 - elapsedTime);
-
+      // Clear the flag after auth has time to resolve
       setTimeout(() => {
+        console.log('✅ [APP] OAuth processing complete');
+        setIsOAuthInProgress(false);
+      }, 3000);
+    }
+  }, []);
+
+  // Initialize app with sequential pattern: auth → avatar storage → navigation
+  React.useEffect(() => {
+    const initializeApp = async () => {
+      const startTime = Date.now();
+
+      try {
+        // Step 1: Wait for auth to be fully resolved (blocks until SIGNED_IN/INITIAL_SESSION/SIGNED_OUT)
+        console.log('🚀 [APP] Starting sequential app initialization...');
+        const user = await authService.waitForAuth();
+        setAuthUser(user);
+        console.log('✅ [APP] Auth resolved:', user ? `Logged in as ${user.email}` : 'Not logged in');
+
+        // Step 2: Now initialize avatar storage (auth is guaranteed to be ready)
+        console.log('🎭 [APP] Initializing avatar storage with Supabase sync...');
+        await avatarManagementService.initializeAvatarStorage();
+        console.log('✅ [APP] Avatar storage initialized and synced');
+
+        // Step 3: Ensure minimum loading time of 9 seconds to show MP4 animation
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, 9000 - elapsedTime);
+
+        setTimeout(() => {
+          setAuthLoading(false);
+          console.log('✅ [APP] App initialization complete');
+        }, remainingTime);
+      } catch (error) {
+        console.error('❌ [APP] Initialization error:', error);
+        // Still allow app to load on error
         setAuthLoading(false);
-        console.log('🔐 [AUTH] Initial auth state:', user ? `Logged in as ${user.email}` : 'Not logged in');
-      }, remainingTime);
+      }
     };
 
-    initAuth();
+    initializeApp();
 
-    // Listen for auth state changes
+    // Still listen for subsequent auth changes
     const subscription = authService.onAuthStateChange((user) => {
       setAuthUser(user);
-      console.log('🔐 [AUTH] Auth state changed:', user ? `${user.email}` : 'Logged out');
+      console.log('🔔 [AUTH] Auth state changed:', user ? `${user.email}` : 'Logged out');
     });
 
     return () => {
@@ -135,16 +167,8 @@ function App() {
     runMigration();
   }, []);
 
-  // Initialize avatar storage and sync with Supabase
-  React.useEffect(() => {
-    const initializeAvatarStorage = async () => {
-      console.log('🎭 [APP] Initializing avatar storage with Supabase sync...');
-      await avatarManagementService.initializeAvatarStorage();
-      console.log('✅ [APP] Avatar storage initialized and synced');
-    };
-
-    initializeAvatarStorage();
-  }, []);
+  // Note: Avatar storage initialization now happens in main initializeApp() above
+  // after auth is resolved, preventing race conditions
 
   // Initialize reminder notification service
   React.useEffect(() => {
@@ -285,6 +309,12 @@ function App() {
         return;
       }
 
+      // CRITICAL: Prevent homepage redirect during OAuth callback
+      if (isOAuthInProgress) {
+        console.log('⏳ [APP] OAuth in progress - delaying avatar check to prevent redirect');
+        return;
+      }
+
       console.log('🔍 [APP] Checking for saved avatars on initialization...');
 
       // Check if we already have an avatar in current session
@@ -420,7 +450,7 @@ function App() {
     };
 
     checkAndLoadSavedAvatar();
-  }, [authLoading, authUser]); // Re-run when auth state changes
+  }, [authLoading, authUser, isOAuthInProgress]); // Re-run when auth state or OAuth status changes
 
   // Helper functions for style profile auto-fill
   const getSavedStyleProfile = () => {

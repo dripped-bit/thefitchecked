@@ -63,6 +63,9 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             }
           }
 
+          // Signal to App that OAuth is completing
+          sessionStorage.setItem('oauth_in_progress', 'true');
+
           setTimeout(() => {
             onSuccess();
           }, 1500);
@@ -92,6 +95,9 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
               console.log('✅ [AUTH-CALLBACK] OAuth provider token received (Google Calendar)');
             }
 
+            // Signal to App that OAuth is completing
+            sessionStorage.setItem('oauth_in_progress', 'true');
+
             // Wait a moment for UI feedback, then redirect
             setTimeout(() => {
               onSuccess();
@@ -100,6 +106,10 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
         } else if (type) {
           // Handle other auth types (password reset, magic link without tokens yet, etc)
           console.log('🔐 [AUTH-CALLBACK] Other auth type:', type);
+
+          // Signal OAuth completion for any auth flow
+          sessionStorage.setItem('oauth_in_progress', 'true');
+
           setTimeout(() => {
             onSuccess();
           }, 1000);
