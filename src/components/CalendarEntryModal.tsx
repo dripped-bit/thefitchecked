@@ -126,12 +126,17 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
         return 'personal';
       };
 
+      // Log outfit ID for debugging
+      const outfitId = outfit?.outfit?.supabaseId || null;
+      console.log('🔍 [CALENDAR-MODAL] Saving calendar event with outfit ID:', outfitId);
+
       const event = await smartCalendarService.createEvent({
         title: formData.occasionName || 'Outfit Event',
         description: formData.notes || getOutfitDescription(),
         startTime: startTime,
         endTime: endTime,
         eventType: mapOccasionToEventType(formData.occasionName),
+        outfitId: outfitId,
         shoppingLinks: processedLinks.map(link => ({
           url: link.url,
           store: link.store,
