@@ -149,6 +149,13 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
       }
 
       console.log('✅ [CALENDAR-MODAL] Successfully saved to Smart Calendar:', event.id);
+
+      // Schedule reminder if user selected one
+      if (calendarEntry.reminderDays > 0) {
+        scheduleReminder(calendarEntry);
+        console.log('🔔 [CALENDAR-MODAL] Reminder scheduled for', calendarEntry.reminderDays, 'days before event');
+      }
+
       onSave(calendarEntry);
       onClose();
 

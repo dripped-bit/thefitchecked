@@ -28,6 +28,7 @@ import UserService from './services/userService';
 import authService, { AuthUser } from './services/authService';
 import avatarManagementService from './services/avatarManagementService';
 import weatherService from './services/weatherService';
+import reminderNotificationService from './services/reminderNotificationService';
 import outfitGenerationService from './services/outfitGenerationService';
 import localStorageMigrationService from './services/localStorageMigrationService';
 import reminderMonitorService from './services/reminderMonitorService';
@@ -134,6 +135,18 @@ function App() {
     };
 
     initializeAvatarStorage();
+  }, []);
+
+  // Initialize reminder notification service
+  React.useEffect(() => {
+    console.log('🔔 [APP] Initializing reminder notification service...');
+    reminderNotificationService.initialize();
+    console.log('✅ [APP] Reminder service initialized');
+
+    // Cleanup on unmount
+    return () => {
+      reminderNotificationService.stop();
+    };
   }, []);
 
   // Add error handling
