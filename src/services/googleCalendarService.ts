@@ -1,345 +1,248 @@
 /**
- * Google Calendar Integration Service
- * Handles OAuth authentication and calendar event synchronization
+ * Google Calendar Service
+ * Syncs outfit calendar events to user's Google Calendar using Supabase OAuth
+ * Requires Google OAuth with Calendar scope
  */
 
-import { CalendarEvent } from './smartCalendarService';
-
-// Google Calendar API configuration
-const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
-const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+import { supabase } from './supabaseClient';
 
 interface GoogleCalendarEvent {
-  id: string;
-  summary: string;
+  title: string;
   description?: string;
+  start_time: string;
+  end_time: string;
   location?: string;
-  start: {
-    dateTime?: string;
-    date?: string;
-    timeZone?: string;
-  };
-  end: {
-    dateTime?: string;
-    date?: string;
-    timeZone?: string;
-  };
-  status?: string;
-  eventType?: string;
-}
-
-interface SyncStatus {
-  isConnected: boolean;
-  lastSyncTime: Date | null;
-  error: string | null;
-  accountEmail: string | null;
 }
 
 class GoogleCalendarService {
-  private gapiInited = false;
-  private tokenClient: any = null;
-  private accessToken: string | null = null;
-
-  constructor() {
-    this.loadGapi();
-  }
-
   /**
-   * Load Google API client library
+   * Check if user has Google Calendar connected
    */
-  private async loadGapi(): Promise<void> {
+  async isConnected(): Promise<boolean> {
     try {
-      // Load gapi script
-      await new Promise<void>((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://apis.google.com/js/api.js';
-        script.onload = () => resolve();
-        script.onerror = reject;
-        document.body.appendChild(script);
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+      const isConnected = !!(session?.provider_token && session?.provider === 'google');
 
-      await this.initializeGapiClient();
-    } catch (error) {
-      console.error('❌ [GOOGLE-CAL] Failed to load Google API:', error);
-    }
-  }
-
-  /**
-   * Initialize Google API client
-   */
-  private async initializeGapiClient(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      (window as any).gapi.load('client', async () => {
-        try {
-          const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-
-          if (!apiKey) {
-            console.warn('⚠️ [GOOGLE-CAL] No Google API key found');
-            reject(new Error('No Google API key'));
-            return;
-          }
-
-          await (window as any).gapi.client.init({
-            apiKey: apiKey,
-            discoveryDocs: [DISCOVERY_DOC],
-          });
-
-          this.gapiInited = true;
-          console.log('✅ [GOOGLE-CAL] Google API client initialized');
-          resolve();
-        } catch (error) {
-          console.error('❌ [GOOGLE-CAL] Failed to initialize gapi client:', error);
-          reject(error);
-        }
-      });
-    });
-  }
-
-  /**
-   * Initialize Google OAuth token client
-   */
-  private initializeTokenClient(callback: (response: any) => void): void {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-    if (!clientId) {
-      console.error('❌ [GOOGLE-CAL] No Google Client ID found');
-      return;
-    }
-
-    this.tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: SCOPES,
-      callback: callback,
-    });
-  }
-
-  /**
-   * Connect to Google Calendar (OAuth flow)
-   */
-  async connect(): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      if (!this.gapiInited) {
-        reject(new Error('Google API not initialized'));
-        return;
+      if (isConnected) {
+        console.log('✅ [GOOGLE-CAL] User has Google Calendar access');
+      } else {
+        console.log('ℹ️ [GOOGLE-CAL] Google Calendar not connected');
       }
 
-      // Load GIS (Google Identity Services) library
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.onload = () => {
-        this.initializeTokenClient((response: any) => {
-          if (response.error) {
-            console.error('❌ [GOOGLE-CAL] OAuth error:', response);
-            reject(response.error);
-            return;
-          }
-
-          this.accessToken = response.access_token;
-
-          // Store access token in localStorage
-          localStorage.setItem('google_calendar_token', this.accessToken);
-          localStorage.setItem('google_calendar_connected', 'true');
-          localStorage.setItem('google_calendar_last_sync', new Date().toISOString());
-
-          console.log('✅ [GOOGLE-CAL] Successfully connected to Google Calendar');
-          resolve(true);
-        });
-
-        // Request access token
-        this.tokenClient.requestAccessToken({ prompt: '' });
-      };
-      document.body.appendChild(script);
-    });
-  }
-
-  /**
-   * Disconnect from Google Calendar
-   */
-  disconnect(): void {
-    if (this.accessToken) {
-      (window as any).google.accounts.oauth2.revoke(this.accessToken);
-      this.accessToken = null;
+      return isConnected;
+    } catch (error) {
+      console.error('❌ [GOOGLE-CAL] Error checking connection:', error);
+      return false;
     }
-
-    localStorage.removeItem('google_calendar_token');
-    localStorage.removeItem('google_calendar_connected');
-    localStorage.removeItem('google_calendar_last_sync');
-    localStorage.removeItem('google_calendar_email');
-
-    console.log('🔌 [GOOGLE-CAL] Disconnected from Google Calendar');
   }
 
   /**
-   * Check if Google Calendar is connected
+   * Get user's Google access token from Supabase session
    */
-  isConnected(): boolean {
-    const connected = localStorage.getItem('google_calendar_connected') === 'true';
-    const token = localStorage.getItem('google_calendar_token');
-
-    if (connected && token) {
-      this.accessToken = token;
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Get sync status
-   */
-  getSyncStatus(): SyncStatus {
-    const isConnected = this.isConnected();
-    const lastSyncStr = localStorage.getItem('google_calendar_last_sync');
-    const email = localStorage.getItem('google_calendar_email');
-
-    return {
-      isConnected,
-      lastSyncTime: lastSyncStr ? new Date(lastSyncStr) : null,
-      error: null,
-      accountEmail: email
-    };
-  }
-
-  /**
-   * Fetch events from Google Calendar
-   */
-  async fetchEvents(daysAhead: number = 30): Promise<CalendarEvent[]> {
-    if (!this.gapiInited || !this.accessToken) {
-      throw new Error('Google Calendar not connected');
-    }
-
+  async getAccessToken(): Promise<string | null> {
     try {
-      const now = new Date();
-      const timeMax = new Date();
-      timeMax.setDate(timeMax.getDate() + daysAhead);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.provider_token || null;
 
-      const response = await (window as any).gapi.client.calendar.events.list({
-        calendarId: 'primary',
-        timeMin: now.toISOString(),
-        timeMax: timeMax.toISOString(),
-        showDeleted: false,
-        singleEvents: true,
-        maxResults: 100,
+      if (!token) {
+        console.warn('⚠️ [GOOGLE-CAL] No access token available');
+      }
+
+      return token;
+    } catch (error) {
+      console.error('❌ [GOOGLE-CAL] Error getting access token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Sync event to Google Calendar
+   */
+  async syncEvent(eventData: GoogleCalendarEvent): Promise<any> {
+    try {
+      const accessToken = await this.getAccessToken();
+
+      if (!accessToken) {
+        throw new Error('No Google Calendar access token');
+      }
+
+      // Format event for Google Calendar API
+      const calendarEvent = {
+        summary: eventData.title,
+        description: eventData.description || '',
+        start: {
+          dateTime: eventData.start_time,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        end: {
+          dateTime: eventData.end_time,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        location: eventData.location || '',
+      };
+
+      console.log('📅 [GOOGLE-CAL] Syncing event to Google Calendar:', calendarEvent.summary);
+
+      // Create event in Google Calendar
+      const response = await fetch(
+        'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(calendarEvent),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ [GOOGLE-CAL] Sync failed:', error);
+        throw new Error(`Failed to sync to Google Calendar: ${error.error?.message || 'Unknown error'}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ [GOOGLE-CAL] Event synced successfully:', result.id);
+      return result;
+    } catch (error) {
+      console.error('❌ [GOOGLE-CAL] Error syncing event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete event from Google Calendar
+   */
+  async deleteEvent(googleEventId: string): Promise<void> {
+    try {
+      const accessToken = await this.getAccessToken();
+
+      if (!accessToken) {
+        throw new Error('No Google Calendar access token');
+      }
+
+      console.log('🗑️ [GOOGLE-CAL] Deleting event:', googleEventId);
+
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${googleEventId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('❌ [GOOGLE-CAL] Delete failed:', error);
+        throw new Error('Failed to delete from Google Calendar');
+      }
+
+      console.log('✅ [GOOGLE-CAL] Event deleted successfully');
+    } catch (error) {
+      console.error('❌ [GOOGLE-CAL] Error deleting event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update event in Google Calendar
+   */
+  async updateEvent(googleEventId: string, eventData: GoogleCalendarEvent): Promise<any> {
+    try {
+      const accessToken = await this.getAccessToken();
+
+      if (!accessToken) {
+        throw new Error('No Google Calendar access token');
+      }
+
+      const calendarEvent = {
+        summary: eventData.title,
+        description: eventData.description || '',
+        start: {
+          dateTime: eventData.start_time,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        end: {
+          dateTime: eventData.end_time,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        location: eventData.location || '',
+      };
+
+      console.log('📝 [GOOGLE-CAL] Updating event:', googleEventId);
+
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${googleEventId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(calendarEvent),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ [GOOGLE-CAL] Update failed:', error);
+        throw new Error('Failed to update Google Calendar event');
+      }
+
+      const result = await response.json();
+      console.log('✅ [GOOGLE-CAL] Event updated successfully');
+      return result;
+    } catch (error) {
+      console.error('❌ [GOOGLE-CAL] Error updating event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch events from Google Calendar (optional - for future two-way sync)
+   */
+  async fetchEvents(timeMin?: string, timeMax?: string): Promise<any[]> {
+    try {
+      const accessToken = await this.getAccessToken();
+
+      if (!accessToken) {
+        throw new Error('No Google Calendar access token');
+      }
+
+      const params = new URLSearchParams({
+        timeMin: timeMin || new Date().toISOString(),
+        timeMax: timeMax || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        singleEvents: 'true',
         orderBy: 'startTime',
       });
 
-      const events: CalendarEvent[] = response.result.items.map((event: GoogleCalendarEvent) =>
-        this.convertGoogleEventToCalendarEvent(event)
+      console.log('🔍 [GOOGLE-CAL] Fetching events from Google Calendar');
+
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
       );
 
-      // Update last sync time
-      localStorage.setItem('google_calendar_last_sync', new Date().toISOString());
+      if (!response.ok) {
+        throw new Error('Failed to fetch Google Calendar events');
+      }
 
-      console.log(`✅ [GOOGLE-CAL] Fetched ${events.length} events from Google Calendar`);
-      return events;
-
+      const result = await response.json();
+      console.log(`✅ [GOOGLE-CAL] Fetched ${result.items?.length || 0} events`);
+      return result.items || [];
     } catch (error) {
-      console.error('❌ [GOOGLE-CAL] Failed to fetch events:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Convert Google Calendar event to our CalendarEvent format
-   */
-  private convertGoogleEventToCalendarEvent(googleEvent: GoogleCalendarEvent): CalendarEvent {
-    const startTime = googleEvent.start.dateTime
-      ? new Date(googleEvent.start.dateTime)
-      : new Date(googleEvent.start.date + 'T00:00:00');
-
-    const endTime = googleEvent.end.dateTime
-      ? new Date(googleEvent.end.dateTime)
-      : new Date(googleEvent.end.date + 'T23:59:59');
-
-    // Determine event type based on keywords
-    const eventType = this.determineEventType(googleEvent.summary, googleEvent.description);
-
-    return {
-      id: `google_${googleEvent.id}`,
-      title: googleEvent.summary || 'Untitled Event',
-      description: googleEvent.description,
-      location: googleEvent.location,
-      startTime,
-      endTime,
-      isAllDay: !googleEvent.start.dateTime,
-      eventType,
-      source: 'google_calendar'
-    };
-  }
-
-  /**
-   * Determine event type from title and description
-   */
-  private determineEventType(title?: string, description?: string): 'work' | 'personal' | 'travel' | 'formal' | 'casual' | 'other' {
-    const text = `${title} ${description}`.toLowerCase();
-
-    if (text.includes('meeting') || text.includes('work') || text.includes('office') || text.includes('conference')) {
-      return 'work';
-    }
-    if (text.includes('trip') || text.includes('flight') || text.includes('travel') || text.includes('vacation')) {
-      return 'travel';
-    }
-    if (text.includes('wedding') || text.includes('gala') || text.includes('formal') || text.includes('black tie')) {
-      return 'formal';
-    }
-    if (text.includes('birthday') || text.includes('party') || text.includes('dinner') || text.includes('lunch')) {
-      return 'personal';
-    }
-    if (text.includes('gym') || text.includes('workout') || text.includes('casual') || text.includes('coffee')) {
-      return 'casual';
-    }
-
-    return 'other';
-  }
-
-  /**
-   * Get user's Google account info
-   */
-  async getUserInfo(): Promise<{ email: string; name: string } | null> {
-    if (!this.gapiInited || !this.accessToken) {
-      return null;
-    }
-
-    try {
-      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: {
-          Authorization: `Bearer ${this.accessToken}`
-        }
-      });
-
-      const data = await response.json();
-
-      // Store email
-      localStorage.setItem('google_calendar_email', data.email);
-
-      return {
-        email: data.email,
-        name: data.name
-      };
-    } catch (error) {
-      console.error('❌ [GOOGLE-CAL] Failed to get user info:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Sync events with local storage/Supabase
-   */
-  async syncEvents(saveToSupabase: (events: CalendarEvent[]) => Promise<void>): Promise<number> {
-    try {
-      const googleEvents = await this.fetchEvents(60); // 60 days ahead
-
-      // Save to Supabase or local storage
-      await saveToSupabase(googleEvents);
-
-      console.log(`✅ [GOOGLE-CAL] Synced ${googleEvents.length} events`);
-      return googleEvents.length;
-    } catch (error) {
-      console.error('❌ [GOOGLE-CAL] Sync failed:', error);
-      throw error;
+      console.error('❌ [GOOGLE-CAL] Error fetching events:', error);
+      return [];
     }
   }
 }
 
-export const googleCalendarService = new GoogleCalendarService();
-export default googleCalendarService;
+// Export singleton instance
+export default new GoogleCalendarService();

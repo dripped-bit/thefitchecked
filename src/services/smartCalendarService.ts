@@ -5,6 +5,7 @@
 
 import { supabase } from './supabaseClient';
 import authService from './authService';
+import googleCalendarService from './googleCalendarService';
 
 // Types and Interfaces
 export interface ShoppingLink {
@@ -146,6 +147,25 @@ class SmartCalendarService {
       }
 
       console.log('✅ Calendar event created:', data.id);
+
+      // Optional: Sync to Google Calendar if user is connected
+      try {
+        const isGoogleConnected = await googleCalendarService.isConnected();
+        if (isGoogleConnected) {
+          const googleEvent = await googleCalendarService.syncEvent({
+            title: eventData.title,
+            description: eventData.description,
+            start_time: eventData.startTime.toISOString(),
+            end_time: eventData.endTime.toISOString(),
+            location: eventData.location
+          });
+          console.log('✅ Event synced to Google Calendar:', googleEvent.id);
+        }
+      } catch (googleError) {
+        console.error('⚠️ Failed to sync to Google Calendar (non-fatal):', googleError);
+        // Don't fail the entire operation if Google sync fails
+      }
+
       return this.transformDatabaseEvent(data);
     } catch (error) {
       console.error('❌ Failed to create calendar event:', error);
