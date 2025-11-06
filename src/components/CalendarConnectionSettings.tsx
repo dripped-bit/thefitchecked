@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import googleCalendarService from '../services/googleCalendarService';
+import { supabase } from '../services/supabaseClient';
 
 interface CalendarConnectionSettingsProps {
   onSync?: (events: any[]) => void;
@@ -39,11 +40,17 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
     checkConnectionStatus();
   }, []);
 
-  const checkConnectionStatus = () => {
-    const status = googleCalendarService.getSyncStatus();
-    setGoogleConnected(status.isConnected);
-    setGoogleEmail(status.accountEmail);
-    setLastSync(status.lastSyncTime);
+  const checkConnectionStatus = async () => {
+    try {
+      const status = await googleCalendarService.getSyncStatus();
+      setGoogleConnected(status.isConnected);
+      setGoogleEmail(status.email);
+      if (status.lastSync) {
+        setLastSync(new Date(status.lastSync));
+      }
+    } catch (error) {
+      console.error('❌ [CAL-SETTINGS] Error checking connection status:', error);
+    }
   };
 
   const handleConnectGoogle = async () => {
@@ -51,34 +58,42 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
     setSyncError(null);
 
     try {
-      const connected = await googleCalendarService.connect();
-
-      if (connected) {
-        // Get user info
-        const userInfo = await googleCalendarService.getUserInfo();
-        if (userInfo) {
-          setGoogleEmail(userInfo.email);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/calendar',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          redirectTo: `${window.location.origin}/auth/callback`
         }
+      });
 
-        setGoogleConnected(true);
-
-        // Automatically sync after connecting
-        await handleSync();
+      if (error) {
+        console.error('❌ [CAL-SETTINGS] Failed to connect Google Calendar:', error);
+        setSyncError('Failed to connect. Please try again.');
+        setIsConnecting(false);
       }
+      // OAuth redirect will happen, so we don't need to handle success here
     } catch (error) {
-      console.error('Failed to connect Google Calendar:', error);
+      console.error('❌ [CAL-SETTINGS] Connection error:', error);
       setSyncError('Failed to connect. Please try again.');
-    } finally {
       setIsConnecting(false);
     }
   };
 
-  const handleDisconnectGoogle = () => {
-    googleCalendarService.disconnect();
-    setGoogleConnected(false);
-    setGoogleEmail(null);
-    setLastSync(null);
-    setSyncError(null);
+  const handleDisconnectGoogle = async () => {
+    try {
+      await googleCalendarService.disconnect();
+      setGoogleConnected(false);
+      setGoogleEmail(null);
+      setLastSync(null);
+      setSyncError(null);
+      console.log('ℹ️ [CAL-SETTINGS] Google Calendar disconnected');
+    } catch (error) {
+      console.error('❌ [CAL-SETTINGS] Error disconnecting:', error);
+    }
   };
 
   const handleSync = async () => {
@@ -91,7 +106,11 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
     setSyncError(null);
 
     try {
-      const events = await googleCalendarService.fetchEvents(60);
+      // Calculate timeMin (now) and timeMax (60 days from now)
+      const timeMin = new Date().toISOString();
+      const timeMax = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+
+      const events = await googleCalendarService.fetchEvents(timeMin, timeMax);
 
       // Call parent onSync callback
       if (onSync) {
@@ -99,9 +118,9 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
       }
 
       setLastSync(new Date());
-      console.log(`✅ Synced ${events.length} events from Google Calendar`);
+      console.log(`✅ [CAL-SETTINGS] Synced ${events.length} events from Google Calendar`);
     } catch (error) {
-      console.error('Sync failed:', error);
+      console.error('❌ [CAL-SETTINGS] Sync failed:', error);
       setSyncError('Sync failed. Please check your connection.');
     } finally {
       setIsSyncing(false);
