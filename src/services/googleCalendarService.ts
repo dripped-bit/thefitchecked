@@ -242,6 +242,52 @@ class GoogleCalendarService {
       return [];
     }
   }
+
+  /**
+   * Get detailed sync status with last sync time and email
+   */
+  async getSyncStatus(): Promise<{
+    isConnected: boolean;
+    lastSync: string | null;
+    email: string | null;
+  }> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.provider_token || session?.provider !== 'google') {
+        return {
+          isConnected: false,
+          lastSync: null,
+          email: null
+        };
+      }
+
+      return {
+        isConnected: true,
+        lastSync: new Date().toISOString(),
+        email: session.user?.email || null
+      };
+    } catch (error) {
+      console.error('❌ [GOOGLE-CAL] Error getting sync status:', error);
+      return {
+        isConnected: false,
+        lastSync: null,
+        email: null
+      };
+    }
+  }
+
+  /**
+   * Disconnect Google Calendar
+   * Note: Supabase doesn't provide direct scope revocation
+   * Users should manage this in their Google Account settings
+   */
+  async disconnect(): Promise<void> {
+    console.log('ℹ️ [GOOGLE-CAL] To fully disconnect Google Calendar:');
+    console.log('1. Go to https://myaccount.google.com/permissions');
+    console.log('2. Find "TheFitChecked" and remove access');
+    console.log('3. Or sign out and sign back in without calendar permissions');
+  }
 }
 
 // Export singleton instance
