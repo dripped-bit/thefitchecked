@@ -58,6 +58,43 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
     setSyncError(null);
 
     try {
+      // Check if user already has a valid session with potential calendar access
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.provider_token && session?.provider === 'google') {
+        console.log('✅ [CAL-SETTINGS] Provider token exists, testing calendar access...');
+
+        // Test if the existing token has calendar permissions
+        try {
+          const testResponse = await fetch(
+            'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+            {
+              headers: {
+                'Authorization': `Bearer ${session.provider_token}`,
+              },
+            }
+          );
+
+          if (testResponse.ok) {
+            console.log('✅ [CAL-SETTINGS] Calendar access already granted!');
+            setGoogleConnected(true);
+            setGoogleEmail(session.user?.email || null);
+            setLastSync(new Date());
+            setIsConnecting(false);
+            return;
+          } else if (testResponse.status === 401) {
+            console.log('⚠️ [CAL-SETTINGS] Token expired, proceeding with OAuth');
+          } else {
+            console.log('⚠️ [CAL-SETTINGS] Token exists but lacks calendar scope, proceeding with OAuth');
+          }
+        } catch (err) {
+          console.log('⚠️ [CAL-SETTINGS] Calendar test failed, proceeding with OAuth:', err);
+        }
+      }
+
+      // Proceed with OAuth flow
+      console.log('🔐 [CAL-SETTINGS] Initiating Google OAuth for calendar access...');
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

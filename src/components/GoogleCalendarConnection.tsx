@@ -39,6 +39,41 @@ const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> = ({
     try {
       setConnecting(true);
 
+      // Check if user already has a valid session with potential calendar access
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.provider_token && session?.provider === 'google') {
+        console.log('✅ [GOOGLE-CAL-UI] Provider token exists, testing calendar access...');
+
+        // Test if the existing token has calendar permissions
+        try {
+          const testResponse = await fetch(
+            'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+            {
+              headers: {
+                'Authorization': `Bearer ${session.provider_token}`,
+              },
+            }
+          );
+
+          if (testResponse.ok) {
+            console.log('✅ [GOOGLE-CAL-UI] Calendar access already granted!');
+            setIsConnected(true);
+            setConnecting(false);
+            return;
+          } else if (testResponse.status === 401) {
+            console.log('⚠️ [GOOGLE-CAL-UI] Token expired, proceeding with OAuth');
+          } else {
+            console.log('⚠️ [GOOGLE-CAL-UI] Token exists but lacks calendar scope, proceeding with OAuth');
+          }
+        } catch (err) {
+          console.log('⚠️ [GOOGLE-CAL-UI] Calendar test failed, proceeding with OAuth:', err);
+        }
+      }
+
+      // Proceed with OAuth flow
+      console.log('🔐 [GOOGLE-CAL-UI] Initiating Google OAuth for calendar access...');
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -52,13 +87,13 @@ const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> = ({
       });
 
       if (error) {
-        console.error('L [GOOGLE-CAL-UI] Error connecting Google Calendar:', error);
+        console.error('❌ [GOOGLE-CAL-UI] Error connecting Google Calendar:', error);
         alert('Failed to connect Google Calendar. Please try again.');
         setConnecting(false);
       }
       // OAuth redirect will happen, so we don't need to handle success here
     } catch (error) {
-      console.error('L [GOOGLE-CAL-UI] Connection error:', error);
+      console.error('❌ [GOOGLE-CAL-UI] Connection error:', error);
       alert('Failed to connect Google Calendar. Please try again.');
       setConnecting(false);
     }

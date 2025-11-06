@@ -12,29 +12,73 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        // Check if user already has an active session
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+
         // Get the URL hash parameters
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
         const providerToken = hashParams.get('provider_token');
+        const error = hashParams.get('error');
+        const errorDescription = hashParams.get('error_description');
 
+        // Enhanced logging for debugging
         console.log('🔐 [AUTH-CALLBACK] Processing auth callback:', {
           type,
           hasAccessToken: !!accessToken,
-          hasProviderToken: !!providerToken
+          hasProviderToken: !!providerToken,
+          hasExistingSession: !!existingSession,
+          error,
+          errorDescription
         });
 
-        // Handle OAuth callbacks (Google, etc.)
+        // Handle OAuth errors from provider (e.g., user denied access)
+        if (error) {
+          console.error('❌ [AUTH-CALLBACK] OAuth error:', error, errorDescription);
+          setError(errorDescription || 'Authentication failed. Please try again.');
+          setProcessing(false);
+          return;
+        }
+
+        // Handle re-authentication scenario (user already logged in, adding scopes)
+        if (existingSession && !accessToken && !refreshToken && !type) {
+          console.log('🔄 [AUTH-CALLBACK] Re-authentication detected for existing session');
+
+          // Refresh the session to get updated tokens/scopes
+          const { data, error: refreshError } = await supabase.auth.refreshSession();
+
+          if (refreshError) {
+            console.error('❌ [AUTH-CALLBACK] Session refresh error:', refreshError);
+            setError('Failed to update permissions. Please try again.');
+            setProcessing(false);
+            return;
+          }
+
+          if (data.session) {
+            console.log('✅ [AUTH-CALLBACK] Session refreshed successfully');
+            if (data.session.provider_token) {
+              console.log('✅ [AUTH-CALLBACK] Provider token available in refreshed session');
+            }
+          }
+
+          setTimeout(() => {
+            onSuccess();
+          }, 1500);
+          return;
+        }
+
+        // Handle OAuth callbacks (Google, etc.) with fresh tokens
         if (accessToken && refreshToken) {
           // Set the session with the tokens from the URL
-          const { data, error } = await supabase.auth.setSession({
+          const { data, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
 
-          if (error) {
-            console.error('❌ [AUTH-CALLBACK] Session error:', error);
+          if (sessionError) {
+            console.error('❌ [AUTH-CALLBACK] Session error:', sessionError);
             setError('Failed to complete authentication. Please try again.');
             setProcessing(false);
             return;
@@ -60,6 +104,11 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             onSuccess();
           }, 1000);
         } else {
+          // Log additional debug info before showing error
+          console.error('❌ [AUTH-CALLBACK] No valid callback parameters found');
+          console.error('🔍 [AUTH-CALLBACK] URL hash:', window.location.hash);
+          console.error('🔍 [AUTH-CALLBACK] All params:', Object.fromEntries(hashParams));
+
           setError('Invalid authentication link');
           setProcessing(false);
         }
