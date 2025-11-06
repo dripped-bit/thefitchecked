@@ -17,42 +17,51 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
+        const providerToken = hashParams.get('provider_token');
 
-        console.log('🔐 [AUTH-CALLBACK] Processing auth callback:', { type, hasAccessToken: !!accessToken });
+        console.log('🔐 [AUTH-CALLBACK] Processing auth callback:', {
+          type,
+          hasAccessToken: !!accessToken,
+          hasProviderToken: !!providerToken
+        });
 
-        if (type === 'signup' || type === 'email') {
-          if (accessToken && refreshToken) {
-            // Set the session with the tokens from the URL
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken
-            });
+        // Handle OAuth callbacks (Google, etc.)
+        if (accessToken && refreshToken) {
+          // Set the session with the tokens from the URL
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
 
-            if (error) {
-              console.error('❌ [AUTH-CALLBACK] Session error:', error);
-              setError('Failed to confirm email. Please try again.');
-              setProcessing(false);
-              return;
-            }
-
-            if (data.session) {
-              console.log('✅ [AUTH-CALLBACK] Email confirmed, session established');
-
-              // Wait a moment for UI feedback, then redirect
-              setTimeout(() => {
-                onSuccess();
-              }, 1500);
-            }
-          } else {
-            setError('Invalid confirmation link');
+          if (error) {
+            console.error('❌ [AUTH-CALLBACK] Session error:', error);
+            setError('Failed to complete authentication. Please try again.');
             setProcessing(false);
+            return;
           }
-        } else {
-          // Handle other auth types (password reset, etc)
+
+          if (data.session) {
+            console.log('✅ [AUTH-CALLBACK] Session established');
+
+            // If this is an OAuth callback with provider token (Google Calendar)
+            if (providerToken) {
+              console.log('✅ [AUTH-CALLBACK] OAuth provider token received (Google Calendar)');
+            }
+
+            // Wait a moment for UI feedback, then redirect
+            setTimeout(() => {
+              onSuccess();
+            }, 1500);
+          }
+        } else if (type) {
+          // Handle other auth types (password reset, magic link without tokens yet, etc)
           console.log('🔐 [AUTH-CALLBACK] Other auth type:', type);
           setTimeout(() => {
             onSuccess();
           }, 1000);
+        } else {
+          setError('Invalid authentication link');
+          setProcessing(false);
         }
       } catch (err) {
         console.error('❌ [AUTH-CALLBACK] Callback error:', err);
@@ -96,8 +105,8 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             <div className="mb-4">
               <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-purple-600 border-t-transparent"></div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Confirming Your Email</h2>
-            <p className="text-gray-600">Please wait while we verify your account...</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Completing Authentication</h2>
+            <p className="text-gray-600">Please wait while we verify your connection...</p>
           </>
         ) : (
           <>
@@ -108,8 +117,8 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
                 </svg>
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Confirmed!</h2>
-            <p className="text-gray-600">Redirecting to your account...</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Complete!</h2>
+            <p className="text-gray-600">Redirecting you back...</p>
           </>
         )}
       </div>
