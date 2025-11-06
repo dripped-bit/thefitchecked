@@ -22,6 +22,8 @@ import SharedOutfit from './components/SharedOutfit';
 import AuthModal from './components/AuthModal';
 import UserMenu from './components/UserMenu';
 import AuthCallback from './components/AuthCallback';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 import { CapturedPhoto, AvatarData } from './types/photo';
 import { UserData, OnboardingFormData } from './types/user';
 import UserService from './services/userService';
@@ -68,11 +70,18 @@ function App() {
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const shareParam = urlParams.get('share');
+    const pathname = window.location.pathname;
 
-    // Check if this is an auth callback route
-    if (window.location.pathname === '/auth/callback') {
+    // Check for special routes
+    if (pathname === '/auth/callback') {
       console.log('🔐 [AUTH] Auth callback route detected');
       setIsAuthCallback(true);
+      return;
+    }
+
+    // Check for legal pages
+    if (pathname === '/privacy' || pathname === '/terms') {
+      console.log('📄 [ROUTE] Legal page route detected:', pathname);
       return;
     }
 
@@ -840,6 +849,15 @@ function App() {
   };
 
   // Handle auth callback route
+  // Handle legal pages
+  if (window.location.pathname === '/privacy') {
+    return <PrivacyPolicy onBack={() => window.location.href = '/'} />;
+  }
+
+  if (window.location.pathname === '/terms') {
+    return <TermsOfService onBack={() => window.location.href = '/'} />;
+  }
+
   if (isAuthCallback) {
     return (
       <AuthCallback
