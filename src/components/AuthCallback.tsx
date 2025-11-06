@@ -11,6 +11,21 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
+      // Helper function to handle post-auth redirect
+      const handlePostAuthRedirect = () => {
+        // Check if there's a specific return path (e.g., from calendar OAuth)
+        const returnPath = sessionStorage.getItem('oauth_return_path');
+
+        if (returnPath) {
+          console.log('🔄 [AUTH-CALLBACK] Redirecting to return path:', returnPath);
+          sessionStorage.removeItem('oauth_return_path');
+          window.location.href = returnPath;
+        } else {
+          // Default behavior: use onSuccess callback
+          onSuccess();
+        }
+      };
+
       try {
         // Check if user already has an active session
         const { data: { session: existingSession } } = await supabase.auth.getSession();
@@ -67,7 +82,7 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
           sessionStorage.setItem('oauth_in_progress', 'true');
 
           setTimeout(() => {
-            onSuccess();
+            handlePostAuthRedirect();
           }, 1500);
           return;
         }
@@ -100,7 +115,7 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
 
             // Wait a moment for UI feedback, then redirect
             setTimeout(() => {
-              onSuccess();
+              handlePostAuthRedirect();
             }, 1500);
           }
         } else if (type) {
@@ -111,7 +126,7 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
           sessionStorage.setItem('oauth_in_progress', 'true');
 
           setTimeout(() => {
-            onSuccess();
+            handlePostAuthRedirect();
           }, 1000);
         } else {
           // Log additional debug info before showing error

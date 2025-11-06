@@ -74,6 +74,10 @@ const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> = ({
       // Proceed with OAuth flow
       console.log('🔐 [GOOGLE-CAL-UI] Initiating Google OAuth for calendar access...');
 
+      // Store return path so user comes back to calendar view after OAuth
+      sessionStorage.setItem('oauth_return_path', '/closet?view=calendar');
+      sessionStorage.setItem('oauth_success_message', 'Google Calendar connected successfully!');
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
