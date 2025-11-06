@@ -9,6 +9,7 @@ import { closetService } from './closetService';
 import { enhancedTwoStepService } from './enhancedTwoStepService';
 import type { StyleProfile } from './outfitGenerationService';
 import type { ClothingItem, UserProfile } from '../types';
+import outfitCoherenceValidator from './outfitCoherenceValidator';
 
 export interface OccasionType {
   id: string;

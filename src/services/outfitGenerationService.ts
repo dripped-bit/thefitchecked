@@ -8,6 +8,7 @@ import ClosetService, { ClothingItem } from './closetService';
 import enhancedPromptGenerationService, { EnhancedPromptResult, PromptGenerationRequest } from './enhancedPromptGenerationService';
 import promptDebugService from './promptDebugService';
 import userDataService from './userDataService';
+import outfitCoherenceValidator from './outfitCoherenceValidator';
 
 export interface OutfitSuggestion {
   id: number;
@@ -800,7 +801,10 @@ class OutfitGenerationService {
     outfit.colors = this.extractColorsFromItems(selectedItems);
     outfit.userItems = selectedItems;
 
-    // Generate FAL prompt
+    // Validate outfit coherence
+    outfit.pieces = outfitCoherenceValidator.filterConflictingPieces(outfit.pieces);
+
+    // Generate FAL prompt with validated pieces
     outfit.falPrompt = `wearing ${outfit.pieces.slice(0, 3).join(', ')}, personal wardrobe style, ${timeOfDay} lighting, fashion photography`;
 
     return outfit.pieces.length >= 2 ? outfit : null; // Need at least 2 pieces for an outfit
@@ -996,15 +1000,18 @@ class OutfitGenerationService {
     // Add weather-specific items
     pieces = [...pieces, ...weatherFactors.protection, ...weatherFactors.accessories];
 
+    // Validate outfit coherence before creating prompt
+    const validatedPieces = outfitCoherenceValidator.filterConflictingPieces(pieces.slice(0, 6));
+
     return {
       name,
       description,
-      pieces: pieces.slice(0, 6), // Limit to 6 pieces
+      pieces: validatedPieces,
       colors,
       style: timeFactors.style,
       occasion: timeFactors.occasion,
       temperature_range: { min: temp - 10, max: temp + 10 },
-      falPrompt: `wearing ${pieces.slice(0, 4).join(', ')}, ${colors.slice(0, 2).join(' and ')} colors, ${timeFactors.style.toLowerCase()}, ${season} fashion, ${timeOfDay} lighting`
+      falPrompt: `wearing ${validatedPieces.slice(0, 4).join(', ')}, ${colors.slice(0, 2).join(' and ')} colors, ${timeFactors.style.toLowerCase()}, ${season} fashion, ${timeOfDay} lighting`
     };
   }
 
@@ -1037,15 +1044,18 @@ class OutfitGenerationService {
 
     const variation = variations[season as keyof typeof variations] || variations.spring;
 
+    // Validate outfit coherence
+    const validatedPieces = outfitCoherenceValidator.filterConflictingPieces(variation.pieces);
+
     return {
       name: variation.name,
       description: `Seasonal ${season} style perfect for ${timeOfDay}`,
-      pieces: variation.pieces,
+      pieces: validatedPieces,
       colors: seasonalFactors.colors.slice(1, 4),
       style: variation.style,
       occasion: timeOfDay === 'evening' ? 'Social gathering' : 'Daily activities',
       temperature_range: { min: weather.temperature - 8, max: weather.temperature + 8 },
-      falPrompt: `wearing ${variation.pieces.slice(0, 3).join(', ')}, ${variation.style.toLowerCase()}, ${season} collection, ${timeOfDay} scene`
+      falPrompt: `wearing ${validatedPieces.slice(0, 3).join(', ')}, ${variation.style.toLowerCase()}, ${season} collection, ${timeOfDay} scene`
     };
   }
 

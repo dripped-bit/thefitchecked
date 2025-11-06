@@ -30,6 +30,7 @@ import SavedAvatarsTab from './SavedAvatarsTab';
 import { CURRENT_PERFECT_PROMPT } from '../config/bestavatargenerated.js';
 import stylePreferencesService from '../services/stylePreferencesService';
 import avatarManagementService from '../services/avatarManagementService';
+import outfitCoherenceValidator from '../services/outfitCoherenceValidator';
 
 interface AvatarHomepageProps {
   onBack: () => void;
@@ -403,8 +404,12 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
       setAvatarAnimation('changing');
       console.log('🎯 Starting outfit application for:', outfit.name);
 
+      // Validate outfit coherence before applying
+      const validatedPieces = outfitCoherenceValidator.filterConflictingPieces(outfit.pieces);
+      console.log('✅ Validated outfit pieces:', validatedPieces);
+
       // Use Hybrid Try-On Service (fal.ai generation + FASHN try-on)
-      const garmentPrompt = `${outfit.pieces.join(', ')} in ${outfit.colors.join(' and ')} colors, ${outfit.style} style`;
+      const garmentPrompt = `${validatedPieces.join(', ')} in ${outfit.colors.join(' and ')} colors, ${outfit.style} style`;
       console.log('🎨 Starting hybrid try-on with prompt:', garmentPrompt);
 
       // Step 1: Generate clothing
