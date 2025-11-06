@@ -161,7 +161,7 @@ class NotificationService {
         message,
         {
           occasion,
-          event_date: eventDate.toISOString(),
+          start_time: eventDate.toISOString(),
           outfit_id: outfitId
         }
       );
