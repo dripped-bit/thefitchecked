@@ -123,10 +123,9 @@ class AuthService {
   async signInWithApple(): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
+        provider: 'apple'
+        // Note: No redirectTo option for Apple - Supabase handles the callback
+        // Apple must redirect to https://[project].supabase.co/auth/v1/callback
       });
 
       if (error) {
