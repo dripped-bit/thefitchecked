@@ -38,6 +38,7 @@ import OutfitSuggestionModal from './OutfitSuggestionModal';
 import WeeklyOutfitQueue from './WeeklyOutfitQueue';
 import CalendarConnectionSettings from './CalendarConnectionSettings';
 import { calendarConnectionManager } from '../services/calendar/calendarConnectionManager';
+import { GoogleCalendarConnection } from './calendar/GoogleCalendarConnection';
 
 interface SmartCalendarDashboardProps {
   onBack?: () => void;
@@ -101,21 +102,11 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
     }
   };
 
-  const handleCalendarConnect = async (provider: 'google' | 'apple') => {
-    setIsLoading(true);
-    try {
-      const success = provider === 'google'
-        ? await smartCalendarService.connectGoogleCalendar()
-        : await smartCalendarService.connectAppleCalendar();
-
-      if (success) {
-        setIsConnected(true);
-        await initializeDashboard();
-      }
-    } catch (error) {
-      console.error('Calendar connection failed:', error);
-    } finally {
-      setIsLoading(false);
+  const handleConnectionChange = async (connected: boolean) => {
+    console.log('📅 [SMART-CALENDAR] Connection changed:', connected);
+    setIsConnected(connected);
+    if (connected) {
+      await initializeDashboard();
     }
   };
 
@@ -171,24 +162,10 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         Sync with your calendar to get intelligent outfit suggestions based on your events and weather.
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <button
-          onClick={() => handleCalendarConnect('google')}
-          disabled={isLoading}
-          className="flex items-center space-x-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-        >
-          <Calendar className="w-5 h-5" />
-          <span>Connect Google Calendar</span>
-        </button>
-
-        <button
-          onClick={() => handleCalendarConnect('apple')}
-          disabled={isLoading}
-          className="flex items-center space-x-2 bg-gray-800 text-white px-6 py-3 rounded-lg hover:bg-gray-900 transition-colors disabled:opacity-50"
-        >
-          <Calendar className="w-5 h-5" />
-          <span>Connect Apple Calendar</span>
-        </button>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-2xl mx-auto">
+        <GoogleCalendarConnection
+          onConnectionChange={handleConnectionChange}
+        />
       </div>
 
       <div className="mt-8 text-sm text-gray-500">
