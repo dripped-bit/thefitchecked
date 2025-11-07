@@ -37,6 +37,7 @@ import MonthlyCalendarGrid from './MonthlyCalendarGrid';
 import OutfitSuggestionModal from './OutfitSuggestionModal';
 import WeeklyOutfitQueue from './WeeklyOutfitQueue';
 import CalendarConnectionSettings from './CalendarConnectionSettings';
+import { calendarConnectionManager } from '../services/calendar/calendarConnectionManager';
 
 interface SmartCalendarDashboardProps {
   onBack?: () => void;
@@ -48,7 +49,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   clothingItems = []
 }) => {
   const [currentView, setCurrentView] = useState<'calendar' | 'morning' | 'queue' | 'settings' | 'packing'>('calendar');
-  const [isConnected, setIsConnected] = useState(true); // Always connected with manual entry
+  const [isConnected, setIsConnected] = useState(false); // Check actual connection status
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [morningOptions, setMorningOptions] = useState<MorningOptions | null>(null);
   const [outfitQueue, setOutfitQueue] = useState<OutfitPlan[]>([]);
@@ -64,12 +65,25 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
   useEffect(() => {
     initializeDashboard();
+
+    // Check for success message from OAuth callback
+    const successMessage = sessionStorage.getItem('calendar_connection_success');
+    if (successMessage) {
+      alert(successMessage);
+      sessionStorage.removeItem('calendar_connection_success');
+      // Reload dashboard to reflect new connection
+      initializeDashboard();
+    }
   }, []);
 
   const initializeDashboard = async () => {
     setIsLoading(true);
     try {
-      const connected = smartCalendarService.isConnected();
+      // Check if Google Calendar is actually connected
+      const googleConnection = await calendarConnectionManager.getConnectionByProvider('google');
+      const connected = googleConnection !== null;
+
+      console.log('📅 [SMART-CALENDAR] Connection status:', connected ? 'Connected' : 'Not connected');
       setIsConnected(connected);
 
       if (connected) {
@@ -81,6 +95,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
       }
     } catch (error) {
       console.error('Failed to initialize dashboard:', error);
+      setIsConnected(false);
     } finally {
       setIsLoading(false);
     }
