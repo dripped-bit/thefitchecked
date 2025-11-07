@@ -248,8 +248,8 @@ class CalendarConnectionManager {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
-        client_secret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET || '',
+        client_id: import.meta.env.VITE_SUPABASE_GOOGLE_CLIENT_ID || '',
+        client_secret: import.meta.env.VITE_SUPABASE_GOOGLE_CLIENT_SECRET || '',
         refresh_token: connection.refresh_token,
         grant_type: 'refresh_token',
       }),
