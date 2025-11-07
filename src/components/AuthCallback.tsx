@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
+import { calendarConnectionManager } from '../services/calendar/calendarConnectionManager';
 
 interface AuthCallbackProps {
   onSuccess: () => void;
@@ -27,6 +28,10 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
       };
 
       try {
+        // Check if this is a calendar OAuth callback
+        const urlParams = new URLSearchParams(window.location.search);
+        const isCalendarCallback = urlParams.get('calendar');
+
         // Check if user already has an active session
         const { data: { session: existingSession } } = await supabase.auth.getSession();
 
@@ -75,6 +80,30 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             console.log('✅ [AUTH-CALLBACK] Session refreshed successfully');
             if (data.session.provider_token) {
               console.log('✅ [AUTH-CALLBACK] Provider token available in refreshed session');
+
+              // If this is a calendar OAuth callback, save the connection
+              if (isCalendarCallback === 'google') {
+                console.log('📅 [AUTH-CALLBACK] Saving Google Calendar connection from refreshed session');
+
+                try {
+                  const tokenExpiry = new Date(Date.now() + 3600 * 1000); // 1 hour from now
+                  const userEmail = data.session.user.email || null;
+
+                  await calendarConnectionManager.saveConnection(
+                    'google',
+                    data.session.provider_token,
+                    data.session.provider_refresh_token || null,
+                    tokenExpiry,
+                    userEmail
+                  );
+
+                  console.log('✅ [AUTH-CALLBACK] Google Calendar connection saved successfully');
+                  sessionStorage.setItem('calendar_connection_success', 'Google Calendar connected!');
+                } catch (calendarError) {
+                  console.error('❌ [AUTH-CALLBACK] Failed to save calendar connection:', calendarError);
+                  // Don't fail the entire auth flow, just log the error
+                }
+              }
             }
           }
 
@@ -108,6 +137,30 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             // If this is an OAuth callback with provider token (Google Calendar)
             if (providerToken) {
               console.log('✅ [AUTH-CALLBACK] OAuth provider token received (Google Calendar)');
+
+              // If this is a calendar OAuth callback, save the connection
+              if (isCalendarCallback === 'google') {
+                console.log('📅 [AUTH-CALLBACK] Saving Google Calendar connection from fresh OAuth');
+
+                try {
+                  const tokenExpiry = new Date(Date.now() + 3600 * 1000); // 1 hour from now
+                  const userEmail = data.session.user.email || null;
+
+                  await calendarConnectionManager.saveConnection(
+                    'google',
+                    data.session.provider_token!,
+                    data.session.provider_refresh_token || null,
+                    tokenExpiry,
+                    userEmail
+                  );
+
+                  console.log('✅ [AUTH-CALLBACK] Google Calendar connection saved successfully');
+                  sessionStorage.setItem('calendar_connection_success', 'Google Calendar connected!');
+                } catch (calendarError) {
+                  console.error('❌ [AUTH-CALLBACK] Failed to save calendar connection:', calendarError);
+                  // Don't fail the entire auth flow, just log the error
+                }
+              }
             }
 
             // Signal to App that OAuth is completing

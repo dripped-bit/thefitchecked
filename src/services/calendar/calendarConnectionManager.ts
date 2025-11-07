@@ -1,238 +1,295 @@
 /**
  * Calendar Connection Manager
- * Handles storing and retrieving calendar connections from Supabase
- * Decouples calendar providers from authentication
+ *
+ * Manages calendar connections separately from authentication.
+ * Allows users to connect multiple calendar providers regardless of how they signed in.
  */
 
 import { supabase } from '../supabaseClient';
-import { CalendarConnection } from './ICalendarService';
 
-interface CalendarConnectionRow {
+export interface CalendarConnection {
   id: string;
   user_id: string;
   provider: 'google' | 'apple' | 'outlook';
-  access_token: string | null;
+  access_token: string;
   refresh_token: string | null;
-  token_expires_at: string | null;
+  token_expiry: string | null;
   calendar_email: string | null;
-  calendar_name: string | null;
-  is_active: boolean;
-  last_sync_at: string | null;
+  is_primary: boolean;
   created_at: string;
   updated_at: string;
 }
 
 class CalendarConnectionManager {
-  private readonly TABLE_NAME = 'user_calendar_connections';
-
   /**
-   * Get all calendar connections for current user
+   * Get all calendar connections for the current user
    */
   async getConnections(): Promise<CalendarConnection[]> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log('ℹ️ [CAL-MANAGER] No authenticated user');
-        return [];
-      }
+    const { data: { user } } = await supabase.auth.getUser();
 
-      const { data, error } = await supabase
-        .from(this.TABLE_NAME)
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true);
-
-      if (error) {
-        console.error('❌ [CAL-MANAGER] Error fetching connections:', error);
-        return [];
-      }
-
-      return (data as CalendarConnectionRow[]).map(this.rowToConnection);
-    } catch (error) {
-      console.error('❌ [CAL-MANAGER] Error in getConnections:', error);
-      return [];
+    if (!user) {
+      throw new Error('User not authenticated');
     }
+
+    const { data, error } = await supabase
+      .from('user_calendar_connections')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('❌ [CALENDAR-MANAGER] Error fetching connections:', error);
+      throw error;
+    }
+
+    console.log(`📅 [CALENDAR-MANAGER] Found ${data?.length || 0} calendar connections`);
+    return data || [];
   }
 
   /**
-   * Get connection for specific provider
+   * Get connection for a specific provider
    */
-  async getConnection(provider: 'google' | 'apple' | 'outlook'): Promise<CalendarConnection | null> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        return null;
-      }
+  async getConnectionByProvider(provider: 'google' | 'apple' | 'outlook'): Promise<CalendarConnection | null> {
+    const { data: { user } } = await supabase.auth.getUser();
 
-      const { data, error } = await supabase
-        .from(this.TABLE_NAME)
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('provider', provider)
-        .eq('is_active', true)
-        .single();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Not found - this is OK
-          return null;
-        }
-        console.error(`❌ [CAL-MANAGER] Error fetching ${provider} connection:`, error);
-        return null;
-      }
+    const { data, error } = await supabase
+      .from('user_calendar_connections')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('provider', provider)
+      .single();
 
-      return this.rowToConnection(data as CalendarConnectionRow);
-    } catch (error) {
-      console.error(`❌ [CAL-MANAGER] Error in getConnection(${provider}):`, error);
+    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+      console.error(`❌ [CALENDAR-MANAGER] Error fetching ${provider} connection:`, error);
+      throw error;
+    }
+
+    return data || null;
+  }
+
+  /**
+   * Get the primary calendar connection (or first available)
+   */
+  async getPrimaryConnection(): Promise<CalendarConnection | null> {
+    const connections = await this.getConnections();
+
+    if (connections.length === 0) {
       return null;
     }
+
+    // Return primary if set
+    const primary = connections.find(conn => conn.is_primary);
+    if (primary) {
+      return primary;
+    }
+
+    // Otherwise return first connection
+    return connections[0];
   }
 
   /**
-   * Save or update calendar connection
+   * Save or update a calendar connection
    */
   async saveConnection(
     provider: 'google' | 'apple' | 'outlook',
-    tokens: {
-      accessToken: string;
-      refreshToken?: string;
-      expiresAt?: Date;
-    },
-    metadata: {
-      email: string;
-      name?: string;
+    accessToken: string,
+    refreshToken: string | null,
+    tokenExpiry: Date | null,
+    calendarEmail: string | null = null
+  ): Promise<CalendarConnection> {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
     }
-  ): Promise<CalendarConnection | null> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('❌ [CAL-MANAGER] No authenticated user');
-        return null;
+
+    console.log(`📝 [CALENDAR-MANAGER] Saving ${provider} calendar connection`);
+
+    // Check if connection already exists
+    const existing = await this.getConnectionByProvider(provider);
+
+    if (existing) {
+      // Update existing connection
+      const { data, error } = await supabase
+        .from('user_calendar_connections')
+        .update({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          token_expiry: tokenExpiry?.toISOString(),
+          calendar_email: calendarEmail,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`❌ [CALENDAR-MANAGER] Error updating ${provider} connection:`, error);
+        throw error;
       }
 
-      const connectionData = {
-        user_id: user.id,
-        provider,
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken || null,
-        token_expires_at: tokens.expiresAt?.toISOString() || null,
-        calendar_email: metadata.email,
-        calendar_name: metadata.name || null,
-        is_active: true,
-        last_sync_at: new Date().toISOString(),
-      };
+      console.log(`✅ [CALENDAR-MANAGER] Updated ${provider} calendar connection`);
+      return data;
+    } else {
+      // Create new connection
+      const isPrimary = (await this.getConnections()).length === 0; // First connection is primary
 
-      // Use upsert to handle both insert and update
       const { data, error } = await supabase
-        .from(this.TABLE_NAME)
-        .upsert(connectionData, {
-          onConflict: 'user_id,provider',
+        .from('user_calendar_connections')
+        .insert({
+          user_id: user.id,
+          provider,
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          token_expiry: tokenExpiry?.toISOString(),
+          calendar_email: calendarEmail,
+          is_primary: isPrimary,
         })
         .select()
         .single();
 
       if (error) {
-        console.error(`❌ [CAL-MANAGER] Error saving ${provider} connection:`, error);
-        return null;
+        console.error(`❌ [CALENDAR-MANAGER] Error creating ${provider} connection:`, error);
+        throw error;
       }
 
-      console.log(`✅ [CAL-MANAGER] Saved ${provider} connection for ${metadata.email}`);
-      return this.rowToConnection(data as CalendarConnectionRow);
-    } catch (error) {
-      console.error(`❌ [CAL-MANAGER] Error in saveConnection(${provider}):`, error);
-      return null;
+      console.log(`✅ [CALENDAR-MANAGER] Created ${provider} calendar connection`);
+      return data;
     }
   }
 
   /**
-   * Get access token for provider
+   * Delete a calendar connection
    */
-  async getAccessToken(provider: 'google' | 'apple' | 'outlook'): Promise<string | null> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        return null;
-      }
+  async deleteConnection(provider: 'google' | 'apple' | 'outlook'): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
 
-      const { data, error } = await supabase
-        .from(this.TABLE_NAME)
-        .select('access_token, token_expires_at')
-        .eq('user_id', user.id)
-        .eq('provider', provider)
-        .eq('is_active', true)
-        .single();
-
-      if (error) {
-        return null;
-      }
-
-      // TODO: Check expiration and refresh if needed
-      return (data as any).access_token;
-    } catch (error) {
-      console.error(`❌ [CAL-MANAGER] Error getting access token for ${provider}:`, error);
-      return null;
+    if (!user) {
+      throw new Error('User not authenticated');
     }
+
+    const { error } = await supabase
+      .from('user_calendar_connections')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('provider', provider);
+
+    if (error) {
+      console.error(`❌ [CALENDAR-MANAGER] Error deleting ${provider} connection:`, error);
+      throw error;
+    }
+
+    console.log(`🗑️ [CALENDAR-MANAGER] Deleted ${provider} calendar connection`);
   }
 
   /**
-   * Update last sync time
+   * Set a connection as primary
    */
-  async updateLastSync(provider: 'google' | 'apple' | 'outlook'): Promise<void> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        return;
-      }
+  async setPrimaryConnection(provider: 'google' | 'apple' | 'outlook'): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
 
-      await supabase
-        .from(this.TABLE_NAME)
-        .update({ last_sync_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('provider', provider);
-    } catch (error) {
-      console.error(`❌ [CAL-MANAGER] Error updating last sync for ${provider}:`, error);
+    if (!user) {
+      throw new Error('User not authenticated');
     }
+
+    // First, set all connections to non-primary
+    await supabase
+      .from('user_calendar_connections')
+      .update({ is_primary: false })
+      .eq('user_id', user.id);
+
+    // Then set the selected one as primary
+    const { error } = await supabase
+      .from('user_calendar_connections')
+      .update({ is_primary: true })
+      .eq('user_id', user.id)
+      .eq('provider', provider);
+
+    if (error) {
+      console.error(`❌ [CALENDAR-MANAGER] Error setting primary connection:`, error);
+      throw error;
+    }
+
+    console.log(`✅ [CALENDAR-MANAGER] Set ${provider} as primary calendar`);
   }
 
   /**
-   * Disconnect calendar provider
+   * Check if a token needs refresh (expires in less than 5 minutes)
    */
-  async disconnect(provider: 'google' | 'apple' | 'outlook'): Promise<void> {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        return;
-      }
-
-      await supabase
-        .from(this.TABLE_NAME)
-        .update({ is_active: false })
-        .eq('user_id', user.id)
-        .eq('provider', provider);
-
-      console.log(`✅ [CAL-MANAGER] Disconnected ${provider} calendar`);
-    } catch (error) {
-      console.error(`❌ [CAL-MANAGER] Error disconnecting ${provider}:`, error);
+  needsRefresh(connection: CalendarConnection): boolean {
+    if (!connection.token_expiry) {
+      return false;
     }
+
+    const expiryTime = new Date(connection.token_expiry).getTime();
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+
+    return expiryTime - now < fiveMinutes;
   }
 
   /**
-   * Convert database row to CalendarConnection object
+   * Refresh token for Google Calendar
    */
-  private rowToConnection(row: CalendarConnectionRow): CalendarConnection {
-    return {
-      id: row.id,
-      userId: row.user_id,
-      provider: row.provider,
-      calendarEmail: row.calendar_email || '',
-      calendarName: row.calendar_name || undefined,
-      isActive: row.is_active,
-      lastSyncAt: row.last_sync_at ? new Date(row.last_sync_at) : null,
-      createdAt: new Date(row.created_at),
-    };
+  async refreshGoogleToken(connection: CalendarConnection): Promise<CalendarConnection> {
+    if (!connection.refresh_token) {
+      throw new Error('No refresh token available');
+    }
+
+    console.log('🔄 [CALENDAR-MANAGER] Refreshing Google token...');
+
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+        client_secret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET || '',
+        refresh_token: connection.refresh_token,
+        grant_type: 'refresh_token',
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to refresh Google token');
+    }
+
+    const data = await response.json();
+
+    const newExpiry = new Date(Date.now() + data.expires_in * 1000);
+
+    // Update the connection with new token
+    return await this.saveConnection(
+      'google',
+      data.access_token,
+      connection.refresh_token, // Keep same refresh token
+      newExpiry,
+      connection.calendar_email
+    );
+  }
+
+  /**
+   * Get valid access token (refreshes if needed)
+   */
+  async getValidToken(provider: 'google' | 'apple' | 'outlook'): Promise<string> {
+    let connection = await this.getConnectionByProvider(provider);
+
+    if (!connection) {
+      throw new Error(`No ${provider} calendar connected`);
+    }
+
+    // Refresh if needed (Google only for now)
+    if (provider === 'google' && this.needsRefresh(connection)) {
+      connection = await this.refreshGoogleToken(connection);
+    }
+
+    return connection.access_token;
   }
 }
 
-// Export singleton instance
 export const calendarConnectionManager = new CalendarConnectionManager();
-export default calendarConnectionManager;

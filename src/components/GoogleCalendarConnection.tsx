@@ -1,24 +1,28 @@
 /**
- * Google Calendar Connection Component
- * Shows connection status and allows users to connect their Google Calendar
- * for automatic outfit event syncing
+ * Google Calendar Connection Component - Updated
+ *
+ * Now saves calendar tokens to user_calendar_connections table
+ * Works regardless of how the user signed in (Google, Apple, email, etc.)
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, CheckCircle, AlertCircle, Loader } from 'lucide-react';
-import googleCalendarService from '../services/googleCalendarService';
 import { supabase } from '../services/supabaseClient';
+import { calendarConnectionManager } from '../services/calendar/calendarConnectionManager';
 
 interface GoogleCalendarConnectionProps {
-  showInline?: boolean; // If true, shows compact inline version
+  showInline?: boolean;
+  onConnectionChange?: (isConnected: boolean) => void;
 }
 
-const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> = ({
-  showInline = false
+export const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> = ({
+  showInline = false,
+  onConnectionChange
 }) => {
   const [isConnected, setIsConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [connecting, setConnecting] = useState(false);
+  const [calendarEmail, setCalendarEmail] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     checkConnection();
@@ -26,85 +30,89 @@ const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> = ({
 
   const checkConnection = async () => {
     try {
-      const connected = await googleCalendarService.isConnected();
-      setIsConnected(connected);
+      const connection = await calendarConnectionManager.getConnectionByProvider('google');
+
+      if (connection) {
+        setIsConnected(true);
+        setCalendarEmail(connection.calendar_email);
+        onConnectionChange?.(true);
+        console.log('✅ [GOOGLE-CALENDAR-UI] Calendar connected:', connection.calendar_email);
+      } else {
+        setIsConnected(false);
+        setCalendarEmail(null);
+        onConnectionChange?.(false);
+        console.log('ℹ️ [GOOGLE-CALENDAR-UI] No calendar connected');
+      }
     } catch (error) {
-      console.error('L [GOOGLE-CAL-UI] Error checking connection:', error);
+      console.error('❌ [GOOGLE-CALENDAR-UI] Error checking connection:', error);
+      setIsConnected(false);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const handleConnect = async () => {
     try {
-      setConnecting(true);
+      setIsConnecting(true);
+      console.log('🔗 [GOOGLE-CALENDAR-UI] Initiating Google Calendar connection...');
 
-      // Check if user already has a valid session with potential calendar access
-      const { data: { session } } = await supabase.auth.getSession();
+      // Store return path
+      sessionStorage.setItem('oauth_return_path', window.location.pathname);
+      sessionStorage.setItem('oauth_calendar_provider', 'google');
 
-      if (session?.provider_token && session?.provider === 'google') {
-        console.log('✅ [GOOGLE-CAL-UI] Provider token exists, testing calendar access...');
-
-        // Test if the existing token has calendar permissions
-        try {
-          const testResponse = await fetch(
-            'https://www.googleapis.com/calendar/v3/users/me/calendarList',
-            {
-              headers: {
-                'Authorization': `Bearer ${session.provider_token}`,
-              },
-            }
-          );
-
-          if (testResponse.ok) {
-            console.log('✅ [GOOGLE-CAL-UI] Calendar access already granted!');
-            setIsConnected(true);
-            setConnecting(false);
-            return;
-          } else if (testResponse.status === 401) {
-            console.log('⚠️ [GOOGLE-CAL-UI] Token expired, proceeding with OAuth');
-          } else {
-            console.log('⚠️ [GOOGLE-CAL-UI] Token exists but lacks calendar scope, proceeding with OAuth');
-          }
-        } catch (err) {
-          console.log('⚠️ [GOOGLE-CAL-UI] Calendar test failed, proceeding with OAuth:', err);
-        }
-      }
-
-      // Proceed with OAuth flow
-      console.log('🔐 [GOOGLE-CAL-UI] Initiating Google OAuth for calendar access...');
-
-      // Store return path so user comes back to calendar view after OAuth
-      sessionStorage.setItem('oauth_return_path', '/closet?view=calendar');
-      sessionStorage.setItem('oauth_success_message', 'Google Calendar connected successfully!');
-
+      // Initiate OAuth flow with calendar scope
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           scopes: 'https://www.googleapis.com/auth/calendar',
+          redirectTo: `${window.location.origin}/auth/callback?calendar=google`,
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
+            access_type: 'offline', // Get refresh token
+            prompt: 'consent', // Force consent screen to get refresh token
           },
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
+        },
       });
 
       if (error) {
-        console.error('❌ [GOOGLE-CAL-UI] Error connecting Google Calendar:', error);
-        alert('Failed to connect Google Calendar. Please try again.');
-        setConnecting(false);
+        console.error('❌ [GOOGLE-CALENDAR-UI] OAuth error:', error);
+        alert('Failed to connect calendar. Please try again.');
+        setIsConnecting(false);
       }
-      // OAuth redirect will happen, so we don't need to handle success here
+
+      // User will be redirected to Google OAuth
+      // Callback is handled in AuthCallback.tsx
     } catch (error) {
-      console.error('❌ [GOOGLE-CAL-UI] Connection error:', error);
-      alert('Failed to connect Google Calendar. Please try again.');
-      setConnecting(false);
+      console.error('❌ [GOOGLE-CALENDAR-UI] Connection error:', error);
+      alert('Failed to connect calendar. Please try again.');
+      setIsConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect your Google Calendar?')) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await calendarConnectionManager.deleteConnection('google');
+
+      setIsConnected(false);
+      setCalendarEmail(null);
+      onConnectionChange?.(false);
+
+      console.log('🗑️ [GOOGLE-CALENDAR-UI] Calendar disconnected');
+      alert('Google Calendar disconnected successfully');
+    } catch (error) {
+      console.error('❌ [GOOGLE-CALENDAR-UI] Disconnect error:', error);
+      alert('Failed to disconnect calendar. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Loading state
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center space-x-2 text-gray-500">
         <Loader className="w-4 h-4 animate-spin" />
@@ -127,10 +135,10 @@ const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> = ({
             <AlertCircle className="w-4 h-4 text-gray-400" />
             <button
               onClick={handleConnect}
-              disabled={connecting}
+              disabled={isConnecting}
               className="text-sm text-blue-600 hover:text-blue-700 underline disabled:opacity-50"
             >
-              {connecting ? 'Connecting...' : 'Connect Google Calendar'}
+              {isConnecting ? 'Connecting...' : 'Connect Google Calendar'}
             </button>
           </>
         )}
@@ -149,7 +157,7 @@ const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> = ({
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-2">
             <h3 className="text-lg font-semibold text-gray-900">
-              Google Calendar Sync
+              Google Calendar
             </h3>
             {isConnected && (
               <CheckCircle className="w-5 h-5 text-green-500" />
@@ -163,23 +171,32 @@ const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> = ({
                   Connected
                 </span>
               </div>
+              {calendarEmail && (
+                <p className="text-sm text-gray-600">{calendarEmail}</p>
+              )}
               <p className="text-sm text-gray-600">
-                Your outfit events will automatically sync to your Google Calendar.
-                You'll see them in Google Calendar, your phone's calendar app, and anywhere your calendar is synced.
+                Your calendar events are synced and ready to use.
+                Works with any sign-in method.
               </p>
+              <button
+                onClick={handleDisconnect}
+                className="mt-2 inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded text-red-700 bg-white hover:bg-red-50"
+              >
+                Disconnect
+              </button>
             </div>
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-gray-600">
-                Connect your Google Calendar to automatically sync outfit events.
-                Your outfits will appear in your calendar alongside your other events.
+                Connect your Google Calendar to sync outfit planning with your schedule.
+                Works with any sign-in method (Google, Apple, or email).
               </p>
               <button
                 onClick={handleConnect}
-                disabled={connecting}
+                disabled={isConnecting}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {connecting ? (
+                {isConnecting ? (
                   <>
                     <Loader className="w-4 h-4 mr-2 animate-spin" />
                     Connecting...
