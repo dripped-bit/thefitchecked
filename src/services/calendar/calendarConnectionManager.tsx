@@ -61,14 +61,14 @@ class CalendarConnectionManager {
       .select('*')
       .eq('user_id', user.id)
       .eq('provider', provider)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+    if (error) {
       console.error(`❌ [CALENDAR-MANAGER] Error fetching ${provider} connection:`, error);
       throw error;
     }
 
-    return data || null;
+    return data;
   }
 
   /**
