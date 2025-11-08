@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import {
   Calendar,
   Cloud,
@@ -231,7 +232,11 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   };
 
   const handleDateClick = (date: Date) => {
-    setSelectedDate(date);
+    // Use flushSync to ensure selectedDate is set before showing modal
+    // This prevents race condition where modal renders before date is set
+    flushSync(() => {
+      setSelectedDate(date);
+    });
     setShowDateDetails(true);
   };
 
