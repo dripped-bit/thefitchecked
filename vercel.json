@@ -4,6 +4,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/claude/:path*",
+      "destination": "/api/claude"
+    },
+    {
       "source": "/api/fal/:path*",
       "destination": "/api/fal?path=/:path*"
     },
@@ -16,6 +20,12 @@
       "destination": "/index.html"
     }
   ],
+  "functions": {
+    "api/claude.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
   "headers": [
     {
       "source": "/api/(.*)",
