@@ -56,12 +56,16 @@ export const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> =
       setIsConnecting(true);
       console.log('🔗 [GOOGLE-CALENDAR-UI] Initiating Google Calendar connection...');
 
+      // Set return path for after OAuth completes
+      sessionStorage.setItem('oauth_return_path', '/closet?view=smart-calendar');
+      console.log('📝 [GOOGLE-CALENDAR-UI] Set return path to Smart Calendar');
+
       // Initiate OAuth flow with calendar scope
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           scopes: 'https://www.googleapis.com/auth/calendar',
-          redirectTo: `${window.location.origin}/auth/callback?calendar=google&returnTo=/closet/calendar/settings`,
+          redirectTo: `${window.location.origin}/auth/callback?calendar=google`,
           queryParams: {
             access_type: 'offline', // Get refresh token
             prompt: 'consent', // Force consent screen to get refresh token

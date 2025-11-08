@@ -78,16 +78,24 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
 
           if (data.session) {
             console.log('✅ [AUTH-CALLBACK] Session refreshed successfully');
-            if (data.session.provider_token) {
-              console.log('✅ [AUTH-CALLBACK] Provider token available in refreshed session');
+            console.log('🔍 [AUTH-CALLBACK] Refreshed session provider_token:', data.session.provider_token ? 'present' : 'missing');
 
-              // If this is a calendar OAuth callback, save the connection
-              if (isCalendarCallback === 'google') {
-                console.log('📅 [AUTH-CALLBACK] Saving Google Calendar connection from refreshed session');
+            // If this is a calendar OAuth callback, save the connection
+            if (isCalendarCallback === 'google') {
+              console.log('📅 [AUTH-CALLBACK] Processing Google Calendar OAuth callback (re-auth scenario)');
 
+              if (data.session.provider_token) {
                 try {
                   const tokenExpiry = new Date(Date.now() + 3600 * 1000); // 1 hour from now
                   const userEmail = data.session.user.email || null;
+
+                  console.log('💾 [AUTH-CALLBACK] Saving calendar connection with:', {
+                    provider: 'google',
+                    hasAccessToken: !!data.session.provider_token,
+                    hasRefreshToken: !!data.session.provider_refresh_token,
+                    calendarEmail: userEmail,
+                    tokenExpiry: tokenExpiry.toISOString()
+                  });
 
                   await calendarConnectionManager.saveConnection(
                     'google',
@@ -103,6 +111,8 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
                   console.error('❌ [AUTH-CALLBACK] Failed to save calendar connection:', calendarError);
                   // Don't fail the entire auth flow, just log the error
                 }
+              } else {
+                console.warn('⚠️ [AUTH-CALLBACK] No provider token available in refreshed session');
               }
             }
           }
@@ -134,21 +144,28 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
           if (data.session) {
             console.log('✅ [AUTH-CALLBACK] Session established');
 
-            // If this is an OAuth callback with provider token (Google Calendar)
-            if (providerToken) {
-              console.log('✅ [AUTH-CALLBACK] OAuth provider token received (Google Calendar)');
+            // If this is a calendar OAuth callback, save the connection
+            if (isCalendarCallback === 'google') {
+              console.log('📅 [AUTH-CALLBACK] Processing Google Calendar OAuth callback');
+              console.log('🔍 [AUTH-CALLBACK] Session provider_token:', data.session.provider_token ? 'present' : 'missing');
+              console.log('🔍 [AUTH-CALLBACK] Session provider_refresh_token:', data.session.provider_refresh_token ? 'present' : 'missing');
 
-              // If this is a calendar OAuth callback, save the connection
-              if (isCalendarCallback === 'google') {
-                console.log('📅 [AUTH-CALLBACK] Saving Google Calendar connection from fresh OAuth');
-
+              if (data.session.provider_token) {
                 try {
                   const tokenExpiry = new Date(Date.now() + 3600 * 1000); // 1 hour from now
                   const userEmail = data.session.user.email || null;
 
+                  console.log('💾 [AUTH-CALLBACK] Saving calendar connection with:', {
+                    provider: 'google',
+                    hasAccessToken: !!data.session.provider_token,
+                    hasRefreshToken: !!data.session.provider_refresh_token,
+                    calendarEmail: userEmail,
+                    tokenExpiry: tokenExpiry.toISOString()
+                  });
+
                   await calendarConnectionManager.saveConnection(
                     'google',
-                    data.session.provider_token!,
+                    data.session.provider_token,
                     data.session.provider_refresh_token || null,
                     tokenExpiry,
                     userEmail
@@ -160,6 +177,8 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
                   console.error('❌ [AUTH-CALLBACK] Failed to save calendar connection:', calendarError);
                   // Don't fail the entire auth flow, just log the error
                 }
+              } else {
+                console.warn('⚠️ [AUTH-CALLBACK] No provider token available for calendar connection');
               }
             }
 
