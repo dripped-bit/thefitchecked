@@ -47,7 +47,9 @@ export const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> =
       setIsConnected(false);
     } finally {
       setIsLoading(false);
-      console.log('📊 [GOOGLE-CALENDAR-UI] Loading complete. isConnected:', isConnected);
+      // Don't log isConnected here - it's a stale closure value
+      // The actual state update happens correctly in the try block above
+      console.log('📊 [GOOGLE-CALENDAR-UI] Connection check complete');
     }
   };
 

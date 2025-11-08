@@ -105,8 +105,10 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
   const handleConnectionChange = async (connected: boolean) => {
     console.log('📅 [SMART-CALENDAR] Connection changed:', connected);
+    console.log('📅 [SMART-CALENDAR] Updating parent isConnected state to:', connected);
     setIsConnected(connected);
     if (connected) {
+      console.log('📅 [SMART-CALENDAR] Re-initializing dashboard with new connection');
       await initializeDashboard();
     }
   };
