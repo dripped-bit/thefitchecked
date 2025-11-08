@@ -383,9 +383,10 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
                   {/* Plan Outfit Button */}
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setSelectedEvent(event);
-                      setShowOutfitPlanner(true);
+                      setShowOutfitSuggestions(true);
                       setShowDateDetails(false);
                     }}
                     className="mt-3 w-full bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 transition-colors font-medium"
