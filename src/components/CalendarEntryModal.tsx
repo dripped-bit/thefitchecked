@@ -130,13 +130,23 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
       const outfitId = outfit?.outfit?.supabaseId || null;
       console.log('🔍 [CALENDAR-MODAL] Saving calendar event with outfit ID:', outfitId);
 
+      // Extract outfit items if available
+      const outfitItems = outfit?.outfit?.items || outfit?.outfit?.outfitItems || [];
+      console.log('👔 [CALENDAR-MODAL] Outfit items to save:', outfitItems);
+
+      // Calculate reminder in minutes (days * 24 hours * 60 minutes)
+      const reminderMinutes = formData.reminderDays * 24 * 60;
+
       const event = await smartCalendarService.createEvent({
-        title: formData.occasionName || 'Outfit Event',
+        title: `Outfit for ${formData.occasionName || 'Event'}`,
         description: formData.notes || getOutfitDescription(),
         startTime: startTime,
         endTime: endTime,
         eventType: mapOccasionToEventType(formData.occasionName),
         outfitId: outfitId,
+        outfitItems: outfitItems,
+        occasion: formData.occasionName,
+        reminderMinutes: reminderMinutes,
         shoppingLinks: processedLinks.map(link => ({
           url: link.url,
           store: link.store,

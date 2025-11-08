@@ -101,6 +101,57 @@ class SmartCalendarService {
     this.weatherApiKey = import.meta.env.VITE_WEATHER_API_KEY || '0ab6ad071c324e63a3d225838252509';
   }
 
+  /**
+   * Format outfit items into a rich description for calendar events
+   */
+  private formatOutfitDescription(outfitItems: OutfitItem[], occasion?: string, shoppingLinks?: ShoppingLink[]): string {
+    let description = '';
+
+    // Add occasion if provided
+    if (occasion) {
+      description += `Occasion: ${occasion}\n\n`;
+    }
+
+    // Add outfit items by category
+    description += 'OUTFIT DETAILS:\n';
+    description += '━━━━━━━━━━━━━━━━\n\n';
+
+    // Group items by category
+    const categorized: { [key: string]: OutfitItem[] } = {};
+    outfitItems.forEach(item => {
+      const category = item.category || 'Other';
+      if (!categorized[category]) {
+        categorized[category] = [];
+      }
+      categorized[category].push(item);
+    });
+
+    // Format each category
+    Object.entries(categorized).forEach(([category, items]) => {
+      description += `${category}:\n`;
+      items.forEach(item => {
+        description += `  • ${item.name}\n`;
+      });
+      description += '\n';
+    });
+
+    // Add shopping links if provided
+    if (shoppingLinks && shoppingLinks.length > 0) {
+      description += '\nSHOPPING LINKS:\n';
+      description += '━━━━━━━━━━━━━━━━\n\n';
+      shoppingLinks.forEach(link => {
+        description += `${link.title || link.store}:\n`;
+        description += `  ${link.url}\n`;
+        if (link.price) {
+          description += `  Price: ${link.price}\n`;
+        }
+        description += '\n';
+      });
+    }
+
+    return description.trim();
+  }
+
   // =====================
   // Calendar Event Management (Supabase)
   // =====================
@@ -117,19 +168,32 @@ class SmartCalendarService {
     eventType: 'work' | 'personal' | 'travel' | 'formal' | 'casual' | 'other';
     isAllDay?: boolean;
     outfitId?: string;
+    outfitItems?: OutfitItem[];
+    occasion?: string;
     weatherRequired?: boolean;
     shoppingLinks?: ShoppingLink[];
+    reminderMinutes?: number;
   }): Promise<CalendarEvent | null> {
     try {
       const user = await authService.getCurrentUser();
       const userId = user?.id || null;
+
+      // Build rich description if outfit items provided
+      let finalDescription = eventData.description || '';
+      if (eventData.outfitItems && eventData.outfitItems.length > 0) {
+        finalDescription = this.formatOutfitDescription(
+          eventData.outfitItems,
+          eventData.occasion,
+          eventData.shoppingLinks
+        );
+      }
 
       const { data, error} = await supabase
         .from('calendar_events')
         .insert({
           user_id: userId,
           title: eventData.title,
-          description: eventData.description,
+          description: finalDescription,
           start_time: eventData.startTime.toISOString(),
           end_time: eventData.endTime.toISOString(),
           location: eventData.location,
@@ -154,10 +218,11 @@ class SmartCalendarService {
         if (isGoogleConnected) {
           const googleEvent = await googleCalendarService.syncEvent({
             title: eventData.title,
-            description: eventData.description,
+            description: finalDescription,
             start_time: eventData.startTime.toISOString(),
             end_time: eventData.endTime.toISOString(),
-            location: eventData.location
+            location: eventData.location,
+            reminderMinutes: eventData.reminderMinutes
           });
           console.log('✅ Event synced to Google Calendar:', googleEvent.id);
         }

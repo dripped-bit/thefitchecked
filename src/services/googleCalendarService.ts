@@ -12,6 +12,7 @@ interface GoogleCalendarEvent {
   start_time: string;
   end_time: string;
   location?: string;
+  reminderMinutes?: number;
 }
 
 class GoogleCalendarService {
@@ -67,7 +68,7 @@ class GoogleCalendarService {
       }
 
       // Format event for Google Calendar API
-      const calendarEvent = {
+      const calendarEvent: any = {
         summary: eventData.title,
         description: eventData.description || '',
         start: {
@@ -80,6 +81,20 @@ class GoogleCalendarService {
         },
         location: eventData.location || '',
       };
+
+      // Add reminders if specified (defaults to 1 day before if not provided)
+      const reminderMinutes = eventData.reminderMinutes !== undefined ? eventData.reminderMinutes : 1440; // Default 24 hours
+      if (reminderMinutes > 0) {
+        calendarEvent.reminders = {
+          useDefault: false,
+          overrides: [
+            {
+              method: 'popup',
+              minutes: reminderMinutes
+            }
+          ]
+        };
+      }
 
       console.log('📅 [GOOGLE-CAL] Syncing event to Google Calendar:', calendarEvent.summary);
 
