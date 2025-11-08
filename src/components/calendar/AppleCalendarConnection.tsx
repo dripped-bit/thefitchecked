@@ -11,15 +11,16 @@ import { appleCalendarService } from '../../services/calendar/appleCalendarServi
 import '../../styles/calendarSettings.css';
 
 interface AppleCalendarConnectionProps {
+  isConnected: boolean;
+  calendarEmail?: string | null;
   onConnectionChange?: (isConnected: boolean) => void;
 }
 
 export const AppleCalendarConnection: React.FC<AppleCalendarConnectionProps> = ({
+  isConnected,
+  calendarEmail,
   onConnectionChange
 }) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [calendarEmail, setCalendarEmail] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
 
   // Form state
@@ -27,33 +28,6 @@ export const AppleCalendarConnection: React.FC<AppleCalendarConnectionProps> = (
   const [appPassword, setAppPassword] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    checkConnection();
-  }, []);
-
-  const checkConnection = async () => {
-    try {
-      const connection = await calendarConnectionManager.getConnectionByProvider('apple');
-
-      if (connection) {
-        setIsConnected(true);
-        setCalendarEmail(connection.calendar_email);
-        onConnectionChange?.(true);
-        console.log('✅ [APPLE-CALENDAR-UI] Calendar connected:', connection.calendar_email);
-      } else {
-        setIsConnected(false);
-        setCalendarEmail(null);
-        onConnectionChange?.(false);
-        console.log('ℹ️ [APPLE-CALENDAR-UI] No calendar connected');
-      }
-    } catch (error) {
-      console.error('❌ [APPLE-CALENDAR-UI] Error checking connection:', error);
-      setIsConnected(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,14 +53,13 @@ export const AppleCalendarConnection: React.FC<AppleCalendarConnectionProps> = (
         throw new Error('Invalid credentials. Please check your Apple ID and app-specific password.');
       }
 
-      setIsConnected(true);
-      setCalendarEmail(appleId);
       setShowSetup(false);
       setAppleId('');
       setAppPassword('');
+
+      console.log('✅ [APPLE-CALENDAR-UI] Calendar connected successfully, notifying parent');
       onConnectionChange?.(true);
 
-      console.log('✅ [APPLE-CALENDAR-UI] Calendar connected successfully');
       alert('Apple Calendar connected successfully!');
 
     } catch (error: any) {
@@ -103,30 +76,17 @@ export const AppleCalendarConnection: React.FC<AppleCalendarConnectionProps> = (
     }
 
     try {
-      setIsLoading(true);
       await calendarConnectionManager.deleteConnection('apple');
 
-      setIsConnected(false);
-      setCalendarEmail(null);
+      console.log('🗑️ [APPLE-CALENDAR-UI] Calendar disconnected, notifying parent');
       onConnectionChange?.(false);
 
-      console.log('🗑️ [APPLE-CALENDAR-UI] Calendar disconnected');
       alert('Apple Calendar disconnected successfully');
     } catch (error) {
       console.error('❌ [APPLE-CALENDAR-UI] Disconnect error:', error);
       alert('Failed to disconnect calendar. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="calendar-connection-card">
-        <div className="loading-spinner">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="calendar-connection-card">
@@ -256,7 +216,6 @@ export const AppleCalendarConnection: React.FC<AppleCalendarConnectionProps> = (
           <button
             onClick={handleDisconnect}
             className="btn-disconnect"
-            disabled={isLoading}
           >
             Disconnect
           </button>

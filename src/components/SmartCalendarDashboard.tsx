@@ -51,7 +51,11 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   clothingItems = []
 }) => {
   const [currentView, setCurrentView] = useState<'calendar' | 'morning' | 'queue' | 'settings' | 'packing'>('calendar');
-  const [isConnected, setIsConnected] = useState(false); // Check actual connection status
+  const [isConnected, setIsConnected] = useState(false); // Any calendar connected
+  const [googleConnected, setGoogleConnected] = useState(false); // Google calendar connection state
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null); // Google calendar email
+  const [appleConnected, setAppleConnected] = useState(false); // Apple calendar connection state
+  const [appleEmail, setAppleEmail] = useState<string | null>(null); // Apple calendar email
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [morningOptions, setMorningOptions] = useState<MorningOptions | null>(null);
   const [outfitQueue, setOutfitQueue] = useState<OutfitPlan[]>([]);
@@ -81,14 +85,25 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   const initializeDashboard = async () => {
     setIsLoading(true);
     try {
-      // Check if Google Calendar is actually connected
+      // Check if any calendar is connected (Google or Apple)
       const googleConnection = await calendarConnectionManager.getConnectionByProvider('google');
-      const connected = googleConnection !== null;
+      const appleConnection = await calendarConnectionManager.getConnectionByProvider('apple');
 
-      console.log('📅 [SMART-CALENDAR] Connection status:', connected ? 'Connected' : 'Not connected');
-      setIsConnected(connected);
+      const googleIsConnected = googleConnection !== null;
+      const appleIsConnected = appleConnection !== null;
+      const anyConnected = googleIsConnected || appleIsConnected;
 
-      if (connected) {
+      console.log('📅 [SMART-CALENDAR] Connection status:', anyConnected ? 'Connected' : 'Not connected');
+      console.log('📅 [SMART-CALENDAR] Google:', googleIsConnected ? 'Connected' : 'Not connected');
+      console.log('📅 [SMART-CALENDAR] Apple:', appleIsConnected ? 'Not connected' : 'Not connected');
+
+      setGoogleConnected(googleIsConnected);
+      setGoogleEmail(googleConnection?.calendar_email || null);
+      setAppleConnected(appleIsConnected);
+      setAppleEmail(appleConnection?.calendar_email || null);
+      setIsConnected(anyConnected);
+
+      if (anyConnected) {
         const events = await smartCalendarService.fetchUpcomingEvents();
         setUpcomingEvents(events);
 
@@ -98,6 +113,10 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
     } catch (error) {
       console.error('Failed to initialize dashboard:', error);
       setIsConnected(false);
+      setGoogleConnected(false);
+      setGoogleEmail(null);
+      setAppleConnected(false);
+      setAppleEmail(null);
     } finally {
       setIsLoading(false);
     }
@@ -167,9 +186,13 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
       <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-2xl mx-auto">
         <GoogleCalendarConnection
+          isConnected={googleConnected}
+          calendarEmail={googleEmail}
           onConnectionChange={handleConnectionChange}
         />
         <AppleCalendarConnection
+          isConnected={appleConnected}
+          calendarEmail={appleEmail}
           onConnectionChange={handleConnectionChange}
         />
       </div>

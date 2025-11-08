@@ -11,56 +11,22 @@ import { calendarConnectionManager } from '../../services/calendar/calendarConne
 import '../../styles/calendarSettings.css';
 
 interface GoogleCalendarConnectionProps {
+  isConnected: boolean;
+  calendarEmail?: string | null;
   onConnectionChange?: (isConnected: boolean) => void;
 }
 
 export const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> = ({
+  isConnected,
+  calendarEmail,
   onConnectionChange
 }) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [calendarEmail, setCalendarEmail] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
 
+  // Debug: Log when isConnected prop changes
   useEffect(() => {
-    checkConnection();
-  }, []);
-
-  // Debug: Log when isConnected state changes
-  useEffect(() => {
-    console.log('🔄 [GOOGLE-CALENDAR-UI] isConnected state updated to:', isConnected);
+    console.log('🔄 [GOOGLE-CALENDAR-UI] isConnected prop received:', isConnected);
   }, [isConnected]);
-
-  const checkConnection = async () => {
-    console.log('🔍 [GOOGLE-CALENDAR-UI] Checking for existing connection...');
-    try {
-      const connection = await calendarConnectionManager.getConnectionByProvider('google');
-      console.log('🔍 [GOOGLE-CALENDAR-UI] Connection query result:', connection ? 'Found' : 'Not found');
-
-      if (connection) {
-        console.log('✅ [GOOGLE-CALENDAR-UI] Setting isConnected = true');
-        setIsConnected(true);
-        setCalendarEmail(connection.calendar_email);
-        console.log('📞 [GOOGLE-CALENDAR-UI] Calling onConnectionChange(true) to update parent');
-        onConnectionChange?.(true);
-        console.log('✅ [GOOGLE-CALENDAR-UI] Calendar connected:', connection.calendar_email);
-      } else {
-        console.log('ℹ️ [GOOGLE-CALENDAR-UI] Setting isConnected = false');
-        setIsConnected(false);
-        setCalendarEmail(null);
-        console.log('📞 [GOOGLE-CALENDAR-UI] Calling onConnectionChange(false) to update parent');
-        onConnectionChange?.(false);
-        console.log('ℹ️ [GOOGLE-CALENDAR-UI] No calendar connected');
-      }
-    } catch (error) {
-      console.error('❌ [GOOGLE-CALENDAR-UI] Error checking connection:', error);
-      console.log('❌ [GOOGLE-CALENDAR-UI] Setting isConnected = false due to error');
-      setIsConnected(false);
-    } finally {
-      setIsLoading(false);
-      console.log('📊 [GOOGLE-CALENDAR-UI] Connection check complete');
-    }
-  };
 
   const handleConnect = async () => {
     try {
@@ -101,32 +67,19 @@ export const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> =
     }
 
     try {
-      setIsLoading(true);
       await calendarConnectionManager.deleteConnection('google');
 
-      setIsConnected(false);
-      setCalendarEmail(null);
+      console.log('🗑️ [GOOGLE-CALENDAR-UI] Calendar disconnected, notifying parent');
       onConnectionChange?.(false);
 
-      console.log('🗑️ [GOOGLE-CALENDAR-UI] Calendar disconnected');
       alert('Google Calendar disconnected successfully');
     } catch (error) {
       console.error('❌ [GOOGLE-CALENDAR-UI] Disconnect error:', error);
       alert('Failed to disconnect calendar. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  console.log('🎨 [GOOGLE-CALENDAR-UI] Rendering component. isLoading:', isLoading, 'isConnected:', isConnected);
-
-  if (isLoading) {
-    return (
-      <div className="calendar-connection-card">
-        <div className="loading-spinner">Loading...</div>
-      </div>
-    );
-  }
+  console.log('🎨 [GOOGLE-CALENDAR-UI] Rendering component. isConnected:', isConnected, 'isConnecting:', isConnecting);
 
   return (
     <div className="calendar-connection-card">
@@ -155,7 +108,6 @@ export const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> =
           <button
             onClick={handleDisconnect}
             className="btn-disconnect"
-            disabled={isLoading}
           >
             Disconnect
           </button>
