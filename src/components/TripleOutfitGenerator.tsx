@@ -19,6 +19,8 @@ import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import userDataService from '../services/userDataService';
 import outfitStorageService from '../services/outfitStorageService';
+import multiItemDetectionService from '../services/multiItemDetectionService';
+import completeFashnTryOnService from '../services/completeFashnTryOnService';
 // Color analysis temporarily disabled for deployment
 // import colorAnalysisService from '../services/colorAnalysisService';
 import { ParsedOccasion } from './SmartOccasionInput';
@@ -332,13 +334,23 @@ REQUIREMENTS: Full-sized adult clothing proportions only - ${getClothingGenderTe
 
 Generate ONE SINGLE complete outfit matching the specific request above.
 
-MUST INCLUDE: Complete clothing items only (tops, bottoms, dresses, jumpsuits, blazers, jackets, coats, cardigans, skirts, pants, rompers). All clothing pieces must be visible in flat-lay arrangement.
+CRITICAL COMPOSITION RULES:
+1. If request mentions multiple items (like "capris and top", "pants and shirt"), they MUST be arranged together in a SINGLE cohesive flat-lay composition
+2. Multiple items must be positioned as if being worn together - tops positioned above bottoms, layered naturally
+3. Items should overlap slightly to show they form ONE complete outfit, not separate pieces
+4. DO NOT generate separate/isolated items laid out individually
+5. DO NOT show multiple outfit options side-by-side
+6. Result must be ONE unified outfit composition suitable for virtual try-on as a single garment set
+
+MUST INCLUDE: Complete clothing items only (tops, bottoms, dresses, jumpsuits, blazers, jackets, coats, cardigans, skirts, pants, rompers). All clothing pieces must be arranged in a SINGLE cohesive outfit layout showing how they work together.
 
 MUST EXCLUDE: All accessories including shoes, footwear, bags, purses, scarves, jewelry, hats, belts, sunglasses, gloves. No accessories of any kind.
 
 MUST BE ADULT CLOTHING ONLY - absolutely no children's clothes, no kids' outfits, no toddler clothes, no baby clothes, no youth sizes.
 
-Flat-lay product photography style, clean white background, professional lighting, no person, no model, no text, no labels, no tags, no size indicators. Result must be one cohesive, wearable outfit suitable for virtual try-on.`;
+FORBIDDEN: Multiple separate items laid out individually, side-by-side outfit comparisons, outfit variations shown together, 2+ distinct pieces displayed separately.
+
+Flat-lay product photography style, clean white background, professional lighting, no person, no model, no text, no labels, no tags, no size indicators. Result must be one cohesive, wearable outfit composition suitable for virtual try-on.`;
 
     console.log(`✨ Variation ${variationIndex + 1} prompt:`);
     console.log(`   User Request: "${userExactInput}"`);
@@ -572,7 +584,7 @@ Return ONLY the search query, nothing else.`
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, shoes, footwear, boots, sneakers, heels, sandals, slippers, pumps, wedges, flats, loafers, oxfords, mules, espadrilles, bags, purse, handbag, shoulder bag, clutch, tote, backpack, crossbody, satchel, wallet, pouch, scarves, scarf, shawl, wrap, pashmina, bandana, jewelry, necklace, bracelet, earrings, rings, watch, chain, pendant, anklet, accessories, accessory, belt, hat, cap, beanie, fedora, beret, visor, headband, hair accessories, sunglasses, glasses, eyewear, gloves, mittens`,
+            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, separate items, isolated clothing, individual pieces laid out separately, disconnected garments, spread out items, separated clothing pieces, items not touching, far apart clothing, clothing items with gaps between them, non-cohesive layout, disjointed outfit, fragmented composition, shoes, footwear, boots, sneakers, heels, sandals, slippers, pumps, wedges, flats, loafers, oxfords, mules, espadrilles, bags, purse, handbag, shoulder bag, clutch, tote, backpack, crossbody, satchel, wallet, pouch, scarves, scarf, shawl, wrap, pashmina, bandana, jewelry, necklace, bracelet, earrings, rings, watch, chain, pendant, anklet, accessories, accessory, belt, hat, cap, beanie, fedora, beret, visor, headband, hair accessories, sunglasses, glasses, eyewear, gloves, mittens`,
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
@@ -710,17 +722,58 @@ Return ONLY the search query, nothing else.`
     try {
       console.log('🎭 Starting FASHN virtual try-on for occasion outfit...');
 
-      const tryOnResult = await directFashnService.tryOnClothing(
-        avatarData.imageUrl,    // Your avatar
-        outfit.imageUrl,        // The generated clothing from Seedream
-        {
-          category: 'auto',     // Let FASHN auto-detect clothing category
-          timeout: 90000,       // 90 seconds - FASHN typically takes 40-50s
-          garmentDescription: outfit.originalPrompt || outfit.searchPrompt, // Use prompt for intelligent segmentation
-          context: 'try_on',    // Use JPEG for speed during try-on
-          source: 'ai-generated' // AI-generated outfits are flat-lay style
+      // Step 1: Detect if outfit image contains multiple items
+      console.log('🔍 [TRY-ON] Checking for multiple items in outfit image...');
+      const detection = await multiItemDetectionService.detectMultipleItems(outfit.imageUrl);
+
+      let tryOnResult;
+
+      if (detection.hasMultipleItems && detection.items.length > 1) {
+        // Multiple items detected - use sequential layering
+        console.log(`📦 [TRY-ON] Detected ${detection.items.length} separate items, using sequential layering`);
+        console.log('📋 [TRY-ON] Items detected:', detection.items.map(i => `${i.name} (${i.category})`));
+
+        // Convert detected items to ClothingItem format
+        const clothingItems = detection.items.map((item, idx) => ({
+          id: `${outfit.personality.id}-item-${idx}`,
+          name: item.name,
+          imageUrl: item.croppedImageUrl || outfit.imageUrl,
+          category: mapCategoryToClothingCategory(item.category),
+          clothingType: mapCategoryToClothingType(item.category),
+          layer: 0 // Will be determined by completeFashnTryOnService
+        }));
+
+        // Apply items sequentially (bottom first, then top)
+        const sequentialResult = await completeFashnTryOnService.applyOutfitSequentially(
+          avatarData.imageUrl,
+          clothingItems
+        );
+
+        if (sequentialResult.success && sequentialResult.finalImageUrl) {
+          console.log('✅ [TRY-ON] Sequential layering completed successfully');
+          tryOnResult = {
+            success: true,
+            imageUrl: sequentialResult.finalImageUrl
+          };
+        } else {
+          throw new Error('Sequential layering failed - falling back to single image try-on');
         }
-      );
+      } else {
+        // Single cohesive outfit - use standard try-on
+        console.log('👔 [TRY-ON] Single cohesive outfit detected, using standard try-on');
+
+        tryOnResult = await directFashnService.tryOnClothing(
+          avatarData.imageUrl,    // Your avatar
+          outfit.imageUrl,        // The generated clothing from Seedream
+          {
+            category: 'auto',     // Let FASHN auto-detect clothing category
+            timeout: 90000,       // 90 seconds - FASHN typically takes 40-50s
+            garmentDescription: outfit.originalPrompt || outfit.searchPrompt, // Use prompt for intelligent segmentation
+            context: 'try_on',    // Use JPEG for speed during try-on
+            source: 'ai-generated' // AI-generated outfits are flat-lay style
+          }
+        );
+      }
 
       if (tryOnResult?.success && tryOnResult?.imageUrl) {
         console.log('✅ Virtual try-on completed:', tryOnResult.imageUrl);
@@ -734,6 +787,36 @@ Return ONLY the search query, nothing else.`
     } finally {
       setIsApplying(false);
     }
+  };
+
+  // Helper function to map detection categories to ClothingItem category
+  const mapCategoryToClothingCategory = (category: string): 'shirts' | 'pants' | 'dresses' | 'shoes' | 'accessories' => {
+    const categoryMap: { [key: string]: 'shirts' | 'pants' | 'dresses' | 'shoes' | 'accessories' } = {
+      'tops': 'shirts',
+      'pants': 'pants',
+      'dresses': 'dresses',
+      'shoes': 'shoes',
+      'accessories': 'accessories',
+      'outerwear': 'shirts',
+      'sweaters': 'shirts',
+      'other': 'shirts'
+    };
+    return categoryMap[category] || 'shirts';
+  };
+
+  // Helper function to map detection categories to ClothingItem clothingType
+  const mapCategoryToClothingType = (category: string): 'top' | 'bottom' | 'dress' | 'outerwear' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'belt' => {
+    const typeMap: { [key: string]: 'top' | 'bottom' | 'dress' | 'outerwear' | 'shoes' | 'hat' | 'jewelry' | 'bag' | 'belt' } = {
+      'tops': 'top',
+      'pants': 'bottom',
+      'dresses': 'dress',
+      'shoes': 'shoes',
+      'accessories': 'jewelry',
+      'outerwear': 'outerwear',
+      'sweaters': 'outerwear',
+      'other': 'top'
+    };
+    return typeMap[category] || 'top';
   };
 
   const handleShareOutfit = (outfit: GeneratedOutfit) => {
