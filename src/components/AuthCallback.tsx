@@ -12,28 +12,45 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      // Helper function to handle post-auth redirect
-      const handlePostAuthRedirect = () => {
-        // Check if there's a specific return path (e.g., from calendar OAuth)
-        const returnPath = sessionStorage.getItem('oauth_return_path');
-
-        if (returnPath) {
-          console.log('🔄 [AUTH-CALLBACK] Redirecting to return path:', returnPath);
-          sessionStorage.removeItem('oauth_return_path');
-          window.location.href = returnPath;
-        } else {
-          // Default behavior: use onSuccess callback
-          onSuccess();
-        }
-      };
-
       try {
         // FIRST: Check URL parameters for calendar OAuth callback
         const searchParams = new URLSearchParams(window.location.search);
         const calendarCallback = searchParams.get('calendar');
+        const returnTo = searchParams.get('returnTo');
+
+      // Helper function to handle post-auth redirect
+      const handlePostAuthRedirect = () => {
+        // Priority 1: Use returnTo from URL (for calendar OAuth)
+        if (returnTo) {
+          console.log('🔄 [AUTH-CALLBACK] Redirecting to returnTo from URL:', returnTo);
+          window.location.href = returnTo;
+          return;
+        }
+
+        // Priority 2: Check sessionStorage for return path
+        const returnPath = sessionStorage.getItem('oauth_return_path');
+        if (returnPath) {
+          console.log('🔄 [AUTH-CALLBACK] Redirecting to return path from sessionStorage:', returnPath);
+          sessionStorage.removeItem('oauth_return_path');
+          window.location.href = returnPath;
+          return;
+        }
+
+        // Priority 3: Calendar OAuth default (if this is a calendar callback)
+        if (calendarCallback === 'google') {
+          console.log('🔄 [AUTH-CALLBACK] Calendar OAuth - redirecting to Smart Calendar');
+          window.location.href = '/closet?view=smart-calendar';
+          return;
+        }
+
+        // Default: use onSuccess callback
+        console.log('🔄 [AUTH-CALLBACK] Using default onSuccess callback');
+        onSuccess();
+      };
 
         console.log('🔍 [AUTH-CALLBACK] URL search params:', window.location.search);
         console.log('🔍 [AUTH-CALLBACK] Calendar callback param:', calendarCallback);
+        console.log('🔍 [AUTH-CALLBACK] ReturnTo param:', returnTo);
         console.log('🔍 [AUTH-CALLBACK] Full URL:', window.location.href);
 
         // Prevent infinite loops - check if we already processed this callback
