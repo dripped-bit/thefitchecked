@@ -131,7 +131,31 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
       console.log('🔍 [CALENDAR-MODAL] Saving calendar event with outfit ID:', outfitId);
 
       // Extract outfit items if available
-      const outfitItems = outfit?.outfit?.items || outfit?.outfit?.outfitItems || [];
+      let outfitItems: any[] = [];
+
+      // Check if outfit has items array (from closet/wardrobe)
+      if (outfit?.outfit?.items || outfit?.outfit?.outfitItems) {
+        outfitItems = outfit?.outfit?.items || outfit?.outfit?.outfitItems || [];
+        console.log('👔 [CALENDAR-MODAL] Using closet outfit items:', outfitItems);
+      } else if (outfit?.outfit) {
+        // AI-generated outfit from occasion planner - create synthetic OutfitItem
+        // GeneratedOutfit has: imageUrl, personality, originalPrompt, supabaseId
+        const generatedOutfit = outfit.outfit as any;
+
+        console.log('🤖 [CALENDAR-MODAL] Detected AI-generated outfit, creating synthetic item');
+
+        outfitItems = [{
+          id: generatedOutfit.supabaseId || `generated-${Date.now()}`,
+          name: outfit.description || generatedOutfit.personality?.name || 'Generated Outfit',
+          imageUrl: outfit.image || outfit.imageUrl || outfit.avatarUrl || generatedOutfit.imageUrl || '',
+          category: 'complete-outfit',
+          formalityLevel: 5, // Default formality
+          weatherSuitability: []
+        }];
+
+        console.log('✨ [CALENDAR-MODAL] Created synthetic outfit item:', outfitItems[0]);
+      }
+
       console.log('👔 [CALENDAR-MODAL] Outfit items to save:', outfitItems);
 
       // Calculate reminder in minutes (days * 24 hours * 60 minutes)
