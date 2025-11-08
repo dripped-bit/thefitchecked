@@ -198,7 +198,10 @@ const MonthlyCalendarGrid: React.FC<MonthlyCalendarGridProps> = ({
         {calendarDays.map((day, index) => (
           <button
             key={index}
-            onClick={() => onDateClick(day.date)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDateClick(day.date);
+            }}
             className={`
               relative min-h-[80px] md:min-h-[120px] p-2 md:p-3 border-b border-r border-gray-100
               hover:bg-blue-50 transition-colors text-left

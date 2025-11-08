@@ -294,7 +294,14 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
       {/* Date Details Panel (shows when date is clicked on mobile) */}
       {showDateDetails && selectedDate && (
-        <div className="fixed inset-0 bg-black/50 z-50 md:hidden" onClick={() => setShowDateDetails(false)}>
+        <div
+          className="fixed inset-0 bg-black/50 z-50 md:hidden"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowDateDetails(false);
+            }
+          }}
+        >
           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-800">
