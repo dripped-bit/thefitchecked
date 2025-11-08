@@ -36,7 +36,6 @@ import AddEventModal from './AddEventModal';
 import MonthlyCalendarGrid from './MonthlyCalendarGrid';
 import OutfitSuggestionModal from './OutfitSuggestionModal';
 import WeeklyOutfitQueue from './WeeklyOutfitQueue';
-import CalendarConnectionSettings from './CalendarConnectionSettings';
 import { calendarConnectionManager } from '../services/calendar/calendarConnectionManager';
 import { GoogleCalendarConnection } from './calendar/GoogleCalendarConnection';
 import { AppleCalendarConnection } from './calendar/AppleCalendarConnection';
@@ -521,9 +520,32 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         </button>
       </div>
 
-      <CalendarConnectionSettings
-        onSync={handleGoogleCalendarSync}
-      />
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-6">Calendar Connections</h3>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <GoogleCalendarConnection
+            isConnected={googleConnected}
+            calendarEmail={googleEmail}
+            onConnectionChange={handleConnectionChange}
+          />
+          <AppleCalendarConnection
+            isConnected={appleConnected}
+            calendarEmail={appleEmail}
+            onConnectionChange={handleConnectionChange}
+          />
+        </div>
+
+        <div className="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h5 className="font-medium text-purple-800 mb-2">About Calendar Sync</h5>
+          <ul className="text-sm text-purple-700 space-y-1">
+            <li>• Events are synced automatically when you visit the calendar</li>
+            <li>• Only upcoming events (next 60 days) are imported</li>
+            <li>• Events are categorized automatically for outfit suggestions</li>
+            <li>• Your calendar data stays private and secure</li>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 
