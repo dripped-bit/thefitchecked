@@ -611,10 +611,10 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         />
       )}
 
-      {/* Date Details Panel (shows when date is clicked on mobile) - MOVED TO TOP LEVEL */}
+      {/* Date Details Panel (shows when date is clicked) - MOVED TO TOP LEVEL */}
       {showDateDetails && selectedDate && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 md:hidden"
+          className="fixed inset-0 bg-black/50 z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowDateDetails(false);
