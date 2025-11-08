@@ -245,16 +245,17 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   } => {
     const lowerInput = input.toLowerCase();
 
-    // Extract garment type
+    // Extract garment type (prioritize specific types over generic)
     const garmentTypes = [
+      'gown', 'gowns', 'ball gown', 'evening gown', 'floor-length gown',
       'dress', 'dresses', 'maxi dress', 'midi dress', 'mini dress',
       'skirt', 'skirts', 'maxi skirt', 'midi skirt', 'mini skirt',
-      'top', 'tops', 'blouse', 'shirt', 't-shirt', 'tshirt',
-      'pants', 'trousers', 'jeans', 'slacks',
       'jumpsuit', 'jumpsuits',
       'romper', 'rompers',
       'suit', 'suits', 'blazer',
+      'pants', 'trousers', 'jeans', 'slacks',
       'jacket', 'coat',
+      'top', 'tops', 'blouse', 'shirt', 't-shirt', 'tshirt',
       'outfit'
     ];
 
@@ -296,8 +297,8 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       }
     }
 
-    // Extract fit
-    const fitKeywords = ['fitted', 'tight', 'loose', 'flowy', 'relaxed', 'oversized', 'bodycon', 'a-line', 'wrap', 'shift'];
+    // Extract fit/style
+    const fitKeywords = ['corset', 'corset top', 'corset bodice', 'fitted', 'tight', 'loose', 'flowy', 'relaxed', 'oversized', 'bodycon', 'a-line', 'wrap', 'shift', 'halter', 'strapless', 'off-shoulder', 'sweetheart'];
     let fit: string | undefined;
     for (const fitWord of fitKeywords) {
       if (lowerInput.includes(fitWord)) {
@@ -323,10 +324,30 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     // Get formality descriptor for the occasion
     const formalityDescriptor = getFormalityDescriptor(occasionName, formality);
 
-    // Build the new prompt format that PRESERVES user input and ADDS context
-    const prompt = `SPECIFIC REQUEST: ${userExactInput}
+    // Parse garment details to extract primary garment vs style modifiers
+    const garmentDetails = parseGarmentDetails(userExactInput);
 
-STYLE INTERPRETATION - ${selectedStyle.name}: ${selectedStyle.description}
+    // Build style modifiers list
+    const styleModifiers: string[] = [];
+    if (garmentDetails.fit) styleModifiers.push(garmentDetails.fit);
+    if (garmentDetails.length) styleModifiers.push(garmentDetails.length);
+    if (garmentDetails.fabric) styleModifiers.push(garmentDetails.fabric);
+    if (garmentDetails.color) styleModifiers.push(garmentDetails.color);
+
+    // Determine if this is a complete garment (dress, gown, jumpsuit) vs separates
+    const isCompleteGarment = ['gown', 'gowns', 'dress', 'dresses', 'jumpsuit', 'jumpsuits', 'romper', 'rompers'].includes(garmentDetails.garmentType);
+
+    // Build the new prompt format that PRESERVES user input and ADDS hierarchical context
+    const prompt = `PRIMARY GARMENT TYPE: ${garmentDetails.garmentType.toUpperCase()}${styleModifiers.length > 0 ? `
+STYLE FEATURES: ${styleModifiers.join(', ')}` : ''}
+
+COMPLETE USER REQUEST: ${userExactInput}
+
+${isCompleteGarment ? `CRITICAL: This is a COMPLETE ${garmentDetails.garmentType.toUpperCase()} - ONE SINGLE full-length piece from top to bottom.
+The style features (${styleModifiers.join(', ') || 'mentioned above'}) describe DESIGN ELEMENTS of the ${garmentDetails.garmentType}, NOT separate items.
+Generate the ENTIRE ${garmentDetails.garmentType} as ONE cohesive garment.
+
+` : ''}STYLE INTERPRETATION - ${selectedStyle.name}: ${selectedStyle.description}
 
 FOR OCCASION: ${occasionName}, ${formalityDescriptor}
 
@@ -576,6 +597,16 @@ Return ONLY the search query, nothing else.`
 
         setGenerationProgress(`Creating ${variation.name.toLowerCase()}...`);
 
+        // Parse garment details to build defensive negative prompt
+        const userInput = occasion.originalInput || occasion.occasion;
+        const garmentDetails = parseGarmentDetails(userInput);
+        const isCompleteGarment = ['gown', 'gowns', 'dress', 'dresses', 'jumpsuit', 'jumpsuits', 'romper', 'rompers'].includes(garmentDetails.garmentType);
+
+        // Add partial garment exclusions for complete garments (dresses, gowns, jumpsuits)
+        const partialGarmentExclusions = isCompleteGarment
+          ? ', crop top only, corset top only, corset only, bodice only, top only, top without skirt, partial garment, incomplete dress, incomplete gown, separated top and bottom, top and skirt as separate pieces, bodice without attached skirt, upper portion only, torso only, bust only'
+          : '';
+
         // Use proxy endpoint instead of direct FAL client to avoid 401 errors
         const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
           method: 'POST',
@@ -584,7 +615,7 @@ Return ONLY the search query, nothing else.`
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, separate items, isolated clothing, individual pieces laid out separately, disconnected garments, spread out items, separated clothing pieces, items not touching, far apart clothing, clothing items with gaps between them, non-cohesive layout, disjointed outfit, fragmented composition, shoes, footwear, boots, sneakers, heels, sandals, slippers, pumps, wedges, flats, loafers, oxfords, mules, espadrilles, bags, purse, handbag, shoulder bag, clutch, tote, backpack, crossbody, satchel, wallet, pouch, scarves, scarf, shawl, wrap, pashmina, bandana, jewelry, necklace, bracelet, earrings, rings, watch, chain, pendant, anklet, accessories, accessory, belt, hat, cap, beanie, fedora, beret, visor, headband, hair accessories, sunglasses, glasses, eyewear, gloves, mittens`,
+            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, separate items, isolated clothing, individual pieces laid out separately, disconnected garments, spread out items, separated clothing pieces, items not touching, far apart clothing, clothing items with gaps between them, non-cohesive layout, disjointed outfit, fragmented composition${partialGarmentExclusions}, shoes, footwear, boots, sneakers, heels, sandals, slippers, pumps, wedges, flats, loafers, oxfords, mules, espadrilles, bags, purse, handbag, shoulder bag, clutch, tote, backpack, crossbody, satchel, wallet, pouch, scarves, scarf, shawl, wrap, pashmina, bandana, jewelry, necklace, bracelet, earrings, rings, watch, chain, pendant, anklet, accessories, accessory, belt, hat, cap, beanie, fedora, beret, visor, headband, hair accessories, sunglasses, glasses, eyewear, gloves, mittens`,
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
