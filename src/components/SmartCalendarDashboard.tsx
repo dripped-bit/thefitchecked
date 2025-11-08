@@ -523,7 +523,22 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   // MAIN RENDER
   // =====================================
 
+  // Show loading state while checking for calendar connections
+  if (isLoading) {
+    console.log('⏳ [SMART-CALENDAR] Loading calendar connections...');
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent mb-4"></div>
+          <p className="text-gray-600">Checking calendar connections...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show connection setup if NOT loading and NOT connected
   if (!isConnected) {
+    console.log('📋 [SMART-CALENDAR] No calendar connected, showing setup screen');
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-4xl mx-auto">
@@ -543,6 +558,8 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
       </div>
     );
   }
+
+  console.log('✅ [SMART-CALENDAR] Calendar connected, showing dashboard');
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
