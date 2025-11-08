@@ -36,6 +36,16 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
         console.log('🔍 [AUTH-CALLBACK] Calendar callback param:', calendarCallback);
         console.log('🔍 [AUTH-CALLBACK] Full URL:', window.location.href);
 
+        // Prevent infinite loops - check if we already processed this callback
+        const hasProcessed = sessionStorage.getItem('calendar_oauth_processed');
+        if (calendarCallback === 'google' && hasProcessed === 'true') {
+          console.log('⚠️ [AUTH-CALLBACK] Already processed calendar OAuth, clearing flag and redirecting');
+          sessionStorage.removeItem('calendar_oauth_processed');
+          sessionStorage.removeItem('oauth_in_progress');
+          window.location.href = '/closet?view=smart-calendar';
+          return;
+        }
+
         // Extract tokens from URL hash (this is where Supabase puts provider tokens!)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
@@ -131,6 +141,7 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
 
                   console.log('✅ [AUTH-CALLBACK] Google Calendar connection saved successfully');
                   sessionStorage.setItem('calendar_connection_success', 'Google Calendar connected!');
+                  sessionStorage.setItem('calendar_oauth_processed', 'true');
                 } catch (calendarError) {
                   console.error('❌ [AUTH-CALLBACK] Failed to save calendar connection:', calendarError);
                   // Don't fail the entire auth flow, just log the error
@@ -198,6 +209,7 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
 
                   console.log('✅ [AUTH-CALLBACK] Google Calendar connection saved successfully');
                   sessionStorage.setItem('calendar_connection_success', 'Google Calendar connected!');
+                  sessionStorage.setItem('calendar_oauth_processed', 'true');
                 } catch (calendarError) {
                   console.error('❌ [AUTH-CALLBACK] Failed to save calendar connection:', calendarError);
                   // Don't fail the entire auth flow, just log the error
