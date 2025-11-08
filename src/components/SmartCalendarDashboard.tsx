@@ -82,6 +82,12 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
     }
   }, []);
 
+  // Debug: Track when googleConnected state changes
+  useEffect(() => {
+    console.log('🔄 [SMART-CALENDAR] googleConnected state changed to:', googleConnected);
+    console.log('🔄 [SMART-CALENDAR] googleEmail state:', googleEmail);
+  }, [googleConnected, googleEmail]);
+
   const initializeDashboard = async () => {
     setIsLoading(true);
     try {
@@ -95,13 +101,17 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
       console.log('📅 [SMART-CALENDAR] Connection status:', anyConnected ? 'Connected' : 'Not connected');
       console.log('📅 [SMART-CALENDAR] Google:', googleIsConnected ? 'Connected' : 'Not connected');
-      console.log('📅 [SMART-CALENDAR] Apple:', appleIsConnected ? 'Not connected' : 'Not connected');
+      console.log('📅 [SMART-CALENDAR] Apple:', appleIsConnected ? 'Connected' : 'Not connected');
+      console.log('🔍 [SMART-CALENDAR] Google connection object:', googleConnection);
+      console.log('🔍 [SMART-CALENDAR] About to set googleConnected to:', googleIsConnected);
 
       setGoogleConnected(googleIsConnected);
       setGoogleEmail(googleConnection?.calendar_email || null);
       setAppleConnected(appleIsConnected);
       setAppleEmail(appleConnection?.calendar_email || null);
       setIsConnected(anyConnected);
+
+      console.log('✅ [SMART-CALENDAR] State update completed - googleConnected should now be:', googleIsConnected);
 
       if (anyConnected) {
         const events = await smartCalendarService.fetchUpcomingEvents();
@@ -176,20 +186,26 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   // RENDER METHODS FOR DIFFERENT VIEWS
   // =====================================
 
-  const renderConnectionSetup = () => (
-    <div className="text-center py-12">
-      <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-6" />
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">Connect Your Calendar</h2>
-      <p className="text-gray-600 mb-8 max-w-md mx-auto">
-        Sync with your calendar to get intelligent outfit suggestions based on your events and weather.
-      </p>
+  const renderConnectionSetup = () => {
+    console.log('🎨 [SMART-CALENDAR] Rendering connection setup. Passing to GoogleCalendarConnection:', {
+      isConnected: googleConnected,
+      calendarEmail: googleEmail
+    });
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-2xl mx-auto">
-        <GoogleCalendarConnection
-          isConnected={googleConnected}
-          calendarEmail={googleEmail}
-          onConnectionChange={handleConnectionChange}
-        />
+    return (
+      <div className="text-center py-12">
+        <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-6" />
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Connect Your Calendar</h2>
+        <p className="text-gray-600 mb-8 max-w-md mx-auto">
+          Sync with your calendar to get intelligent outfit suggestions based on your events and weather.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-2xl mx-auto">
+          <GoogleCalendarConnection
+            isConnected={googleConnected}
+            calendarEmail={googleEmail}
+            onConnectionChange={handleConnectionChange}
+          />
         <AppleCalendarConnection
           isConnected={appleConnected}
           calendarEmail={appleEmail}
@@ -202,7 +218,8 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         <p>✓ Read-only access for outfit planning only</p>
       </div>
     </div>
-  );
+    );
+  };
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
