@@ -60,7 +60,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   const [morningOptions, setMorningOptions] = useState<MorningOptions | null>(null);
   const [outfitQueue, setOutfitQueue] = useState<OutfitPlan[]>([]);
   const [repeatWarnings, setRepeatWarnings] = useState<RepeatWarning[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start as true to show loading state immediately
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [showOutfitPlanner, setShowOutfitPlanner] = useState(false);
@@ -77,8 +77,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
     if (successMessage) {
       alert(successMessage);
       sessionStorage.removeItem('calendar_connection_success');
-      // Reload dashboard to reflect new connection
-      initializeDashboard();
+      // Don't reload - initializeDashboard() already running above
     }
   }, []);
 
@@ -134,11 +133,20 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
   const handleConnectionChange = async (connected: boolean) => {
     console.log('📅 [SMART-CALENDAR] Connection changed:', connected);
-    console.log('📅 [SMART-CALENDAR] Updating parent isConnected state to:', connected);
-    setIsConnected(connected);
+    // This callback is called by child components (GoogleCalendarConnection, AppleCalendarConnection)
+    // when user manually connects/disconnects. We only need to reload if user just connected.
+    // Don't reload on initial mount - initializeDashboard already ran.
+
     if (connected) {
-      console.log('📅 [SMART-CALENDAR] Re-initializing dashboard with new connection');
+      console.log('📅 [SMART-CALENDAR] User connected calendar, reloading dashboard');
       await initializeDashboard();
+    } else {
+      console.log('📅 [SMART-CALENDAR] User disconnected calendar, updating state only');
+      setIsConnected(false);
+      setGoogleConnected(false);
+      setGoogleEmail(null);
+      setAppleConnected(false);
+      setAppleEmail(null);
     }
   };
 
