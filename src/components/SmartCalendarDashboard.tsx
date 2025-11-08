@@ -20,7 +20,9 @@ import {
   Users,
   Plane,
   Camera,
-  ShoppingBag
+  ShoppingBag,
+  ExternalLink,
+  FileText
 } from 'lucide-react';
 import smartCalendarService, {
   CalendarEvent,
@@ -308,24 +310,78 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
               {upcomingEvents.filter(e =>
                 new Date(e.startTime).toDateString() === selectedDate.toDateString()
               ).map(event => (
-                <div key={event.id} className="border border-gray-200 rounded-lg p-3">
+                <div key={event.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                  {/* Event Type Badge */}
                   <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-2 ${getEventTypeColor(event.eventType)}`}>
                     {event.eventType}
                   </div>
-                  <h4 className="font-medium text-gray-800">{event.title}</h4>
+
+                  {/* Event Title */}
+                  <h4 className="font-semibold text-gray-900 mb-2">{event.title}</h4>
+
+                  {/* Location */}
                   {event.location && (
-                    <p className="text-sm text-gray-600 flex items-center space-x-1 mt-1">
+                    <p className="text-sm text-gray-600 flex items-center space-x-1 mb-3">
                       <MapPin className="w-4 h-4" />
                       <span>{event.location}</span>
                     </p>
                   )}
+
+                  {/* Outfit Details from Description */}
+                  {event.description && (
+                    <div className="mt-3 mb-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <FileText className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm font-medium text-gray-700">Outfit Details</span>
+                      </div>
+                      <div className="text-sm text-gray-700 whitespace-pre-line max-h-48 overflow-y-auto">
+                        {event.description}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Shopping Links */}
+                  {event.shoppingLinks && event.shoppingLinks.length > 0 && (
+                    <div className="mt-3 mb-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <ShoppingBag className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm font-medium text-gray-700">Shopping Links</span>
+                      </div>
+                      <div className="space-y-2">
+                        {event.shoppingLinks.map((link, idx) => (
+                          <a
+                            key={idx}
+                            href={link.affiliateUrl || link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between p-2 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors group"
+                          >
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              <ShoppingBag className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-blue-900 truncate">
+                                  {link.title || link.store}
+                                </p>
+                                {link.price && (
+                                  <p className="text-xs text-blue-700">{link.price}</p>
+                                )}
+                              </div>
+                            </div>
+                            <ExternalLink className="w-4 h-4 text-blue-600 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Plan Outfit Button */}
                   <button
                     onClick={() => {
                       setSelectedEvent(event);
                       setShowOutfitPlanner(true);
                       setShowDateDetails(false);
                     }}
-                    className="mt-2 w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                    className="mt-3 w-full bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 transition-colors font-medium"
                   >
                     Plan Outfit
                   </button>
