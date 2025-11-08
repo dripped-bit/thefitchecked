@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/claude/:path*",
-      "destination": "/api/claude"
+      "destination": "/api/claude?path=/:path*"
     },
     {
       "source": "/api/fal/:path*",
