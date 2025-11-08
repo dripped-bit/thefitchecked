@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { calendarConnectionManager } from '../../services/calendar/calendarConnectionManager';
 import { appleCalendarService } from '../../services/calendar/appleCalendarService';
+import '../../styles/calendarSettings.css';
 
 interface AppleCalendarConnectionProps {
   onConnectionChange?: (isConnected: boolean) => void;

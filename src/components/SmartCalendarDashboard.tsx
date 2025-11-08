@@ -39,6 +39,7 @@ import WeeklyOutfitQueue from './WeeklyOutfitQueue';
 import CalendarConnectionSettings from './CalendarConnectionSettings';
 import { calendarConnectionManager } from '../services/calendar/calendarConnectionManager';
 import { GoogleCalendarConnection } from './calendar/GoogleCalendarConnection';
+import { AppleCalendarConnection } from './calendar/AppleCalendarConnection';
 
 interface SmartCalendarDashboardProps {
   onBack?: () => void;
@@ -164,6 +165,9 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
       <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-2xl mx-auto">
         <GoogleCalendarConnection
+          onConnectionChange={handleConnectionChange}
+        />
+        <AppleCalendarConnection
           onConnectionChange={handleConnectionChange}
         />
       </div>
