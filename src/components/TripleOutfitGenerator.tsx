@@ -196,10 +196,10 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     const userData = userDataService.getAllUserData();
     const gender = userData?.profile?.gender || '';
 
-    const base = "children's clothes, kids outfit, toddler dress, baby clothes, children's clothing, kids apparel, children wear, toddler outfit, kids fashion, youth clothing, junior sizes, child clothing, juvenile wear, schoolwear, age 2T-16, infant sizes, nursery clothes, preschool outfit, elementary wear, kidswear, childrenwear";
+    const base = "children's clothes, kids outfit, toddler dress, baby clothes, children's clothing, kids apparel, children wear, toddler outfit, kids fashion, youth clothing, junior sizes, child clothing, juvenile wear, schoolwear, age 2T-16, infant sizes, nursery clothes, preschool outfit, elementary wear, kidswear, childrenwear, tween, tween clothing, pre-teen, preteen, preteen clothing, teen clothing, teenage wear, XXS sizes, petite children, age 16-18, young teen, adolescent clothing, youth sizes XXS";
 
-    if (gender === 'male') return `${base}, boys' clothes, boys outfit, boy's clothing, boys wear, boys sizes, boy sizes`;
-    if (gender === 'female') return `${base}, girls' clothes, girls outfit, girl's clothing, girls wear, girls sizes, girl sizes`;
+    if (gender === 'male') return `${base}, boys' clothes, boys outfit, boy's clothing, boys wear, boys sizes, boy sizes, teen boy clothing`;
+    if (gender === 'female') return `${base}, girls' clothes, girls outfit, girl's clothing, girls wear, girls sizes, girl sizes, teen girl clothing`;
     return base;
   };
 
@@ -226,6 +226,46 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     if (formalityLevel.includes('party')) return 'party attire';
 
     return 'casual attire'; // default fallback
+  };
+
+  // Get occasion-specific styling modifiers for enhanced context
+  const getOccasionModifiers = (occasionName: string): string => {
+    const lowerOccasion = occasionName.toLowerCase();
+
+    // Wedding-related occasions
+    if (lowerOccasion.includes('wedding')) {
+      if (lowerOccasion.includes('beach')) return 'beach wedding appropriate, lightweight breathable fabrics, sand-friendly styling, outdoor ceremony wear';
+      if (lowerOccasion.includes('garden')) return 'garden wedding appropriate, outdoor ceremony wear, nature-friendly styling, floral-appropriate';
+      return 'wedding-appropriate, elegant ceremony attire, formal event styling, celebration wear';
+    }
+
+    // Beach/outdoor occasions
+    if (lowerOccasion.includes('beach')) return 'beach-appropriate, lightweight breathable fabrics, resort wear styling, sand-friendly';
+    if (lowerOccasion.includes('garden party')) return 'garden party appropriate, outdoor event styling, floral-friendly, daytime elegant';
+    if (lowerOccasion.includes('outdoor') || lowerOccasion.includes('picnic')) return 'outdoor event appropriate, weather-appropriate, comfortable for outdoor activities';
+
+    // Professional occasions
+    if (lowerOccasion.includes('interview') || lowerOccasion.includes('job')) return 'interview-appropriate, conservative professional styling, business formal, polished appearance';
+    if (lowerOccasion.includes('business') || lowerOccasion.includes('meeting')) return 'business-appropriate, professional workplace styling, office-ready';
+    if (lowerOccasion.includes('conference') || lowerOccasion.includes('presentation')) return 'conference-appropriate, professional event wear, polished business styling';
+
+    // Evening/social occasions
+    if (lowerOccasion.includes('date night') || lowerOccasion.includes('date')) return 'date-appropriate, evening romantic styling, special occasion wear, dinner-ready';
+    if (lowerOccasion.includes('cocktail')) return 'cocktail party appropriate, evening social event, semi-formal party wear';
+    if (lowerOccasion.includes('gala') || lowerOccasion.includes('ball')) return 'gala-appropriate, formal evening event, luxury occasion wear, black-tie styling';
+    if (lowerOccasion.includes('party') || lowerOccasion.includes('celebration')) return 'party-appropriate, social event styling, celebration wear, festive';
+
+    // Casual/daytime occasions
+    if (lowerOccasion.includes('brunch')) return 'brunch-appropriate, daytime casual elegant, weekend social wear';
+    if (lowerOccasion.includes('festival') || lowerOccasion.includes('concert')) return 'festival-appropriate, concert-ready, comfortable for standing/dancing, bohemian-friendly';
+    if (lowerOccasion.includes('vacation') || lowerOccasion.includes('travel')) return 'travel-appropriate, vacation wear, comfortable for activities, versatile styling';
+
+    // Active/athletic occasions
+    if (lowerOccasion.includes('gym') || lowerOccasion.includes('workout')) return 'athletic-appropriate, workout-ready, moisture-wicking, performance wear';
+    if (lowerOccasion.includes('yoga')) return 'yoga-appropriate, flexible comfortable fit, athletic wear, breathable';
+
+    // Default - no specific modifiers
+    return '';
   };
 
   // Garment type detection - detects specific garment from user input or defaults by formality
@@ -379,9 +419,11 @@ Interpret the user's request in a ${selectedStyle.name.toLowerCase()} way using:
 - Color${userColor ? ' (USER SPECIFIED - MUST USE)' : ''}: ${finalColor}
 - Silhouette${userHasSpecificFit ? ' (USER SPECIFIED - MUST USE)' : ''}: ${finalSilhouette}
 
-FOR OCCASION: ${occasionName}, ${formalityDescriptor}
+OCCASION CONTEXT: ${occasionName}, ${formalityDescriptor}${getOccasionModifiers(occasionName) ? `
+OCCASION-SPECIFIC REQUIREMENTS: ${getOccasionModifiers(occasionName)}` : ''}
 
 REQUIREMENTS: Full-sized adult clothing proportions only - ${getClothingGenderText()}
+CRITICAL: This outfit MUST be appropriate for: ${occasionName}
 
 CRITICAL HIERARCHY:
 1. User's exact specifications (color, fit, length, garment type) are MANDATORY and NON-NEGOTIABLE
