@@ -26,29 +26,38 @@ export const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> =
     checkConnection();
   }, []);
 
+  // Debug: Log when isConnected state changes
+  useEffect(() => {
+    console.log('🔄 [GOOGLE-CALENDAR-UI] isConnected state updated to:', isConnected);
+  }, [isConnected]);
+
   const checkConnection = async () => {
     console.log('🔍 [GOOGLE-CALENDAR-UI] Checking for existing connection...');
     try {
       const connection = await calendarConnectionManager.getConnectionByProvider('google');
+      console.log('🔍 [GOOGLE-CALENDAR-UI] Connection query result:', connection ? 'Found' : 'Not found');
 
       if (connection) {
+        console.log('✅ [GOOGLE-CALENDAR-UI] Setting isConnected = true');
         setIsConnected(true);
         setCalendarEmail(connection.calendar_email);
+        console.log('📞 [GOOGLE-CALENDAR-UI] Calling onConnectionChange(true) to update parent');
         onConnectionChange?.(true);
         console.log('✅ [GOOGLE-CALENDAR-UI] Calendar connected:', connection.calendar_email);
       } else {
+        console.log('ℹ️ [GOOGLE-CALENDAR-UI] Setting isConnected = false');
         setIsConnected(false);
         setCalendarEmail(null);
+        console.log('📞 [GOOGLE-CALENDAR-UI] Calling onConnectionChange(false) to update parent');
         onConnectionChange?.(false);
         console.log('ℹ️ [GOOGLE-CALENDAR-UI] No calendar connected');
       }
     } catch (error) {
       console.error('❌ [GOOGLE-CALENDAR-UI] Error checking connection:', error);
+      console.log('❌ [GOOGLE-CALENDAR-UI] Setting isConnected = false due to error');
       setIsConnected(false);
     } finally {
       setIsLoading(false);
-      // Don't log isConnected here - it's a stale closure value
-      // The actual state update happens correctly in the try block above
       console.log('📊 [GOOGLE-CALENDAR-UI] Connection check complete');
     }
   };
