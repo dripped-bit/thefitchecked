@@ -57,8 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('❌ [CLAUDE-PROXY] Exception:', error);
     console.error('❌ [CLAUDE-PROXY] Error details:', {
       message: error instanceof Error ? error.message : 'Unknown',
-      name: error instanceof Error ? error.name : 'Unknown',
-      cause: error instanceof Error ? error.cause : undefined
+      name: error instanceof Error ? error.name : 'Unknown'
     });
 
     // Handle timeout errors
@@ -73,8 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (error instanceof Error && error.message === 'fetch failed') {
       return res.status(503).json({
         error: 'Network error',
-        message: 'Unable to reach Claude API - network connection failed',
-        details: error.cause
+        message: 'Unable to reach Claude API - network connection failed'
       });
     }
 
