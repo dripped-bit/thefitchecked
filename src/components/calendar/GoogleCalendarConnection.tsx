@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { calendarConnectionManager } from '../../services/calendar/calendarConnectionManager';
+import '../../styles/calendarSettings.css';
 
 interface GoogleCalendarConnectionProps {
   onConnectionChange?: (isConnected: boolean) => void;
@@ -26,6 +27,7 @@ export const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> =
   }, []);
 
   const checkConnection = async () => {
+    console.log('🔍 [GOOGLE-CALENDAR-UI] Checking for existing connection...');
     try {
       const connection = await calendarConnectionManager.getConnectionByProvider('google');
 
@@ -45,6 +47,7 @@ export const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> =
       setIsConnected(false);
     } finally {
       setIsLoading(false);
+      console.log('📊 [GOOGLE-CALENDAR-UI] Loading complete. isConnected:', isConnected);
     }
   };
 
@@ -103,6 +106,8 @@ export const GoogleCalendarConnection: React.FC<GoogleCalendarConnectionProps> =
       setIsLoading(false);
     }
   };
+
+  console.log('🎨 [GOOGLE-CALENDAR-UI] Rendering component. isLoading:', isLoading, 'isConnected:', isConnected);
 
   if (isLoading) {
     return (
