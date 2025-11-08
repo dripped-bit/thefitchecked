@@ -28,12 +28,13 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
       };
 
       try {
-        // Check if this is a calendar OAuth callback
-        const urlParams = new URLSearchParams(window.location.search);
-        const isCalendarCallback = urlParams.get('calendar');
+        // FIRST: Check URL parameters for calendar OAuth callback
+        const searchParams = new URLSearchParams(window.location.search);
+        const calendarCallback = searchParams.get('calendar');
 
-        // Check if user already has an active session
-        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        console.log('🔍 [AUTH-CALLBACK] URL search params:', window.location.search);
+        console.log('🔍 [AUTH-CALLBACK] Calendar callback param:', calendarCallback);
+        console.log('🔍 [AUTH-CALLBACK] Full URL:', window.location.href);
 
         // Get the URL hash parameters
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -44,8 +45,20 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
         const error = hashParams.get('error');
         const errorDescription = hashParams.get('error_description');
 
+        console.log('🔍 [AUTH-CALLBACK] Hash params:', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          hasProviderToken: !!providerToken,
+          type,
+          error
+        });
+
+        // Check if user already has an active session
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+
         // Enhanced logging for debugging
         console.log('🔐 [AUTH-CALLBACK] Processing auth callback:', {
+          calendarCallback,
           type,
           hasAccessToken: !!accessToken,
           hasProviderToken: !!providerToken,
@@ -53,6 +66,11 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
           error,
           errorDescription
         });
+
+        // PRIORITY: Handle calendar OAuth callback FIRST
+        if (calendarCallback === 'google') {
+          console.log('📅 [AUTH-CALLBACK] ⚡ CALENDAR OAUTH DETECTED - Processing Google Calendar connection');
+        }
 
         // Handle OAuth errors from provider (e.g., user denied access)
         if (error) {
@@ -81,7 +99,7 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             console.log('🔍 [AUTH-CALLBACK] Refreshed session provider_token:', data.session.provider_token ? 'present' : 'missing');
 
             // If this is a calendar OAuth callback, save the connection
-            if (isCalendarCallback === 'google') {
+            if (calendarCallback === 'google') {
               console.log('📅 [AUTH-CALLBACK] Processing Google Calendar OAuth callback (re-auth scenario)');
 
               if (data.session.provider_token) {
@@ -145,8 +163,8 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             console.log('✅ [AUTH-CALLBACK] Session established');
 
             // If this is a calendar OAuth callback, save the connection
-            if (isCalendarCallback === 'google') {
-              console.log('📅 [AUTH-CALLBACK] Processing Google Calendar OAuth callback');
+            if (calendarCallback === 'google') {
+              console.log('📅 [AUTH-CALLBACK] Processing Google Calendar OAuth callback (fresh auth scenario)');
               console.log('🔍 [AUTH-CALLBACK] Session provider_token:', data.session.provider_token ? 'present' : 'missing');
               console.log('🔍 [AUTH-CALLBACK] Session provider_refresh_token:', data.session.provider_refresh_token ? 'present' : 'missing');
 
