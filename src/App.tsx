@@ -86,6 +86,22 @@ function App() {
       return;
     }
 
+    // Check for closet route with view parameter
+    if (pathname === '/closet' || pathname === '/closet/') {
+      const view = urlParams.get('view');
+      console.log('🏠 [ROUTE] Closet route detected with view:', view);
+
+      // Set screen to closet
+      setCurrentScreen('closet');
+
+      // Store view parameter for ClosetExperience component to use
+      if (view) {
+        sessionStorage.setItem('closet_view', view);
+        console.log('📍 [APP] Stored closet view in sessionStorage:', view);
+      }
+      return;
+    }
+
     if (shareParam) {
       console.log('🔗 [SHARE] Share link detected:', shareParam);
       setShareId(shareParam);

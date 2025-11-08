@@ -275,6 +275,20 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const dateFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Check for stored view parameter from URL (e.g., from calendar OAuth redirect)
+  useEffect(() => {
+    const storedView = sessionStorage.getItem('closet_view');
+    if (storedView) {
+      console.log('📍 [CLOSET] Found stored view from URL:', storedView);
+      if (storedView === 'smart-calendar') {
+        setCurrentView('smart-calendar');
+        console.log('📅 [CLOSET] Setting view to smart-calendar from URL parameter');
+      }
+      // Clear the stored view after using it
+      sessionStorage.removeItem('closet_view');
+    }
+  }, []);
+
   // Debug currentView changes
   useEffect(() => {
     console.log(`🔄 [CLOSET-VIEW] Current view changed to: "${currentView}"`);
