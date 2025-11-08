@@ -892,8 +892,9 @@ function App() {
     return (
       <AuthCallback
         onSuccess={() => {
-          console.log('✅ [AUTH] Email confirmed, redirecting to app');
-          window.location.href = '/';
+          console.log('✅ [AUTH] Auth callback complete');
+          // Let AuthCallback handle its own redirect
+          setIsAuthCallback(false);
         }}
       />
     );
