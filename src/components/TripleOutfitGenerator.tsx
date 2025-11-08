@@ -88,27 +88,45 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   const styleInterpretations = [
     {
       name: 'Romantic',
-      description: 'flowing fabrics, delicate details, ruffles OR lace OR floral elements, dreamy feminine style, soft draping'
+      description: 'flowing fabrics, delicate details, ruffles OR lace OR floral elements, dreamy feminine style, soft draping',
+      colorPalette: 'soft pastels, blush pink, cream, lavender, or powder blue',
+      silhouette: 'flowing and draped, A-line or empire waist',
+      negativeExclusions: 'structured, geometric, minimalist, monochrome, harsh lines'
     },
     {
       name: 'Elegant',
-      description: 'tailored silhouette, classic lines, refined details, structured pieces, timeless elegance'
+      description: 'tailored silhouette, classic lines, refined details, structured pieces, timeless elegance',
+      colorPalette: 'classic neutrals, navy, black, ivory, burgundy, or emerald',
+      silhouette: 'tailored and structured, fitted waist, clean lines',
+      negativeExclusions: 'casual, bohemian, loose-fitting, distressed, oversized'
     },
     {
       name: 'Edgy',
-      description: 'leather OR metal details, bold cuts, asymmetric elements, statement pieces, urban aesthetic'
+      description: 'leather OR metal details, bold cuts, asymmetric elements, statement pieces, urban aesthetic',
+      colorPalette: 'bold colors, black, deep red, metallic silver, electric blue',
+      silhouette: 'asymmetric or deconstructed, fitted or oversized extremes',
+      negativeExclusions: 'delicate, romantic, pastel, flowing, soft fabrics'
     },
     {
       name: 'Minimalist',
-      description: 'clean lines, neutral colors, simple silhouettes, understated elegance'
+      description: 'clean lines, neutral colors, simple silhouettes, understated elegance',
+      colorPalette: 'monochromatic neutrals, white, beige, gray, camel, or black',
+      silhouette: 'simple and streamlined, straight or slightly relaxed',
+      negativeExclusions: 'embellished, patterned, ruffled, layered, ornate details'
     },
     {
       name: 'Bohemian',
-      description: 'layered textures, earthy tones, loose fits, eclectic patterns, free-spirited'
+      description: 'layered textures, earthy tones, loose fits, eclectic patterns, free-spirited',
+      colorPalette: 'earthy warm tones, terracotta, olive, mustard, rust, or burnt orange',
+      silhouette: 'loose and relaxed, layered, flowy maxi or oversized',
+      negativeExclusions: 'structured, tailored, minimalist, sleek, form-fitting'
     },
     {
       name: 'Glam',
-      description: 'sequins OR metallics, bold colors, luxury fabrics, embellished details'
+      description: 'sequins OR metallics, bold colors, luxury fabrics, embellished details',
+      colorPalette: 'jewel tones or metallics, gold, emerald, ruby red, sapphire, or champagne',
+      silhouette: 'form-fitting or dramatic, bodycon or voluminous statement',
+      negativeExclusions: 'casual, muted, understated, simple, minimalist'
     }
   ];
 
@@ -337,21 +355,38 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     // Determine if this is a complete garment (dress, gown, jumpsuit) vs separates
     const isCompleteGarment = ['gown', 'gowns', 'dress', 'dresses', 'jumpsuit', 'jumpsuits', 'romper', 'rompers'].includes(garmentDetails.garmentType);
 
-    // Build the new prompt format that PRESERVES user input and ADDS hierarchical context
-    const prompt = `PRIMARY GARMENT TYPE: ${garmentDetails.garmentType.toUpperCase()}${styleModifiers.length > 0 ? `
-STYLE FEATURES: ${styleModifiers.join(', ')}` : ''}
+    // Determine color and silhouette - user specifications ALWAYS take priority
+    const userColor = garmentDetails.color;
+    const userHasSpecificFit = garmentDetails.fit || garmentDetails.length;
+    const finalColor = userColor || selectedStyle.colorPalette;
+    const finalSilhouette = userHasSpecificFit
+      ? `${garmentDetails.fit || ''} ${garmentDetails.length || ''}`.trim()
+      : selectedStyle.silhouette;
 
-COMPLETE USER REQUEST: ${userExactInput}
+    // Build the new prompt format - USER REQUEST FIRST, then style interpretation
+    const prompt = `COMPLETE USER REQUEST (MANDATORY - NON-NEGOTIABLE): ${userExactInput}
+
+PRIMARY GARMENT TYPE: ${garmentDetails.garmentType.toUpperCase()}${styleModifiers.length > 0 ? `
+USER-SPECIFIED FEATURES: ${styleModifiers.join(', ')}` : ''}
 
 ${isCompleteGarment ? `CRITICAL: This is a COMPLETE ${garmentDetails.garmentType.toUpperCase()} - ONE SINGLE full-length piece from top to bottom.
 The style features (${styleModifiers.join(', ') || 'mentioned above'}) describe DESIGN ELEMENTS of the ${garmentDetails.garmentType}, NOT separate items.
 Generate the ENTIRE ${garmentDetails.garmentType} as ONE cohesive garment.
 
-` : ''}STYLE INTERPRETATION - ${selectedStyle.name}: ${selectedStyle.description}
+` : ''}STYLE INTERPRETATION - ${selectedStyle.name.toUpperCase()} VARIATION:
+Interpret the user's request in a ${selectedStyle.name.toLowerCase()} way using:
+- Fabric/Texture Approach: ${selectedStyle.description}
+- Color${userColor ? ' (USER SPECIFIED - MUST USE)' : ''}: ${finalColor}
+- Silhouette${userHasSpecificFit ? ' (USER SPECIFIED - MUST USE)' : ''}: ${finalSilhouette}
 
 FOR OCCASION: ${occasionName}, ${formalityDescriptor}
 
 REQUIREMENTS: Full-sized adult clothing proportions only - ${getClothingGenderText()}
+
+CRITICAL HIERARCHY:
+1. User's exact specifications (color, fit, length, garment type) are MANDATORY and NON-NEGOTIABLE
+2. Style interpretation applies to: fabric textures, necklines, embellishments, design details, patterns
+3. Create variations through different textures, details, and embellishments while honoring user specs
 
 Generate ONE SINGLE complete outfit matching the specific request above.
 
@@ -607,6 +642,18 @@ Return ONLY the search query, nothing else.`
           ? ', crop top only, corset top only, corset only, bodice only, top only, top without skirt, partial garment, incomplete dress, incomplete gown, separated top and bottom, top and skirt as separate pieces, bodice without attached skirt, upper portion only, torso only, bust only'
           : '';
 
+        // Add style-specific negative exclusions to ensure variety between outfits
+        const styleIndex = index % styleInterpretations.length;
+        const selectedStyle = styleInterpretations[styleIndex];
+        const styleExclusions = selectedStyle.negativeExclusions ? `, ${selectedStyle.negativeExclusions}` : '';
+
+        // Add guidance_scale variation to increase diversity between outfits
+        // Different guidance values create different levels of prompt adherence
+        const guidanceScales = [7.5, 9.0, 10.5]; // Variation 1: moderate, Variation 2: high, Variation 3: very high
+        const guidanceScale = guidanceScales[index] || 9.0;
+
+        console.log(`🎨 [VARIATION ${index + 1}] Style: ${selectedStyle.name}, Guidance: ${guidanceScale}, Seed: ${seed}`);
+
         // Use proxy endpoint instead of direct FAL client to avoid 401 errors
         const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
           method: 'POST',
@@ -615,12 +662,13 @@ Return ONLY the search query, nothing else.`
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, separate items, isolated clothing, individual pieces laid out separately, disconnected garments, spread out items, separated clothing pieces, items not touching, far apart clothing, clothing items with gaps between them, non-cohesive layout, disjointed outfit, fragmented composition${partialGarmentExclusions}, shoes, footwear, boots, sneakers, heels, sandals, slippers, pumps, wedges, flats, loafers, oxfords, mules, espadrilles, bags, purse, handbag, shoulder bag, clutch, tote, backpack, crossbody, satchel, wallet, pouch, scarves, scarf, shawl, wrap, pashmina, bandana, jewelry, necklace, bracelet, earrings, rings, watch, chain, pendant, anklet, accessories, accessory, belt, hat, cap, beanie, fedora, beret, visor, headband, hair accessories, sunglasses, glasses, eyewear, gloves, mittens`,
+            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, separate items, isolated clothing, individual pieces laid out separately, disconnected garments, spread out items, separated clothing pieces, items not touching, far apart clothing, clothing items with gaps between them, non-cohesive layout, disjointed outfit, fragmented composition${partialGarmentExclusions}${styleExclusions}, shoes, footwear, boots, sneakers, heels, sandals, slippers, pumps, wedges, flats, loafers, oxfords, mules, espadrilles, bags, purse, handbag, shoulder bag, clutch, tote, backpack, crossbody, satchel, wallet, pouch, scarves, scarf, shawl, wrap, pashmina, bandana, jewelry, necklace, bracelet, earrings, rings, watch, chain, pendant, anklet, accessories, accessory, belt, hat, cap, beanie, fedora, beret, visor, headband, hair accessories, sunglasses, glasses, eyewear, gloves, mittens`,
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,
             seed, // Force unique outputs per variation
-            num_inference_steps: 28 // Increase quality and variation
+            num_inference_steps: 28, // Increase quality and variation
+            guidance_scale: guidanceScale // Vary prompt adherence per outfit for diversity
           })
         });
 
