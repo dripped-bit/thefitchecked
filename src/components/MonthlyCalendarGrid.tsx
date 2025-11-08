@@ -43,7 +43,7 @@ const MonthlyCalendarGrid: React.FC<MonthlyCalendarGridProps> = ({
 
   useEffect(() => {
     generateCalendarDays();
-  }, [currentMonth, events, selectedDate]);
+  }, [currentMonth, events]);
 
   const generateCalendarDays = () => {
     const year = currentMonth.getFullYear();
