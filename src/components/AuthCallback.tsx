@@ -36,12 +36,13 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
         console.log('🔍 [AUTH-CALLBACK] Calendar callback param:', calendarCallback);
         console.log('🔍 [AUTH-CALLBACK] Full URL:', window.location.href);
 
-        // Get the URL hash parameters
+        // Extract tokens from URL hash (this is where Supabase puts provider tokens!)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
         const providerToken = hashParams.get('provider_token');
+        const providerRefreshToken = hashParams.get('provider_refresh_token');
         const error = hashParams.get('error');
         const errorDescription = hashParams.get('error_description');
 
@@ -49,9 +50,13 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
           hasAccessToken: !!accessToken,
           hasRefreshToken: !!refreshToken,
           hasProviderToken: !!providerToken,
+          hasProviderRefreshToken: !!providerRefreshToken,
           type,
           error
         });
+
+        console.log('🔍 [AUTH-CALLBACK] Provider token from hash:', providerToken ? 'present' : 'missing');
+        console.log('🔍 [AUTH-CALLBACK] Provider refresh token from hash:', providerRefreshToken ? 'present' : 'missing');
 
         // Check if user already has an active session
         const { data: { session: existingSession } } = await supabase.auth.getSession();
@@ -102,23 +107,24 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             if (calendarCallback === 'google') {
               console.log('📅 [AUTH-CALLBACK] Processing Google Calendar OAuth callback (re-auth scenario)');
 
-              if (data.session.provider_token) {
+              // Use tokens from URL hash (NOT session)
+              if (providerToken) {
                 try {
                   const tokenExpiry = new Date(Date.now() + 3600 * 1000); // 1 hour from now
                   const userEmail = data.session.user.email || null;
 
-                  console.log('💾 [AUTH-CALLBACK] Saving calendar connection with:', {
+                  console.log('💾 [AUTH-CALLBACK] Saving calendar connection with tokens from URL hash:', {
                     provider: 'google',
-                    hasAccessToken: !!data.session.provider_token,
-                    hasRefreshToken: !!data.session.provider_refresh_token,
+                    hasAccessToken: !!providerToken,
+                    hasRefreshToken: !!providerRefreshToken,
                     calendarEmail: userEmail,
                     tokenExpiry: tokenExpiry.toISOString()
                   });
 
                   await calendarConnectionManager.saveConnection(
                     'google',
-                    data.session.provider_token,
-                    data.session.provider_refresh_token || null,
+                    providerToken,
+                    providerRefreshToken || null,
                     tokenExpiry,
                     userEmail
                   );
@@ -130,7 +136,7 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
                   // Don't fail the entire auth flow, just log the error
                 }
               } else {
-                console.warn('⚠️ [AUTH-CALLBACK] No provider token available in refreshed session');
+                console.warn('⚠️ [AUTH-CALLBACK] No provider token in URL hash');
               }
             }
           }
@@ -165,26 +171,27 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
             // If this is a calendar OAuth callback, save the connection
             if (calendarCallback === 'google') {
               console.log('📅 [AUTH-CALLBACK] Processing Google Calendar OAuth callback (fresh auth scenario)');
-              console.log('🔍 [AUTH-CALLBACK] Session provider_token:', data.session.provider_token ? 'present' : 'missing');
-              console.log('🔍 [AUTH-CALLBACK] Session provider_refresh_token:', data.session.provider_refresh_token ? 'present' : 'missing');
+              console.log('🔍 [AUTH-CALLBACK] Provider token from URL hash:', providerToken ? 'present' : 'missing');
+              console.log('🔍 [AUTH-CALLBACK] Provider refresh token from URL hash:', providerRefreshToken ? 'present' : 'missing');
 
-              if (data.session.provider_token) {
+              // Use tokens from URL hash (NOT session)
+              if (providerToken) {
                 try {
                   const tokenExpiry = new Date(Date.now() + 3600 * 1000); // 1 hour from now
                   const userEmail = data.session.user.email || null;
 
-                  console.log('💾 [AUTH-CALLBACK] Saving calendar connection with:', {
+                  console.log('💾 [AUTH-CALLBACK] Saving calendar connection with tokens from URL hash:', {
                     provider: 'google',
-                    hasAccessToken: !!data.session.provider_token,
-                    hasRefreshToken: !!data.session.provider_refresh_token,
+                    hasAccessToken: !!providerToken,
+                    hasRefreshToken: !!providerRefreshToken,
                     calendarEmail: userEmail,
                     tokenExpiry: tokenExpiry.toISOString()
                   });
 
                   await calendarConnectionManager.saveConnection(
                     'google',
-                    data.session.provider_token,
-                    data.session.provider_refresh_token || null,
+                    providerToken,
+                    providerRefreshToken || null,
                     tokenExpiry,
                     userEmail
                   );
@@ -196,7 +203,7 @@ const AuthCallback: React.FC<AuthCallbackProps> = ({ onSuccess }) => {
                   // Don't fail the entire auth flow, just log the error
                 }
               } else {
-                console.warn('⚠️ [AUTH-CALLBACK] No provider token available for calendar connection');
+                console.warn('⚠️ [AUTH-CALLBACK] No provider token in URL hash');
               }
             }
 
