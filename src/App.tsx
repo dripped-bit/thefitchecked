@@ -377,7 +377,11 @@ function App() {
       const hasCompletedFlow = UserService.hasCompletedFlow();
       const defaultAvatar = avatarManagementService.getDefaultAvatar();
 
-      if (hasCompletedFlow && defaultAvatar) {
+      // iOS Fix: If avatar exists in Supabase, assume flow was completed
+      // (localStorage may be cleared on iOS, but Supabase data persists)
+      const hasCompletedFlowOrAvatar = hasCompletedFlow || (defaultAvatar !== null);
+
+      if (hasCompletedFlowOrAvatar && defaultAvatar) {
         console.log('🎯 [APP] User has completed full flow - navigating to Avatar Homepage');
         console.log('🎭 [APP] Loading avatar:', defaultAvatar.name);
 
