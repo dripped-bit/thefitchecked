@@ -205,14 +205,18 @@ const NativeCameraCapture: React.FC<NativeCameraCaptureProps> = ({
             <ActionsButton
               onClick={takePhoto}
               bold
+              className="!justify-center"
             >
-              <div className="flex items-center justify-center gap-2 w-full">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', position: 'relative' }}>
                 <CameraIcon size={20} />
                 <span>Take Photo</span>
               </div>
             </ActionsButton>
-            <ActionsButton onClick={pickPhoto}>
-              <div className="flex items-center justify-center gap-2 w-full">
+            <ActionsButton
+              onClick={pickPhoto}
+              className="!justify-center"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', position: 'relative' }}>
                 <ImageIcon size={20} />
                 <span>Choose from Library</span>
               </div>
@@ -225,8 +229,9 @@ const NativeCameraCapture: React.FC<NativeCameraCaptureProps> = ({
                 onCancel?.();
               }}
               colors={{ text: 'text-red-500' }}
+              className="!justify-center"
             >
-              <div className="flex items-center justify-center w-full">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', position: 'relative' }}>
                 <span>Cancel</span>
               </div>
             </ActionsButton>
