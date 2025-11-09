@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import outfitStorageService, { OutfitData } from '../services/outfitStorageService';
 import collectionsService from '../services/collectionsService';
+import { useHaptics } from '../utils/haptics';
 // Color analysis temporarily disabled for deployment
 // import colorAnalysisService from '../services/colorAnalysisService';
 
@@ -41,11 +42,21 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
   const [showColorPalette, setShowColorPalette] = useState(false);
   const [isPromptExpanded, setIsPromptExpanded] = useState(false);
 
+  // Haptic feedback hook
+  const haptics = useHaptics();
+
   /**
    * Toggle favorite status
    */
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Haptic feedback BEFORE action
+    if (favorited) {
+      haptics.light(); // Unfavorite = light tap
+    } else {
+      haptics.doubleTap(); // Favorite = double tap (like "heart" animation)
+    }
 
     const success = await outfitStorageService.toggleFavorite(outfit.id!, !favorited);
     if (success) {
@@ -63,6 +74,9 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
   const handleRate = async (stars: number, e: React.MouseEvent) => {
     e.stopPropagation();
 
+    // Add haptic feedback
+    haptics.selection(); // Selection haptic for picker-style interaction
+
     const success = await outfitStorageService.rateOutfit(outfit.id!, stars, userId);
     if (success) {
       setRating(stars);
@@ -78,6 +92,9 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
    */
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    haptics.medium(); // Medium impact for button press
+
     setIsSharing(true);
 
     const url = await outfitStorageService.shareOutfit(outfit.id!);
@@ -88,8 +105,11 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
       try {
         await navigator.clipboard.writeText(url);
         console.log('✅ Share URL copied to clipboard:', url);
+
+        haptics.success(); // Success notification when copied
       } catch (error) {
         console.error('❌ Failed to copy to clipboard:', error);
+        haptics.error(); // Error notification if failed
       }
     }
   };
@@ -156,6 +176,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
                 title={getColorName(color)}
                 onClick={(e) => {
                   e.stopPropagation();
+                  haptics.light();
                   setShowColorPalette(!showColorPalette);
                 }}
               />
@@ -266,6 +287,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                haptics.light();
                 setShowMenu(!showMenu);
               }}
               className="px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -307,11 +329,14 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
             <button
               onClick={async (e) => {
                 e.stopPropagation();
+                haptics.medium();
                 try {
                   await navigator.clipboard.writeText(shareUrl);
+                  haptics.success();
                   alert('Link copied to clipboard!');
                 } catch (error) {
                   console.error('Failed to copy:', error);
+                  haptics.error();
                 }
               }}
               className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"

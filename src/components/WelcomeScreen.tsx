@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, Zap, Trash, Sparkles, User, Users } from 'lucide-react';
 import avatarManagementService, { type SavedAvatar } from '../services/avatarManagementService';
+import { useHaptics } from '../utils/haptics';
 
 interface WelcomeScreenProps {
   onNext: () => void;
@@ -11,6 +12,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
   const [savedAvatars, setSavedAvatars] = useState<SavedAvatar[]>([]);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
+  // Haptic feedback hook
+  const haptics = useHaptics();
+
   useEffect(() => {
     // Load saved avatars on component mount
     const avatars = avatarManagementService.getSavedAvatars();
@@ -19,6 +23,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
   }, []);
 
   const handleLoadAvatar = (avatarId: string) => {
+    haptics.light(); // Light tap for secondary action
     if (onLoadSavedAvatar) {
       onLoadSavedAvatar(avatarId);
     }
@@ -129,7 +134,10 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
 
               {savedAvatars.length > 1 && (
                 <button
-                  onClick={() => setShowAvatarSelector(true)}
+                  onClick={() => {
+                    haptics.light();
+                    setShowAvatarSelector(true);
+                  }}
                   className="w-full text-green-400 hover:text-green-300 text-sm transition-colors"
                 >
                   Choose from {savedAvatars.length} avatars
@@ -182,6 +190,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
 
             <button
               onClick={() => {
+                haptics.medium();
                 setShowAvatarSelector(false);
                 onNext();
               }}
@@ -195,7 +204,10 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
 
       {/* Premium CTA Button */}
       <button
-        onClick={onNext}
+        onClick={() => {
+          haptics.medium(); // Medium impact for primary CTA
+          onNext();
+        }}
         className="relative w-full max-w-sm mx-auto group transition-all duration-300 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-slate-200/50"
       >
         <div className="relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg group-hover:shadow-xl group-hover:shadow-slate-500/15 transition-all duration-300">

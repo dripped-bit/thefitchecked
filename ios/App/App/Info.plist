@@ -45,5 +45,31 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+
+	<!-- Camera Permissions for TheFitChecked -->
+	<key>NSCameraUsageDescription</key>
+	<string>TheFitChecked needs camera access to take photos of your outfits for virtual try-ons and outfit tracking.</string>
+
+	<!-- Photo Library Permissions -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>TheFitChecked needs access to your photo library to select outfit photos and save your virtual try-on results.</string>
+
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>TheFitChecked would like to save your outfit photos and virtual try-on results to your photo library.</string>
+
+	<!-- Deep Linking / URL Schemes -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.thefitchecked.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>thefitchecked</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

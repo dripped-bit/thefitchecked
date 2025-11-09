@@ -3,6 +3,9 @@ import { Camera, RotateCcw, CheckCircle, ArrowRight, User, ArrowLeft, Sparkles, 
 import { CapturedPhoto } from '../types/photo';
 import { faceAnalysisService, PhotoValidation } from '../services/faceAnalysisService';
 import photoUploadService from '../services/photoUploadService';
+import { useHaptics } from '../utils/haptics';
+import NativeCameraCapture from './NativeCameraCapture';
+import { Photo } from '@capacitor/camera';
 
 interface PhotoCaptureFlowProps {
   onNext: (photos: CapturedPhoto[]) => void;
@@ -15,11 +18,12 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
   const [isValidating, setIsValidating] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const photoLibraryInputRef = useRef<HTMLInputElement>(null);
   const [displayedText, setDisplayedText] = useState('');
   const fullText = 'Create Avatar';
   const isMobile = photoUploadService.isMobile();
+
+  // Haptic feedback hook
+  const haptics = useHaptics();
 
   const photoStep = {
     id: 'front',
@@ -44,26 +48,22 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
     return () => clearTimeout(timeoutId);
   }, [displayedText, fullText]);
 
-  const handleTakePhoto = () => {
+  /**
+   * Handle photo from native camera/photo library
+   */
+  const handleNativePhotoCapture = async (photoUrl: string, photo: Photo) => {
     setUploadError(null);
-    if (cameraInputRef.current) {
-      cameraInputRef.current.click();
-    }
-  };
+    setUploadProgress('Processing photo...');
 
-  const handleChooseFromPhotos = () => {
-    setUploadError(null);
-    if (photoLibraryInputRef.current) {
-      photoLibraryInputRef.current.click();
-    }
-  };
+    try {
+      // Convert photo URI to blob for upload
+      const response = await fetch(photoUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `avatar-photo-${Date.now()}.jpg`, {
+        type: 'image/jpeg'
+      });
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>, uploadMethod: 'camera' | 'photo_library') => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setUploadError(null);
-      setUploadProgress('Reading file...');
-
+      // Convert to base64 for display and upload
       const reader = new FileReader();
       reader.onload = async (e) => {
         const imageData = e.target?.result as string;
@@ -75,18 +75,16 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
           uploadResult = await photoUploadService.uploadPhoto(
             imageData,
             `avatar-${photoStep.view}`,
-            uploadMethod
+            'camera'
           );
 
           if (!uploadResult.success) {
             console.warn('⚠️ [PHOTO-CAPTURE] Cloud upload failed, continuing with local photo:', uploadResult.error);
             setUploadError(`Cloud storage unavailable: ${uploadResult.error}. Photo saved locally.`);
-            // Continue anyway - photo is still usable
           }
         } catch (error) {
           console.error('❌ [PHOTO-CAPTURE] Upload error:', error);
           setUploadError('Cloud storage unavailable. Photo saved locally.');
-          // Continue anyway
         }
 
         setUploadProgress('Processing photo...');
@@ -101,7 +99,8 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
         };
 
         setCapturedPhoto(newCapturedPhoto);
-        console.log('📸 Photo captured and uploaded:', uploadResult.data);
+        haptics.success(); // Success haptic when photo captured
+        console.log('📸 Native photo captured:', photo);
 
         // Validate the photo
         setIsValidating(true);
@@ -134,14 +133,17 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
           setIsValidating(false);
         }
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error('❌ Failed to process native photo:', error);
+      setUploadError('Failed to process photo. Please try again.');
+      setUploadProgress(null);
+      haptics.error();
     }
-
-    // Reset input
-    event.target.value = '';
   };
 
   const handleRetakePhoto = () => {
+    haptics.light(); // Light tap for retry
     setCapturedPhoto(null);
     setPhotoValidation(null);
     setIsValidating(false);
@@ -315,48 +317,15 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
         {/* Action Buttons - Mobile optimized with larger tap targets */}
         <div className="w-full max-w-sm mx-auto space-y-3 px-2">
           {!capturedPhoto ? (
-            <>
-              {/* Take Photo Button (Camera) */}
-              <button
-                onClick={handleTakePhoto}
-                disabled={isCapturing || !!uploadProgress}
-                className="relative w-full group transition-all duration-300 active:scale-[0.98] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-              >
-                <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl px-6 py-4 sm:px-8 sm:py-4 flex items-center justify-center shadow-lg active:shadow-md transition-shadow min-h-[64px]">
-                  <Camera className="w-5 h-5 text-white mr-2 sm:mr-3 flex-shrink-0" />
-                  <div className="text-center">
-                    <div className="text-base sm:text-lg font-bold text-white">
-                      {isMobile ? 'Take Photo' : 'Use Camera'}
-                    </div>
-                    <div className="text-xs sm:text-sm text-purple-100">
-                      Open camera
-                    </div>
-                  </div>
-                </div>
-              </button>
-
-              {/* Choose from Photos Button */}
-              <button
-                onClick={handleChooseFromPhotos}
-                disabled={isCapturing || !!uploadProgress}
-                className="relative w-full group transition-all duration-300 active:scale-[0.98] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-              >
-                <div className="bg-gradient-to-r from-stone-200/25 via-amber-100/25 to-stone-200/25 rounded-2xl px-6 py-4 sm:px-8 sm:py-4 flex items-center justify-center border-2 border-stone-200/50 active:border-stone-300/50 transition-colors min-h-[64px]">
-                  <ImageIcon className="w-5 h-5 text-gray-700 mr-2 sm:mr-3 flex-shrink-0" />
-                  <div className="text-center">
-                    <div className="text-base sm:text-lg font-bold text-black">
-                      {isMobile ? 'Choose from Photos' : 'Upload Photo'}
-                    </div>
-                    <div className="text-xs sm:text-sm text-gray-600">
-                      Select from {isMobile ? 'photo library' : 'files'}
-                    </div>
-                  </div>
-                </div>
-              </button>
-            </>
+            <NativeCameraCapture
+              onPhotoCapture={handleNativePhotoCapture}
+              buttonText={isMobile ? "Take Photo or Choose from Library" : "Take Photo"}
+              showActionsSheet={true}
+            />
           ) : (
             <button
               onClick={() => {
+                haptics.medium(); // Medium impact for primary CTA
                 console.log('Sending photo to next step:', capturedPhoto);
                 onNext([capturedPhoto]);
               }}
@@ -379,27 +348,6 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
           )}
         </div>
       </div>
-
-
-      {/* Hidden File Inputs */}
-      {/* Camera Input - Opens camera directly on mobile */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={(e) => handleFileSelect(e, 'camera')}
-        className="hidden"
-      />
-
-      {/* Photo Library Input - Opens file/photo picker */}
-      <input
-        ref={photoLibraryInputRef}
-        type="file"
-        accept="image/*"
-        onChange={(e) => handleFileSelect(e, 'photo_library')}
-        className="hidden"
-      />
     </div>
   );
 };
