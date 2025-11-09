@@ -19,6 +19,7 @@ import {
 import CGIPromptGenerator from '../utils/cgiPromptGenerator';
 import { PerfectAvatarConfig, AVATAR_PRESETS } from '../config/perfectAvatarConfig.js';
 import promptDebugService from './promptDebugService';
+import apiConfig from '../config/apiConfig';
 
 console.log('🎨 [CGI-AVATAR] Service Configuration:');
 console.log('- Using proxy endpoints for FAL API calls');
@@ -28,9 +29,9 @@ console.log('- Target format: Portrait 9:16 (1152x2048) for full body FASHN comp
 console.log('- Authentication: Handled by Vite proxy configuration');
 
 export class CGIAvatarGenerationService {
-  // Updated to match exact FAL API endpoint structure
-  private readonly textToImageEndpoint = '/api/fal/fal-ai/bytedance/seedream/v4/text-to-image';
-  private readonly editEndpoint = '/api/fal/fal-ai/bytedance/seedream/v4/edit';
+  // Updated to match exact FAL API endpoint structure with dynamic base URL
+  private readonly textToImageEndpoint = apiConfig.getEndpoint('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image');
+  private readonly editEndpoint = apiConfig.getEndpoint('/api/fal/fal-ai/bytedance/seedream/v4/edit');
 
   // Optimized for photorealistic 4K quality with FASHN compatibility - 9:16 aspect ratio for full body
   private readonly defaultImageSize = { width: 1152, height: 2048 }; // 9:16 aspect ratio for full body display
@@ -460,7 +461,25 @@ export class CGIAvatarGenerationService {
         throw new Error(`Photo transformation API failed: ${response.status} - ${errorText}`);
       }
 
-      const result = await response.json() as SeedreamResponse;
+      // Get raw response text first to debug JSON parsing issues
+      const responseText = await response.text();
+      console.log('📄 [PHOTO-TRANSFORM] Raw response preview:', {
+        contentType: response.headers.get('content-type'),
+        textLength: responseText.length,
+        preview: responseText.substring(0, 500)
+      });
+
+      // Try to parse as JSON
+      let result: SeedreamResponse;
+      try {
+        result = JSON.parse(responseText) as SeedreamResponse;
+        console.log('✅ [PHOTO-TRANSFORM] Response parsed successfully');
+      } catch (parseError) {
+        console.error('❌ [PHOTO-TRANSFORM] Failed to parse response as JSON:', parseError);
+        console.error('📋 [PHOTO-TRANSFORM] Full response text:', responseText);
+        throw new Error(`Invalid JSON response from Seedream API: ${parseError instanceof Error ? parseError.message : 'Parse error'}`);
+      }
+
       const processingTime = Date.now() - startTime;
 
       // Extract image URL from response

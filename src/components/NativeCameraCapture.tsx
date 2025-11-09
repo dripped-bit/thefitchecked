@@ -168,7 +168,6 @@ const NativeCameraCapture: React.FC<NativeCameraCaptureProps> = ({
         ) : (
           <>
             <CameraIcon className="mr-2" size={20} />
-            {buttonText}
           </>
         )}
       </Button>
@@ -202,9 +201,9 @@ const NativeCameraCapture: React.FC<NativeCameraCaptureProps> = ({
         <Actions
           opened={actionsOpen}
           onBackdropClick={() => setActionsOpen(false)}
+          className="pb-8"
         >
-          <ActionsGroup>
-            <ActionsLabel>Choose Photo Source</ActionsLabel>
+          <ActionsGroup className="text-center">
             <ActionsButton
               onClick={takePhoto}
               bold
@@ -230,11 +229,6 @@ const NativeCameraCapture: React.FC<NativeCameraCaptureProps> = ({
           </ActionsGroup>
         </Actions>
       )}
-
-      {/* Helper Text */}
-      <p className="text-center text-gray-500 text-sm mt-2">
-        {isNative ? 'Take a photo or choose from your library' : 'Camera available on mobile devices'}
-      </p>
     </div>
   );
 };
