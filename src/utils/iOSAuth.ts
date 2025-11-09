@@ -134,13 +134,15 @@ class IOSAuthService {
       // Close the browser
       await Browser.close();
 
-      // Parse URL to get OAuth parameters
+      // Parse URL to get OAuth parameters from BOTH query params and hash fragments
       const urlObj = new URL(url);
-      const code = urlObj.searchParams.get('code');
-      const error = urlObj.searchParams.get('error');
-      const errorDescription = urlObj.searchParams.get('error_description');
+      const queryParams = urlObj.searchParams;
+      const hashParams = new URLSearchParams(urlObj.hash.substring(1)); // Remove the '#'
 
-      // Check for OAuth errors
+      // Check for OAuth errors first (can be in query or hash)
+      const error = queryParams.get('error') || hashParams.get('error');
+      const errorDescription = queryParams.get('error_description') || hashParams.get('error_description');
+
       if (error) {
         console.error('❌ [iOS Auth] OAuth error from provider:', error, errorDescription);
         haptics.error();
@@ -150,50 +152,94 @@ class IOSAuthService {
         };
       }
 
-      // Check if we have an authorization code
-      if (!code) {
-        console.error('❌ [iOS Auth] No authorization code in callback');
-        haptics.error();
-        return {
-          success: false,
-          error: 'No authorization code received'
-        };
+      // Check for tokens in hash fragment (Supabase implicit flow)
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const expiresAt = hashParams.get('expires_at');
+      const providerToken = hashParams.get('provider_token');
+      const providerRefreshToken = hashParams.get('provider_refresh_token');
+
+      // Enhanced logging to debug what we received
+      console.log('🔍 [iOS Auth] Callback parameters:', {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        hasProviderToken: !!providerToken,
+        expiresAt: expiresAt,
+        queryParams: Object.fromEntries(queryParams),
+        hashParamKeys: Array.from(hashParams.keys())
+      });
+
+      // SCENARIO 1: Tokens in hash (implicit flow - most common for iOS)
+      if (accessToken && refreshToken) {
+        console.log('✅ [iOS Auth] Tokens received, setting session...');
+
+        const { data, error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+
+        if (sessionError) {
+          console.error('❌ [iOS Auth] Failed to set session:', sessionError);
+          haptics.error();
+          return {
+            success: false,
+            error: sessionError.message
+          };
+        }
+
+        if (!data.session) {
+          console.error('❌ [iOS Auth] No session created after setSession');
+          haptics.error();
+          return {
+            success: false,
+            error: 'Failed to create session'
+          };
+        }
+
+        console.log('✅ [iOS Auth] Session set successfully! User:', data.session.user.email);
+        haptics.success();
+        return { success: true, error: null };
       }
 
-      console.log('✅ [iOS Auth] Authorization code received');
+      // SCENARIO 2: Authorization code (code flow - fallback)
+      const code = queryParams.get('code') || hashParams.get('code');
 
-      // Exchange code for session using Supabase
-      // Supabase will automatically handle this via the callback URL
-      // We just need to wait for the session to be set
+      if (code) {
+        console.log('✅ [iOS Auth] Authorization code received, exchanging for session...');
 
-      // Give Supabase a moment to process the session
-      await new Promise(resolve => setTimeout(resolve, 1000));
+        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
-      // Check if we have a session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (exchangeError) {
+          console.error('❌ [iOS Auth] Failed to exchange code:', exchangeError);
+          haptics.error();
+          return {
+            success: false,
+            error: exchangeError.message
+          };
+        }
 
-      if (sessionError) {
-        console.error('❌ [iOS Auth] Session error:', sessionError);
-        haptics.error();
-        return {
-          success: false,
-          error: sessionError.message
-        };
+        if (!data.session) {
+          console.error('❌ [iOS Auth] No session created after code exchange');
+          haptics.error();
+          return {
+            success: false,
+            error: 'Failed to create session'
+          };
+        }
+
+        console.log('✅ [iOS Auth] Code exchanged successfully! User:', data.session.user.email);
+        haptics.success();
+        return { success: true, error: null };
       }
 
-      if (!session) {
-        console.error('❌ [iOS Auth] No session after OAuth callback');
-        haptics.error();
-        return {
-          success: false,
-          error: 'Authentication failed - no session'
-        };
-      }
-
-      console.log('✅ [iOS Auth] OAuth successful! User:', session.user.email);
-      haptics.success();
-
-      return { success: true, error: null };
+      // SCENARIO 3: Neither tokens nor code found
+      console.error('❌ [iOS Auth] No tokens or authorization code in callback');
+      console.error('📋 [iOS Auth] Full URL:', url);
+      haptics.error();
+      return {
+        success: false,
+        error: 'No authentication data received'
+      };
 
     } catch (err: any) {
       console.error('❌ [iOS Auth] Callback handling failed:', err);
