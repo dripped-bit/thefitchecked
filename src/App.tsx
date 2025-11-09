@@ -200,6 +200,38 @@ function App() {
     };
   }, []);
 
+  // Initialize iOS app lifecycle and deep link handling for OAuth
+  React.useEffect(() => {
+    console.log('📱 [APP] Initializing iOS app lifecycle...');
+    appLifecycle.initialize();
+
+    // Listen for deep links (OAuth callbacks)
+    const unsubscribe = appLifecycle.onDeepLink(async (url, params) => {
+      console.log('🔗 [APP] Deep link received:', url);
+
+      // Check if this is an OAuth callback
+      if (url.includes('oauth/callback')) {
+        console.log('🔐 [APP] OAuth callback deep link detected');
+
+        // Handle OAuth callback
+        const result = await iOSAuth.handleOAuthCallback(url);
+
+        if (result.success) {
+          console.log('✅ [APP] OAuth callback handled successfully');
+          // Refresh auth user state
+          const user = await authService.getCurrentUser();
+          setAuthUser(user);
+        } else {
+          console.error('❌ [APP] OAuth callback failed:', result.error);
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // Add error handling
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {
