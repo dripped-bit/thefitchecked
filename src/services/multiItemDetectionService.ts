@@ -4,6 +4,8 @@
  * Uses Claude Vision API for intelligent detection and bounding box extraction
  */
 
+import apiConfig from '../config/apiConfig';
+
 export interface DetectedItem {
   name: string;
   category: string;
@@ -26,7 +28,7 @@ export interface MultiItemDetectionResult {
 }
 
 class MultiItemDetectionService {
-  private readonly API_BASE = '/api/claude/v1/messages';
+  private readonly API_BASE = apiConfig.getEndpoint('/api/claude/v1/messages');
 
   /**
    * Detect if image contains multiple clothing items

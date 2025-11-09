@@ -23,6 +23,7 @@ import directFashnService from '../services/directFashnService';
 import stylePreferencesService from '../services/stylePreferencesService';
 import userDataService from '../services/userDataService';
 import outfitStorageService from '../services/outfitStorageService';
+import apiConfig from '../config/apiConfig';
 // Color analysis temporarily disabled for deployment
 // import colorAnalysisService from '../services/colorAnalysisService';
 import SmartOccasionPlanner from './SmartOccasionPlanner';
@@ -258,7 +259,7 @@ const EnhancedOutfitGenerator: React.FC<EnhancedOutfitGeneratorProps> = ({
     setGenerationProgress('Generating occasion-appropriate clothing...');
 
     // Use proxy endpoint instead of direct FAL client to avoid 401 errors
-    const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
+    const response = await fetch(apiConfig.getEndpoint('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

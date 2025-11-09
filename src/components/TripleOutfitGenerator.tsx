@@ -21,6 +21,7 @@ import userDataService from '../services/userDataService';
 import outfitStorageService from '../services/outfitStorageService';
 import multiItemDetectionService from '../services/multiItemDetectionService';
 import completeFashnTryOnService from '../services/completeFashnTryOnService';
+import apiConfig from '../config/apiConfig';
 // Color analysis temporarily disabled for deployment
 // import colorAnalysisService from '../services/colorAnalysisService';
 import { ParsedOccasion } from './SmartOccasionInput';
@@ -491,7 +492,7 @@ Flat-lay product photography style, clean white background, professional lightin
       // Convert image to base64 for Claude Vision API
       const base64Image = await imageToBase64(imageUrl);
 
-      const response = await fetch('/api/claude/v1/messages', {
+      const response = await fetch(apiConfig.getEndpoint('/api/claude/v1/messages'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -697,7 +698,7 @@ Return ONLY the search query, nothing else.`
         console.log(`🎨 [VARIATION ${index + 1}] Style: ${selectedStyle.name}, Guidance: ${guidanceScale}, Seed: ${seed}`);
 
         // Use proxy endpoint instead of direct FAL client to avoid 401 errors
-        const response = await fetch('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image', {
+        const response = await fetch(apiConfig.getEndpoint('/api/fal/fal-ai/bytedance/seedream/v4/text-to-image'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -151,6 +151,13 @@ class AvatarManagementService {
   }
 
   /**
+   * Get the best available avatar (perfect > default > current > most recent)
+   */
+  getBestAvatar(): SavedAvatar | null {
+    return avatarStorageService.getBestAvatar();
+  }
+
+  /**
    * Delete an avatar from the library
    */
   deleteAvatar(avatarId: string): boolean {

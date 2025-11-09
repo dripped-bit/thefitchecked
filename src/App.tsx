@@ -29,6 +29,7 @@ import { UserData, OnboardingFormData } from './types/user';
 import UserService from './services/userService';
 import authService, { AuthUser } from './services/authService';
 import avatarManagementService from './services/avatarManagementService';
+import avatarStorageService from './services/avatarStorageService';
 import weatherService from './services/weatherService';
 import reminderNotificationService from './services/reminderNotificationService';
 import outfitGenerationService from './services/outfitGenerationService';
@@ -142,6 +143,22 @@ function App() {
         console.log('🎭 [APP] Initializing avatar storage with Supabase sync...');
         await avatarManagementService.initializeAvatarStorage();
         console.log('✅ [APP] Avatar storage initialized and synced');
+
+        // Step 2.5: Migration - Auto-set default avatar for existing users
+        const library = avatarStorageService.getAvatarLibrary();
+        if (library.savedAvatars.length > 0 && !library.savedAvatars.some(a => a.isDefault)) {
+          // No default set - auto-set current or most recent as default
+          const avatarToSetDefault = library.currentAvatarId
+            ? library.savedAvatars.find(a => a.id === library.currentAvatarId)
+            : library.savedAvatars.sort((a, b) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              )[0];
+
+          if (avatarToSetDefault) {
+            avatarStorageService.setDefaultAvatar(avatarToSetDefault.id);
+            console.log('🔧 [MIGRATION] Auto-set default avatar for existing user:', avatarToSetDefault.name);
+          }
+        }
 
         // Step 3: Ensure minimum loading time of 9 seconds to show MP4 animation
         const elapsedTime = Date.now() - startTime;
@@ -375,27 +392,27 @@ function App() {
 
       // PRIORITY CHECK: If user has completed full flow, always go to Avatar Homepage
       const hasCompletedFlow = UserService.hasCompletedFlow();
-      const defaultAvatar = avatarManagementService.getDefaultAvatar();
+      const bestAvatar = avatarManagementService.getBestAvatar(); // Use best available avatar (default > current > most recent)
 
-      // iOS Fix: If avatar exists in Supabase, assume flow was completed
-      // (localStorage may be cleared on iOS, but Supabase data persists)
-      const hasCompletedFlowOrAvatar = hasCompletedFlow || (defaultAvatar !== null);
+      // iOS Fix: If avatar exists, assume flow was completed
+      // (localStorage may be cleared on iOS, but avatar data persists)
+      const hasCompletedFlowOrAvatar = hasCompletedFlow || (bestAvatar !== null);
 
-      if (hasCompletedFlowOrAvatar && defaultAvatar) {
+      if (hasCompletedFlowOrAvatar && bestAvatar) {
         console.log('🎯 [APP] User has completed full flow - navigating to Avatar Homepage');
-        console.log('🎭 [APP] Loading avatar:', defaultAvatar.name);
+        console.log('🎭 [APP] Loading avatar:', bestAvatar.name);
 
         // Set to loading screen
         setCurrentScreen('loading');
 
         // Convert saved avatar to app data format
         const restoredAvatarData = {
-          imageUrl: defaultAvatar.imageUrl,
-          animatedVideoUrl: defaultAvatar.animatedVideoUrl,
+          imageUrl: bestAvatar.imageUrl,
+          animatedVideoUrl: bestAvatar.animatedVideoUrl,
           metadata: {
-            demoMode: defaultAvatar.metadata.source === 'demo',
-            quality: defaultAvatar.metadata.quality,
-            source: defaultAvatar.metadata.source
+            demoMode: bestAvatar.metadata.source === 'demo',
+            quality: bestAvatar.metadata.quality,
+            source: bestAvatar.metadata.source
           }
         };
 
@@ -404,21 +421,21 @@ function App() {
           ...prev,
           generatedAvatar: restoredAvatarData,
           avatarData: {
-            imageUrl: defaultAvatar.imageUrl,
-            qualityScore: defaultAvatar.metadata.quality === 'high' ? 90 :
-                         defaultAvatar.metadata.quality === 'medium' ? 70 : 50,
+            imageUrl: bestAvatar.imageUrl,
+            qualityScore: bestAvatar.metadata.quality === 'high' ? 90 :
+                         bestAvatar.metadata.quality === 'medium' ? 70 : 50,
             metadata: {
               style: 'realistic',
-              quality: defaultAvatar.metadata.quality
+              quality: bestAvatar.metadata.quality
             }
           }
         }));
 
         // Load avatar into management service
-        avatarManagementService.loadAvatarFromLibrary(defaultAvatar.id);
+        avatarManagementService.loadAvatarFromLibrary(bestAvatar.id);
 
         // Note: Navigation to 'avatarHomepage' is now handled by LoadingScreen's onLoadingComplete callback
-        console.log('✅ [APP] Default avatar restored for completed user, waiting for loading screen...');
+        console.log('✅ [APP] Best avatar restored for completed user, waiting for loading screen...');
         return;
       }
 
@@ -426,21 +443,21 @@ function App() {
       const hasOnboarding = UserService.hasShownOnboarding();
       const hasCompletedStyleProfile = localStorage.getItem('styleProfile') !== null;
 
-      if (defaultAvatar && hasOnboarding && hasCompletedStyleProfile) {
-        console.log('🎭 [APP] Found default avatar, completed onboarding, and style profile - showing loading screen');
-        console.log('🎭 [APP] Loading avatar:', defaultAvatar.name);
+      if (bestAvatar && hasOnboarding && hasCompletedStyleProfile) {
+        console.log('🎭 [APP] Found best avatar, completed onboarding, and style profile - showing loading screen');
+        console.log('🎭 [APP] Loading avatar:', bestAvatar.name);
 
         // Set to loading screen
         setCurrentScreen('loading');
 
         // Convert saved avatar to app data format
         const restoredAvatarData = {
-          imageUrl: defaultAvatar.imageUrl,
-          animatedVideoUrl: defaultAvatar.animatedVideoUrl,
+          imageUrl: bestAvatar.imageUrl,
+          animatedVideoUrl: bestAvatar.animatedVideoUrl,
           metadata: {
-            demoMode: defaultAvatar.metadata.source === 'demo',
-            quality: defaultAvatar.metadata.quality,
-            source: defaultAvatar.metadata.source
+            demoMode: bestAvatar.metadata.source === 'demo',
+            quality: bestAvatar.metadata.quality,
+            source: bestAvatar.metadata.source
           }
         };
 
@@ -449,32 +466,32 @@ function App() {
           ...prev,
           generatedAvatar: restoredAvatarData,
           avatarData: {
-            imageUrl: defaultAvatar.imageUrl,
-            qualityScore: defaultAvatar.metadata.quality === 'high' ? 90 :
-                         defaultAvatar.metadata.quality === 'medium' ? 70 : 50,
+            imageUrl: bestAvatar.imageUrl,
+            qualityScore: bestAvatar.metadata.quality === 'high' ? 90 :
+                         bestAvatar.metadata.quality === 'medium' ? 70 : 50,
             metadata: {
               style: 'realistic',
-              quality: defaultAvatar.metadata.quality
+              quality: bestAvatar.metadata.quality
             }
           }
         }));
 
         // Load avatar into management service
-        avatarManagementService.loadAvatarFromLibrary(defaultAvatar.id);
+        avatarManagementService.loadAvatarFromLibrary(bestAvatar.id);
 
         // Note: Navigation to 'avatarHomepage' is now handled by LoadingScreen's onLoadingComplete callback
-        console.log('✅ [APP] Default avatar restored successfully, waiting for loading screen...');
-      } else if (defaultAvatar && !hasOnboarding) {
+        console.log('✅ [APP] Best avatar restored successfully, waiting for loading screen...');
+      } else if (bestAvatar && !hasOnboarding) {
         // Has avatar but hasn't completed onboarding yet
-        console.log('🎭 [APP] Found default avatar but onboarding not complete - loading avatar only');
+        console.log('🎭 [APP] Found best avatar but onboarding not complete - loading avatar only');
 
         const restoredAvatarData = {
-          imageUrl: defaultAvatar.imageUrl,
-          animatedVideoUrl: defaultAvatar.animatedVideoUrl,
+          imageUrl: bestAvatar.imageUrl,
+          animatedVideoUrl: bestAvatar.animatedVideoUrl,
           metadata: {
-            demoMode: defaultAvatar.metadata.source === 'demo',
-            quality: defaultAvatar.metadata.quality,
-            source: defaultAvatar.metadata.source
+            demoMode: bestAvatar.metadata.source === 'demo',
+            quality: bestAvatar.metadata.quality,
+            source: bestAvatar.metadata.source
           }
         };
 
@@ -482,23 +499,23 @@ function App() {
           ...prev,
           generatedAvatar: restoredAvatarData,
           avatarData: {
-            imageUrl: defaultAvatar.imageUrl,
-            qualityScore: defaultAvatar.metadata.quality === 'high' ? 90 :
-                         defaultAvatar.metadata.quality === 'medium' ? 70 : 50,
+            imageUrl: bestAvatar.imageUrl,
+            qualityScore: bestAvatar.metadata.quality === 'high' ? 90 :
+                         bestAvatar.metadata.quality === 'medium' ? 70 : 50,
             metadata: {
               style: 'realistic',
-              quality: defaultAvatar.metadata.quality
+              quality: bestAvatar.metadata.quality
             }
           }
         }));
 
-        avatarManagementService.loadAvatarFromLibrary(defaultAvatar.id);
+        avatarManagementService.loadAvatarFromLibrary(bestAvatar.id);
       } else {
         // No avatar or no onboarding - start at welcome screen
         console.log('📭 [APP] No saved avatar or incomplete setup - starting at welcome screen');
         const savedAvatars = avatarManagementService.getSavedAvatars();
         if (savedAvatars.length > 0) {
-          console.log(`📚 [APP] Found ${savedAvatars.length} saved avatar(s), but none set as default`);
+          console.log(`📚 [APP] Found ${savedAvatars.length} saved avatar(s), but none set as best/default`);
         }
       }
     };
@@ -798,11 +815,35 @@ function App() {
           <WelcomeScreen
             onNext={() => setCurrentScreen('photoCapture')}
             onLoadSavedAvatar={(avatarId: string) => {
-              // Load saved avatar and skip to try-on page
-              const avatarState = avatarManagementService.loadAvatarFromLibrary(avatarId);
-              if (avatarState) {
+              // Load saved avatar and go to homepage
+              const library = avatarStorageService.getAvatarLibrary();
+              const savedAvatar = library.savedAvatars.find(a => a.id === avatarId);
+
+              if (savedAvatar) {
+                // Load into management service
+                avatarManagementService.loadAvatarFromLibrary(avatarId);
+
+                // Update App state with avatar data
+                setAppData(prev => ({
+                  ...prev,
+                  generatedAvatar: {
+                    imageUrl: savedAvatar.imageUrl,
+                    animatedVideoUrl: savedAvatar.animatedVideoUrl,
+                    metadata: savedAvatar.metadata
+                  },
+                  avatarData: {
+                    imageUrl: savedAvatar.imageUrl,
+                    qualityScore: savedAvatar.metadata.quality === 'high' ? 90 : 70,
+                    metadata: savedAvatar.metadata
+                  }
+                }));
+
                 console.log('🎭 [APP] Loaded saved avatar from welcome screen');
-                setCurrentScreen('appFace'); // Skip directly to try-on
+                console.log('✅ [APP-STATE] Updated generatedAvatar in app state');
+
+                // Navigate to homepage (not appFace)
+                setCurrentScreen('avatarHomepage');
+                console.log('🏠 [APP] Navigating to Avatar Homepage');
               }
             }}
           />
