@@ -166,9 +166,7 @@ const NativeCameraCapture: React.FC<NativeCameraCaptureProps> = ({
             Capturing...
           </>
         ) : (
-          <>
-            <CameraIcon className="mr-2" size={20} />
-          </>
+          <span>Open Camera</span>
         )}
       </Button>
 
@@ -203,17 +201,21 @@ const NativeCameraCapture: React.FC<NativeCameraCaptureProps> = ({
           onBackdropClick={() => setActionsOpen(false)}
           className="pb-8"
         >
-          <ActionsGroup className="text-center">
+          <ActionsGroup>
             <ActionsButton
               onClick={takePhoto}
               bold
             >
-              <CameraIcon className="mr-2" size={20} />
-              Take Photo
+              <div className="flex items-center justify-center gap-2 w-full">
+                <CameraIcon size={20} />
+                <span>Take Photo</span>
+              </div>
             </ActionsButton>
             <ActionsButton onClick={pickPhoto}>
-              <ImageIcon className="mr-2" size={20} />
-              Choose from Library
+              <div className="flex items-center justify-center gap-2 w-full">
+                <ImageIcon size={20} />
+                <span>Choose from Library</span>
+              </div>
             </ActionsButton>
           </ActionsGroup>
           <ActionsGroup>
@@ -224,7 +226,9 @@ const NativeCameraCapture: React.FC<NativeCameraCaptureProps> = ({
               }}
               colors={{ text: 'text-red-500' }}
             >
-              Cancel
+              <div className="flex items-center justify-center w-full">
+                <span>Cancel</span>
+              </div>
             </ActionsButton>
           </ActionsGroup>
         </Actions>
