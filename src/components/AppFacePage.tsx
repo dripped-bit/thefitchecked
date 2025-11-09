@@ -70,7 +70,7 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
     }
 
     // Priority 2: Check if generatedAvatar has FASHN results
-    if (generatedAvatar?.imageUrl && outfitApplied) {
+    if (generatedAvatar?.imageUrl) {
       console.log('✅ [GET-AVATAR-URL] Using avatar with applied outfit');
       return generatedAvatar.imageUrl;
     }
@@ -633,6 +633,16 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
                   const avatarUrl = getAvatarUrl();
                   // Cache-bust already added when FASHN result was set, just use the URL directly
                   const displayUrl = avatarUrl;
+
+                  console.log('🖼️ [RENDER-DEBUG] Avatar URL resolution:', {
+                    displayedAvatar: !!displayedAvatar,
+                    displayedAvatarValue: displayedAvatar?.substring(0, 100),
+                    generatedAvatar: !!generatedAvatar,
+                    generatedAvatarImageUrl: generatedAvatar?.imageUrl?.substring(0, 100),
+                    outfitApplied,
+                    finalAvatarUrl: avatarUrl?.substring(0, 100),
+                    willRender: !!avatarUrl
+                  });
 
                   return avatarUrl ? (
                     <img
