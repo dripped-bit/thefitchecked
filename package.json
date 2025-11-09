@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.65.0",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
     "@fal-ai/client": "^1.0.1",
     "@fontsource/dancing-script": "^5.2.8",
     "@react-oauth/google": "^0.12.2",
