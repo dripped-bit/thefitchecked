@@ -89,9 +89,24 @@ class AuthService {
 
   /**
    * Sign in with Google OAuth
+   * Automatically uses iOS-specific flow on native platform
    */
   async signInWithGoogle(): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
+      // Use iOS-specific OAuth flow on native platform
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+        console.log('🍎 [AUTH] Using iOS OAuth flow');
+        const result = await iOSAuth.signInWithGoogleIOS();
+
+        if (result.error) {
+          return { user: null, error: result.error };
+        }
+
+        // OAuth flow initiated - actual user will be available after callback
+        return { user: null, error: null };
+      }
+
+      // Web OAuth flow
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
