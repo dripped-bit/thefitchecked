@@ -44,6 +44,22 @@ class IOSAuthService {
   }
 
   /**
+   * Get the correct Google OAuth Client ID for the current platform
+   *
+   * Note: For Supabase OAuth, you don't need to use this in the app.
+   * The client ID is configured server-side in Supabase dashboard.
+   * This is only needed if making direct Google OAuth API calls.
+   */
+  getGoogleClientID(): string {
+    if (this.isNative && Capacitor.getPlatform() === 'ios') {
+      // iOS OAuth client ID
+      return import.meta.env.VITE_GOOGLE_CLIENT_ID_IOS || import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    }
+    // Web OAuth client ID
+    return import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  }
+
+  /**
    * Sign in with Google OAuth on iOS
    * Opens OAuth flow in Capacitor Browser (in-app browser)
    */
