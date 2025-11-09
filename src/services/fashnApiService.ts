@@ -3,6 +3,8 @@
  * Comprehensive service for virtual try-on and clothing integration
  */
 
+import apiConfig from '../config/apiConfig';
+
 export interface FashnTryOnParams {
   model_image: string; // URL or base64
   garment_image: string; // URL or base64
@@ -51,8 +53,8 @@ export class FashnApiService {
   private apiUrl: string;
 
   constructor() {
-    this.apiUrl = '/api/fashn';
-    console.log('🎯 [FASHN-API] Service initialized - using /api/fashn proxy');
+    this.apiUrl = apiConfig.getEndpoint('/api/fashn');
+    console.log('🎯 [FASHN-API] Service initialized - URL:', this.apiUrl);
   }
 
   /**

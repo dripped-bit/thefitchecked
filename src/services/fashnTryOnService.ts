@@ -4,6 +4,8 @@
  * Uses FormData for proper file uploads as required by FASHN API
  */
 
+import apiConfig from '../config/apiConfig';
+
 interface FashnTryOnRequest {
   person_image: File | Blob;
   cloth_image: File | Blob;
@@ -21,9 +23,10 @@ interface FashnTryOnResult {
 }
 
 export class FashnTryOnService {
-  private baseUrl = '/api/fashn';
+  private readonly baseUrl: string;
 
   constructor() {
+    this.baseUrl = apiConfig.getEndpoint('/api/fashn');
     console.log('🎯 [FASHN-ONLY] Service initialized:', {
       baseUrl: this.baseUrl,
       integration: 'FASHN API via proxy'

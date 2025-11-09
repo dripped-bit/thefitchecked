@@ -3,6 +3,8 @@
  * Handles clothing, accessories, and layering using FASHN API exclusively
  */
 
+import apiConfig from '../config/apiConfig';
+
 // Types and Interfaces
 export interface FashnRequest {
   model_name: string;
@@ -56,13 +58,14 @@ export interface OutfitCombination {
 }
 
 class CompleteFashnTryOnService {
-  private baseUrl = '/api/fashn'; // Proxy endpoint
+  private readonly baseUrl: string;
   private outfitCache: Map<string, OutfitCombination> = new Map();
   private resultCache: Map<string, string> = new Map(); // avatar+item combo -> result URL
 
   constructor() {
+    this.baseUrl = apiConfig.getEndpoint('/api/fashn');
     this.loadCachedOutfits();
-    console.log('👔 [COMPLETE-FASHN] Service initialized - using /api/fashn proxy');
+    console.log('👔 [COMPLETE-FASHN] Service initialized - URL:', this.baseUrl);
   }
 
   // =====================

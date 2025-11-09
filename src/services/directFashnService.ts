@@ -8,6 +8,7 @@
 import { fashnLibraryService, LibraryGarment, FashnLibraryResponse } from './fashnLibraryService';
 import { debugLog } from '../utils/debugConfig';
 import { getOutputFormatAuto, type ImageContext } from '../utils/outputFormatSelector';
+import apiConfig from '../config/apiConfig';
 
 interface FashnTryOnRequest {
   model_name: string;
@@ -69,8 +70,13 @@ interface RetryAttempt {
 }
 
 class DirectFashnService {
-  private baseUrl = '/api/fashn'; // Use proxy route instead of direct API
+  private readonly baseUrl: string;
   private modelVersion = 'tryon-v1.6';
+
+  constructor() {
+    this.baseUrl = apiConfig.getEndpoint('/api/fashn');
+    console.log('👗 [DIRECT-FASHN] Service initialized - URL:', this.baseUrl);
+  }
 
   // Warning suppression flag (static to persist across instances)
   private static fashnWarningShown = false;
@@ -335,15 +341,6 @@ class DirectFashnService {
       console.warn('   • Person facing camera');
       DirectFashnService.fashnWarningShown = true;
     }
-  }
-
-  constructor() {
-    console.log('🔧 [NATIVE-FASHN] Service initialized:', {
-      baseUrl: this.baseUrl,
-      modelVersion: this.modelVersion,
-      integration: 'Native FASHN API via proxy',
-      documentation: 'https://github.com/fashn-AI'
-    });
   }
 
   /**
