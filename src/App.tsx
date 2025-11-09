@@ -34,6 +34,8 @@ import reminderNotificationService from './services/reminderNotificationService'
 import outfitGenerationService from './services/outfitGenerationService';
 import localStorageMigrationService from './services/localStorageMigrationService';
 import reminderMonitorService from './services/reminderMonitorService';
+import appLifecycle from './utils/appLifecycle';
+import iOSAuth from './utils/iOSAuth';
 
 // Import debug utilities for console access
 import './utils/testApiConnection';
