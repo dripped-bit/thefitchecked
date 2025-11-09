@@ -5,6 +5,8 @@
 
 import { supabase } from './supabaseClient';
 import { User } from '@supabase/supabase-js';
+import { Capacitor } from '@capacitor/core';
+import iOSAuth from '../utils/iOSAuth';
 
 export interface AuthUser {
   id: string;
