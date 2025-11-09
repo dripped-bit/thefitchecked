@@ -636,11 +636,11 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
 
                   console.log('🖼️ [RENDER-DEBUG] Avatar URL resolution:', {
                     displayedAvatar: !!displayedAvatar,
-                    displayedAvatarValue: displayedAvatar?.substring(0, 100),
+                    displayedAvatarValue: displayedAvatar ? displayedAvatar.substring(0, 100) : 'null',
                     generatedAvatar: !!generatedAvatar,
-                    generatedAvatarImageUrl: generatedAvatar?.imageUrl?.substring(0, 100),
+                    generatedAvatarImageUrl: generatedAvatar?.imageUrl ? generatedAvatar.imageUrl.substring(0, 100) : 'null',
                     outfitApplied,
-                    finalAvatarUrl: avatarUrl?.substring(0, 100),
+                    finalAvatarUrl: avatarUrl ? avatarUrl.substring(0, 100) : 'null',
                     willRender: !!avatarUrl
                   });
 
