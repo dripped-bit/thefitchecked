@@ -143,9 +143,9 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
   };
 
   return (
-    <div className="relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+    <div className="relative ios-card rounded-ios-xl overflow-hidden hover:shadow-ios-xl transition-all duration-300">
       {/* Image */}
-      <div className="relative aspect-[3/4] bg-gray-100">
+      <div className="relative aspect-[3/4] bg-ios-fill">
         <img
           src={outfit.image_url}
           alt={`${outfit.style} outfit for ${outfit.occasion}`}
@@ -156,11 +156,11 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
         {showActions && (
           <button
             onClick={handleToggleFavorite}
-            className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors shadow-md"
+            className="absolute top-2 right-2 w-10 h-10 ios-blur bg-white/90 rounded-full hover:bg-white transition-all shadow-ios-md flex items-center justify-center"
             aria-label={favorited ? 'Unfavorite' : 'Favorite'}
           >
             <Heart
-              className={`w-5 h-5 ${favorited ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
+              className={`w-5 h-5 ${favorited ? 'fill-ios-red text-ios-red' : 'text-ios-label-secondary'}`}
             />
           </button>
         )}
@@ -189,12 +189,12 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
       <div className={`p-4 ${compact ? 'space-y-2' : 'space-y-3'}`}>
         {/* Title & Metadata */}
         <div>
-          <h3 className="font-semibold text-gray-900 capitalize">
+          <h3 className="ios-headline capitalize">
             {outfit.style}
           </h3>
-          <p className="text-sm text-gray-600">{outfit.occasion}</p>
+          <p className="ios-callout text-ios-label-secondary">{outfit.occasion}</p>
           {!compact && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="ios-caption-1 text-ios-label-tertiary mt-1">
               {formatDate(outfit.created_at)}
             </p>
           )}
@@ -207,14 +207,14 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
               <button
                 key={star}
                 onClick={(e) => handleRate(star, e)}
-                className="transition-transform hover:scale-110"
+                className="transition-transform hover:scale-110 active:scale-95"
                 aria-label={`Rate ${star} stars`}
               >
                 <Star
                   className={`w-4 h-4 ${
                     star <= rating
-                      ? 'fill-yellow-400 text-yellow-400'
-                      : 'text-gray-300'
+                      ? 'fill-ios-yellow text-ios-yellow'
+                      : 'text-ios-label-quaternary'
                   }`}
                 />
               </button>
@@ -224,7 +224,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
 
         {/* Weather Info */}
         {!compact && outfit.weather_condition && (
-          <div className="flex items-center gap-2 text-xs text-gray-600">
+          <div className="flex items-center gap-2 ios-caption-1 text-ios-label-secondary">
             <span>🌡️ {outfit.weather_temp}°F</span>
             <span>•</span>
             <span>{outfit.weather_condition}</span>
@@ -233,13 +233,13 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
 
         {/* User Prompt Box */}
         {outfit.user_prompt && (
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <div className="bg-ios-purple/10 border border-ios-purple/20 rounded-ios-lg p-3">
             <div className="flex items-start gap-2">
-              <MessageSquare className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+              <MessageSquare className="w-4 h-4 text-ios-purple mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-purple-800 mb-1">Your Prompt:</p>
+                <p className="ios-caption-2 font-semibold text-ios-purple mb-1">Your Prompt:</p>
                 <p
-                  className={`text-xs text-gray-700 ${
+                  className={`ios-caption-1 ${
                     !isPromptExpanded && !compact ? 'line-clamp-2' : ''
                   } ${
                     compact && !isPromptExpanded ? 'line-clamp-1' : ''
@@ -253,7 +253,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
                       e.stopPropagation();
                       setIsPromptExpanded(!isPromptExpanded);
                     }}
-                    className="mt-1 text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+                    className="mt-1 ios-caption-2 text-ios-purple hover:text-ios-purple/80 font-semibold flex items-center gap-1 transition-colors"
                   >
                     {isPromptExpanded ? (
                       <>
@@ -275,10 +275,10 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
 
         {/* Actions */}
         {showActions && (
-          <div className="flex gap-2 pt-2 border-t border-gray-100">
+          <div className="flex gap-2 pt-2 border-t border-ios-separator">
             <button
               onClick={handleShare}
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="ios-button-secondary flex-1 flex items-center justify-center gap-2"
             >
               <Share2 className="w-4 h-4" />
               Share
@@ -290,7 +290,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
                 haptics.light();
                 setShowMenu(!showMenu);
               }}
-              className="px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="ios-button-secondary px-3"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
@@ -301,29 +301,29 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
       {/* Share Modal */}
       {isSharing && shareUrl && (
         <div
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-10"
+          className="absolute inset-0 ios-blur bg-black/50 flex items-center justify-center p-4 z-10"
           onClick={handleCloseShare}
         >
           <div
-            className="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl"
+            className="ios-card rounded-ios-xl p-6 max-w-sm w-full shadow-ios-xl ios-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Share Outfit</h3>
+              <h3 className="ios-title-2">Share Outfit</h3>
               <button
                 onClick={handleCloseShare}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-ios-label-tertiary hover:text-ios-label-secondary transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="ios-callout text-ios-label-secondary mb-4">
               Anyone with this link can view your outfit
             </p>
 
-            <div className="bg-gray-50 rounded-lg p-3 mb-4">
-              <p className="text-xs text-gray-800 break-all">{shareUrl}</p>
+            <div className="bg-ios-fill rounded-ios-lg p-3 mb-4">
+              <p className="ios-caption-1 break-all">{shareUrl}</p>
             </div>
 
             <button
@@ -339,7 +339,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
                   haptics.error();
                 }
               }}
-              className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              className="ios-button-primary w-full"
             >
               Copy Link
             </button>
@@ -350,27 +350,27 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
       {/* Color Palette Modal */}
       {showColorPalette && outfit.primary_colors && (
         <div
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-10"
+          className="absolute inset-0 ios-blur bg-black/50 flex items-center justify-center p-4 z-10"
           onClick={(e) => {
             e.stopPropagation();
             setShowColorPalette(false);
           }}
         >
           <div
-            className="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl"
+            className="ios-card rounded-ios-xl p-6 max-w-sm w-full shadow-ios-xl ios-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Palette className="w-5 h-5 text-purple-600" />
-                <h3 className="text-lg font-semibold">Color Palette</h3>
+                <Palette className="w-5 h-5 text-ios-purple" />
+                <h3 className="ios-title-2">Color Palette</h3>
               </div>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowColorPalette(false);
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-ios-label-tertiary hover:text-ios-label-secondary transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -380,14 +380,14 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
               {outfit.primary_colors.map((color, index) => (
                 <div key={index} className="flex items-center gap-3">
                   <div
-                    className="w-12 h-12 rounded-lg border-2 border-gray-200 shadow-md"
+                    className="w-12 h-12 rounded-ios-lg border-2 border-ios-separator shadow-ios-sm"
                     style={{ backgroundColor: color }}
                   />
                   <div className="flex-1">
-                    <p className="font-medium text-sm capitalize">
+                    <p className="ios-subheadline font-semibold capitalize">
                       {getColorName(color)}
                     </p>
-                    <p className="text-xs text-gray-500 font-mono">{color}</p>
+                    <p className="ios-caption-1 text-ios-label-tertiary font-mono">{color}</p>
                   </div>
                 </div>
               ))}
@@ -399,7 +399,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
       {/* Menu Dropdown */}
       {showMenu && (
         <div
-          className="absolute bottom-16 right-4 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-10 min-w-[180px]"
+          className="absolute bottom-16 right-4 ios-card rounded-ios-lg shadow-ios-xl py-2 z-10 min-w-[180px]"
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -408,7 +408,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
               console.log('Add to collection:', outfit.id);
               setShowMenu(false);
             }}
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            className="w-full px-4 py-2 text-left ios-callout hover:bg-ios-fill flex items-center gap-2 transition-colors"
           >
             <Folder className="w-4 h-4" />
             Add to Collection
@@ -420,7 +420,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
               console.log('View details:', outfit.id);
               setShowMenu(false);
             }}
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            className="w-full px-4 py-2 text-left ios-callout hover:bg-ios-fill flex items-center gap-2 transition-colors"
           >
             <Eye className="w-4 h-4" />
             View Details
@@ -432,13 +432,13 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
               setShowColorPalette(true);
               setShowMenu(false);
             }}
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            className="w-full px-4 py-2 text-left ios-callout hover:bg-ios-fill flex items-center gap-2 transition-colors"
           >
             <Palette className="w-4 h-4" />
             Color Palette
           </button>
 
-          <div className="border-t border-gray-200 my-1" />
+          <div className="border-t border-ios-separator my-1" />
 
           <button
             onClick={(e) => {
@@ -446,7 +446,7 @@ const OutfitCard: React.FC<OutfitCardProps> = ({
               console.log('Shop similar:', outfit.id);
               setShowMenu(false);
             }}
-            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-purple-600"
+            className="w-full px-4 py-2 text-left ios-callout hover:bg-ios-fill flex items-center gap-2 text-ios-purple transition-colors"
           >
             <ShoppingBag className="w-4 h-4" />
             Shop Similar
