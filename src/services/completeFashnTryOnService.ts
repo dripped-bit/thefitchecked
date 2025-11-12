@@ -12,7 +12,7 @@ export interface FashnRequest {
     model_image: string;
     garment_image: string;
     moderation_level: 'strict' | 'permissive' | 'none';
-    category: 'auto' | 'upper' | 'lower' | 'dress' | 'full';
+    category: 'auto' | 'tops' | 'bottoms' | 'one-pieces';
   };
 }
 
@@ -72,22 +72,33 @@ class CompleteFashnTryOnService {
   // Category Detection
   // =====================
 
-  private detectCategory(clothingType: string): 'auto' | 'upper' | 'lower' | 'dress' | 'full' {
-    const categoryMap: { [key: string]: 'auto' | 'upper' | 'lower' | 'dress' | 'full' } = {
-      'top': 'upper',
-      'shirt': 'upper',
-      'blouse': 'upper',
-      'sweater': 'upper',
-      'jacket': 'upper',
-      'outerwear': 'upper',
-      'bottom': 'lower',
-      'pants': 'lower',
-      'jeans': 'lower',
-      'shorts': 'lower',
-      'skirt': 'lower',
-      'dress': 'dress',
-      'jumpsuit': 'full',
-      'suit': 'full'
+  private detectCategory(clothingType: string): 'auto' | 'tops' | 'bottoms' | 'one-pieces' {
+    const categoryMap: { [key: string]: 'auto' | 'tops' | 'bottoms' | 'one-pieces' } = {
+      // Tops
+      'top': 'tops',
+      'shirt': 'tops',
+      'blouse': 'tops',
+      'sweater': 'tops',
+      'jacket': 'tops',
+      'outerwear': 'tops',
+      't-shirt': 'tops',
+      'tshirt': 'tops',
+      
+      // Bottoms
+      'bottom': 'bottoms',
+      'pants': 'bottoms',
+      'jeans': 'bottoms',
+      'shorts': 'bottoms',
+      'skirt': 'bottoms',
+      'trousers': 'bottoms',
+      
+      // One-pieces (dresses)
+      'dress': 'one-pieces',
+      'dresses': 'one-pieces',
+      'jumpsuit': 'one-pieces',
+      'romper': 'one-pieces',
+      'suit': 'one-pieces',
+      'gown': 'one-pieces'
     };
 
     return categoryMap[clothingType.toLowerCase()] || 'auto';
