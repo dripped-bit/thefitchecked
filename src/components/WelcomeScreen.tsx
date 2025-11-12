@@ -70,7 +70,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
       </div>
 
       {/* Elegant Cursive Tagline */}
-      <p className="font-dancing-script text-4xl md:text-5xl mb-12 leading-relaxed max-w-md text-center text-stone-800">
+      <p className="font-dancing-script text-4xl md:text-5xl mb-12 leading-relaxed max-w-md text-center" style={{ color: 'var(--ios-label)' }}>
         Shop Smarter, Return Never
       </p>
 
@@ -79,33 +79,33 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
         {/* 3D Avatar Feature */}
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-            <Camera className="w-5 h-5 text-gray-700" />
+            <Camera className="w-5 h-5" style={{ color: 'var(--ios-blue)' }} />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-gray-800">3D Avatar from Photos</h3>
-            <p className="text-gray-600 text-xs">Professional-grade avatar creation</p>
+            <h3 className="font-semibold text-sm ios-headline" style={{ color: 'var(--ios-label)' }}>3D Avatar from Photos</h3>
+            <p className="text-xs ios-footnote" style={{ color: 'var(--ios-secondary-label)' }}>Professional-grade avatar creation</p>
           </div>
         </div>
 
         {/* Virtual Try-On Feature */}
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-gray-700" />
+            <Zap className="w-5 h-5" style={{ color: 'var(--ios-blue)' }} />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-gray-800">Virtual Try-On Magic</h3>
-            <p className="text-gray-600 text-xs">AI-powered fitting technology</p>
+            <h3 className="font-semibold text-sm ios-headline" style={{ color: 'var(--ios-label)' }}>Virtual Try-On Magic</h3>
+            <p className="text-xs ios-footnote" style={{ color: 'var(--ios-secondary-label)' }}>AI-powered fitting technology</p>
           </div>
         </div>
 
         {/* Digital Closet Feature */}
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-gray-700" />
+            <Sparkles className="w-5 h-5" style={{ color: 'var(--ios-blue)' }} />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-gray-800">Digital Closet & Styling</h3>
-            <p className="text-gray-600 text-xs">Curated wardrobe management</p>
+            <h3 className="font-semibold text-sm ios-headline" style={{ color: 'var(--ios-label)' }}>Digital Closet & Styling</h3>
+            <p className="text-xs ios-footnote" style={{ color: 'var(--ios-secondary-label)' }}>Curated wardrobe management</p>
           </div>
         </div>
       </div>
