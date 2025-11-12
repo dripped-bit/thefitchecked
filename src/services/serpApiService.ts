@@ -58,10 +58,33 @@ class SerpApiService {
   }
 
   /**
-   * Enhance search query with user's style preferences
+   * Enhance search query with user's style preferences AND gender/age filtering
    */
   private enhanceQueryWithPreferences(query: string): string {
     let enhancedQuery = query;
+
+    // Get user gender from userDataService
+    const userDataService = require('./userDataService').default;
+    const userData = userDataService.getAllUserData();
+    const gender = userData?.profile?.gender || '';
+
+    // Add gender-specific context to search query (VERY IMPORTANT)
+    if (gender === 'male') {
+      // Only add if query doesn't already specify men's/male
+      if (!query.match(/\b(men's|mens|male|man)\b/i)) {
+        enhancedQuery = `men's ${enhancedQuery}`;
+      }
+    } else if (gender === 'female') {
+      // Only add if query doesn't already specify women's/female
+      if (!query.match(/\b(women's|womens|female|woman|ladies)\b/i)) {
+        enhancedQuery = `women's ${enhancedQuery}`;
+      }
+    } else {
+      // Unisex - add adult context
+      if (!query.match(/\b(adult|unisex)\b/i)) {
+        enhancedQuery = `adult ${enhancedQuery}`;
+      }
+    }
 
     if (this.userStyleProfile) {
       // Add style vibes to refine results
@@ -85,8 +108,20 @@ class SerpApiService {
       }
     }
 
-    // Removed try-on filters - they're for virtual try-on, not shopping search
-    // These filters were excluding valid product listings
+    // VERY STRICT - Add children's exclusion terms
+    // This ensures Google Shopping/Amazon filters out children's products
+    const childExclusions = `-kids -children -girls -boys -toddler -infant -baby -youth -junior -teen -"ages 2-16" -"2T-16" -"youth sizes" -"junior sizes"`;
+
+    // Add gender-specific exclusions
+    if (gender === 'male') {
+      enhancedQuery += ` ${childExclusions} -"boys'" -"boy's" -"young men's"`;
+    } else if (gender === 'female') {
+      enhancedQuery += ` ${childExclusions} -"girls'" -"girl's" -"young women's" -"junior miss"`;
+    } else {
+      enhancedQuery += ` ${childExclusions}`;
+    }
+
+    console.log('🔍 [SERPAPI] Enhanced query with gender/age filters:', enhancedQuery);
 
     return enhancedQuery;
   }
@@ -222,9 +257,12 @@ class SerpApiService {
         console.log(`🏪 [SERPAPI] Filtered to priority stores: ${filteredResults.length}/${deduplicatedResults.length}`);
       }
 
+      // VERY STRICT - Filter out children's products
+      filteredResults = this.filterAdultProducts(filteredResults);
+
       // Limit to maxResults
       const finalResults = filteredResults.slice(0, maxResults);
-      console.log(`✅ [SERPAPI] Returning ${finalResults.length} products (Amazon prioritized)`);
+      console.log(`✅ [SERPAPI] Returning ${finalResults.length} adult products (Amazon prioritized, children's filtered)`);
 
       return finalResults;
 
@@ -302,6 +340,145 @@ class SerpApiService {
         productStore.includes(store) || store.includes(productStore)
       );
     });
+  }
+
+  /**
+   * VERY STRICT filter to remove children's clothing products
+   * Analyzes product titles for children's keywords, sizes, and brand indicators
+   */
+  private filterAdultProducts(results: ProductSearchResult[]): ProductSearchResult[] {
+    const userDataService = require('./userDataService').default;
+    const userData = userDataService.getAllUserData();
+    const gender = userData?.profile?.gender || '';
+
+    // Very comprehensive list of children's keywords
+    const childrenKeywords = [
+      // General children's terms
+      'kids', 'children', 'child', 'toddler', 'infant', 'baby', 'youth', 'junior',
+      'teen', 'tween', 'pre-teen', 'preteen', 'adolescent', 'juvenile',
+
+      // Gender-specific
+      'boys', "boys'", "boy's", 'girls', "girls'", "girl's",
+
+      // Age ranges
+      'ages 0-3', 'ages 4-6', 'ages 7-9', 'ages 10-12', 'ages 13-16',
+      'age 2t-16', '2t-16', '0-16',
+
+      // Size indicators
+      '2t', '3t', '4t', '5t', '6x', '7x', '8x', '10/12', '14/16',
+      'youth small', 'youth medium', 'youth large', 'youth xl', 'youth xxl',
+      'junior small', 'junior medium', 'junior large',
+
+      // School-related
+      'grade school', 'elementary', 'middle school', 'back to school',
+      'school uniform', 'schoolwear',
+
+      // Brand indicators
+      'little kids', 'big kids', 'young', 'mini', 'petit' // Note: 'petite' for adults is different
+    ];
+
+    // Gender-specific exclusions
+    if (gender === 'male') {
+      childrenKeywords.push("young men's", 'teen boy', 'boy');
+    } else if (gender === 'female') {
+      childrenKeywords.push("young women's", 'teen girl', 'girl', 'junior miss', "juniors'");
+    }
+
+    const filtered = results.filter(product => {
+      const titleLower = product.title.toLowerCase();
+      const snippetLower = (product.snippet || '').toLowerCase();
+      const combinedText = `${titleLower} ${snippetLower}`;
+
+      // Check for children's keywords
+      for (const keyword of childrenKeywords) {
+        if (combinedText.includes(keyword.toLowerCase())) {
+          console.log(`🚫 [FILTER] Removed children's product: "${product.title}" (matched: ${keyword})`);
+          return false;
+        }
+      }
+
+      // Check for suspicious size patterns (e.g., "size 8" without "size 8 women's")
+      if (combinedText.match(/\bsize\s+[2-9]\b/i) && !combinedText.match(/\b(women's|men's|adult|xs|s|m|l|xl)\b/i)) {
+        console.log(`🚫 [FILTER] Removed suspicious size product: "${product.title}"`);
+        return false;
+      }
+
+      // Additional safety check: if price is suspiciously low for adult clothing (under $5), might be children's
+      if (product.price) {
+        const priceMatch = product.price.match(/[\d.]+/);
+        if (priceMatch) {
+          const priceNum = parseFloat(priceMatch[0]);
+          if (priceNum < 5) {
+            console.log(`🚫 [FILTER] Removed suspiciously cheap product (likely children's): "${product.title}" (${product.price})`);
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+
+    console.log(`✅ [FILTER] Filtered ${results.length - filtered.length} children's products, ${filtered.length} adult products remain`);
+
+    return filtered;
+  }
+
+  /**
+   * AI-powered validation for ambiguous products
+   * Uses Claude to analyze product titles/descriptions that pass keyword filter but might still be children's
+   */
+  private async validateProductWithAI(product: ProductSearchResult): Promise<boolean> {
+    try {
+      const userDataService = require('./userDataService').default;
+      const userData = userDataService.getAllUserData();
+      const gender = userData?.profile?.gender || '';
+      const genderText = gender === 'male' ? "men's" : gender === 'female' ? "women's" : "adult";
+
+      const validationPrompt = `Analyze this product to determine if it's ADULT clothing or CHILDREN'S clothing.
+
+PRODUCT TITLE: "${product.title}"
+PRODUCT DESCRIPTION: "${product.snippet || 'N/A'}"
+PRICE: ${product.price}
+STORE: ${product.store}
+EXPECTED: ${genderText} adult clothing
+
+Is this adult clothing or children's/youth clothing?
+
+Respond with ONLY:
+ADULT or CHILDREN
+
+Be VERY STRICT - if there's ANY indication this is for children/youth/teens (ages 0-18), respond CHILDREN.`;
+
+      const response = await fetch(apiConfig.getEndpoint('/api/claude'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: validationPrompt,
+          maxTokens: 10
+        })
+      });
+
+      if (!response.ok) {
+        // If AI validation fails, assume adult to avoid blocking legitimate products
+        return true;
+      }
+
+      const result = await response.json();
+      const analysisText = (result.content || result.analysis || '').toUpperCase();
+
+      const isAdult = analysisText.includes('ADULT') && !analysisText.includes('CHILDREN');
+
+      if (!isAdult) {
+        console.log(`🤖 [AI-FILTER] AI detected children's product: "${product.title}"`);
+      }
+
+      return isAdult;
+
+    } catch (error) {
+      console.error('❌ [AI-FILTER] AI validation failed:', error);
+      // On error, assume adult to avoid blocking legitimate products
+      return true;
+    }
   }
 
   /**

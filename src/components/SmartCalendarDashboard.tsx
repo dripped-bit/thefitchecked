@@ -23,7 +23,8 @@ import {
   Camera,
   ShoppingBag,
   ExternalLink,
-  FileText
+  FileText,
+  Bell
 } from 'lucide-react';
 import smartCalendarService, {
   CalendarEvent,
@@ -36,6 +37,7 @@ import smartCalendarService, {
 import PackingListGenerator from './PackingListGenerator';
 import WoreThisTodayTracker from './WoreThisTodayTracker';
 import AddEventModal from './AddEventModal';
+import EditEventModal from './EditEventModal';
 import MonthlyCalendarGrid from './MonthlyCalendarGrid';
 import OutfitSuggestionModal from './OutfitSuggestionModal';
 import WeeklyOutfitQueue from './WeeklyOutfitQueue';
@@ -70,6 +72,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [showDateDetails, setShowDateDetails] = useState(false);
   const [showOutfitSuggestions, setShowOutfitSuggestions] = useState(false);
+  const [showEditEventModal, setShowEditEventModal] = useState(false);
 
   useEffect(() => {
     initializeDashboard();
@@ -611,6 +614,17 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         />
       )}
 
+      {/* Edit Event Modal */}
+      <EditEventModal
+        isOpen={showEditEventModal}
+        event={selectedEvent}
+        onClose={() => setShowEditEventModal(false)}
+        onEventUpdated={() => {
+          initializeDashboard();
+          setShowEditEventModal(false);
+        }}
+      />
+
       {/* Date Details Panel (shows when date is clicked) - MOVED TO TOP LEVEL */}
       {showDateDetails && selectedDate && (
         <div
@@ -650,6 +664,22 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
                     <p className="text-sm text-gray-600 flex items-center space-x-1 mb-3">
                       <MapPin className="w-4 h-4" />
                       <span>{event.location}</span>
+                    </p>
+                  )}
+
+                  {/* Reminder */}
+                  {event.reminderMinutes !== undefined && event.reminderMinutes > 0 && (
+                    <p className="text-sm text-gray-600 flex items-center space-x-1 mb-3">
+                      <Bell className="w-4 h-4" />
+                      <span>
+                        Reminder: {
+                          event.reminderMinutes < 60
+                            ? `${event.reminderMinutes} minutes before`
+                            : event.reminderMinutes < 1440
+                            ? `${Math.floor(event.reminderMinutes / 60)} hours before`
+                            : `${Math.floor(event.reminderMinutes / 1440)} days before`
+                        }
+                      </span>
                     </p>
                   )}
 
@@ -720,9 +750,10 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
                       setSelectedEvent(event);
                       // If outfit already exists, open edit mode
                       if (event.outfitId || event.outfitItems || event.description) {
-                        // TODO: Open CalendarEntryModal in edit mode
-                        setShowOutfitSuggestions(true);
+                        // Open edit modal to edit current event details
+                        setShowEditEventModal(true);
                       } else {
+                        // No outfit yet, open AI suggestions
                         setShowOutfitSuggestions(true);
                       }
                       setShowDateDetails(false);

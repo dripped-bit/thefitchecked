@@ -273,16 +273,27 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     return "ADULT CLOTHING ONLY"; // unisex or not set
   };
 
-  // Get gender-appropriate children's exclusion terms
+  // Get gender-appropriate children's exclusion terms (VERY STRICT)
   const getChildrensExclusionTerms = (): string => {
     const userData = userDataService.getAllUserData();
     const gender = userData?.profile?.gender || '';
 
-    const base = "children's clothes, kids outfit, toddler dress, baby clothes, children's clothing, kids apparel, children wear, toddler outfit, kids fashion, youth clothing, junior sizes, child clothing, juvenile wear, schoolwear, age 2T-16, infant sizes, nursery clothes, preschool outfit, elementary wear, kidswear, childrenwear, tween, tween clothing, pre-teen, preteen, preteen clothing, teen clothing, teenage wear, XXS sizes, petite children, age 16-18, young teen, adolescent clothing, youth sizes XXS";
+    // Very strict base exclusions - children's keywords and sizes
+    const base = "children's clothes, kids outfit, toddler dress, baby clothes, children's clothing, kids apparel, children wear, toddler outfit, kids fashion, youth clothing, junior sizes, child clothing, juvenile wear, schoolwear, age 2T-16, infant sizes, nursery clothes, preschool outfit, elementary wear, kidswear, childrenwear, tween, tween clothing, pre-teen, preteen, preteen clothing, teen clothing, teenage wear, petite children, age 16-18, young teen, adolescent clothing, youth sizes, size 2T, size 3T, size 4T, size 5T, size 6, size 7, size 8, size 10, size 12, size 14, size 16 (kids), youth small, youth medium, youth large, youth XL, youth XXL, ages 0-3, ages 4-6, ages 7-9, ages 10-12, ages 13-16, little kids, big kids, grade school, elementary school sizes, middle school sizes, juvenile sizes, adolescent sizes, teenager, teen sizes, young adult sizes";
 
-    if (gender === 'male') return `${base}, boys' clothes, boys outfit, boy's clothing, boys wear, boys sizes, boy sizes, teen boy clothing`;
-    if (gender === 'female') return `${base}, girls' clothes, girls outfit, girl's clothing, girls wear, girls sizes, girl sizes, teen girl clothing`;
+    if (gender === 'male') return `${base}, boys' clothes, boys outfit, boy's clothing, boys wear, boys sizes, boy sizes, teen boy clothing, boys' fashion, young men's, boys apparel`;
+    if (gender === 'female') return `${base}, girls' clothes, girls outfit, girl's clothing, girls wear, girls sizes, girl sizes, teen girl clothing, girls' fashion, young women's, girls apparel, junior miss, junior women's`;
     return base;
+  };
+
+  // Get adult size specifications
+  const getAdultSizeSpec = (): string => {
+    const userData = userDataService.getAllUserData();
+    const gender = userData?.profile?.gender || '';
+
+    if (gender === 'male') return "Adult men's sizes: XS, S, M, L, XL, XXL, XXXL (chest 34-54 inches) - NOT youth sizes";
+    if (gender === 'female') return "Adult women's sizes: XS (0-2), S (4-6), M (8-10), L (12-14), XL (16-18), XXL (20-22) - NOT junior or girls sizes";
+    return "Adult sizes XS through XXL - full adult proportions - NOT youth, junior, or children's sizes";
   };
 
   // Map occasion name to formality descriptor
@@ -533,7 +544,11 @@ OCCASION CONTEXT: ${occasionName}, ${formalityDescriptor}${getOccasionModifiers(
 OCCASION-SPECIFIC REQUIREMENTS: ${getOccasionModifiers(occasionName)}` : ''}
 
 REQUIREMENTS: Full-sized adult clothing proportions only - ${getClothingGenderText()}
+ADULT SIZE SPECIFICATIONS: ${getAdultSizeSpec()}
 CRITICAL: This outfit MUST be appropriate for: ${occasionName}
+
+MUST BE ADULT CLOTHING ONLY - absolutely no children's clothes, no kids' outfits, no toddler clothes, no baby clothes, no youth sizes, no junior sizes, no teen sizes.
+ADULT PROPORTIONS: Mature fit, full adult body proportions, NOT childlike or youth proportions
 
 CRITICAL HIERARCHY:
 1. User's mandatory specifications above are ABSOLUTE and NON-NEGOTIABLE across ALL 3 variations
@@ -707,6 +722,83 @@ Return ONLY the search query, nothing else.`
   };
 
   /**
+   * Validate that generated outfit shows adult clothing, not children's
+   * Uses Claude Vision API to analyze the outfit image
+   */
+  const validateAdultAppropriate = async (imageUrl: string, userRequest: string): Promise<{isAdult: boolean, reason: string}> => {
+    try {
+      const userData = userDataService.getAllUserData();
+      const gender = userData?.profile?.gender || '';
+      const genderText = gender === 'male' ? "men's" : gender === 'female' ? "women's" : "adult";
+
+      const validationPrompt = `You are analyzing a generated outfit image to ensure it shows AGE-APPROPRIATE ADULT CLOTHING ONLY.
+
+USER'S REQUEST: "${userRequest}"
+EXPECTED: ${genderText} adult clothing
+
+TASK: Determine if this outfit image shows:
+✓ ADULT clothing (mature proportions, adult sizing, grown-up styles)
+✗ CHILDREN'S clothing (childlike proportions, youth sizes, kids' styles)
+
+Look for these RED FLAGS that indicate children's clothing:
+- Childlike proportions or sizing
+- Youth/junior styling
+- Clothing that appears sized for ages 0-16
+- Teen or tween fashion styling
+- Children's brand aesthetics
+- Juvenile patterns or designs typical of kids' clothes
+
+Respond in this EXACT format:
+VERDICT: [ADULT or CHILDREN]
+CONFIDENCE: [percentage]%
+REASON: [brief explanation]
+
+Be VERY STRICT - if there's ANY indication this might be children's clothing, mark it as CHILDREN.`;
+
+      const base64Image = await imageToBase64(imageUrl);
+
+      const response = await fetch(apiConfig.getEndpoint('/api/claude'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: validationPrompt,
+          image: base64Image,
+          maxTokens: 200
+        })
+      });
+
+      if (!response.ok) {
+        console.warn('⚠️ [VALIDATION] API call failed, assuming outfit is adult');
+        return { isAdult: true, reason: 'Validation API unavailable' };
+      }
+
+      const result = await response.json();
+      const analysisText = result.content || result.analysis || result.description || '';
+
+      // Parse the response
+      const verdictMatch = analysisText.match(/VERDICT:\s*(ADULT|CHILDREN)/i);
+      const reasonMatch = analysisText.match(/REASON:\s*(.+?)(?:\n|$)/i);
+
+      const verdict = verdictMatch ? verdictMatch[1].toUpperCase() : 'ADULT';
+      const reason = reasonMatch ? reasonMatch[1].trim() : 'Analysis completed';
+
+      const isAdult = verdict === 'ADULT';
+
+      console.log('📊 [VALIDATION] Result:', { verdict, reason, isAdult });
+
+      return {
+        isAdult: isAdult,
+        reason: reason
+      };
+
+    } catch (error) {
+      console.error('❌ [VALIDATION] Validation failed:', error);
+      // On error, assume adult to avoid blocking legitimate outfits
+      return { isAdult: true, reason: 'Validation error - assuming adult' };
+    }
+  };
+
+  /**
    * Extract colors from outfits in background (non-blocking)
    */
   const extractColorsInBackground = async (savedOutfits: any[]) => {
@@ -853,6 +945,17 @@ Return ONLY the search query, nothing else.`
         }
 
         const reasoning = generateReasoning();
+
+        // Validate outfit is age-appropriate BEFORE proceeding
+        console.log(`🔍 [VALIDATION] Checking if ${variation.name} outfit is age-appropriate...`);
+        const validationResult = await validateAdultAppropriate(result.images[0].url, userExactInput);
+
+        if (!validationResult.isAdult) {
+          console.warn(`⚠️ [VALIDATION] ${variation.name} outfit detected as children's clothing:`, validationResult.reason);
+          throw new Error(`CHILDREN_DETECTED: ${validationResult.reason}`);
+        }
+
+        console.log(`✅ [VALIDATION] ${variation.name} outfit confirmed as age-appropriate`);
 
         // Analyze the generated outfit image to create intelligent search prompts
         const searchPrompt = await analyzeOutfitImage(result.images[0].url, variation.name);

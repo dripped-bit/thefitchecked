@@ -32,6 +32,7 @@ export interface CalendarEvent {
   eventType: 'work' | 'personal' | 'travel' | 'formal' | 'casual' | 'other';
   weatherRequired?: boolean;
   shoppingLinks?: ShoppingLink[];
+  reminderMinutes?: number;
 }
 
 export interface OutfitPlan {
@@ -289,7 +290,7 @@ class SmartCalendarService {
   /**
    * Update an existing calendar event
    */
-  async updateEvent(eventId: string, updates: Partial<CalendarEvent>): Promise<boolean> {
+  async updateEvent(eventId: string, updates: Partial<CalendarEvent>): Promise<CalendarEvent | null> {
     try {
       const updateData: any = {};
       if (updates.title) updateData.title = updates.title;
@@ -300,22 +301,43 @@ class SmartCalendarService {
       if (updates.eventType) updateData.event_type = updates.eventType;
       if (updates.isAllDay !== undefined) updateData.is_all_day = updates.isAllDay;
       if (updates.weatherRequired !== undefined) updateData.weather_required = updates.weatherRequired;
+      if (updates.reminderMinutes !== undefined) updateData.reminder_minutes = updates.reminderMinutes;
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('calendar_events')
         .update(updateData)
-        .eq('id', eventId);
+        .eq('id', eventId)
+        .select()
+        .single();
 
       if (error) {
         console.error('❌ Error updating calendar event:', error);
-        return false;
+        return null;
       }
 
       console.log('✅ Calendar event updated:', eventId);
-      return true;
+
+      // Transform the data back to CalendarEvent format
+      if (data) {
+        return {
+          id: data.id,
+          title: data.title,
+          description: data.description,
+          startTime: new Date(data.start_time),
+          endTime: new Date(data.end_time),
+          location: data.location,
+          isAllDay: data.is_all_day,
+          eventType: data.event_type,
+          weatherRequired: data.weather_required,
+          shoppingLinks: data.shopping_links,
+          reminderMinutes: data.reminder_minutes
+        };
+      }
+
+      return null;
     } catch (error) {
       console.error('❌ Failed to update calendar event:', error);
-      return false;
+      return null;
     }
   }
 
@@ -357,6 +379,7 @@ class SmartCalendarService {
       eventType: dbEvent.event_type,
       weatherRequired: dbEvent.weather_required,
       shoppingLinks: dbEvent.shopping_links || [],
+      reminderMinutes: dbEvent.reminder_minutes,
       attendees: [],
       recurrence: undefined
     };

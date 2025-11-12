@@ -113,11 +113,12 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
       let allProducts: ProductSearchResult[] = [];
 
-      // Search via SerpAPI (Google Shopping) - simpler and more reliable
-      console.log('🔍 [SERPAPI] Searching Google Shopping...');
-      setSearchProgress('Finding products on Google Shopping...');
+      // Search via SerpAPI (Google Shopping) with priority stores - simpler and more reliable
+      console.log('🔍 [SERPAPI] Searching Google Shopping with priority stores...');
+      setSearchProgress('Finding products from your preferred stores...');
 
-      const searchResults = await serpApiService.searchProducts(baseQuery, {
+      // Use searchWithStores to prioritize the 72 saved stores first
+      const searchResults = await serpApiService.searchWithStores(baseQuery, {
         maxResults: 20
       });
 
