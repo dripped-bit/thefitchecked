@@ -4,9 +4,10 @@
  */
 
 import React, { useState } from 'react';
-import { X, Calendar, ShoppingBag, Bell, FileText } from 'lucide-react';
+import { X, Calendar, ShoppingBag, Bell, FileText, MapPin, Loader2 } from 'lucide-react';
 import smartCalendarService from '../services/smartCalendarService';
 import { affiliateLinkService } from '../services/affiliateLinkService';
+import weatherService, { WeatherData } from '../services/weatherService';
 import { glassModalClasses } from '../styles/glassEffects';
 
 interface ProductWithImage {
@@ -69,6 +70,9 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [eventLocation, setEventLocation] = useState('');
+  const [weatherForecast, setWeatherForecast] = useState<WeatherData | null>(null);
+  const [loadingWeather, setLoadingWeather] = useState(false);
 
   // Get outfit image URL - prefer product images over generated outfit
   const getOutfitImage = () => {
@@ -94,6 +98,39 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
   // Get outfit description
   const getOutfitDescription = () => {
     return outfit?.description || outfit?.personality?.name || 'Generated outfit';
+  };
+
+  // Weather icon helper
+  const getWeatherIcon = (weatherCode: number): string => {
+    if (weatherCode === 0 || weatherCode === 1) return '☀️';
+    if (weatherCode === 2 || weatherCode === 3) return '⛅';
+    if (weatherCode >= 51 && weatherCode <= 67) return '🌧️';
+    if (weatherCode >= 71 && weatherCode <= 86) return '❄️';
+    if (weatherCode >= 95) return '⛈️';
+    return '🌤️';
+  };
+
+  // Fetch weather when location and date are set
+  const handleLocationChange = async () => {
+    if (!eventLocation || !formData.eventDate) return;
+    
+    setLoadingWeather(true);
+    try {
+      const parts = eventLocation.split(',').map(s => s.trim());
+      const city = parts[0];
+      const state = parts[1];
+      
+      const [year, month, day] = formData.eventDate.split('-').map(Number);
+      const targetDate = new Date(year, month - 1, day);
+      
+      const forecast = await weatherService.getWeatherForecastByCity(city, state, targetDate);
+      setWeatherForecast(forecast);
+    } catch (error) {
+      console.error('Failed to load weather forecast:', error);
+      setWeatherForecast(null);
+    } finally {
+      setLoadingWeather(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -410,12 +447,84 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
             <input
               type="date"
               value={formData.eventDate}
-              onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, eventDate: e.target.value });
+                // Fetch weather if location is already set
+                if (eventLocation) {
+                  setTimeout(handleLocationChange, 100);
+                }
+              }}
               min={new Date().toISOString().split('T')[0]}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
+
+          {/* Location Input */}
+          <div>
+            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+              <MapPin className="w-4 h-4" />
+              <span>Location (City, State)</span>
+            </label>
+            <input
+              type="text"
+              value={eventLocation}
+              onChange={(e) => setEventLocation(e.target.value)}
+              onBlur={handleLocationChange}
+              placeholder="e.g., Austin, Texas"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Weather forecast will be shown for this location
+            </p>
+          </div>
+
+          {/* Weather Forecast Display */}
+          {loadingWeather && (
+            <div className="bg-gray-50 p-4 rounded-lg animate-pulse flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+              <div className="text-sm text-gray-600">Loading weather forecast...</div>
+            </div>
+          )}
+
+          {weatherForecast && !loadingWeather && (
+            <div className="bg-gradient-to-br from-blue-50 to-sky-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="text-3xl">
+                  {getWeatherIcon(weatherForecast.weatherCode)}
+                </div>
+                <div>
+                  <div className="font-semibold text-lg text-gray-900">
+                    {weatherForecast.temperature}°F
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {weatherForecast.weatherDescription}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-xs text-gray-600 mt-3">
+                <div className="flex items-center gap-1">
+                  <span>🌡️</span>
+                  <span>Feels {weatherForecast.feelsLike}°F</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span>💧</span>
+                  <span>{weatherForecast.precipitation}" rain</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span>💨</span>
+                  <span>{weatherForecast.windSpeed} mph</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span>☀️</span>
+                  <span>UV {weatherForecast.uvIndex}</span>
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-gray-500">
+                Weather forecast for {eventLocation} on {new Date(formData.eventDate).toLocaleDateString()}
+              </div>
+            </div>
+          )}
 
           {/* Occasion Name */}
           <div>

@@ -242,6 +242,85 @@ class WeatherService {
   }
 
   /**
+   * Get weather forecast for a specific date
+   */
+  async getWeatherForecast(latitude: number, longitude: number, targetDate: Date): Promise<WeatherData> {
+    try {
+      // Calculate days ahead
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(targetDate);
+      target.setHours(0, 0, 0, 0);
+      const daysAhead = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Open-Meteo supports up to 16 days forecast
+      if (daysAhead < 0 || daysAhead > 16) {
+        console.warn('🌤️ [WEATHER] Date out of forecast range, using current weather');
+        return this.getCurrentWeather(latitude, longitude);
+      }
+
+      console.log(`🌤️ [WEATHER] Fetching ${daysAhead}-day forecast...`);
+
+      const response = await fetch(
+        `${this.OPEN_METEO_BASE}/forecast?` +
+        `latitude=${latitude}&longitude=${longitude}&` +
+        `daily=temperature_2m_max,temperature_2m_min,weathercode,` +
+        `precipitation_sum,windspeed_10m_max,uv_index_max&` +
+        `temperature_unit=fahrenheit&` +
+        `timezone=auto&forecast_days=${Math.max(daysAhead + 1, 1)}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Weather API failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const daily = data.daily;
+      const dayIndex = Math.min(daysAhead, daily.time.length - 1);
+
+      // Convert daily forecast to WeatherData format
+      const forecastData: WeatherData = {
+        temperature: Math.round((daily.temperature_2m_max[dayIndex] + daily.temperature_2m_min[dayIndex]) / 2),
+        feelsLike: Math.round((daily.temperature_2m_max[dayIndex] + daily.temperature_2m_min[dayIndex]) / 2),
+        humidity: 50, // Daily forecast doesn't include humidity
+        windSpeed: daily.windspeed_10m_max[dayIndex],
+        weatherCode: daily.weathercode[dayIndex],
+        weatherDescription: this.getWeatherDescription(daily.weathercode[dayIndex]),
+        isDay: true,
+        precipitation: daily.precipitation_sum[dayIndex],
+        uvIndex: daily.uv_index_max[dayIndex] || 0,
+        location: {
+          latitude,
+          longitude
+        },
+        timestamp: daily.time[dayIndex]
+      };
+
+      console.log('✅ [WEATHER] Forecast data retrieved successfully');
+      return forecastData;
+
+    } catch (error) {
+      console.error('❌ [WEATHER] Failed to get forecast:', error);
+      return this.getFallbackWeather(latitude, longitude);
+    }
+  }
+
+  /**
+   * Get weather forecast by city and date
+   */
+  async getWeatherForecastByCity(city: string, state: string | undefined, targetDate: Date): Promise<WeatherData> {
+    try {
+      const coords = await this.geocodeLocation(city, state);
+      const weather = await this.getWeatherForecast(coords.latitude, coords.longitude, targetDate);
+      weather.location.city = coords.displayName;
+      return weather;
+    } catch (error) {
+      console.error('❌ [WEATHER] Failed to get forecast by city:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Convert weather code to human-readable description
    */
   private getWeatherDescription(code: number): string {
