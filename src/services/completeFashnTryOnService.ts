@@ -207,12 +207,14 @@ class CompleteFashnTryOnService {
       };
 
     } catch (error) {
-      console.error('❌ [FASHN] Try-on failed:', error);
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      console.error('❌ [FASHN] Try-on failed:', errorMessage);
+      console.error('❌ [FASHN] Error details:', error);
       return {
         success: false,
         itemName: clothingType,
         itemId: clothingUrl,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       };
     }
   }
@@ -317,12 +319,14 @@ class CompleteFashnTryOnService {
       }
 
     } catch (error) {
-      console.error('❌ [FASHN] Accessory application failed:', error);
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      console.error('❌ [FASHN] Accessory application failed:', errorMessage);
+      console.error('❌ [FASHN] Error details:', error);
       return {
         success: false,
         itemName: accessoryType,
         itemId: accessoryUrl,
-        error: error instanceof Error ? error.message : 'Accessory application failed'
+        error: errorMessage
       };
     }
   }
