@@ -24,6 +24,7 @@ import UserMenu from './components/UserMenu';
 import AuthCallback from './components/AuthCallback';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import { AppleDesignTest } from './components/AppleDesignTest';
 import { CapturedPhoto, AvatarData } from './types/photo';
 import { UserData, OnboardingFormData } from './types/user';
 import UserService from './services/userService';
@@ -48,7 +49,7 @@ import clearCacheUtil from './utils/clearCache';
 // import './utils/directApiTest';
 // import './utils/keyChecker';
 
-type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations';
+type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'appleTest';
 
 interface AppData {
   capturedPhotos: CapturedPhoto[];
@@ -102,6 +103,13 @@ function App() {
         sessionStorage.setItem('closet_view', view);
         console.log('📍 [APP] Stored closet view in sessionStorage:', view);
       }
+      return;
+    }
+
+    // Check for Apple Design Test route
+    if (pathname === '/apple-test' || pathname === '/apple-test/') {
+      console.log('🍎 [ROUTE] Apple Design Test route detected');
+      setCurrentScreen('appleTest');
       return;
     }
 
@@ -968,6 +976,9 @@ function App() {
       case 'apiTest':
         return <ApiTestPage />;
 
+      case 'appleTest':
+        return <AppleDesignTest />;
+
       default:
         return <WelcomeScreen onNext={() => setCurrentScreen('photoCapture')} />;
     }
@@ -1136,6 +1147,7 @@ function App() {
                currentScreen === 'avatarHomepage' ? 'Avatar Dashboard' :
                currentScreen === 'closet' ? 'My Closet' :
                currentScreen === 'apiTest' ? 'API Connection Test' :
+               currentScreen === 'appleTest' ? '🍎 Apple Design Test' :
                currentScreen.replace(/([A-Z])/g, ' $1').trim()}
             </div>
 

@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Apple Design System */
+@import './styles/apple-design.css';
+
 /* Global Background */
 body {
   background-image: url('/my-background.jpg/u8694755543_piece_of_textured_fabric_light_colors_.png');
