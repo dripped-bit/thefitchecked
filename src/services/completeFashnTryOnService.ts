@@ -647,7 +647,9 @@ class CompleteFashnTryOnService {
         console.log(`💾 [FASHN] Loaded ${Object.keys(results).length} cached results`);
       }
     } catch (error) {
-      console.error('❌ [FASHN] Failed to load cache:', error);
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      console.error('❌ [FASHN] Failed to load cache:', errorMessage);
+      console.error('❌ [FASHN] Error details:', error);
     }
   }
 
@@ -659,7 +661,9 @@ class CompleteFashnTryOnService {
       const results = Object.fromEntries(this.resultCache);
       localStorage.setItem('fashn_result_cache', JSON.stringify(results));
     } catch (error) {
-      console.error('❌ [FASHN] Failed to save cache:', error);
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      console.error('❌ [FASHN] Failed to save cache:', errorMessage);
+      console.error('❌ [FASHN] Error details:', error);
     }
   }
 
