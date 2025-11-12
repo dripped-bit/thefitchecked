@@ -20,7 +20,12 @@ export interface FashnResult {
   id: string;
   status: 'queued' | 'processing' | 'completed' | 'failed';
   result?: {
-    images: string[];
+    images?: string[];      // Format 1: array of images
+    image?: string;         // Format 2: single image
+    output?: string;        // Format 3: output field
+    data?: {                // Format 4: nested data object
+      images?: string[];
+    };
   };
   error?: string;
 }
@@ -244,18 +249,51 @@ class CompleteFashnTryOnService {
         const result: FashnResult = await response.json();
         console.log('📊 [FASHN] Job status:', result.status);
 
+        // Add detailed logging for completed jobs to diagnose issues
+        if (result.status === 'completed') {
+          console.log('🔍 [FASHN] Completed job full response:', JSON.stringify(result, null, 2));
+          console.log('📦 [FASHN] Result object:', result.result);
+          console.log('🖼️ [FASHN] Images array:', result.result?.images);
+        }
+
         switch (result.status) {
           case 'completed':
+            // Try multiple possible response formats
+            let imageUrl: string | null = null;
+            
+            // Format 1: result.images[0]
             if (result.result?.images?.[0]) {
+              imageUrl = result.result.images[0];
+              console.log('✅ [FASHN] Found image in result.images[0]');
+            }
+            // Format 2: result.image (singular)
+            else if (result.result?.image) {
+              imageUrl = result.result.image;
+              console.log('✅ [FASHN] Found image in result.image');
+            }
+            // Format 3: result.output
+            else if (result.result?.output) {
+              imageUrl = result.result.output;
+              console.log('✅ [FASHN] Found image in result.output');
+            }
+            // Format 4: result.data.images[0]
+            else if (result.result?.data?.images?.[0]) {
+              imageUrl = result.result.data.images[0];
+              console.log('✅ [FASHN] Found image in result.data.images[0]');
+            }
+            
+            if (imageUrl) {
               return {
                 success: true,
-                finalImageUrl: result.result.images[0],
+                finalImageUrl: imageUrl,
                 itemName: 'Clothing Item',
                 itemId: jobId,
                 fashnJobId: jobId
               };
             } else {
-              throw new Error('No image result returned');
+              // Log entire response for debugging
+              console.error('❌ [FASHN] Completed but no image found. Full response:', JSON.stringify(result, null, 2));
+              throw new Error('Job completed but no image URL found in response');
             }
 
           case 'failed':
@@ -272,7 +310,13 @@ class CompleteFashnTryOnService {
         }
 
       } catch (error) {
-        if (attempt === maxAttempts - 1) {
+        // Don't retry if job was completed (even if image extraction failed)
+        // or if this was the last attempt
+        const shouldStopPolling = attempt === maxAttempts - 1 || 
+                                  (result && result.status === 'completed');
+        
+        if (shouldStopPolling) {
+          console.error('❌ [FASHN] Polling failed:', error);
           return {
             success: false,
             itemName: 'Clothing Item',
@@ -281,7 +325,8 @@ class CompleteFashnTryOnService {
           };
         }
 
-        // Wait before retry
+        // Only retry if job is still processing or status check failed
+        console.warn('⚠️ [FASHN] Polling error, retrying...', error);
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }

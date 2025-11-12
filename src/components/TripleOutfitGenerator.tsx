@@ -1188,11 +1188,11 @@ Return ONLY the search query, nothing else.`
 
               {/* Outfit Image */}
               <div className="p-6">
-                <div className="relative aspect-[3/4] min-h-[400px] max-w-sm mx-auto bg-gray-100 rounded-xl overflow-hidden mb-4">
+                <div className="relative w-full max-w-sm mx-auto bg-gray-100 rounded-xl overflow-hidden mb-4">
                   <img
                     src={outfit.imageUrl}
                     alt={`${outfit.personality.name} outfit`}
-                    className="w-full h-full object-contain"
+                    className="w-full h-auto max-h-[600px] object-contain"
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-opacity duration-200 flex items-center justify-center">
                     <button
