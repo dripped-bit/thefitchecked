@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Camera, Zap, Trash, Sparkles, User, Users } from 'lucide-react';
 import avatarManagementService, { type SavedAvatar } from '../services/avatarManagementService';
 import { useHaptics } from '../utils/haptics';
+import IOSButton from './ui/IOSButton';
 
 interface WelcomeScreenProps {
   onNext: () => void;
@@ -32,12 +33,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
   const hasSavedAvatars = savedAvatars.length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-6 py-8 text-center relative overflow-hidden">
+    <div className="min-h-screen flex flex-col justify-center items-center px-6 py-8 text-center relative overflow-hidden" style={{ backgroundColor: 'var(--ios-system-background)' }}>
       {/* Background Pattern Overlay */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-stone-900 via-transparent to-slate-900"></div>
-        <div className="absolute top-1/4 left-1/4 w-32 h-32 border border-amber-300 rotate-45 opacity-20"></div>
-        <div className="absolute bottom-1/3 right-1/4 w-24 h-24 border border-amber-300 rotate-12 opacity-20"></div>
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 border rotate-45 opacity-20" style={{ borderColor: 'var(--ios-blue)' }}></div>
+        <div className="absolute bottom-1/3 right-1/4 w-24 h-24 border rotate-12 opacity-20" style={{ borderColor: 'var(--ios-blue)' }}></div>
       </div>
 
       {/* Logo */}
@@ -121,15 +122,17 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
 
               {/* Show default avatar or first avatar */}
               {savedAvatars.length > 0 && (
-                <button
+                <IOSButton
                   onClick={() => handleLoadAvatar(savedAvatars.find(a => a.isDefault)?.id || savedAvatars[0].id)}
-                  className="w-full bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 rounded-xl p-3 text-green-300 hover:text-green-200 transition-all duration-200 mb-3"
+                  variant="filled"
+                  fullWidth
+                  className="mb-3"
                 >
                   {savedAvatars.find(a => a.isDefault) ?
                     `Use ${savedAvatars.find(a => a.isDefault)!.name}` :
                     `Use ${savedAvatars[0].name}`
                   }
-                </button>
+                </IOSButton>
               )}
 
               {savedAvatars.length > 1 && (
@@ -188,55 +191,45 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
               ))}
             </div>
 
-            <button
+            <IOSButton
               onClick={() => {
                 haptics.medium();
                 setShowAvatarSelector(false);
                 onNext();
               }}
-              className="w-full mt-4 p-3 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/30 rounded-xl text-amber-300 hover:text-amber-200 transition-all duration-200"
+              variant="tinted"
+              fullWidth
+              className="mt-4"
             >
               + Create New Avatar Instead
-            </button>
+            </IOSButton>
           </div>
         </div>
       )}
 
       {/* Premium CTA Button */}
-      <button
+      <IOSButton
         onClick={() => {
           haptics.medium(); // Medium impact for primary CTA
           onNext();
         }}
-        className="relative w-full max-w-sm mx-auto group transition-all duration-300 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-slate-200/50"
+        variant="filled"
+        size="large"
+        fullWidth
+        className="max-w-sm mx-auto"
       >
-        <div className="relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg group-hover:shadow-xl group-hover:shadow-slate-500/15 transition-all duration-300">
-          {/* Translucent Ripple Effects */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-4 left-6 w-16 h-16 rounded-full border border-white/30 animate-ping"></div>
-            <div className="absolute bottom-6 right-8 w-12 h-12 rounded-full border border-white/20 animate-pulse"></div>
-            <div className="absolute top-8 right-12 w-8 h-8 rounded-full border border-white/25 animate-bounce"></div>
-            <div className="absolute bottom-4 left-12 w-20 h-20 rounded-full border border-white/15 animate-ping" style={{animationDelay: '1s'}}></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-white/10 animate-pulse" style={{animationDelay: '2s'}}></div>
-          </div>
-
-          <div className="relative bg-white/2 backdrop-blur-md rounded-xl px-8 py-4 group-hover:bg-white/5 transition-all duration-300">
-            <div className="flex items-center justify-center space-x-3">
-              <div className="w-8 h-8 rounded-full bg-white/8 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/15 transition-all duration-300">
-                <Sparkles className="w-5 h-5 text-slate-600 group-hover:text-slate-700" />
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-black transition-all duration-300">
-                  {hasSavedAvatars ? 'Create New Avatar' : 'Create Your Avatar'}
-                </div>
-                <div className="text-sm text-gray-500 group-hover:text-slate-600 transition-all duration-300">
-                  {hasSavedAvatars ? 'Take new photos' : 'Start your journey'}
-                </div>
-              </div>
+        <div className="flex items-center justify-center space-x-3">
+          <Sparkles className="w-5 h-5" />
+          <div className="text-center">
+            <div className="text-lg font-bold">
+              {hasSavedAvatars ? 'Create New Avatar' : 'Create Your Avatar'}
+            </div>
+            <div className="text-sm opacity-80">
+              {hasSavedAvatars ? 'Take new photos' : 'Start your journey'}
             </div>
           </div>
         </div>
-      </button>
+      </IOSButton>
 
       {/* Skip Option */}
       <button className="mt-8 text-gray-500 text-sm hover:text-amber-600 hover:scale-105 transition-all duration-300 font-medium tracking-wide">
