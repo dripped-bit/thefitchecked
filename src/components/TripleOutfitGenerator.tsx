@@ -84,6 +84,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   const [zoomOutfit, setZoomOutfit] = useState<GeneratedOutfit | null>(null);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [outfitToSave, setOutfitToSave] = useState<any>(null);
+  const [userStyleVibes, setUserStyleVibes] = useState<string[]>([]);
 
   // Style interpretation categories for outfit variations
   const styleInterpretations = [
@@ -131,6 +132,72 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     }
   ];
 
+  /**
+   * Map user's vibe selection to style interpretation
+   */
+  const mapVibeToInterpretation = (vibe: string) => {
+    const vibeMap: { [key: string]: string } = {
+      'elegant': 'Elegant',
+      'romantic': 'Romantic',
+      'bold': 'Edgy',        // Map 'bold' → 'Edgy'
+      'minimalist': 'Minimalist',
+      'bohemian': 'Bohemian',
+      'classic': 'Elegant',   // Map 'classic' → 'Elegant'
+      'edgy': 'Edgy',
+      'casual': 'Minimalist'  // Map 'casual' → 'Minimalist' (simple, relaxed)
+    };
+    
+    const interpretationName = vibeMap[vibe.toLowerCase()] || 'Elegant';
+    return styleInterpretations.find(s => s.name === interpretationName) 
+      || styleInterpretations[1]; // Default to Elegant
+  };
+
+  /**
+   * Get the 3 style interpretations to use for outfit generation
+   * Priority: User's saved vibes → Default (Romantic, Elegant, Edgy)
+   */
+  const getStyleInterpretationsForGeneration = (): typeof styleInterpretations => {
+    if (userStyleVibes.length === 0) {
+      // No user preferences - use defaults
+      return [
+        styleInterpretations[0], // Romantic
+        styleInterpretations[1], // Elegant  
+        styleInterpretations[2]  // Edgy
+      ];
+    }
+    
+    // Map user's vibes to interpretations
+    const userStyles = userStyleVibes
+      .slice(0, 3)  // Take up to 3
+      .map(vibe => mapVibeToInterpretation(vibe));
+    
+    // If user only selected 2, add default 3rd
+    if (userStyles.length === 2) {
+      const hasClassic = userStyles.some(s => s.name === 'Elegant');
+      const hasCasual = userStyles.some(s => s.name === 'Minimalist');
+      
+      // Add Classic (Elegant) if not present
+      if (!hasClassic) {
+        userStyles.push(styleInterpretations.find(s => s.name === 'Elegant')!);
+      } else if (!hasCasual) {
+        // Otherwise add Casual (Minimalist)
+        userStyles.push(styleInterpretations.find(s => s.name === 'Minimalist')!);
+      } else {
+        // Both present, add Romantic as 3rd
+        userStyles.push(styleInterpretations[0]);
+      }
+    }
+    
+    // If user only selected 1, fill with defaults
+    if (userStyles.length === 1) {
+      userStyles.push(styleInterpretations[1]); // Elegant
+      userStyles.push(styleInterpretations[3]); // Minimalist
+    }
+    
+    console.log('🎨 Using style interpretations:', userStyles.map(s => s.name));
+    return userStyles as typeof styleInterpretations;
+  };
+
   // Simple variations without personality branding
   const variations: OutfitPersonality[] = [
     {
@@ -170,7 +237,14 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       if (hasPrefs) {
         const summary = await stylePreferencesService.getStyleSummary();
         setStyleSummary(summary);
+        
+        // Load user's selected vibes
+        const profile = await stylePreferencesService.loadStyleProfile();
+        const userVibes = profile?.fashionPersonality?.archetypes || [];
+        setUserStyleVibes(userVibes);
+        
         console.log('✨ Style preferences loaded for triple outfit generation:', summary);
+        console.log('✨ User style vibes loaded:', userVibes);
       }
     };
     loadPreferences();
@@ -376,9 +450,9 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     const occasionName = occasion.occasion;
 
     // Select style interpretation for this variation (3 different styles for 3 variations)
-    // Use different styles for each variation to ensure variety
-    const styleIndex = variationIndex % styleInterpretations.length;
-    const selectedStyle = styleInterpretations[styleIndex];
+    // Use user's saved vibes if available, otherwise use defaults
+    const userSelectedStyles = getStyleInterpretationsForGeneration();
+    const selectedStyle = userSelectedStyles[variationIndex];
 
     // Get formality descriptor for the occasion
     const formalityDescriptor = getFormalityDescriptor(occasionName, formality);
@@ -490,7 +564,7 @@ Flat-lay product photography style, clean white background, professional lightin
     console.log(`   User Request: "${userExactInput}"`);
     console.log(`   Mandatory Specs: ${userSpecifiedMandatory.join(', ') || 'None - style has freedom'}`);
     console.log(`   Variable Aspects: ${variableAspects.join(', ')}`);
-    console.log(`   Style Variation: ${selectedStyle.name}`);
+    console.log(`   🎨 Style: ${selectedStyle.name} ${userStyleVibes.length > 0 ? '(from user prefs)' : '(default)'}`);
     console.log(`   Occasion: ${occasionName}, ${formalityDescriptor}`);
     if (userHasColor) {
       console.log(`   🎨 COLOR LOCKED: ${garmentDetails.color?.toUpperCase()} (user specified)`);
