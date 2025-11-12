@@ -3,6 +3,7 @@
  */
 
 import { UserData, UserGreeting, OnboardingFormData } from '../types/user';
+import weatherService from './weatherService';
 
 const STORAGE_KEYS = {
   USER_DATA: 'fitchecked_user_data',
@@ -14,7 +15,7 @@ export class UserService {
   /**
    * Save user data to localStorage
    */
-  static saveUserData(formData: OnboardingFormData): UserData {
+  static async saveUserData(formData: OnboardingFormData): Promise<UserData> {
     const userData: UserData = {
       firstName: formData.firstName.trim(),
       birthday: formData.birthday,
@@ -24,6 +25,17 @@ export class UserService {
       createdAt: new Date().toISOString()
     };
 
+    // Detect timezone if city and state are provided
+    if (userData.city && userData.state) {
+      try {
+        userData.timezone = await weatherService.detectTimezone(userData.city, userData.state);
+        console.log(`✅ [USER-SERVICE] Timezone detected: ${userData.timezone}`);
+      } catch (error) {
+        console.warn('⚠️ [USER-SERVICE] Failed to detect timezone, using default');
+        userData.timezone = 'America/Los_Angeles';
+      }
+    }
+
     try {
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
       localStorage.setItem(STORAGE_KEYS.ONBOARDING_SHOWN, 'true');
@@ -31,6 +43,33 @@ export class UserService {
     } catch (error) {
       console.error('Failed to save user data:', error);
       throw new Error('Unable to save user preferences');
+    }
+  }
+
+  /**
+   * Update user location and timezone
+   */
+  static async updateUserLocation(city: string, state: string): Promise<UserData | null> {
+    try {
+      const userData = this.getUserData();
+      if (!userData) {
+        throw new Error('No user data found');
+      }
+
+      // Update city and state
+      userData.city = city.trim();
+      userData.state = state.trim();
+
+      // Detect and update timezone
+      userData.timezone = await weatherService.detectTimezone(city, state);
+      console.log(`✅ [USER-SERVICE] Location updated: ${city}, ${state} (${userData.timezone})`);
+
+      // Save updated data
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(userData));
+      return userData;
+    } catch (error) {
+      console.error('Failed to update user location:', error);
+      throw error;
     }
   }
 

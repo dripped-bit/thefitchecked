@@ -613,12 +613,15 @@ function App() {
   };
 
   // Handle onboarding completion
-  const handleOnboardingComplete = (formData: OnboardingFormData) => {
+  const handleOnboardingComplete = async (formData: OnboardingFormData) => {
     try {
-      const newUserData = UserService.saveUserData(formData);
+      const newUserData = await UserService.saveUserData(formData);
       setUserData(newUserData);
       setShowOnboardingPopup(false);
       console.log('Onboarding completed for:', newUserData.firstName);
+      if (newUserData.timezone) {
+        console.log('✅ Timezone saved:', newUserData.timezone);
+      }
     } catch (error) {
       console.error('Failed to save user data:', error);
       // Could show an error message to user here

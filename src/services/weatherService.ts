@@ -173,6 +173,40 @@ class WeatherService {
   }
 
   /**
+   * Detect timezone from city and state
+   */
+  async detectTimezone(city: string, state?: string): Promise<string> {
+    try {
+      console.log(`🌍 [WEATHER] Detecting timezone for ${city}${state ? ', ' + state : ''}...`);
+
+      // Geocode to get coordinates
+      const coords = await this.geocodeLocation(city, state);
+
+      // Fetch weather with timezone info
+      const response = await fetch(
+        `${this.OPEN_METEO_BASE}/forecast?` +
+        `latitude=${coords.latitude}&longitude=${coords.longitude}&` +
+        `timezone=auto&forecast_days=1`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch timezone: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const timezone = data.timezone || 'America/Los_Angeles'; // Default fallback
+
+      console.log(`✅ [WEATHER] Detected timezone: ${timezone}`);
+      return timezone;
+
+    } catch (error) {
+      console.error('❌ [WEATHER] Failed to detect timezone:', error);
+      // Return default timezone
+      return 'America/Los_Angeles';
+    }
+  }
+
+  /**
    * Get current weather data for user's location
    */
   async getCurrentWeather(latitude?: number, longitude?: number): Promise<WeatherData> {

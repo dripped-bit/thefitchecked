@@ -29,6 +29,7 @@ import serpApiService, { ProductSearchResult, ProductSearchOptions } from '../se
 import affiliateLinkService from '../services/affiliateLinkService';
 import SavedPromptsModal from './SavedPromptsModal';
 import SavedAvatarsTab from './SavedAvatarsTab';
+import UserSettingsModal from './UserSettingsModal';
 import { CURRENT_PERFECT_PROMPT } from '../config/bestavatargenerated.js';
 import stylePreferencesService from '../services/stylePreferencesService';
 import avatarManagementService from '../services/avatarManagementService';
@@ -1476,6 +1477,27 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
           </div>
         </div>
       )}
+
+      {/* New User Settings Modal with Timezone Detection */}
+      <UserSettingsModal
+        isOpen={false}
+        onClose={() => {}}
+        onUpdate={async (updatedData) => {
+          // This will replace the old modal once tested
+          try {
+            setWeatherLoading(true);
+            const newWeather = await weatherService.getUserSavedLocation();
+            setWeather(newWeather);
+            setWeatherError(null);
+            console.log('✅ Weather updated after location change');
+          } catch (error) {
+            console.error('Failed to reload weather:', error);
+            setWeatherError('Failed to load weather');
+          } finally {
+            setWeatherLoading(false);
+          }
+        }}
+      />
 
       {/* Share Modal */}
       {showShareModal && avatarData && (
