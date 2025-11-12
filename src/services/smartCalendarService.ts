@@ -226,8 +226,8 @@ class SmartCalendarService {
             description: finalDescription,
             start_time: eventData.startTime.toISOString(),
             end_time: eventData.endTime.toISOString(),
-            location: eventData.location,
-            reminderMinutes: eventData.reminderMinutes
+            location: eventData.location
+            // Note: reminders handled by push notification service, not Google Calendar
           });
           console.log('✅ Event synced to Google Calendar:', googleEvent.id);
         }
@@ -301,7 +301,7 @@ class SmartCalendarService {
       if (updates.eventType) updateData.event_type = updates.eventType;
       if (updates.isAllDay !== undefined) updateData.is_all_day = updates.isAllDay;
       if (updates.weatherRequired !== undefined) updateData.weather_required = updates.weatherRequired;
-      if (updates.reminderMinutes !== undefined) updateData.reminder_minutes = updates.reminderMinutes;
+      // Note: reminder_minutes column doesn't exist - reminders handled by push notification service
 
       const { data, error } = await supabase
         .from('calendar_events')
@@ -329,8 +329,8 @@ class SmartCalendarService {
           isAllDay: data.is_all_day,
           eventType: data.event_type,
           weatherRequired: data.weather_required,
-          shoppingLinks: data.shopping_links,
-          reminderMinutes: data.reminder_minutes
+          shoppingLinks: data.shopping_links
+          // Note: reminderMinutes not stored in DB - handled by push notification service
         };
       }
 
@@ -379,7 +379,7 @@ class SmartCalendarService {
       eventType: dbEvent.event_type,
       weatherRequired: dbEvent.weather_required,
       shoppingLinks: dbEvent.shopping_links || [],
-      reminderMinutes: dbEvent.reminder_minutes,
+      // Note: reminderMinutes not stored in DB - handled by push notification service
       attendees: [],
       recurrence: undefined
     };

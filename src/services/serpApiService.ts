@@ -255,6 +255,12 @@ class SerpApiService {
       if (stores && stores.length > 0) {
         filteredResults = this.filterByStores(deduplicatedResults, stores);
         console.log(`🏪 [SERPAPI] Filtered to priority stores: ${filteredResults.length}/${deduplicatedResults.length}`);
+        
+        // NEW: If filtering eliminates all results, use all results instead
+        if (filteredResults.length === 0) {
+          console.log('⚠️ [SERPAPI] Store filter eliminated all results, using all products instead');
+          filteredResults = deduplicatedResults;
+        }
       }
 
       // VERY STRICT - Filter out children's products
@@ -328,6 +334,7 @@ class SerpApiService {
 
   /**
    * Filter results by priority stores
+   * Enhanced with multiple matching strategies for better accuracy
    */
   private filterByStores(results: ProductSearchResult[], storeDomains: string[]): ProductSearchResult[] {
     const storeNames = storeDomains.map(domain =>
@@ -336,9 +343,49 @@ class SerpApiService {
 
     return results.filter(product => {
       const productStore = product.store.toLowerCase();
-      return storeNames.some(store =>
-        productStore.includes(store) || store.includes(productStore)
-      );
+      
+      // Try multiple matching strategies
+      return storeNames.some(store => {
+        // Strategy 1: Exact match
+        if (productStore === store) {
+          console.log(`✅ [STORE-MATCH] Exact: "${productStore}" === "${store}"`);
+          return true;
+        }
+        
+        // Strategy 2: Contains match (both directions)
+        if (productStore.includes(store) || store.includes(productStore)) {
+          console.log(`✅ [STORE-MATCH] Contains: "${productStore}" ↔ "${store}"`);
+          return true;
+        }
+        
+        // Strategy 3: Remove spaces and try again
+        const storeNoSpaces = store.replace(/\s+/g, '');
+        const productNoSpaces = productStore.replace(/\s+/g, '');
+        if (productNoSpaces.includes(storeNoSpaces) || storeNoSpaces.includes(productNoSpaces)) {
+          console.log(`✅ [STORE-MATCH] No-spaces: "${productNoSpaces}" ↔ "${storeNoSpaces}"`);
+          return true;
+        }
+        
+        // Strategy 4: Remove common suffixes and try again
+        const storeCleaned = store.replace(/\s*(online|shop|store|outlet|inc|llc|co)\s*/gi, '');
+        const productCleaned = productStore.replace(/\s*(online|shop|store|outlet|inc|llc|co)\s*/gi, '');
+        if (productCleaned.includes(storeCleaned) || storeCleaned.includes(productCleaned)) {
+          console.log(`✅ [STORE-MATCH] Cleaned: "${productCleaned}" ↔ "${storeCleaned}"`);
+          return true;
+        }
+        
+        // Strategy 5: Fuzzy match - check if first 3-4 letters match (for abbreviations)
+        if (store.length >= 3 && productStore.length >= 3) {
+          const storePrefix = store.substring(0, Math.min(4, store.length));
+          const productPrefix = productStore.substring(0, Math.min(4, productStore.length));
+          if (storePrefix === productPrefix) {
+            console.log(`✅ [STORE-MATCH] Prefix: "${productPrefix}" === "${storePrefix}"`);
+            return true;
+          }
+        }
+        
+        return false;
+      });
     });
   }
 
