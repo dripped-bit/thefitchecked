@@ -6,6 +6,7 @@ import photoUploadService from '../services/photoUploadService';
 import { useHaptics } from '../utils/haptics';
 import NativeCameraCapture from './NativeCameraCapture';
 import { Photo } from '@capacitor/camera';
+import IOSButton from './ui/IOSButton';
 
 interface PhotoCaptureFlowProps {
   onNext: (photos: CapturedPhoto[]) => void;
@@ -323,28 +324,28 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
               showActionsSheet={true}
             />
           ) : (
-            <button
+            <IOSButton
               onClick={() => {
                 haptics.medium(); // Medium impact for primary CTA
                 console.log('Sending photo to next step:', capturedPhoto);
                 onNext([capturedPhoto]);
               }}
-              className="relative w-full group transition-all duration-300 active:scale-[0.98] focus:outline-none touch-manipulation bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl px-6 py-4 shadow-lg min-h-[64px]"
+              variant="filled"
+              size="large"
+              fullWidth
             >
               <div className="flex items-center justify-center space-x-2 sm:space-x-3">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
+                <CheckCircle className="w-5 h-5" />
                 <div className="text-center">
-                  <div className="text-base sm:text-lg font-bold text-white">
+                  <div className="text-base sm:text-lg font-bold">
                     Continue to Avatar
                   </div>
-                  <div className="text-xs sm:text-sm text-purple-100">
+                  <div className="text-xs sm:text-sm opacity-80">
                     Generate your avatar
                   </div>
                 </div>
               </div>
-            </button>
+            </IOSButton>
           )}
         </div>
       </div>

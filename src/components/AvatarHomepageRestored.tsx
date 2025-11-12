@@ -8,6 +8,8 @@ import {
   Search, ExternalLink, Tag, Package, Users, MessageCircle, BookOpen,
   DoorOpen, Pencil
 } from 'lucide-react';
+import GlassCard from './ui/GlassCard';
+import IOSButton from './ui/IOSButton';
 import { weatherService, WeatherData } from '../services/weatherService';
 import { outfitGenerationService, OutfitSuggestion, StyleProfile } from '../services/outfitGenerationService';
 import { avatarAnimationService, AnimationType } from '../services/avatarAnimationService';
@@ -780,40 +782,42 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
             {/* Shopping Prompt */}
             {showShoppingPrompt && currentGeneratedItem && (
-              <div className="bg-white/75 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6 mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <ShoppingCart className="w-5 h-5 mr-2 text-indigo-500" />
+              <GlassCard className="mb-4">
+                <h3 className="text-lg font-semibold mb-4 flex items-center" style={{ color: 'var(--ios-label)' }}>
+                  <ShoppingCart className="w-5 h-5 mr-2" style={{ color: 'var(--ios-blue)' }} />
                   Find Similar Items?
                 </h3>
 
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm mb-4" style={{ color: 'var(--ios-secondary-label)' }}>
                   Would you like to search for similar {currentGeneratedItem.category} to purchase online?
                 </p>
 
                 <div className="flex space-x-2">
-                  <button
+                  <IOSButton
                     onClick={() => handleShoppingDecision(true)}
-                    className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center"
+                    variant="filled"
+                    className="flex-1"
                   >
                     <Search className="w-4 h-4 mr-1" />
                     Yes, Search
-                  </button>
-                  <button
+                  </IOSButton>
+                  <IOSButton
                     onClick={() => handleShoppingDecision(false)}
-                    className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-700 transition-colors flex items-center justify-center"
+                    variant="tinted"
+                    className="flex-1"
                   >
                     <X className="w-4 h-4 mr-1" />
                     No Thanks
-                  </button>
+                  </IOSButton>
                 </div>
-              </div>
+              </GlassCard>
             )}
 
             {/* Shopping Form */}
             {showShoppingForm && currentGeneratedItem && (
-              <div className="bg-white/75 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6 mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <DollarSign className="w-5 h-5 mr-2 text-green-500" />
+              <GlassCard className="mb-4">
+                <h3 className="text-lg font-semibold mb-4 flex items-center" style={{ color: 'var(--ios-label)' }}>
+                  <DollarSign className="w-5 h-5 mr-2" style={{ color: 'var(--ios-green)' }} />
                   Shopping Preferences
                 </h3>
 
@@ -882,21 +886,22 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                       </>
                     )}
                   </button>
-                  <button
+                  <IOSButton
                     onClick={handleWorkflowReset}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    variant="plain"
+                    className="px-4"
                   >
                     <X className="w-4 h-4" />
-                  </button>
+                  </IOSButton>
                 </div>
-              </div>
+              </GlassCard>
             )}
 
             {/* Shopping Results */}
             {shoppingResults.length > 0 && (
-              <div className="bg-white/75 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <Package className="w-5 h-5 mr-2 text-purple-500" />
+              <GlassCard>
+                <h3 className="text-lg font-semibold mb-4 flex items-center" style={{ color: 'var(--ios-label)' }}>
+                  <Package className="w-5 h-5 mr-2" style={{ color: 'var(--ios-purple)' }} />
                   Similar Items Found
                 </h3>
 
