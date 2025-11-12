@@ -166,7 +166,7 @@ const NativeCameraCapture: React.FC<NativeCameraCaptureProps> = ({
             Capturing...
           </>
         ) : (
-          <span>Open Camera</span>
+          <span>{buttonText}</span>
         )}
       </Button>
 
@@ -218,7 +218,7 @@ const NativeCameraCapture: React.FC<NativeCameraCaptureProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', position: 'relative' }}>
                 <ImageIcon size={20} />
-                <span>Choose from Library</span>
+                <span>Upload Photo</span>
               </div>
             </ActionsButton>
           </ActionsGroup>

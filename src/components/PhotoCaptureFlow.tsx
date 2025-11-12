@@ -320,7 +320,7 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
           {!capturedPhoto ? (
             <NativeCameraCapture
               onPhotoCapture={handleNativePhotoCapture}
-              buttonText={isMobile ? "Take Photo or Choose from Library" : "Take Photo"}
+              buttonText="Upload Photo"
               showActionsSheet={true}
             />
           ) : (

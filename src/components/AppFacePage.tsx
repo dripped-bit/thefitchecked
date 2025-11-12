@@ -528,7 +528,7 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
 
   return (
     <>
-    <div className="min-h-screen flex flex-col justify-center items-center px-6 py-8 pb-32 text-center relative overflow-hidden">
+    <div className="min-h-screen flex flex-col justify-center items-center px-6 py-8 pb-safe pt-safe text-center relative overflow-hidden">
       <style>{`
         @keyframes avatarSway {
           0%, 100% { transform: translateX(0) rotateY(0deg); }
@@ -881,7 +881,7 @@ const AppFacePage: React.FC<AppFacePageProps> = ({
 
 
     {/* Navigation Buttons - Left and Right of Image */}
-    <div className="fixed inset-y-0 left-0 right-0 flex items-center justify-between px-8 pointer-events-none z-10">
+    <div className="fixed top-safe bottom-safe left-0 right-0 flex items-center justify-between px-8 pointer-events-none z-10">
         {/* Back Button - Left Side */}
         <button
           onClick={onBack}

@@ -86,6 +86,7 @@ export const IOSNavigationBar: React.FC<IOSNavigationBarProps> = ({
         !transparent && 'border-b',
         // Safe area for iPhone notch
         'pt-safe',
+        'px-safe',
         // Smooth transitions
         'transition-all duration-300',
         className

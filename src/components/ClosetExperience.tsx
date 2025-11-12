@@ -1288,7 +1288,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
   if (currentView === 'doors') {
     return (
-      <div className="min-h-screen pb-safe bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 relative overflow-hidden">
+      <div className="min-h-screen pb-[calc(49px+env(safe-area-inset-bottom))] pt-safe bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 relative overflow-hidden">
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
@@ -1354,7 +1354,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   }
 
   return (
-    <div className="min-h-screen pb-safe closet-interior relative overflow-hidden">
+    <div className="min-h-screen pb-[calc(49px+env(safe-area-inset-bottom))] pt-safe closet-interior relative overflow-hidden">
       {/* Header with stats - Enhanced Liquid Glass Effect */}
       <div
         className={`${glassNavClasses.light} border-b p-4 sticky top-0 z-30`}

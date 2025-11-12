@@ -185,7 +185,16 @@ class UserPreferencesService {
         .single();
 
       if (error) {
-        console.error('❌ [USER-PREFS] Error fetching style profile:', error);
+        // Check for specific error codes
+        if (error.code === '42P17') {
+          console.error('❌ [USER-PREFS] Infinite recursion in RLS policy. Table may not exist or RLS is misconfigured:', error);
+        } else if (error.code === 'PGRST116') {
+          // No rows returned - user hasn't created style preferences yet
+          console.log('📚 [USER-PREFS] No style profile found for user (empty preferences)');
+          return null;
+        } else {
+          console.error('❌ [USER-PREFS] Error fetching style profile:', error);
+        }
         return null;
       }
 

@@ -363,6 +363,9 @@ export default {
       },
       spacing: {
         'safe-area-pb': 'env(safe-area-inset-bottom)',
+        'safe-area-pt': 'env(safe-area-inset-top)',
+        'safe-area-pl': 'env(safe-area-inset-left)',
+        'safe-area-pr': 'env(safe-area-inset-right)',
       }
     },
   },
@@ -377,7 +380,39 @@ export default {
         },
         '.halo-glow': {
           boxShadow: '0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.6), 0 0 80px rgba(255, 255, 255, 0.4), 0 0 120px rgba(255, 255, 255, 0.2), 0 0 160px rgba(255, 255, 255, 0.1)'
-        }
+        },
+        '.pt-safe': {
+          paddingTop: 'env(safe-area-inset-top)',
+        },
+        '.pb-safe': {
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        },
+        '.pl-safe': {
+          paddingLeft: 'env(safe-area-inset-left)',
+        },
+        '.pr-safe': {
+          paddingRight: 'env(safe-area-inset-right)',
+        },
+        '.px-safe': {
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+        },
+        '.py-safe': {
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        },
+        '.top-safe': {
+          top: 'env(safe-area-inset-top)',
+        },
+        '.bottom-safe': {
+          bottom: 'env(safe-area-inset-bottom)',
+        },
+        '.left-safe': {
+          left: 'env(safe-area-inset-left)',
+        },
+        '.right-safe': {
+          right: 'env(safe-area-inset-right)',
+        },
       }
       addUtilities(newUtilities)
     }

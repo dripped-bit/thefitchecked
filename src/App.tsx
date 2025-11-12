@@ -20,6 +20,7 @@ import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
 import MyOutfitsPage from './pages/MyOutfitsPageAdvanced';
 import MyCreationsPage from './pages/MyCreationsPage';
+import SmartCalendarDashboard from './components/SmartCalendarDashboard';
 import GlobalDemoModeToggle from './components/GlobalDemoModeToggle';
 import SharedOutfit from './components/SharedOutfit';
 import AuthModal from './components/AuthModal';
@@ -41,6 +42,7 @@ import localStorageMigrationService from './services/localStorageMigrationServic
 import reminderMonitorService from './services/reminderMonitorService';
 import appLifecycle from './utils/appLifecycle';
 import iOSAuth from './utils/iOSAuth';
+import statusBar from './utils/statusBar';
 
 // Import debug utilities for console access
 import './utils/testApiConnection';
@@ -52,7 +54,7 @@ import clearCacheUtil from './utils/clearCache';
 // import './utils/directApiTest';
 // import './utils/keyChecker';
 
-type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'appleTest';
+type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest';
 
 interface AppData {
   capturedPhotos: CapturedPhoto[];
@@ -154,6 +156,12 @@ function App() {
         console.log('🎭 [APP] Initializing avatar storage with Supabase sync...');
         await avatarManagementService.initializeAvatarStorage();
         console.log('✅ [APP] Avatar storage initialized and synced');
+
+        // Step 3: Initialize StatusBar with overlay mode for safe areas
+        console.log('📱 [APP] Initializing StatusBar for safe areas...');
+        await statusBar.initialize();
+        await statusBar.setOverlaysWebView(true); // Enable content under status bar
+        console.log('✅ [APP] StatusBar initialized with overlay mode');
 
         // Step 2.5: Migration - Auto-set default avatar for existing users
         const library = avatarStorageService.getAvatarLibrary();
@@ -319,7 +327,7 @@ function App() {
   const tabs: Tab[] = [
     { id: 'home', label: 'Home', icon: <Home className="w-6 h-6" />, route: 'avatarHomepage' },
     { id: 'closet', label: 'Closet', icon: <Shirt className="w-6 h-6" />, route: 'closet' },
-    { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-6 h-6" />, route: 'myOutfits' },
+    { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-6 h-6" />, route: 'smartCalendar' },
     { id: 'create', label: 'Create', icon: <Sparkles className="w-6 h-6" />, route: 'myCreations' },
   ];
   const [activeTab, setActiveTab] = useState('home');
@@ -1007,6 +1015,13 @@ function App() {
           />
         );
 
+      case 'smartCalendar':
+        return (
+          <SmartCalendarDashboard
+            onBack={() => setCurrentScreen('avatarHomepage')}
+          />
+        );
+
       case 'apiTest':
         return <ApiTestPage />;
 
@@ -1418,7 +1433,7 @@ function App() {
         />
 
         {/* iOS Tab Bar - Show on main app screens */}
-        {['avatarHomepage', 'closet', 'myOutfits', 'myCreations'].includes(currentScreen) && !authLoading && authUser && (
+        {['avatarHomepage', 'closet', 'myOutfits', 'myCreations', 'smartCalendar'].includes(currentScreen) && !authLoading && authUser && (
           <IOSTabBar
             tabs={tabs}
             activeTab={activeTab}

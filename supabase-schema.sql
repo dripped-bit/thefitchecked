@@ -139,12 +139,34 @@ create index if not exists avatars_is_perfect_idx on avatars(is_perfect);
 -- alter table users add column if not exists size text;
 -- alter table users add column if not exists budget_range text;
 
+-- Style Preferences table (detailed style profile)
+create table if not exists style_preferences (
+  id uuid primary key references auth.users on delete cascade,
+  style_vibes text[] default '{}',
+  favorite_colors text[] default '{}',
+  avoid_colors text[] default '{}',
+  lifestyle text[] default '{}',
+  favorite_stores text[] default '{}',
+  custom_stores text[] default '{}',
+  fit_preference text,
+  occasion_priorities text[] default '{}',
+  boundaries text[] default '{}',
+  three_words text[] default '{}',
+  inspiration_images jsonb default '{}',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Index for style preferences
+create index if not exists style_preferences_id_idx on style_preferences(id);
+
 -- Enable Row Level Security (RLS) for security
 alter table users enable row level security;
 alter table outfits enable row level security;
 alter table interactions enable row level security;
 alter table collections enable row level security;
 alter table collection_outfits enable row level security;
+alter table style_preferences enable row level security;
 alter table avatars enable row level security;
 
 -- RLS Policies (adjust based on your auth requirements)
@@ -157,6 +179,19 @@ create policy "Users can update own data" on users
 
 create policy "Users can insert own data" on users
   for insert with check (auth.uid() = id);
+
+-- Allow users to manage their own style preferences
+create policy "Users can view own style preferences" on style_preferences
+  for select using (auth.uid() = id);
+
+create policy "Users can update own style preferences" on style_preferences
+  for update using (auth.uid() = id);
+
+create policy "Users can insert own style preferences" on style_preferences
+  for insert with check (auth.uid() = id);
+
+create policy "Users can delete own style preferences" on style_preferences
+  for delete using (auth.uid() = id);
 
 -- Allow users to manage their own outfits
 create policy "Users can view own outfits" on outfits

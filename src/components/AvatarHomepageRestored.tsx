@@ -726,7 +726,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   return (
     <>
 
-      <div className="min-h-screen pb-safe relative overflow-hidden">
+      <div className="min-h-screen pb-[calc(49px+env(safe-area-inset-bottom))] pt-safe relative overflow-hidden">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.08]"
@@ -1001,37 +1001,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
           {/* Avatar Display - Center Column */}
           <div className="lg:col-span-2 flex flex-col items-center">
-            {/* Navigation Links - Above Avatar */}
-            <div className="flex items-center justify-center space-x-6 mb-4">
-              <button
-                onClick={() => {
-                  if (onNavigateToCloset) {
-                    onNavigateToCloset();
-                  } else {
-                    console.log('Navigate to closet - door transition not available');
-                  }
-                }}
-                className="flex items-center space-x-2 text-blue-800 hover:text-blue-900 hover:underline font-bold text-lg transition-colors uppercase"
-              >
-                <DoorOpen className="w-5 h-5" />
-                <span>MY CLOSET</span>
-              </button>
-              <span className="text-gray-300">|</span>
-              <button
-                onClick={() => {
-                  if (onNavigateToMyCreations) {
-                    onNavigateToMyCreations();
-                  } else {
-                    console.log('Navigate to my creations - callback not available');
-                  }
-                }}
-                className="flex items-center space-x-2 text-blue-800 hover:text-blue-900 hover:underline font-bold text-lg transition-colors uppercase"
-              >
-                <Pencil className="w-5 h-5" />
-                <span>CREATIONS</span>
-              </button>
-            </div>
-
             <div
               ref={avatarRef}
               className="relative w-[312px] aspect-[9/16] rounded-3xl bg-white shadow-2xl overflow-hidden"

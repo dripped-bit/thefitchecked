@@ -169,18 +169,38 @@ class SerpApiService {
 
       // Process Amazon results first (to prioritize them)
       if (amazonResponse.status === 'fulfilled' && amazonResponse.value.ok) {
-        const amazonData = await amazonResponse.value.json();
-        const amazonProducts = this.transformResults(amazonData.shopping_results || []);
-        console.log(`🛍️ [AMAZON] Found ${amazonProducts.length} Amazon products`);
-        allResults.push(...amazonProducts);
+        try {
+          const amazonData = await amazonResponse.value.json();
+          if (amazonData.error) {
+            console.error('❌ [AMAZON] API Error:', amazonData.error);
+          } else {
+            const amazonProducts = this.transformResults(amazonData.shopping_results || []);
+            console.log(`🛍️ [AMAZON] Found ${amazonProducts.length} Amazon products`);
+            allResults.push(...amazonProducts);
+          }
+        } catch (parseError) {
+          console.error('❌ [AMAZON] Failed to parse response:', parseError);
+        }
+      } else if (amazonResponse.status === 'rejected') {
+        console.error('❌ [AMAZON] Request failed:', amazonResponse.reason);
       }
 
       // Process Google Shopping results
       if (googleShoppingResponse.status === 'fulfilled' && googleShoppingResponse.value.ok) {
-        const googleData = await googleShoppingResponse.value.json();
-        const googleProducts = this.transformResults(googleData.shopping_results || []);
-        console.log(`🔍 [GOOGLE-SHOPPING] Found ${googleProducts.length} products`);
-        allResults.push(...googleProducts);
+        try {
+          const googleData = await googleShoppingResponse.value.json();
+          if (googleData.error) {
+            console.error('❌ [GOOGLE-SHOPPING] API Error:', googleData.error);
+          } else {
+            const googleProducts = this.transformResults(googleData.shopping_results || []);
+            console.log(`🔍 [GOOGLE-SHOPPING] Found ${googleProducts.length} products`);
+            allResults.push(...googleProducts);
+          }
+        } catch (parseError) {
+          console.error('❌ [GOOGLE-SHOPPING] Failed to parse response:', parseError);
+        }
+      } else if (googleShoppingResponse.status === 'rejected') {
+        console.error('❌ [GOOGLE-SHOPPING] Request failed:', googleShoppingResponse.reason);
       }
 
       // Deduplicate by URL (in case Amazon products appear in both searches)

@@ -54,8 +54,6 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
   className
 }) => {
   const handleTabClick = async (tabId: string) => {
-    if (tabId === activeTab) return;
-
     // Haptic feedback
     if (hapticFeedback) {
       try {
@@ -81,6 +79,7 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
         'border-t',
         // Safe area for iPhone home indicator
         'pb-safe',
+        'px-safe',
         className
       )}
       style={{

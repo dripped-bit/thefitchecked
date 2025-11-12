@@ -103,7 +103,7 @@ export default function MyCreationsPage({ onBack }: MyCreationsPageProps) {
   };
 
   return (
-    <div className="min-h-screen pb-safe relative bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+    <div className="min-h-screen pb-[calc(49px+env(safe-area-inset-bottom))] pt-safe relative bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
