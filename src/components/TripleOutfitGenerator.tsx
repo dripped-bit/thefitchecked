@@ -1315,14 +1315,14 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
   return (
     <div className={`triple-outfit-generator ${className}`}>
       <div className="max-w-7xl mx-auto p-6 space-y-8">
-        {/* Header with Occasion Context */}
-        <div className="text-center">
-          <h3 className="text-3xl font-bold text-gray-900 mb-2">
+        {/* Header with Occasion Context - Apple Design */}
+        <div className="text-center ios-fade-in">
+          <h3 className="ios-large-title mb-2">
             Perfect for your {occasion.occasion}
           </h3>
 
           {hasStylePreferences && (
-            <div className="mt-2 mb-3 inline-flex items-center space-x-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full text-sm font-medium">
+            <div className="mt-2 mb-3 inline-flex items-center space-x-2 ios-badge bg-ios-purple text-white shadow-ios-sm">
               <Sparkles className="w-4 h-4" />
               <span>Personalized to your style: {styleSummary}</span>
             </div>
@@ -1336,24 +1336,24 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
           {outfits.map((outfit) => (
             <div
               key={outfit.personality.id}
-              className={`block w-full relative bg-white rounded-2xl border-2 transition-all duration-300 hover:shadow-lg ${
-                outfit.isSelected ? 'border-purple-500 shadow-lg ring-4 ring-purple-100' : 'border-gray-200'
+              className={`block w-full relative ios-card ios-scale-in transition-all duration-300 ${
+                outfit.isSelected ? 'border-2 border-ios-purple shadow-ios-lg ring-4 ring-purple-100' : ''
               }`}
             >
-              {/* Simple Header */}
-              <div className="p-4 border-b bg-purple-50 border-purple-200 rounded-t-xl">
+              {/* Simple Header - Apple Style */}
+              <div className="p-4 border-b bg-ios-purple/5 border-ios-separator rounded-t-ios-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-white rounded-lg text-purple-600">
-                      <Sparkles className="w-5 h-5" />
+                    <div className="w-10 h-10 bg-ios-purple/10 rounded-ios-md flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-ios-purple" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-900">{outfit.personality.name}</h4>
+                      <h4 className="ios-headline">{outfit.personality.name}</h4>
                     </div>
                   </div>
                   {outfit.isSelected && (
-                    <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
+                    <div className="w-8 h-8 bg-ios-purple rounded-full flex items-center justify-center shadow-ios-sm">
+                      <Check className="w-5 h-5 text-white" />
                     </div>
                   )}
                 </div>
@@ -1378,13 +1378,13 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                   </div>
                 </div>
 
-                {/* Why We Picked This */}
+                {/* Why We Picked This - Apple Typography */}
                 <div className="mb-4">
-                  <h5 className="font-medium text-gray-900 mb-2">Why we picked this:</h5>
+                  <h5 className="ios-headline mb-2">Why we picked this:</h5>
                   <ul className="space-y-1">
                     {outfit.reasoning.map((reason, index) => (
-                      <li key={index} className="text-sm text-gray-600 flex items-start">
-                        <span className="text-green-500 mr-2">✓</span>
+                      <li key={index} className="ios-callout text-ios-label-secondary flex items-start">
+                        <span className="text-ios-green mr-2">✓</span>
                         {reason}
                       </li>
                     ))}
@@ -1398,16 +1398,16 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                   </div>
                 </div>
 
-                {/* Action Buttons */}
+                {/* Action Buttons - Apple Design */}
                 <div className="space-y-2">
                   {avatarData?.imageUrl ? (
                     <button
                       onClick={() => handleOutfitSelect(outfit)}
                       disabled={isApplying}
-                      className={`w-full py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+                      className={`w-full ios-button-primary disabled:opacity-50 ${
                         outfit.isSelected
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700'
+                          ? 'bg-ios-purple'
+                          : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
                       }`}
                     >
                       {isApplying ? (
@@ -1430,7 +1430,7 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                   ) : (
                     <button
                       onClick={() => alert('Please create an avatar first to try on outfits')}
-                      className="w-full py-3 px-4 rounded-lg font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                      className="w-full ios-button-secondary"
                     >
                       <Users className="w-4 h-4 inline mr-2" />
                       Try This On (Create Avatar First)
@@ -1441,26 +1441,26 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                   {outfit.isSelected && hasTriedOn && onShopThisLook && (
                     <button
                       onClick={onShopThisLook}
-                      className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 transition-colors shadow-lg flex items-center justify-center space-x-2"
+                      className="w-full ios-button-primary bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 shadow-ios-md flex items-center justify-center space-x-2"
                     >
                       <ShoppingBag className="w-5 h-5" />
                       <span>Shop This Look</span>
                     </button>
                   )}
 
-                  {/* Calendar Button */}
+                  {/* Calendar Button - iOS Style */}
                   <button
                     onClick={() => handleAddToCalendar(outfit)}
-                    className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                    className="w-full ios-button-primary bg-ios-blue hover:opacity-90 flex items-center justify-center space-x-2"
                   >
                     <Calendar className="w-4 h-4" />
                     <span>Add to Calendar</span>
                   </button>
 
-                  {/* Share Button */}
+                  {/* Share Button - iOS Secondary Style */}
                   <button
                     onClick={() => handleShareOutfit(outfit)}
-                    className="w-full py-2 px-4 border border-blue-300 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2"
+                    className="w-full ios-button-secondary border border-ios-blue text-ios-blue hover:bg-ios-blue/5 flex items-center justify-center space-x-2"
                   >
                     <Share2 className="w-4 h-4" />
                     <span>Share Outfit</span>
@@ -1471,12 +1471,12 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
           ))}
         </div>
 
-        {/* Generate New Options */}
+        {/* Generate New Options - Apple Style */}
         <div className="text-center">
           <button
             onClick={generateTripleOutfits}
             disabled={isGenerating}
-            className="inline-flex items-center space-x-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+            className="ios-button-secondary disabled:opacity-50 inline-flex items-center space-x-2"
           >
             <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
             <span>Generate New Options</span>
@@ -1484,8 +1484,8 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
         </div>
 
         {generationProgress && (
-          <div className="text-center">
-            <p className="text-sm text-purple-600 font-medium">{generationProgress}</p>
+          <div className="text-center ios-fade-in">
+            <p className="ios-subheadline text-ios-purple font-semibold">{generationProgress}</p>
           </div>
         )}
       </div>
