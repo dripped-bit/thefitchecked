@@ -481,11 +481,13 @@ class CompleteFashnTryOnService {
       };
 
     } catch (error) {
-      console.error('❌ [FASHN] Sequential outfit application failed:', error);
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      console.error('❌ [FASHN] Sequential outfit application failed:', errorMessage);
+      console.error('❌ [FASHN] Error details:', error);
       return {
         success: false,
         layerResults: [],
-        error: error instanceof Error ? error.message : 'Sequential application failed'
+        error: errorMessage
       };
     }
   }
