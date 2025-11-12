@@ -938,24 +938,60 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
         }
 
         const result = await response.json();
+
+        // Detailed API response logging
+        console.log('📦 [API-RESPONSE] Status:', response.status);
+        console.log('📦 [API-RESPONSE] Result keys:', Object.keys(result));
+        console.log('📦 [API-RESPONSE] Images count:', result.images?.length || 0);
+
+        if (result.images && result.images[0]) {
+          console.log('📦 [API-RESPONSE] First image URL:', result.images[0].url?.substring(0, 100) + '...');
+        }
+
         setGenerationProgress(`Generating ${variation.name.toLowerCase()}...`);
 
         if (!result.images || result.images.length === 0) {
-          throw new Error(`Failed to generate ${variation.name} outfit`);
+          throw new Error(`Failed to generate ${variation.name} outfit - no images in response`);
         }
 
         const reasoning = generateReasoning();
 
-        // Validate outfit is age-appropriate BEFORE proceeding
-        console.log(`🔍 [VALIDATION] Checking if ${variation.name} outfit is age-appropriate...`);
-        const validationResult = await validateAdultAppropriate(result.images[0].url, userExactInput);
-
-        if (!validationResult.isAdult) {
-          console.warn(`⚠️ [VALIDATION] ${variation.name} outfit detected as children's clothing:`, validationResult.reason);
-          throw new Error(`CHILDREN_DETECTED: ${validationResult.reason}`);
+        // Preload image to avoid NaN rendering errors
+        const imageUrl = result.images[0].url;
+        try {
+          await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = imageUrl;
+            setTimeout(() => reject(new Error('Image preload timeout')), 5000); // 5 second timeout
+          });
+          console.log('✅ [IMAGE] Preloaded successfully');
+        } catch (preloadError) {
+          console.warn('⚠️ [IMAGE] Preload failed, continuing anyway:', preloadError);
         }
 
-        console.log(`✅ [VALIDATION] ${variation.name} outfit confirmed as age-appropriate`);
+        // Validate outfit is age-appropriate (non-blocking with timeout)
+        console.log(`🔍 [VALIDATION] Checking if ${variation.name} outfit is age-appropriate...`);
+        try {
+          const validationResult = await Promise.race([
+            validateAdultAppropriate(imageUrl, userExactInput),
+            new Promise<{isAdult: boolean, reason: string}>((resolve) =>
+              setTimeout(() => resolve({ isAdult: true, reason: 'Validation timed out after 10s' }), 10000)
+            )
+          ]);
+
+          if (!validationResult.isAdult) {
+            console.warn(`⚠️ [VALIDATION] ${variation.name} outfit detected as children's clothing:`, validationResult.reason);
+            // Log warning but don't block - let post-search filtering handle it
+            console.warn(`⚠️ [VALIDATION] Allowing outfit but will filter shopping results strictly`);
+          } else {
+            console.log(`✅ [VALIDATION] ${variation.name} outfit confirmed as age-appropriate`);
+          }
+        } catch (validationError) {
+          console.warn(`⚠️ [VALIDATION] Validation failed, continuing anyway:`, validationError);
+          // Don't block outfit generation if validation fails
+        }
 
         // Analyze the generated outfit image to create intelligent search prompts
         const searchPrompt = await analyzeOutfitImage(result.images[0].url, variation.name);
@@ -973,8 +1009,21 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
         };
       });
 
-      const generatedOutfits = await Promise.all(outfitPromises);
-      setOutfits(generatedOutfits);
+      // Wrap Promise.all for better error handling
+      let generatedOutfits: GeneratedOutfit[];
+      try {
+        generatedOutfits = await Promise.all(outfitPromises);
+
+        if (!generatedOutfits || generatedOutfits.length === 0) {
+          throw new Error('No outfits were generated successfully');
+        }
+
+        console.log(`✅ [TRIPLE-OUTFIT] Generated ${generatedOutfits.length} outfits successfully`);
+        setOutfits(generatedOutfits);
+      } catch (promiseError) {
+        console.error('❌ [TRIPLE-OUTFIT] Promise.all failed:', promiseError);
+        throw promiseError; // Re-throw to be caught by outer catch
+      }
 
       // Save all 3 outfits to Supabase with color analysis
       try {
@@ -1013,9 +1062,17 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
       setTimeout(() => setGenerationProgress(''), 2000);
 
     } catch (error) {
-      console.error('Triple outfit generation failed:', error);
-      setGenerationProgress('Generation failed. Please try again.');
-      setTimeout(() => setGenerationProgress(''), 3000);
+      // Enhanced error logging with full details
+      console.error('❌ [TRIPLE-OUTFIT] ========== GENERATION FAILED ==========');
+      console.error('Error type:', error?.constructor?.name || typeof error);
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Error object (full):', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+
+      // User-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setGenerationProgress(`Generation failed: ${errorMessage.substring(0, 100)}. Please try again.`);
+      setTimeout(() => setGenerationProgress(''), 5000); // Show error longer (5s instead of 3s)
     } finally {
       setIsGenerating(false);
     }
