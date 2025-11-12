@@ -631,6 +631,10 @@ Flat-lay product photography style, clean white background, professional lightin
     try {
       console.log('🔍 [IMAGE-ANALYSIS] Analyzing outfit image for better search matching...');
 
+      // Get user's original request to preserve their intent
+      const userOriginalInput = occasion.originalInput || occasion.occasion;
+      console.log('📝 [IMAGE-ANALYSIS] User originally wanted:', userOriginalInput);
+
       // Convert image to base64 for Claude Vision API
       const base64Image = await imageToBase64(imageUrl);
 
@@ -641,7 +645,7 @@ Flat-lay product photography style, clean white background, professional lightin
         },
         body: JSON.stringify({
           model: 'claude-3-haiku-20240307',
-          max_tokens: 300,
+          max_tokens: 150, // Reduced to prevent over-description
           messages: [
             {
               role: 'user',
@@ -656,23 +660,27 @@ Flat-lay product photography style, clean white background, professional lightin
                 },
                 {
                   type: 'text',
-                  text: `Analyze this ${personalityName} outfit image and create a shopping search query that describes what you see.
+                  text: `Analyze this ${personalityName} outfit image and create a shopping search query.
 
-RULES:
-1. Describe the MAIN garment visible (dress, top, pants, skirt, etc.)
-2. Include COLOR if prominent
-3. Include KEY style details (floral, striped, fitted, oversized, etc.)
-4. Include LENGTH/CUT if relevant (mini, maxi, cropped, wide-leg, etc.)
-5. Keep query 6-8 words maximum
-6. Focus on what would help find THIS SPECIFIC outfit item
+USER ORIGINALLY WANTED: "${userOriginalInput}"
+
+CRITICAL RULES:
+1. Describe ONLY what you ACTUALLY SEE in the image
+2. DO NOT add details that aren't clearly visible (no "embroidered" unless you see embroidery)
+3. DO NOT change garment types (if it's a dress, say "dress")
+4. DO NOT change lengths that user specified (if they said "mini", keep "mini")
+5. If a detail is unclear, SKIP IT - don't guess
+6. Focus on: main garment, clear color, obvious patterns/textures
+7. Keep query SHORT: 4-6 words maximum
+
+Your query should help find items SIMILAR to what the user originally wanted.
 
 Examples:
-- Image shows: pink floral dress with puff sleeves → Return: "pink floral mini dress puff sleeves"
-- Image shows: white cropped blazer → Return: "white cropped blazer structured"
-- Image shows: blue wide-leg jeans → Return: "blue high waisted wide leg jeans"
-- Image shows: black leather jacket → Return: "black leather moto jacket"
+- User wanted "pink dress", image shows pink dress → Return: "pink dress"
+- User wanted "blue jeans", image shows blue wide-leg jeans → Return: "blue wide leg jeans"
+- User wanted "mini skirt", image shows black mini skirt → Return: "black mini skirt"
 
-Return ONLY the search query, nothing else.`
+Return ONLY the search query words (4-6 words max), nothing else.`
                 }
               ]
             }

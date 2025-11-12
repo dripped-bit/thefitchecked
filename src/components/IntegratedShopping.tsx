@@ -93,21 +93,56 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
     }
   }, [selectedOutfit, occasion]);
 
+  /**
+   * Extract new keywords from AI query that aren't in the user's original input
+   * This preserves user intent while adding helpful visual details from AI
+   */
+  const extractNewKeywords = (aiQuery: string, userQuery: string): string => {
+    if (!aiQuery || !userQuery) return '';
+    
+    const aiWords = aiQuery.toLowerCase().split(/\s+/);
+    const userWords = userQuery.toLowerCase().split(/\s+/);
+    
+    // Find words in AI query that aren't in user query
+    const newWords = aiWords.filter(word => {
+      // Skip common words
+      if (['the', 'a', 'an', 'and', 'or', 'with', 'for', 'in', 'on'].includes(word)) {
+        return false;
+      }
+      // Check if word or its variations exist in user query
+      return !userWords.some(userWord => 
+        userWord.includes(word) || word.includes(userWord)
+      );
+    });
+    
+    return newWords.join(' ');
+  };
+
   const searchContextualProducts = async () => {
     setIsSearching(true);
     setSearchProgress('Searching Google Shopping for your outfit...');
 
     try {
-      // Use AI-analyzed search query for better product matching
+      // Use HYBRID search query: user input + AI enhancements
       const userOriginalInput = occasion.originalInput || occasion.occasion;
       const aiAnalyzedQuery = selectedOutfit.searchPrompt;
 
-      // Prioritize AI-analyzed query, fallback to user input if not available
-      const baseQuery = aiAnalyzedQuery || userOriginalInput;
+      // NEW: Hybrid approach - preserve user intent, add AI enhancements
+      let baseQuery = userOriginalInput; // Start with user's exact words
+      
+      if (aiAnalyzedQuery && aiAnalyzedQuery !== userOriginalInput) {
+        // Extract ONLY new keywords from AI that user didn't specify
+        const newKeywords = extractNewKeywords(aiAnalyzedQuery, userOriginalInput);
+        if (newKeywords) {
+          baseQuery = `${userOriginalInput} ${newKeywords}`.trim();
+          console.log('✨ [HYBRID-QUERY] Enhanced with AI keywords:', newKeywords);
+        }
+      }
 
       console.log('🛍️ [SHOPPING] ========== SEARCH DEBUG START ==========');
       console.log('📝 [SHOPPING] User\'s original input:', userOriginalInput);
       console.log('🔍 [SHOPPING] AI-analyzed query:', aiAnalyzedQuery);
+      console.log('🎯 [SHOPPING] Hybrid query (PRESERVES USER INTENT):', baseQuery);
       console.log('🛍️ [SHOPPING] Query sent to search:', baseQuery);
       console.log('🎨 [SHOPPING] Outfit personality:', selectedOutfit.personality.name);
 

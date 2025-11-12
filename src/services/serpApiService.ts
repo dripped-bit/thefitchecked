@@ -263,8 +263,19 @@ class SerpApiService {
         }
       }
 
-      // VERY STRICT - Filter out children's products
+      // NEW: Debug logging before adult filter
+      console.log(`🔍 [DEBUG] Before adult filter: ${filteredResults.length} products`);
+      
+      // CONTEXT-AWARE - Filter out children's products (with adult fashion whitelist)
       filteredResults = this.filterAdultProducts(filteredResults);
+      
+      // NEW: Debug logging after adult filter
+      console.log(`🔍 [DEBUG] After adult filter: ${filteredResults.length} products`);
+      
+      if (filteredResults.length === 0) {
+        console.error(`❌ [DEBUG] All products filtered out! Original count: ${deduplicatedResults.length}`);
+        console.error(`❌ [DEBUG] Check filter logs above for reason - likely all products matched children's keywords`);
+      }
 
       // Limit to maxResults
       const finalResults = filteredResults.slice(0, maxResults);
@@ -390,18 +401,38 @@ class SerpApiService {
   }
 
   /**
-   * VERY STRICT filter to remove children's clothing products
+   * CONTEXT-AWARE filter to remove children's clothing products
    * Analyzes product titles for children's keywords, sizes, and brand indicators
+   * Now includes whitelist for valid adult fashion terms that contain problematic keywords
    */
   private filterAdultProducts(results: ProductSearchResult[]): ProductSearchResult[] {
     const userDataService = require('./userDataService').default;
     const userData = userDataService.getAllUserData();
     const gender = userData?.profile?.gender || '';
 
+    // NEW: Whitelist of valid adult fashion terms (checked FIRST before filtering)
+    const adultFashionTerms = [
+      'baby doll dress',      // Popular adult style
+      'babydoll dress',       // Alternative spelling
+      'baby doll top',        // Adult top style
+      'baby tee',             // Adult cropped tee
+      'baby blue',            // Color name
+      'baby pink',            // Color name
+      'mini dress',           // Valid adult garment
+      'mini skirt',           // Valid adult garment
+      'mini bag',             // Accessory
+      'young contemporary',   // Valid adult fashion category
+      "women's mini",         // Adult sizing
+      "men's mini",           // Adult sizing
+      'petite mini',          // Adult sizing
+      'junior bridesmaid',    // Wedding category (could be adult)
+      'junior size',          // Sometimes used for adult petite sizing
+    ];
+
     // Very comprehensive list of children's keywords
     const childrenKeywords = [
       // General children's terms
-      'kids', 'children', 'child', 'toddler', 'infant', 'baby', 'youth', 'junior',
+      'kids', 'children', 'child', 'toddler', 'infant', 'youth',
       'teen', 'tween', 'pre-teen', 'preteen', 'adolescent', 'juvenile',
 
       // Gender-specific
@@ -414,21 +445,20 @@ class SerpApiService {
       // Size indicators
       '2t', '3t', '4t', '5t', '6x', '7x', '8x', '10/12', '14/16',
       'youth small', 'youth medium', 'youth large', 'youth xl', 'youth xxl',
-      'junior small', 'junior medium', 'junior large',
 
       // School-related
       'grade school', 'elementary', 'middle school', 'back to school',
       'school uniform', 'schoolwear',
 
-      // Brand indicators
-      'little kids', 'big kids', 'young', 'mini', 'petit' // Note: 'petite' for adults is different
+      // Brand indicators - REMOVED: 'baby', 'mini', 'young', 'junior', 'petit' (too many false positives)
+      'little kids', 'big kids'
     ];
 
     // Gender-specific exclusions
     if (gender === 'male') {
-      childrenKeywords.push("young men's", 'teen boy', 'boy');
+      childrenKeywords.push('teen boy', 'boy');
     } else if (gender === 'female') {
-      childrenKeywords.push("young women's", 'teen girl', 'girl', 'junior miss', "juniors'");
+      childrenKeywords.push('teen girl', 'girl');
     }
 
     const filtered = results.filter(product => {
@@ -436,7 +466,15 @@ class SerpApiService {
       const snippetLower = (product.snippet || '').toLowerCase();
       const combinedText = `${titleLower} ${snippetLower}`;
 
-      // Check for children's keywords
+      // NEW: Check whitelist FIRST - if product contains adult fashion terms, allow it
+      for (const adultTerm of adultFashionTerms) {
+        if (combinedText.includes(adultTerm.toLowerCase())) {
+          console.log(`✅ [FILTER] Allowing adult fashion term: "${product.title}" (matched: ${adultTerm})`);
+          return true; // Don't filter out - it's an adult product
+        }
+      }
+
+      // THEN check for children's keywords
       for (const keyword of childrenKeywords) {
         if (combinedText.includes(keyword.toLowerCase())) {
           console.log(`🚫 [FILTER] Removed children's product: "${product.title}" (matched: ${keyword})`);
