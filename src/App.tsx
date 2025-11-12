@@ -40,6 +40,7 @@ import reminderNotificationService from './services/reminderNotificationService'
 import outfitGenerationService from './services/outfitGenerationService';
 import localStorageMigrationService from './services/localStorageMigrationService';
 import reminderMonitorService from './services/reminderMonitorService';
+import { pushNotificationService } from './services/pushNotificationService';
 import appLifecycle from './utils/appLifecycle';
 import iOSAuth from './utils/iOSAuth';
 import statusBar from './utils/statusBar';
@@ -162,6 +163,16 @@ function App() {
         await statusBar.initialize();
         await statusBar.setOverlaysWebView(true); // Enable content under status bar
         console.log('✅ [APP] StatusBar initialized with overlay mode');
+
+        // Step 3.5: Initialize Push Notifications
+        console.log('🔔 [APP] Requesting notification permissions...');
+        const notificationGranted = await pushNotificationService.requestPermission();
+        if (notificationGranted) {
+          pushNotificationService.setupNotificationHandler();
+          console.log('✅ [APP] Push notifications enabled');
+        } else {
+          console.log('ℹ️ [APP] Push notifications not available (using fallback)');
+        }
 
         // Step 2.5: Migration - Auto-set default avatar for existing users
         const library = avatarStorageService.getAvatarLibrary();

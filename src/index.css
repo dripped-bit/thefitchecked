@@ -336,3 +336,13 @@ body::after {
   contain: none !important;
   z-index: 9999 !important;
 }
+
+/* iOS Safe Area Padding */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}

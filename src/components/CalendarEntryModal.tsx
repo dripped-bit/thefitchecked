@@ -8,6 +8,7 @@ import { X, Calendar, ShoppingBag, Bell, FileText, MapPin, Loader2 } from 'lucid
 import smartCalendarService from '../services/smartCalendarService';
 import { affiliateLinkService } from '../services/affiliateLinkService';
 import weatherService, { WeatherData } from '../services/weatherService';
+import { pushNotificationService } from '../services/pushNotificationService';
 import { glassModalClasses } from '../styles/glassEffects';
 
 interface ProductWithImage {
@@ -268,10 +269,23 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
 
       console.log('✅ [CALENDAR-MODAL] Successfully saved to Smart Calendar:', event.id);
 
-      // Schedule reminder if user selected one
+      // Schedule push notification reminder if user selected one
       if (calendarEntry.reminderDays > 0) {
-        scheduleReminder(calendarEntry);
-        console.log('🔔 [CALENDAR-MODAL] Reminder scheduled for', calendarEntry.reminderDays, 'days before event');
+        const pushGranted = await pushNotificationService.scheduleOutfitReminder(
+          {
+            id: event.id.toString(),
+            eventDate: formData.eventDate,
+            occasion: formData.occasionName,
+            shoppingLinks: processedLinks.map(link => link.affiliateUrl)
+          },
+          calendarEntry.reminderDays
+        );
+
+        if (pushGranted) {
+          console.log('🔔 [CALENDAR] Push notification scheduled for', calendarEntry.reminderDays, 'days before event');
+        } else {
+          console.log('🔔 [CALENDAR] Reminder saved (localStorage fallback)');
+        }
       }
 
       onSave(calendarEntry);
@@ -358,11 +372,11 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className={`${glassModalClasses.light} max-w-lg w-full max-h-[90vh] overflow-y-auto`}
+        className={`${glassModalClasses.light} w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto pb-safe`}
         style={{
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)'
