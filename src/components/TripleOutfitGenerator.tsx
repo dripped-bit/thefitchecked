@@ -386,12 +386,27 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     // Parse garment details to extract primary garment vs style modifiers
     const garmentDetails = parseGarmentDetails(userExactInput);
 
-    // Build style modifiers list
-    const styleModifiers: string[] = [];
-    if (garmentDetails.fit) styleModifiers.push(garmentDetails.fit);
-    if (garmentDetails.length) styleModifiers.push(garmentDetails.length);
-    if (garmentDetails.fabric) styleModifiers.push(garmentDetails.fabric);
-    if (garmentDetails.color) styleModifiers.push(garmentDetails.color);
+    // If user specified any details, those become ABSOLUTE requirements across ALL variations
+    const userHasColor = !!garmentDetails.color;
+    const userHasLength = !!garmentDetails.length;
+    const userHasFit = !!garmentDetails.fit;
+    const userHasFabric = !!garmentDetails.fabric;
+
+    // Build list of what user specified (these are NON-NEGOTIABLE)
+    const userSpecifiedMandatory: string[] = [];
+    if (userHasColor) userSpecifiedMandatory.push(`COLOR: ${garmentDetails.color!.toUpperCase()}`);
+    if (userHasLength) userSpecifiedMandatory.push(`LENGTH: ${garmentDetails.length}`);
+    if (userHasFit) userSpecifiedMandatory.push(`FIT: ${garmentDetails.fit}`);
+    if (userHasFabric) userSpecifiedMandatory.push(`FABRIC: ${garmentDetails.fabric}`);
+
+    // Build list of what can vary (for creating 3 different options)
+    const variableAspects: string[] = [];
+    if (!userHasColor) variableAspects.push('color palette');
+    if (!userHasLength) variableAspects.push('length');
+    if (!userHasFit) variableAspects.push('fit/silhouette');
+    if (!userHasFabric) variableAspects.push('fabric texture');
+    // Always can vary these
+    variableAspects.push('neckline', 'sleeve style', 'embellishments', 'design details');
 
     // Determine if this is a complete garment (dress, gown, jumpsuit) vs separates
     const isCompleteGarment = ['gown', 'gowns', 'dress', 'dresses', 'jumpsuit', 'jumpsuits', 'romper', 'rompers'].includes(garmentDetails.garmentType);
@@ -399,7 +414,10 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     // Determine color and silhouette - user specifications ALWAYS take priority
     const userColor = garmentDetails.color;
     const userHasSpecificFit = garmentDetails.fit || garmentDetails.length;
-    const finalColor = userColor || selectedStyle.colorPalette;
+    // USER COLOR ALWAYS WINS - style variations only affect texture/embellishments
+    const finalColor = userColor 
+      ? `${userColor} (MANDATORY - EXACT SHADE REQUIRED)` 
+      : selectedStyle.colorPalette;
     const finalSilhouette = userHasSpecificFit
       ? `${garmentDetails.fit || ''} ${garmentDetails.length || ''}`.trim()
       : selectedStyle.silhouette;
@@ -407,18 +425,28 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     // Build the new prompt format - USER REQUEST FIRST, then style interpretation
     const prompt = `COMPLETE USER REQUEST (MANDATORY - NON-NEGOTIABLE): ${userExactInput}
 
-PRIMARY GARMENT TYPE: ${garmentDetails.garmentType.toUpperCase()}${styleModifiers.length > 0 ? `
-USER-SPECIFIED FEATURES: ${styleModifiers.join(', ')}` : ''}
+PRIMARY GARMENT TYPE: ${garmentDetails.garmentType.toUpperCase()}
+
+${userSpecifiedMandatory.length > 0 ? `
+MANDATORY USER SPECIFICATIONS (MUST BE EXACTLY AS SPECIFIED):
+${userSpecifiedMandatory.map(spec => `  ✓ ${spec}`).join('\n')}
+
+THESE SPECIFICATIONS ARE ABSOLUTE AND MUST APPEAR IN ALL 3 VARIATIONS.
+` : ''}
 
 ${isCompleteGarment ? `CRITICAL: This is a COMPLETE ${garmentDetails.garmentType.toUpperCase()} - ONE SINGLE full-length piece from top to bottom.
-The style features (${styleModifiers.join(', ') || 'mentioned above'}) describe DESIGN ELEMENTS of the ${garmentDetails.garmentType}, NOT separate items.
+All specified features describe DESIGN ELEMENTS of the ${garmentDetails.garmentType}, NOT separate items.
 Generate the ENTIRE ${garmentDetails.garmentType} as ONE cohesive garment.
 
-` : ''}STYLE INTERPRETATION - ${selectedStyle.name.toUpperCase()} VARIATION:
-Interpret the user's request in a ${selectedStyle.name.toLowerCase()} way using:
+` : ''}VARIABLE ASPECTS FOR CREATING VARIATIONS (Variation ${variationIndex + 1} - ${selectedStyle.name}):
+You may vary the following to create a unique option:
+${variableAspects.map(aspect => `  • ${aspect}`).join('\n')}
+
+STYLE INTERPRETATION - ${selectedStyle.name.toUpperCase()} VARIATION:
+Apply ${selectedStyle.name.toLowerCase()} styling ONLY to the variable aspects above:
 - Fabric/Texture Approach: ${selectedStyle.description}
-- Color${userColor ? ' (USER SPECIFIED - MUST USE)' : ''}: ${finalColor}
-- Silhouette${userHasSpecificFit ? ' (USER SPECIFIED - MUST USE)' : ''}: ${finalSilhouette}
+${!userHasColor ? `- Color Palette: ${selectedStyle.colorPalette}` : `- Color: KEEP ${garmentDetails.color?.toUpperCase()} (USER SPECIFIED - DO NOT CHANGE)`}
+${!userHasLength && !userHasFit ? `- Silhouette: ${selectedStyle.silhouette}` : `- Silhouette: KEEP ${(garmentDetails.fit || '') + ' ' + (garmentDetails.length || '')} (USER SPECIFIED - DO NOT CHANGE)`}
 
 OCCASION CONTEXT: ${occasionName}, ${formalityDescriptor}${getOccasionModifiers(occasionName) ? `
 OCCASION-SPECIFIC REQUIREMENTS: ${getOccasionModifiers(occasionName)}` : ''}
@@ -427,10 +455,17 @@ REQUIREMENTS: Full-sized adult clothing proportions only - ${getClothingGenderTe
 CRITICAL: This outfit MUST be appropriate for: ${occasionName}
 
 CRITICAL HIERARCHY:
-1. User's exact specifications (color, fit, length, garment type) are MANDATORY and NON-NEGOTIABLE
-2. Style interpretation applies to: fabric textures, necklines, embellishments, design details, patterns
-3. Create variations through different textures, details, and embellishments while honoring user specs
+1. User's mandatory specifications above are ABSOLUTE and NON-NEGOTIABLE across ALL 3 variations
+2. Style interpretation applies ONLY to variable aspects: ${variableAspects.join(', ')}
+3. Create uniqueness through different: ${variableAspects.filter(a => !a.includes('/')).join(', ')}
 
+${userHasColor ? `
+EXAMPLE: For "yellow dress", ALL 3 variations must be YELLOW:
+  Variation 1 (Romantic): Yellow A-line dress, lace trim, sweetheart neckline, flowing chiffon
+  Variation 2 (Elegant): Yellow sheath dress, tailored fit, V-neck, structured silk
+  Variation 3 (Edgy): Yellow bodycon dress, asymmetric cut, off-shoulder, bold design
+  (All are YELLOW, all are DRESSES, varying ONLY in style details)
+` : ''}
 Generate ONE SINGLE complete outfit matching the specific request above.
 
 CRITICAL COMPOSITION RULES:
@@ -451,10 +486,21 @@ FORBIDDEN: Multiple separate items laid out individually, side-by-side outfit co
 
 Flat-lay product photography style, clean white background, professional lighting, no person, no model, no text, no labels, no tags, no size indicators. Result must be one cohesive, wearable outfit composition suitable for virtual try-on.`;
 
-    console.log(`✨ Variation ${variationIndex + 1} prompt:`);
+    console.log(`✨ Variation ${variationIndex + 1} Generation:`);
     console.log(`   User Request: "${userExactInput}"`);
-    console.log(`   Style: ${selectedStyle.name}`);
+    console.log(`   Mandatory Specs: ${userSpecifiedMandatory.join(', ') || 'None - style has freedom'}`);
+    console.log(`   Variable Aspects: ${variableAspects.join(', ')}`);
+    console.log(`   Style Variation: ${selectedStyle.name}`);
     console.log(`   Occasion: ${occasionName}, ${formalityDescriptor}`);
+    if (userHasColor) {
+      console.log(`   🎨 COLOR LOCKED: ${garmentDetails.color?.toUpperCase()} (user specified)`);
+    }
+    if (userHasLength) {
+      console.log(`   📏 LENGTH LOCKED: ${garmentDetails.length} (user specified)`);
+    }
+    if (userHasFit) {
+      console.log(`   👗 FIT LOCKED: ${garmentDetails.fit} (user specified)`);
+    }
 
     return prompt;
   };
