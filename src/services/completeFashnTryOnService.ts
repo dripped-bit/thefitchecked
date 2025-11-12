@@ -342,7 +342,6 @@ class CompleteFashnTryOnService {
     const response = await fetch(`${this.baseUrl}/v1/run`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
@@ -367,7 +366,6 @@ class CompleteFashnTryOnService {
     const response = await fetch(`${this.baseUrl}/v1/run`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
