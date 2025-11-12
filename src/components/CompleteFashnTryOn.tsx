@@ -45,12 +45,12 @@ const CompleteFashnTryOn: React.FC<CompleteFashnTryOnProps> = ({
   const [fromDatabase, setFromDatabase] = useState(false);
 
   // Database Stats
-  const [cacheStats, setDatabaseStats] = useState(completeFashnTryOnService.getDatabaseStats());
+  const [cacheStats, setDatabaseStats] = useState(completeFashnTryOnService.getCacheStats());
 
   useEffect(() => {
     // Update cache stats
     const updateStats = () => {
-      setDatabaseStats(completeFashnTryOnService.getDatabaseStats());
+      setDatabaseStats(completeFashnTryOnService.getCacheStats());
     };
 
     const interval = setInterval(updateStats, 5000);
