@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw } from 'lucide-react';
 import useDevMode from './hooks/useDevMode';
+// Force Apple Design System CSS to be included in build
+import './styles/apple-design.css';
 import WelcomeScreen from './components/WelcomeScreen';
 import LoadingScreen from './components/LoadingScreen';
 import PhotoCaptureFlow from './components/PhotoCaptureFlow';
