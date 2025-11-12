@@ -7,6 +7,7 @@
 import { PRIMARY_PRIORITY_STORES, SECONDARY_PRIORITY_STORES } from '../config/priorityStores';
 import authService from './authService';
 import userPreferencesService, { StyleProfilePreferences } from './userPreferencesService';
+import apiConfig from '../config/apiConfig';
 
 export interface ProductSearchResult {
   id: string;
@@ -141,7 +142,7 @@ class SerpApiService {
       // Call both Google Shopping AND Amazon in parallel
       const [googleShoppingResponse, amazonResponse] = await Promise.allSettled([
         // Google Shopping search
-        fetch('/api/serpapi-search', {
+        fetch(apiConfig.getEndpoint('/api/serpapi-search'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -152,7 +153,7 @@ class SerpApiService {
           })
         }),
         // Amazon search
-        fetch('/api/serpapi-amazon', {
+        fetch(apiConfig.getEndpoint('/api/serpapi-amazon'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
