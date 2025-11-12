@@ -18,6 +18,8 @@ export class UserService {
     const userData: UserData = {
       firstName: formData.firstName.trim(),
       birthday: formData.birthday,
+      city: formData.city?.trim(),
+      state: formData.state?.trim(),
       onboardingCompleted: true,
       createdAt: new Date().toISOString()
     };

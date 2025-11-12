@@ -204,7 +204,8 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
     const loadWeather = async () => {
       try {
         setWeatherLoading(true);
-        const weatherData = await weatherService.getCurrentWeather();
+        // Use saved location from onboarding, or fall back to geolocation
+        const weatherData = await weatherService.getUserSavedLocation();
         setWeather(weatherData);
         setWeatherError(null);
       } catch (error) {

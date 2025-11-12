@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, User, Shield, Sparkles } from 'lucide-react';
+import { X, Calendar, User, Shield, Sparkles, MapPin } from 'lucide-react';
 import { OnboardingPopupProps, OnboardingFormData } from '../types/user';
 import useDevMode from '../hooks/useDevMode';
 import { glassModalClasses } from '../styles/glassEffects';
@@ -7,7 +7,9 @@ import { glassModalClasses } from '../styles/glassEffects';
 const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplete, onSkip }) => {
   const [formData, setFormData] = useState<OnboardingFormData>({
     firstName: '',
-    birthday: ''
+    birthday: '',
+    city: '',
+    state: ''
   });
   const [errors, setErrors] = useState<Partial<OnboardingFormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -16,7 +18,9 @@ const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplet
     onUserOnboarding: (demoData) => {
       setFormData({
         firstName: demoData.firstName || 'Alex',
-        birthday: demoData.birthday || '1995-06-15'
+        birthday: demoData.birthday || '1995-06-15',
+        city: demoData.city || 'Austin',
+        state: demoData.state || 'Texas'
       });
       // Clear any existing errors when demo data is filled
       setErrors({});
@@ -158,6 +162,35 @@ const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplet
               <p className="mt-1 text-sm text-red-600">{errors.birthday}</p>
             )}
             <p className="mt-1 text-xs text-gray-500">We'll send you special birthday messages!</p>
+          </div>
+
+          {/* Location for Weather */}
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <MapPin className="w-4 h-4 mr-2 text-blue-500" />
+              Where are you located?
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="text"
+                placeholder="City"
+                value={formData.city || ''}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                className="px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-blue-200 focus:outline-none focus:ring-2"
+                disabled={isSubmitting}
+              />
+              <input
+                type="text"
+                placeholder="State"
+                value={formData.state || ''}
+                onChange={(e) => handleInputChange('state', e.target.value)}
+                className="px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-blue-200 focus:outline-none focus:ring-2"
+                disabled={isSubmitting}
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              📍 We'll use this for weather-appropriate outfit suggestions
+            </p>
           </div>
 
           {/* Privacy Notice */}

@@ -21,6 +21,8 @@ export interface UserGreeting {
 export interface OnboardingFormData {
   firstName: string;
   birthday: string;
+  city?: string;
+  state?: string;
 }
 
 export interface OnboardingPopupProps {

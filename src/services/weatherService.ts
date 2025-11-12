@@ -3,6 +3,8 @@
  * Used by the personalized fashion algorithm to suggest weather-appropriate outfits
  */
 
+import UserService from './userService';
+
 export interface WeatherData {
   temperature: number;
   feelsLike: number;
@@ -238,6 +240,28 @@ class WeatherService {
       console.error('❌ [WEATHER] Failed to get weather data:', error);
       // Return fallback weather data
       return this.getFallbackWeather(latitude, longitude);
+    }
+  }
+
+  /**
+   * Get weather using user's saved location (from onboarding) or fall back to geolocation
+   */
+  async getUserSavedLocation(): Promise<WeatherData> {
+    try {
+      const userData = UserService.getUserData();
+      
+      if (userData?.city && userData?.state) {
+        console.log(`🌤️ [WEATHER] Using saved location: ${userData.city}, ${userData.state}`);
+        // Use saved location
+        return this.getWeatherByCity(userData.city, userData.state);
+      } else {
+        console.log('🌤️ [WEATHER] No saved location, using geolocation');
+        // Fall back to geolocation
+        return this.getCurrentWeather();
+      }
+    } catch (error) {
+      console.error('❌ [WEATHER] Failed to get user location weather:', error);
+      return this.getCurrentWeather();
     }
   }
 
