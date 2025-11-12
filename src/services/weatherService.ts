@@ -53,6 +53,14 @@ class WeatherService {
   private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
   /**
+   * Clear weather cache (useful for debugging temperature issues)
+   */
+  clearCache(): void {
+    this.weatherCache.clear();
+    console.log('🗑️ [WEATHER] Cache cleared');
+  }
+
+  /**
    * Get user's current location using geolocation API
    */
   private async getUserLocation(): Promise<{ latitude: number; longitude: number }> {
@@ -98,7 +106,9 @@ class WeatherService {
       const stateTitle = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
 
       searchQueries.push(
-        `${cityTitle}, ${stateTitle}`,        // "Austin, Texas"
+        `${cityTitle}, ${stateTitle}, USA`,    // "Austin, Texas, USA" (most specific)
+        `${cityTitle}, ${stateUpper}, USA`,    // "Austin, TEXAS, USA"
+        `${cityTitle}, ${stateTitle}`,         // "Austin, Texas"
         `${cityTitle}, ${stateUpper}`,         // "Austin, TEXAS"
         `${city}, ${state}`,                   // Original: "austin, texas"
         `${cityTitle} ${stateTitle}`,          // "Austin Texas" (no comma)
@@ -134,6 +144,7 @@ class WeatherService {
 
         const result = data.results[0];
         console.log(`✅ [WEATHER] Location found: ${result.name}, ${result.admin1 || ''} (used format: "${searchQuery}")`);
+        console.log(`📍 [WEATHER] Coordinates: ${result.latitude}, ${result.longitude}`);
 
         return {
           latitude: result.latitude,
@@ -268,6 +279,8 @@ class WeatherService {
       });
 
       console.log('✅ [WEATHER] Weather data retrieved successfully');
+      console.log(`🌡️ [WEATHER] Temperature: ${weatherData.temperature}°F (feels like ${weatherData.feelsLike}°F)`);
+      console.log(`🌤️ [WEATHER] Condition: ${weatherData.weatherDescription}`);
       return weatherData;
 
     } catch (error) {

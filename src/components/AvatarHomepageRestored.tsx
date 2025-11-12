@@ -292,13 +292,20 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
     if (weatherError) return <AlertCircle className="w-4 h-4 text-red-500" />;
     if (!weather) return <Sun className="w-4 h-4 text-yellow-500" />;
 
-    switch (weather.condition) {
-      case 'sunny': return <Sun className="w-4 h-4 text-yellow-500" />;
-      case 'cloudy': return <Cloud className="w-4 h-4 text-gray-500" />;
-      case 'rainy': return <CloudRain className="w-4 h-4 text-blue-500" />;
-      case 'snowy': return <Snowflake className="w-4 h-4 text-blue-300" />;
-      default: return <Sun className="w-4 h-4 text-yellow-500" />;
+    const desc = weather.weatherDescription.toLowerCase();
+    if (desc.includes('clear') || desc.includes('sunny')) {
+      return <Sun className="w-4 h-4 text-yellow-500" />;
     }
+    if (desc.includes('cloud') || desc.includes('overcast') || desc.includes('partly')) {
+      return <Cloud className="w-4 h-4 text-gray-500" />;
+    }
+    if (desc.includes('rain') || desc.includes('drizzle')) {
+      return <CloudRain className="w-4 h-4 text-blue-500" />;
+    }
+    if (desc.includes('snow') || desc.includes('freezing')) {
+      return <Snowflake className="w-4 h-4 text-blue-300" />;
+    }
+    return <Sun className="w-4 h-4 text-yellow-500" />;
   };
 
   // Get time-based greeting
@@ -774,8 +781,8 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
             <div className="font-semibold text-slate-800">
               {weather ? `${weather.temperature}°F` : '--°F'}
             </div>
-            <div className="text-slate-600 capitalize">
-              {weather ? weather.condition : 'Loading...'}
+            <div className="text-slate-600">
+              {weather ? weather.weatherDescription : 'Loading...'}
             </div>
             <div className="text-xs text-slate-500 mt-0.5">
               {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
