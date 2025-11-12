@@ -137,11 +137,17 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
       console.log('💾 [CALENDAR-MODAL] Saving calendar entry:', calendarEntry);
 
       // Save to Supabase via Smart Calendar service
-      const eventDate = new Date(formData.eventDate);
-      const startTime = new Date(eventDate);
-      startTime.setHours(9, 0, 0); // Default to 9 AM
-      const endTime = new Date(eventDate);
-      endTime.setHours(17, 0, 0); // Default to 5 PM
+      // Parse date in local timezone to avoid UTC conversion issues
+      const [year, month, day] = formData.eventDate.split('-').map(Number);
+      const startTime = new Date(year, month - 1, day, 9, 0, 0);  // 9 AM local time
+      const endTime = new Date(year, month - 1, day, 17, 0, 0);   // 5 PM local time
+
+      console.log('📅 [CALENDAR-MODAL] Event date:', {
+        input: formData.eventDate,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        localDate: startTime.toLocaleDateString()
+      });
 
       // Map occasion to event type
       const mapOccasionToEventType = (occasion: string): 'work' | 'personal' | 'travel' | 'formal' | 'casual' | 'other' => {
@@ -287,7 +293,9 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
    * Schedule reminder for the outfit
    */
   const scheduleReminder = (entry: CalendarEntry) => {
-    const eventDate = new Date(entry.eventDate);
+    // Parse date in local timezone to avoid UTC conversion issues
+    const [year, month, day] = entry.eventDate.split('-').map(Number);
+    const eventDate = new Date(year, month - 1, day, 9, 0, 0);
     const reminderDate = new Date(eventDate);
     reminderDate.setDate(reminderDate.getDate() - entry.reminderDays);
 
