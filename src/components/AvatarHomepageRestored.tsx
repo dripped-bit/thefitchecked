@@ -995,7 +995,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                 >
                   Done Shopping
                 </button>
-              </div>
+              </GlassCard>
             )}
           </div>
 
