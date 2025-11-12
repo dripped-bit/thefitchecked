@@ -605,14 +605,6 @@ class WeatherService {
   }
 
   /**
-   * Clear weather cache
-   */
-  clearCache(): void {
-    this.weatherCache.clear();
-    console.log('🧹 [WEATHER] Cache cleared');
-  }
-
-  /**
    * Get cached weather data if available
    */
   getCachedWeather(latitude: number, longitude: number): WeatherData | null {
