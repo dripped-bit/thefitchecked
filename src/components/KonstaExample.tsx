@@ -23,6 +23,7 @@ import {
   Radio,
 } from 'konsta/react';
 import { Heart, ShoppingBag, User, Camera, Share2 } from 'lucide-react';
+import { glassNavClasses } from '../styles/glassEffects';
 
 /**
  * Konsta UI Example Component for TheFitChecked
@@ -43,10 +44,15 @@ const KonstaExample: React.FC = () => {
     {/* App wrapper - required for Konsta UI, sets iOS theme */}
     <App theme="ios" safeAreas>
       <Page>
-        {/* iOS-style Navbar */}
+        {/* iOS-style Navbar with Liquid Glass Effect */}
         <Navbar
           title="TheFitChecked"
           subtitle="iOS Native UI Demo"
+          className={`${glassNavClasses.light} border-b pt-safe`}
+          style={{
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+          }}
           left={
             <Button inline onClick={() => window.history.back()}>
               Back
@@ -256,8 +262,16 @@ const KonstaExample: React.FC = () => {
           </ActionsGroup>
         </Actions>
 
-        {/* iOS-style Tabbar */}
-        <Tabbar labels icons className="left-0 bottom-0 fixed">
+        {/* iOS-style Tabbar with Liquid Glass Effect */}
+        <Tabbar
+          labels
+          icons
+          className={`left-0 bottom-0 fixed ${glassNavClasses.light} border-t pb-safe`}
+          style={{
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+          }}
+        >
           <TabbarLink
             active
             icon={<Heart size={24} />}

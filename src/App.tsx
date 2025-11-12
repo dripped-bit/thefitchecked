@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw, Home, Shirt, Calendar, Sparkles, User } from 'lucide-react';
 import useDevMode from './hooks/useDevMode';
+import { IOSTabBar, Tab } from './components/ui/IOSTabBar';
 // Force Apple Design System CSS to be included in build
 import './styles/apple-design.css';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -313,6 +314,15 @@ function App() {
   const [showDoorTransition, setShowDoorTransition] = useState(false);
   const [showExitDoorTransition, setShowExitDoorTransition] = useState(false);
   const [pendingScreen, setPendingScreen] = useState<Screen | null>(null);
+
+  // iOS Tab Bar Configuration
+  const tabs: Tab[] = [
+    { id: 'home', label: 'Home', icon: <Home className="w-6 h-6" />, route: 'avatarHomepage' },
+    { id: 'closet', label: 'Closet', icon: <Shirt className="w-6 h-6" />, route: 'closet' },
+    { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-6 h-6" />, route: 'myOutfits' },
+    { id: 'create', label: 'Create', icon: <Sparkles className="w-6 h-6" />, route: 'myCreations' },
+  ];
+  const [activeTab, setActiveTab] = useState('home');
   const [appData, setAppData] = useState<AppData>({
     capturedPhotos: [],
     uploadedPhoto: undefined,
@@ -796,6 +806,28 @@ function App() {
     setShowExitDoorTransition(false);
     setCurrentScreen('avatarHomepage'); // Direct to page 6
   };
+
+  // Handle tab bar changes
+  const handleTabChange = (tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab && tab.route) {
+      if (tabId === 'closet') {
+        // Use door transition for closet
+        handleNavigateToCloset();
+      } else {
+        setCurrentScreen(tab.route as Screen);
+      }
+      setActiveTab(tabId);
+    }
+  };
+
+  // Sync active tab with current screen
+  useEffect(() => {
+    const tabForScreen = tabs.find(t => t.route === currentScreen);
+    if (tabForScreen) {
+      setActiveTab(tabForScreen.id);
+    }
+  }, [currentScreen]);
 
   const renderScreen = () => {
     console.log('🔍 RENDER DEBUG - Current screen:', currentScreen);
@@ -1384,6 +1416,16 @@ function App() {
           direction="closing"
           onComplete={handleExitDoorTransitionComplete}
         />
+
+        {/* iOS Tab Bar - Show on main app screens */}
+        {['avatarHomepage', 'closet', 'myOutfits', 'myCreations'].includes(currentScreen) && !authLoading && authUser && (
+          <IOSTabBar
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            hapticFeedback={true}
+          />
+        )}
 
       </div>
       </>

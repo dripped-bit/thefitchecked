@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Star, Copy, Trash2, Download, Upload, BookOpen } from 'lucide-react';
 import savedPromptsService, { SavedAvatarPrompt } from '../services/savedPromptsService';
 import { CURRENT_PERFECT_PROMPT } from '../config/bestavatargenerated.js';
+import { glassModalClasses } from '../styles/glassEffects';
 
 interface SavedPromptsModalProps {
   isOpen: boolean;
@@ -123,7 +124,13 @@ const SavedPromptsModal: React.FC<SavedPromptsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div
+        className={`${glassModalClasses.light} max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
@@ -380,7 +387,7 @@ const SavedPromptsModal: React.FC<SavedPromptsModalProps> = ({
                         <summary className="cursor-pointer text-purple-600 hover:text-purple-800">
                           View Full Prompt
                         </summary>
-                        <div className="mt-2 p-3 bg-white rounded border text-gray-800">
+                        <div className="mt-2 p-4 bg-white rounded border text-gray-800">
                           {prompt.prompt}
                         </div>
                       </details>

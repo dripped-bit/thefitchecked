@@ -9,6 +9,7 @@ import optionalProductSearchService, { OutfitSearchResults } from '../services/o
 import ProductSearchResults from './ProductSearchResults';
 import ExternalTryOnModal from './ExternalTryOnModal';
 import { ProductSearchResult } from '../services/perplexityService';
+import { glassModalClasses } from '../styles/glassEffects';
 
 interface SaveToClosetModalProps {
   isOpen: boolean;
@@ -159,7 +160,13 @@ const SaveToClosetModal: React.FC<SaveToClosetModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+      <div
+        className={`${glassModalClasses.light} max-w-md w-full`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
+      >
         {/* Show Search Prompt instead of Save Form when showSearchPrompt is true */}
         {showSearchPrompt ? (
           <div className="p-6 text-center">

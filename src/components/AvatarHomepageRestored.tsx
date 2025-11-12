@@ -726,7 +726,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   return (
     <>
 
-      <div className="min-h-screen relative overflow-hidden">
+      <div className="min-h-screen pb-safe relative overflow-hidden">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.08]"

@@ -7,6 +7,7 @@ import {
   Tag, Package, Zap, Users, MapPin, Clock, ChevronLeft, ChevronRight, ExternalLink,
   Menu
 } from 'lucide-react';
+import { glassNavClasses } from '../styles/glassEffects';
 import ClosetDoors from './ClosetDoors';
 import OutfitCreator from './OutfitCreator';
 import ClosetPage from './ClosetPage';
@@ -1287,7 +1288,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
   if (currentView === 'doors') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 relative overflow-hidden">
+      <div className="min-h-screen pb-safe bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-100 relative overflow-hidden">
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
@@ -1295,8 +1296,14 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           }} />
         </div>
 
-        {/* Header */}
-        <div className="relative z-10 flex items-center justify-between p-6">
+        {/* Header with Liquid Glass Effect */}
+        <div
+          className={`relative z-10 flex items-center justify-between p-6 ${glassNavClasses.light}`}
+          style={{
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+          }}
+        >
           <button
             onClick={onBack}
             className="flex items-center space-x-2 text-amber-800 hover:text-amber-900 transition-colors"
@@ -1347,9 +1354,15 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   }
 
   return (
-    <div className="min-h-screen closet-interior relative overflow-hidden">
-      {/* Header with stats */}
-      <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200 p-4">
+    <div className="min-h-screen pb-safe closet-interior relative overflow-hidden">
+      {/* Header with stats - Enhanced Liquid Glass Effect */}
+      <div
+        className={`${glassNavClasses.light} border-b p-4 sticky top-0 z-30`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
+      >
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           {/* Left: Close Closet + Door Icon (mobile) */}
           <div className="flex items-center space-x-3">

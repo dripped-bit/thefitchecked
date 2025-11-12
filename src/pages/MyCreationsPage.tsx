@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Heart, Trash2, Search, Sparkles, Calendar } from 'lucide-react';
 import outfitStorageService, { OutfitData } from '../services/outfitStorageService';
 import authService from '../services/authService';
+import { IOSNavigationBar, IOSBackButton } from '../components/ui/IOSNavigationBar';
 
 interface MyCreationsPageProps {
   onBack?: () => void;
@@ -102,7 +103,7 @@ export default function MyCreationsPage({ onBack }: MyCreationsPageProps) {
   };
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+    <div className="min-h-screen pb-safe relative bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-15"
@@ -111,32 +112,19 @@ export default function MyCreationsPage({ onBack }: MyCreationsPageProps) {
 
       {/* Content */}
       <div className="relative z-10">
-        {/* Header */}
-        <div className="bg-white shadow-sm border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-8 h-8 text-purple-600" />
-                  <h1 className="text-3xl font-bold text-gray-900">My Creations</h1>
-                </div>
-                <p className="text-gray-600 mt-2">
-                  Your AI-generated outfits that you tried on your avatar
-                </p>
-              </div>
+        {/* iOS Navigation Bar */}
+        <IOSNavigationBar
+          title="My Creations"
+          subtitle={`${filteredCreations.length} ${filteredCreations.length === 1 ? 'outfit' : 'outfits'}`}
+          large={true}
+          leftItems={onBack && <IOSBackButton label="Home" onClick={onBack} />}
+        />
 
-              {onBack && (
-                <button
-                  onClick={onBack}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  ← Back to Homepage
-                </button>
-              )}
-            </div>
-
+        {/* Search and Filter Bar */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             {/* Search and Filter Bar */}
-            <div className="mt-6 flex gap-4 items-center">
+            <div className="flex gap-4 items-center">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -184,7 +172,7 @@ export default function MyCreationsPage({ onBack }: MyCreationsPageProps) {
           ) : filteredCreations.length === 0 ? (
             <div className="text-center py-20">
               <Sparkles className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              <h3 className="ios-title-3 text-gray-700 mb-2">
                 {searchQuery || filterMode === 'favorites'
                   ? 'No creations found'
                   : 'No creations yet'}
@@ -226,26 +214,26 @@ export default function MyCreationsPage({ onBack }: MyCreationsPageProps) {
                   <div className="p-4">
                     {/* Generation Prompt */}
                     <div className="mb-3">
-                      <p className="text-sm font-medium text-gray-900 mb-1">
+                      <p className="ios-callout font-medium text-gray-900 mb-1">
                         "{creation.generation_prompt || 'No prompt available'}"
                       </p>
                     </div>
 
                     {/* Occasion Badge */}
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full ios-caption-1 font-medium bg-purple-100 text-purple-800">
                         <Calendar className="w-3 h-3 mr-1" />
                         {creation.occasion}
                       </span>
                       {creation.style && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full ios-caption-1 font-medium bg-blue-100 text-blue-800">
                           {creation.style}
                         </span>
                       )}
                     </div>
 
                     {/* Date */}
-                    <p className="text-xs text-gray-500 mb-3">
+                    <p className="ios-caption-1 text-gray-500 mb-3">
                       Created {formatDate(creation.created_at)}
                     </p>
 
@@ -253,7 +241,7 @@ export default function MyCreationsPage({ onBack }: MyCreationsPageProps) {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleDelete(creation.id!)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors ios-callout font-medium"
                       >
                         <Trash2 className="w-4 h-4" />
                         Delete
@@ -270,11 +258,11 @@ export default function MyCreationsPage({ onBack }: MyCreationsPageProps) {
         {!loading && filteredCreations.length > 0 && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <h3 className="ios-headline mb-3 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-purple-600" />
                 About Your Creations
               </h3>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 ios-subheadline text-gray-600">
                 <li>• These are AI-generated outfits you tried on your avatar</li>
                 <li>• Each creation shows your original prompt and the try-on result</li>
                 <li>• Click the <Heart className="w-4 h-4 inline text-red-500" /> to favorite your best looks</li>

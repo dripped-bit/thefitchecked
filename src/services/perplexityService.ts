@@ -779,13 +779,14 @@ Return SPECIFIC PRODUCT PAGES ONLY - each must be ONE item I can add to cart!`
    */
   private getProductCategory(productTitle: string): string {
     const title = productTitle.toLowerCase();
-    if (title.includes('dress')) return 'dress';
-    if (title.includes('top') || title.includes('shirt') || title.includes('blouse')) return 'top';
-    if (title.includes('pants') || title.includes('jeans') || title.includes('trousers')) return 'bottom';
-    if (title.includes('skirt')) return 'skirt';
-    if (title.includes('jacket') || title.includes('coat')) return 'outerwear';
+    // Return plural forms matching FASHN API: 'tops', 'bottoms', 'one-pieces'
+    if (title.includes('dress') || title.includes('jumpsuit') || title.includes('romper')) return 'one-pieces';
+    if (title.includes('top') || title.includes('shirt') || title.includes('blouse')) return 'tops';
+    if (title.includes('pants') || title.includes('jeans') || title.includes('trousers')) return 'bottoms';
+    if (title.includes('skirt')) return 'bottoms';
+    if (title.includes('jacket') || title.includes('coat')) return 'tops';
     if (title.includes('shoes') || title.includes('heels') || title.includes('boots')) return 'shoes';
-    return 'clothing';
+    return 'auto'; // Default for unknown categories
   }
 
   /**

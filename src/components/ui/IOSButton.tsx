@@ -1,6 +1,6 @@
 /**
  * Advanced iOS Button Component
- * More variants and color options
+ * More variants and color options with Liquid Glass effect support
  */
 
 import React from 'react';
@@ -8,7 +8,7 @@ import { cn } from '../../utils/cn';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 export interface IOSButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'filled' | 'tinted' | 'bordered' | 'plain';
+  variant?: 'filled' | 'tinted' | 'bordered' | 'plain' | 'glass';
   color?: 'blue' | 'green' | 'red' | 'orange' | 'purple' | 'gray';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
@@ -25,36 +25,42 @@ const colorMap = {
     tinted: 'bg-[var(--ios-blue)]/10 text-[var(--ios-blue)] hover:bg-[var(--ios-blue)]/20',
     bordered: 'border-2 border-[var(--ios-blue)] text-[var(--ios-blue)] hover:bg-[var(--ios-blue)]/10',
     plain: 'text-[var(--ios-blue)] hover:bg-[var(--ios-blue)]/10',
+    glass: 'bg-white/60 backdrop-blur-md backdrop-saturate-180 border border-white/30 text-[var(--ios-blue)] hover:bg-white/80',
   },
   green: {
     filled: 'bg-[var(--ios-green)] text-white hover:opacity-90',
     tinted: 'bg-[var(--ios-green)]/10 text-[var(--ios-green)] hover:bg-[var(--ios-green)]/20',
     bordered: 'border-2 border-[var(--ios-green)] text-[var(--ios-green)] hover:bg-[var(--ios-green)]/10',
     plain: 'text-[var(--ios-green)] hover:bg-[var(--ios-green)]/10',
+    glass: 'bg-white/60 backdrop-blur-md backdrop-saturate-180 border border-white/30 text-[var(--ios-green)] hover:bg-white/80',
   },
   red: {
     filled: 'bg-[var(--ios-red)] text-white hover:opacity-90',
     tinted: 'bg-[var(--ios-red)]/10 text-[var(--ios-red)] hover:bg-[var(--ios-red)]/20',
     bordered: 'border-2 border-[var(--ios-red)] text-[var(--ios-red)] hover:bg-[var(--ios-red)]/10',
     plain: 'text-[var(--ios-red)] hover:bg-[var(--ios-red)]/10',
+    glass: 'bg-white/60 backdrop-blur-md backdrop-saturate-180 border border-white/30 text-[var(--ios-red)] hover:bg-white/80',
   },
   orange: {
     filled: 'bg-[var(--ios-orange)] text-white hover:opacity-90',
     tinted: 'bg-[var(--ios-orange)]/10 text-[var(--ios-orange)] hover:bg-[var(--ios-orange)]/20',
     bordered: 'border-2 border-[var(--ios-orange)] text-[var(--ios-orange)] hover:bg-[var(--ios-orange)]/10',
     plain: 'text-[var(--ios-orange)] hover:bg-[var(--ios-orange)]/10',
+    glass: 'bg-white/60 backdrop-blur-md backdrop-saturate-180 border border-white/30 text-[var(--ios-orange)] hover:bg-white/80',
   },
   purple: {
     filled: 'bg-[var(--ios-purple)] text-white hover:opacity-90',
     tinted: 'bg-[var(--ios-purple)]/10 text-[var(--ios-purple)] hover:bg-[var(--ios-purple)]/20',
     bordered: 'border-2 border-[var(--ios-purple)] text-[var(--ios-purple)] hover:bg-[var(--ios-purple)]/10',
     plain: 'text-[var(--ios-purple)] hover:bg-[var(--ios-purple)]/10',
+    glass: 'bg-white/60 backdrop-blur-md backdrop-saturate-180 border border-white/30 text-[var(--ios-purple)] hover:bg-white/80',
   },
   gray: {
     filled: 'bg-[var(--ios-gray)] text-white hover:opacity-90',
     tinted: 'bg-[var(--ios-fill)] text-[var(--ios-label)] hover:bg-[var(--ios-fill-secondary)]',
     bordered: 'border-2 border-[var(--ios-separator)] text-[var(--ios-label)] hover:bg-[var(--ios-fill)]',
     plain: 'text-[var(--ios-label)] hover:bg-[var(--ios-fill)]',
+    glass: 'bg-white/60 backdrop-blur-md backdrop-saturate-180 border border-white/30 text-[var(--ios-label)] hover:bg-white/80',
   },
 };
 
@@ -102,15 +108,17 @@ export const IOSButton = React.forwardRef<HTMLButtonElement, IOSButtonProps>(
           'disabled:opacity-50 disabled:cursor-not-allowed',
           'active:scale-[0.98]',
           'outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--ios-blue)]',
+          // 44pt minimum touch target (Apple HIG requirement)
+          'min-h-[44px]',
 
           // Get color/variant combination
           colorMap[color][variant],
 
           // Size styles
           {
-            'px-3 py-1.5 text-sm': size === 'sm',
-            'px-5 py-3 text-base': size === 'md',
-            'px-6 py-4 text-lg': size === 'lg',
+            'px-3 py-1.5 text-sm min-w-[44px]': size === 'sm',
+            'px-5 py-3 text-base min-w-[44px]': size === 'md',
+            'px-6 py-4 text-lg min-w-[44px]': size === 'lg',
           },
 
           // Full width

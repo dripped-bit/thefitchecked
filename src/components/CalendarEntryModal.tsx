@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { X, Calendar, ShoppingBag, Bell, FileText } from 'lucide-react';
 import smartCalendarService from '../services/smartCalendarService';
 import { affiliateLinkService } from '../services/affiliateLinkService';
+import { glassModalClasses } from '../styles/glassEffects';
 
 interface CalendarEntryModalProps {
   outfit: {
@@ -276,7 +277,11 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        className={`${glassModalClasses.light} max-w-lg w-full max-h-[90vh] overflow-y-auto`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

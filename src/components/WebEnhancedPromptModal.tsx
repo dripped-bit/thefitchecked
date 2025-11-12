@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { X, Globe, TrendingUp, Settings, Sparkles, CheckCircle } from 'lucide-react';
 import { PromptVariation } from '../services/webEnhancedPromptService';
+import { glassModalClasses } from '../styles/glassEffects';
 
 interface WebEnhancedPromptModalProps {
   isOpen: boolean;
@@ -55,11 +56,17 @@ const WebEnhancedPromptModal: React.FC<WebEnhancedPromptModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+      <div
+        className={`${glassModalClasses.light} max-w-4xl w-full max-h-[90vh] overflow-hidden`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
+      >
         {/* Header */}
         <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Globe className="w-6 h-6 text-purple-600" />
               </div>
@@ -114,7 +121,7 @@ const WebEnhancedPromptModal: React.FC<WebEnhancedPromptModalProps> = ({
 
                   {/* Header */}
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-2">
                         <span className="text-2xl">{variation.icon}</span>
                         {getTypeIcon(variation.type)}
@@ -172,7 +179,7 @@ const WebEnhancedPromptModal: React.FC<WebEnhancedPromptModalProps> = ({
             <div className="text-sm text-gray-600">
               💡 Each variation uses real-time web search results powered by Perplexity to enhance your prompt
             </div>
-            <div className="flex space-x-3">
+            <div className="flex space-x-4">
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"

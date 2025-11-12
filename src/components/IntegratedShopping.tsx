@@ -552,9 +552,10 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                             parent.innerHTML = `
                               <div class="text-center">
                                 <div class="text-4xl mb-2">${
-                                  product.category === 'dress' ? '👗' :
-                                  product.category === 'top' ? '👚' :
-                                  product.category === 'bottom' ? '👖' :
+                                  // Handle both singular and plural forms
+                                  product.category === 'one-pieces' || product.category === 'dress' ? '👗' :
+                                  product.category === 'tops' || product.category === 'top' ? '👚' :
+                                  product.category === 'bottoms' || product.category === 'bottom' ? '👖' :
                                   product.category === 'skirt' ? '👗' :
                                   product.category === 'outerwear' ? '🧥' :
                                   product.category === 'shoes' ? '👠' :

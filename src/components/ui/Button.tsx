@@ -1,6 +1,6 @@
 /**
  * iOS-Style Button Component
- * Follows Apple's Human Interface Guidelines
+ * Follows Apple's Human Interface Guidelines with Liquid Glass effect support
  */
 
 import React from 'react';
@@ -8,7 +8,7 @@ import { cn } from '../../utils/cn';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'glass';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   loading?: boolean;
@@ -57,6 +57,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           'disabled:opacity-50 disabled:cursor-not-allowed',
           'active:scale-[0.98] active:opacity-80',
           'outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+          // 44pt minimum touch target (Apple HIG requirement)
+          'min-h-[44px]',
 
           // Variant styles
           {
@@ -75,13 +77,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             // Ghost (Transparent with label color)
             'bg-transparent text-[var(--ios-blue)] hover:bg-[var(--ios-fill)] focus-visible:ring-[var(--ios-blue)]':
               variant === 'ghost',
+
+            // Glass (Liquid Glass effect)
+            'bg-white/60 backdrop-blur-md backdrop-saturate-180 border border-white/30 text-[var(--ios-label)] hover:bg-white/80 focus-visible:ring-[var(--ios-blue)]':
+              variant === 'glass',
           },
 
           // Size styles
           {
-            'px-4 py-2 text-sm': size === 'sm',
-            'px-5 py-3 text-base': size === 'md',
-            'px-6 py-4 text-lg': size === 'lg',
+            'px-4 py-2 text-sm min-w-[44px]': size === 'sm',
+            'px-5 py-3 text-base min-w-[44px]': size === 'md',
+            'px-6 py-4 text-lg min-w-[44px]': size === 'lg',
           },
 
           // Full width

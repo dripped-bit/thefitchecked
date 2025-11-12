@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Save, X } from 'lucide-react';
+import { glassModalClasses } from '../styles/glassEffects';
 
 interface SaveAvatarModalProps {
   isOpen: boolean;
@@ -18,7 +19,13 @@ const SaveAvatarModal: React.FC<SaveAvatarModalProps> = ({ isOpen, onSave, onSki
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+      <div
+        className={`${glassModalClasses.light} max-w-md w-full p-6`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
+      >
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
             <Save className="w-8 h-8 text-blue-600" />

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar, User, Shield, Sparkles } from 'lucide-react';
 import { OnboardingPopupProps, OnboardingFormData } from '../types/user';
 import useDevMode from '../hooks/useDevMode';
+import { glassModalClasses } from '../styles/glassEffects';
 
 const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplete, onSkip }) => {
   const [formData, setFormData] = useState<OnboardingFormData>({
@@ -81,7 +82,13 @@ const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplet
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onSkip}></div>
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 scale-100">
+      <div
+        className={`relative ${glassModalClasses.light} max-w-md w-full mx-4 transform transition-all duration-300 scale-100`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
+      >
         {/* Header */}
         <div className="relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
           <div className="absolute top-2 right-2">

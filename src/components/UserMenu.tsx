@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, LogOut, Settings, Heart, ShoppingBag, LogIn } from 'lucide-react';
 import authService, { AuthUser } from '../services/authService';
+import { glassModalClasses } from '../styles/glassEffects';
 
 interface UserMenuProps {
   user: AuthUser | null;
@@ -69,11 +70,17 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLoginClick, onLogout, onNav
         </div>
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown Menu with Liquid Glass Effect */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+        <div
+          className={`absolute right-0 mt-2 w-64 ${glassModalClasses.light} py-2 z-50`}
+          style={{
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+          }}
+        >
           {/* User Info */}
-          <div className="px-4 py-3 border-b border-gray-200">
+          <div className="px-4 py-3 border-b border-white/20">
             <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
             <p className="text-xs text-gray-500 mt-1">
               Joined {new Date(user.createdAt).toLocaleDateString()}
@@ -87,7 +94,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLoginClick, onLogout, onNav
                 setIsOpen(false);
                 onNavigateToCloset?.();
               }}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm hover:bg-white/30 flex items-center gap-2 transition-colors"
             >
               <ShoppingBag className="w-4 h-4 text-gray-600" />
               <span>My Closet</span>
@@ -95,10 +102,10 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLoginClick, onLogout, onNav
           </div>
 
           {/* Logout */}
-          <div className="border-t border-gray-200 pt-2">
+          <div className="border-t border-white/20 pt-2">
             <button
               onClick={handleLogout}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
+              className="w-full px-4 py-2 text-left text-sm hover:bg-white/30 flex items-center gap-2 text-red-600 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>

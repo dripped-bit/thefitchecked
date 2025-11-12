@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, AlertCircle, CheckCircle, Loader, Chrome, Apple as AppleIcon } from 'lucide-react';
 import authService from '../services/authService';
+import { glassModalClasses } from '../styles/glassEffects';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -144,7 +145,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div
+        className={`${glassModalClasses.light} w-full max-w-md mx-4 overflow-hidden`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white relative">
           <button

@@ -4,6 +4,31 @@ import { fashnApiService, FashnTryOnParams, FashnResponse, FashnBatchResult } fr
 import multiGarmentDetectionService, { MultiGarmentDetectionResult, DetectedGarment } from '../services/multiGarmentDetectionService';
 import { virtualTryOnService } from '../services/virtualTryOnService';
 
+/**
+ * Normalize category to FASHN API format (plural forms)
+ * Converts singular forms to plural and handles edge cases
+ */
+const normalizeCategoryForFashn = (category: string | undefined): 'auto' | 'tops' | 'bottoms' | 'one-pieces' => {
+  if (!category) return 'auto';
+
+  const cat = category.toLowerCase().trim();
+
+  // Handle singular forms
+  if (cat === 'top') return 'tops';
+  if (cat === 'bottom') return 'bottoms';
+  if (cat === 'one-piece' || cat === 'dress') return 'one-pieces';
+
+  // Handle plural forms (already correct)
+  if (cat === 'tops' || cat === 'bottoms' || cat === 'one-pieces') return cat as 'tops' | 'bottoms' | 'one-pieces';
+
+  // Handle other categories
+  if (cat === 'skirt') return 'bottoms';
+  if (cat === 'outerwear' || cat === 'jacket' || cat === 'coat') return 'tops';
+
+  // Default to auto for unknown categories
+  return 'auto';
+};
+
 interface ClothingUploadProps {
   avatarImage?: string | File; // The user's avatar/model image
   avatarGender?: 'male' | 'female' | 'unspecified'; // User's gender for better garment detection
@@ -250,7 +275,7 @@ const ClothingUploadComponent: React.FC<ClothingUploadProps> = ({
           console.log(`👔 [SUIT-MODE] Applying piece ${i + 1}/${sortedGarments.length}: ${garment.name} (${garment.category})`);
 
           const tryOnOptions: Partial<FashnTryOnParams> = {
-            category: garment.category, // Explicit category for each piece
+            category: normalizeCategoryForFashn(garment.category), // Normalize to FASHN API format (plural)
             mode: settings.mode,
             moderation_level: settings.moderation_level,
             garment_photo_type: photoType,
@@ -351,7 +376,7 @@ const ClothingUploadComponent: React.FC<ClothingUploadProps> = ({
 
     try {
       const tryOnOptions: Partial<FashnTryOnParams> = {
-        category: settings.category,
+        category: normalizeCategoryForFashn(settings.category), // Normalize to ensure FASHN API format
         mode: settings.mode,
         moderation_level: settings.moderation_level,
         garment_photo_type: settings.garment_photo_type,

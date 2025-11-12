@@ -7,6 +7,11 @@
 
 /* Global Background */
 body {
+  /* SF Pro Font Stack - Apple HIG Compliant */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
   background-image: url('/my-background.jpg/u8694755543_piece_of_textured_fabric_light_colors_.png');
   background-size: cover;
   background-position: center;

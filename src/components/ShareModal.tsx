@@ -17,6 +17,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import shareService, { SharedOutfitData } from '../services/shareService';
+import { glassModalClasses } from '../styles/glassEffects';
 
 interface ShareModalProps {
   outfitData: Omit<SharedOutfitData, 'id' | 'timestamp' | 'privacy'>;
@@ -101,7 +102,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   if (isCreating) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full">
+        <div
+          className={`${glassModalClasses.light} p-8 max-w-md w-full`}
+          style={{
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+          }}
+        >
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
               <Share2 className="w-8 h-8 text-purple-600 animate-pulse" />
@@ -116,10 +123,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div
+        className={`${glassModalClasses.light} max-w-lg w-full max-h-[90vh] overflow-y-auto`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
+      >
         {/* Header */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
             <div className="p-2 bg-purple-100 rounded-lg">
               <Share2 className="w-6 h-6 text-purple-600" />
             </div>
@@ -160,11 +173,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           </div>
 
           {/* Privacy Settings */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h4 className="font-semibold text-gray-900">Privacy Settings</h4>
 
-            <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-              <div className="flex items-center space-x-3">
+            <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+              <div className="flex items-center space-x-4">
                 {privacySettings.hideFace ? <EyeOff className="w-5 h-5 text-gray-600" /> : <Eye className="w-5 h-5 text-gray-600" />}
                 <div>
                   <p className="font-medium text-gray-900">Hide Face</p>
@@ -179,8 +192,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               />
             </label>
 
-            <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-              <div className="flex items-center space-x-3">
+            <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+              <div className="flex items-center space-x-4">
                 <Share2 className="w-5 h-5 text-gray-600" />
                 <div>
                   <p className="font-medium text-gray-900">Outfit Only</p>
@@ -197,7 +210,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
           </div>
 
           {/* Share Options */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h4 className="font-semibold text-gray-900">Share Options</h4>
 
             {/* Copy Link */}
@@ -206,7 +219,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               disabled={!shareId}
               className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-4">
                 {copied ? <Check className="w-5 h-5" /> : <Link className="w-5 h-5" />}
                 <span className="font-semibold">
                   {copied ? 'Link Copied!' : 'Copy Share Link'}
@@ -221,7 +234,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                 disabled={!shareId}
                 className="w-full flex items-center justify-between p-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-4">
                   <Download className="w-5 h-5" />
                   <span className="font-semibold">Save as Image</span>
                 </div>
@@ -229,11 +242,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             )}
 
             {/* Social Media */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleSocialShare('twitter')}
                 disabled={!shareId}
-                className="flex items-center justify-center space-x-2 p-3 bg-[#1DA1F2] text-white rounded-lg hover:bg-[#1a8cd8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center space-x-2 p-4 bg-[#1DA1F2] text-white rounded-lg hover:bg-[#1a8cd8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Twitter className="w-5 h-5" />
                 <span className="font-medium">Twitter</span>
@@ -242,7 +255,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               <button
                 onClick={() => handleSocialShare('facebook')}
                 disabled={!shareId}
-                className="flex items-center justify-center space-x-2 p-3 bg-[#1877F2] text-white rounded-lg hover:bg-[#166fe5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center space-x-2 p-4 bg-[#1877F2] text-white rounded-lg hover:bg-[#166fe5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Facebook className="w-5 h-5" />
                 <span className="font-medium">Facebook</span>
@@ -251,7 +264,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               <button
                 onClick={() => handleSocialShare('instagram')}
                 disabled={!shareId}
-                className="flex items-center justify-center space-x-2 p-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center space-x-2 p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Instagram className="w-5 h-5" />
                 <span className="font-medium">Instagram</span>
@@ -260,7 +273,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
               <button
                 onClick={() => handleSocialShare('pinterest')}
                 disabled={!shareId}
-                className="flex items-center justify-center space-x-2 p-3 bg-[#E60023] text-white rounded-lg hover:bg-[#d0001f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center space-x-2 p-4 bg-[#E60023] text-white rounded-lg hover:bg-[#d0001f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/>

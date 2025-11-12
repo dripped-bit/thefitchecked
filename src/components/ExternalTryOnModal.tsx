@@ -291,7 +291,13 @@ const ExternalTryOnModal: React.FC<ExternalTryOnModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 relative">
+      <div
+        className={`${glassModalClasses.light} max-w-md w-full p-6 relative`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
+      >
         {/* Close button */}
         <button
           onClick={handleClose}

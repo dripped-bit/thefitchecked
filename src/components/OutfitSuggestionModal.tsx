@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import claudeOutfitService, { OutfitSuggestion } from '../services/claudeOutfitService';
 import smartCalendarService, { CalendarEvent, WeatherData, OutfitItem } from '../services/smartCalendarService';
+import { glassModalClasses } from '../styles/glassEffects';
 
 interface OutfitSuggestionModalProps {
   date: Date;
@@ -135,7 +136,13 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div
+        className={`${glassModalClasses.light} max-w-4xl w-full max-h-[90vh] overflow-y-auto`}
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        }}
+      >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
           <div>
@@ -208,7 +215,7 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
               {suggestions.map((suggestion, index) => (
                 <div
                   key={suggestion.id}
-                  className={`border-2 rounded-xl p-5 transition-all cursor-pointer ${
+                  className={`border-2 rounded-xl p-6 transition-all cursor-pointer ${
                     selectedSuggestion === suggestion.id
                       ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
                       : 'border-gray-200 hover:border-purple-300 hover:shadow-md'

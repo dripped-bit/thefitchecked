@@ -257,14 +257,15 @@ class SerpApiService {
   private categorizeProduct(title: string): string {
     const titleLower = title.toLowerCase();
 
-    if (titleLower.includes('dress')) return 'dress';
-    if (titleLower.includes('top') || titleLower.includes('shirt') || titleLower.includes('blouse')) return 'top';
-    if (titleLower.includes('pants') || titleLower.includes('jeans') || titleLower.includes('trousers')) return 'bottom';
-    if (titleLower.includes('skirt')) return 'skirt';
-    if (titleLower.includes('jacket') || titleLower.includes('coat')) return 'outerwear';
+    // Return plural forms matching FASHN API: 'tops', 'bottoms', 'one-pieces'
+    if (titleLower.includes('dress') || titleLower.includes('jumpsuit') || titleLower.includes('romper')) return 'one-pieces';
+    if (titleLower.includes('top') || titleLower.includes('shirt') || titleLower.includes('blouse')) return 'tops';
+    if (titleLower.includes('pants') || titleLower.includes('jeans') || titleLower.includes('trousers')) return 'bottoms';
+    if (titleLower.includes('skirt')) return 'bottoms';
+    if (titleLower.includes('jacket') || titleLower.includes('coat')) return 'tops';
     if (titleLower.includes('shoes') || titleLower.includes('heels') || titleLower.includes('boots')) return 'shoes';
 
-    return 'clothing';
+    return 'auto'; // Default for unknown categories
   }
 
   /**
