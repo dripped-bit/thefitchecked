@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowRight, ArrowLeft, Upload, Save, CheckCircle, Camera, Loader2, X, Check } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Upload, Save, CheckCircle, Camera, Loader2, X, Check, Pencil } from 'lucide-react';
 import stylePreferencesService from '../services/stylePreferencesService';
 import userPreferencesService from '../services/userPreferencesService';
 import authService from '../services/authService';
@@ -11,6 +11,8 @@ interface StyleProfileStreamlinedProps {
   avatarData?: any;
   measurements?: any;
   autoFillData?: UserProfile | null;
+  isEditMode?: boolean;
+  onSaveAndExit?: () => void;
 }
 
 interface UserProfile {
@@ -50,7 +52,9 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
   onBack,
   avatarData,
   measurements,
-  autoFillData
+  autoFillData,
+  isEditMode = false,
+  onSaveAndExit
 }) => {
   const [currentSection, setCurrentSection] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile>({
@@ -69,6 +73,7 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   // Load saved preferences on mount
@@ -88,12 +93,18 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
     const saveProfile = async () => {
       if (currentSection > 0) {
         await stylePreferencesService.saveStyleProfile(userProfile);
+        
+        // Track unsaved changes in edit mode
+        if (isEditMode) {
+          setHasUnsavedChanges(true);
+        }
+        
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
       }
     };
     saveProfile();
-  }, [userProfile, currentSection]);
+  }, [userProfile, currentSection, isEditMode]);
 
   const sections = [
     "What's Your Vibe?",
@@ -957,6 +968,16 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
         </div>
       </div>
 
+      {/* Edit Mode Badge */}
+      {isEditMode && (
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pb-2 pt-4">
+          <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm">
+            <Pencil className="w-4 h-4" />
+            <span>Editing Mode - Your answers are saved</span>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="glass-beige rounded-3xl shadow-xl p-6 sm:p-8 space-y-8">
@@ -977,8 +998,24 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
           <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
             {currentSection !== 6 && (
               <button
-                onClick={() => setCurrentSection(prev => Math.max(0, prev - 1))}
-                disabled={currentSection === 0}
+                onClick={() => {
+                  if (currentSection > 0) {
+                    setCurrentSection(prev => prev - 1);
+                  } else {
+                    // First section - go back to previous screen
+                    if (isEditMode) {
+                      // In edit mode, return to homepage
+                      if (hasUnsavedChanges) {
+                        const confirmExit = window.confirm('You have unsaved changes. Are you sure you want to go back?');
+                        if (!confirmExit) return;
+                      }
+                      onSaveAndExit?.();
+                    } else {
+                      onBack(); // Initial setup - go back to appFace
+                    }
+                  }
+                }}
+                disabled={currentSection === 0 && !isEditMode}
                 className="
                   flex items-center justify-center gap-2
                   px-6 py-3 rounded-xl border-2 border-gray-300
@@ -1010,35 +1047,75 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
                 <ArrowRight className="w-5 h-5" />
               </button>
             ) : (
-              <button
-                onClick={canCompleteProfile() ? saveStyleProfileToSupabase : undefined}
-                disabled={!canCompleteProfile() || isSaving}
-                className="
-                  flex items-center justify-center gap-2
-                  px-8 py-3 rounded-xl min-h-[48px]
-                  bg-gradient-to-r from-purple-600 to-amber-600 text-white
-                  font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
-                  transition-all touch-manipulation active:scale-95
-                  sm:w-auto w-full sm:ml-auto
-                "
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Saving...
-                  </>
-                ) : isSaved ? (
-                  <>
-                    <CheckCircle className="w-5 h-5" />
-                    Saved!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-5 h-5" />
-                    Complete Profile
-                  </>
-                )}
-              </button>
+              // Last section - different buttons for edit mode vs initial setup
+              isEditMode ? (
+                <button
+                  onClick={async () => {
+                    setIsSaving(true);
+                    try {
+                      await saveStyleProfileToSupabase();
+                      if (onSaveAndExit) {
+                        onSaveAndExit();
+                      }
+                    } catch (error) {
+                      console.error('Failed to save:', error);
+                    } finally {
+                      setIsSaving(false);
+                    }
+                  }}
+                  disabled={isSaving}
+                  className="
+                    flex items-center justify-center gap-2
+                    px-8 py-3 rounded-xl min-h-[48px]
+                    bg-gradient-to-r from-purple-600 to-amber-600 text-white
+                    font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-all touch-manipulation active:scale-95
+                    sm:w-auto w-full sm:ml-auto
+                  "
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      Save & Return
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={canCompleteProfile() ? saveStyleProfileToSupabase : undefined}
+                  disabled={!canCompleteProfile() || isSaving}
+                  className="
+                    flex items-center justify-center gap-2
+                    px-8 py-3 rounded-xl min-h-[48px]
+                    bg-gradient-to-r from-purple-600 to-amber-600 text-white
+                    font-medium hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-all touch-manipulation active:scale-95
+                    sm:w-auto w-full sm:ml-auto
+                  "
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : isSaved ? (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Saved!
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      Complete Profile
+                    </>
+                  )}
+                </button>
+              )
             )}
           </div>
         </div>

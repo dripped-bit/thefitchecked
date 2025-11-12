@@ -83,6 +83,9 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState<string | null>(null);
 
+  // Style profile state
+  const [hasCompletedStyleProfile, setHasCompletedStyleProfile] = useState(false);
+
   // Outfit generation state
   const [avatarAnimation, setAvatarAnimation] = useState<AnimationType>('breathing');
   const [applyingOutfit, setApplyingOutfit] = useState(false);
@@ -225,6 +228,21 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
     } catch (error) {
       console.error('Failed to load wishlist:', error);
     }
+  }, []);
+
+  // Check if user has completed style profile
+  useEffect(() => {
+    const checkStyleProfile = async () => {
+      try {
+        const profile = await stylePreferencesService.loadStyleProfile();
+        const hasProfile = profile && profile.fashionPersonality?.archetypes?.length > 0;
+        setHasCompletedStyleProfile(!!hasProfile);
+      } catch (error) {
+        console.error('Failed to check style profile:', error);
+        setHasCompletedStyleProfile(false);
+      }
+    };
+    checkStyleProfile();
   }, []);
 
   // Load user's fashion rule from style preferences
@@ -1133,13 +1151,15 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
             {/* Bottom Navigation Links */}
             <div className="flex items-center justify-center space-x-6 mt-6">
-              <button
-                onClick={onNavigateToStyleProfile}
-                className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors"
-              >
-                <Palette className="w-5 h-5" />
-                <span className="font-medium text-sm">Style Preferences</span>
-              </button>
+              {hasCompletedStyleProfile && (
+                <button
+                  onClick={onNavigateToStyleProfile}
+                  className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors"
+                >
+                  <Palette className="w-5 h-5" />
+                  <span className="font-medium text-sm">Edit Style Preferences</span>
+                </button>
+              )}
               <button
                 onClick={onResetAvatar}
                 className="flex items-center space-x-2 text-gray-700 hover:text-red-600 transition-colors"

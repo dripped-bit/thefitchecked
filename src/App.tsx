@@ -313,6 +313,7 @@ function App() {
   const [showDevPanel, setShowDevPanel] = useState(true);
   const [isDevPanelCollapsed, setIsDevPanelCollapsed] = useState(false);
   const [useDefaultMeasurements, setUseDefaultMeasurements] = useState(false);
+  const [isEditingStyleProfile, setIsEditingStyleProfile] = useState(false);
   const [useAutoFillStyleProfile, setUseAutoFillStyleProfile] = useState(false);
   const [useAutoFillUserData, setUseAutoFillUserData] = useState(false);
   const [useAutoFillClothingPrompts, setUseAutoFillClothingPrompts] = useState(false);
@@ -322,6 +323,13 @@ function App() {
   const [showDoorTransition, setShowDoorTransition] = useState(false);
   const [showExitDoorTransition, setShowExitDoorTransition] = useState(false);
   const [pendingScreen, setPendingScreen] = useState<Screen | null>(null);
+
+  // Reset edit mode flag when navigating away from style profile
+  React.useEffect(() => {
+    if (currentScreen !== 'styleProfile') {
+      setIsEditingStyleProfile(false);
+    }
+  }, [currentScreen]);
 
   // iOS Tab Bar Configuration
   const tabs: Tab[] = [
@@ -943,6 +951,7 @@ function App() {
         console.log('🔍 RENDER DEBUG - Attempting to render StyleProfileStreamlined');
         console.log('🔍 RENDER DEBUG - avatarData:', appData.avatarData);
         console.log('🔍 RENDER DEBUG - measurements:', appData.measurements);
+        console.log('🔍 RENDER DEBUG - isEditMode:', isEditingStyleProfile);
         try {
           return (
             <StyleProfileStreamlined
@@ -951,6 +960,11 @@ function App() {
               avatarData={appData.avatarData}
               measurements={appData.measurements}
               autoFillData={useAutoFillStyleProfile ? getSavedStyleProfile() : null}
+              isEditMode={isEditingStyleProfile}
+              onSaveAndExit={() => {
+                setIsEditingStyleProfile(false);
+                setCurrentScreen('avatarHomepage');
+              }}
             />
           );
         } catch (error) {
@@ -968,7 +982,10 @@ function App() {
               onBack={() => setCurrentScreen('styleProfile')}
               onNavigateToOutfitChange={() => setCurrentScreen('appFace')}
               onNavigateToMeasurements={() => setCurrentScreen('appFace')}
-              onNavigateToStyleProfile={() => setCurrentScreen('styleProfile')}
+              onNavigateToStyleProfile={() => {
+                setIsEditingStyleProfile(true);
+                setCurrentScreen('styleProfile');
+              }}
               onNavigateToCloset={handleNavigateToCloset}
               onNavigateToMyOutfits={() => setCurrentScreen('myOutfits')}
               onNavigateToMyCreations={() => setCurrentScreen('myCreations')}
