@@ -98,11 +98,16 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
     return 'evening';
   };
 
-  const getWeatherIcon = (condition: string) => {
-    if (condition.includes('sun') || condition.includes('clear')) {
-      return <Sun className="w-5 h-5 text-yellow-500" />;
-    }
-    return <Cloud className="w-5 h-5 text-gray-500" />;
+  const getWeatherIcon = (description: string) => {
+    const desc = description.toLowerCase();
+    if (desc.includes('clear') || desc.includes('sunny')) return '☀️';
+    if (desc.includes('partly') || desc.includes('mainly')) return '⛅';
+    if (desc.includes('overcast') || desc.includes('cloudy')) return '☁️';
+    if (desc.includes('rain') || desc.includes('drizzle')) return '🌧️';
+    if (desc.includes('snow') || desc.includes('freezing')) return '❄️';
+    if (desc.includes('thunder') || desc.includes('storm')) return '⛈️';
+    if (desc.includes('fog')) return '🌫️';
+    return '🌤️';
   };
 
   const handleSelectOutfit = (suggestion: OutfitSuggestion) => {
@@ -168,19 +173,22 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
           <div className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {getWeatherIcon(weather.condition)}
+                <div className="text-3xl">
+                  {getWeatherIcon(weather.weatherDescription)}
+                </div>
                 <div>
                   <div className="flex items-center space-x-2">
                     <Thermometer className="w-4 h-4 text-gray-600" />
                     <span className="font-semibold text-gray-900">{weather.temperature}°F</span>
-                    <span className="text-gray-600">(feels like {weather.feels_like}°F)</span>
+                    <span className="text-gray-600">(feels like {weather.feelsLike}°F)</span>
                   </div>
-                  <p className="text-sm text-gray-600 capitalize">{weather.condition.replace('_', ' ')}</p>
+                  <p className="text-sm text-gray-600">{weather.weatherDescription}</p>
                 </div>
               </div>
               <div className="text-right text-sm text-gray-600">
-                <p>Precipitation: {weather.precipitationChance}%</p>
-                <p>Humidity: {weather.humidity}%</p>
+                <p>💧 {weather.precipitation}" rain</p>
+                <p>💨 {weather.windSpeed} mph</p>
+                <p>☀️ UV {weather.uvIndex}</p>
               </div>
             </div>
           </div>
