@@ -621,7 +621,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
             }
           }}
         >
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 pb-8 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-800">
                 {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -651,6 +651,19 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
                       <MapPin className="w-4 h-4" />
                       <span>{event.location}</span>
                     </p>
+                  )}
+
+                  {/* Weather Display (if available) */}
+                  {event.location && event.weatherRequired && (
+                    <div className="mb-3 p-3 bg-gradient-to-br from-blue-50 to-sky-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Cloud className="w-5 h-5 text-blue-600" />
+                          <span className="text-sm font-medium text-gray-700">Weather for {event.location}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Weather forecast will be updated as event approaches</p>
+                    </div>
                   )}
 
                   {/* Outfit Details from Description */}
@@ -700,17 +713,23 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
                     </div>
                   )}
 
-                  {/* Plan Outfit Button */}
+                  {/* Plan/Edit Outfit Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedEvent(event);
-                      setShowOutfitSuggestions(true);
+                      // If outfit already exists, open edit mode
+                      if (event.outfitId || event.outfitItems || event.description) {
+                        // TODO: Open CalendarEntryModal in edit mode
+                        setShowOutfitSuggestions(true);
+                      } else {
+                        setShowOutfitSuggestions(true);
+                      }
                       setShowDateDetails(false);
                     }}
-                    className="mt-3 w-full bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                    className="mt-3 mb-6 w-full bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 transition-colors font-medium"
                   >
-                    Plan Outfit
+                    {(event.outfitId || event.outfitItems || event.description) ? 'Edit Outfit' : 'Plan Outfit'}
                   </button>
                 </div>
               ))}

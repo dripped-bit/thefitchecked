@@ -67,6 +67,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
     occasionName: outfit?.occasion || '',
     shoppingLinks: initialShoppingLinks.join('\n'),
     reminderDays: 7,
+    getReadyReminderHours: 2,
     notes: ''
   });
 
@@ -269,7 +270,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
 
       console.log('✅ [CALENDAR-MODAL] Successfully saved to Smart Calendar:', event.id);
 
-      // Schedule push notification reminder if user selected one
+      // Schedule shopping reminder notification if user selected one
       if (calendarEntry.reminderDays > 0) {
         const pushGranted = await pushNotificationService.scheduleOutfitReminder(
           {
@@ -282,9 +283,27 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
         );
 
         if (pushGranted) {
-          console.log('🔔 [CALENDAR] Push notification scheduled for', calendarEntry.reminderDays, 'days before event');
+          console.log('🔔 [CALENDAR] Shopping reminder scheduled for', calendarEntry.reminderDays, 'days before event');
         } else {
-          console.log('🔔 [CALENDAR] Reminder saved (localStorage fallback)');
+          console.log('🔔 [CALENDAR] Shopping reminder saved (localStorage fallback)');
+        }
+      }
+
+      // Schedule get ready reminder notification if user selected one
+      if (formData.getReadyReminderHours > 0) {
+        const eventDateTime = new Date(formData.eventDate);
+        const reminderTime = new Date(eventDateTime.getTime() - (formData.getReadyReminderHours * 60 * 60 * 1000));
+
+        try {
+          await pushNotificationService.scheduleNotification({
+            title: `Get Ready: ${formData.occasionName}`,
+            body: `Time to prepare your outfit for ${formData.occasionName}!`,
+            id: `getready-${event.id}`,
+            schedule: { at: reminderTime }
+          });
+          console.log('🔔 [CALENDAR] Get ready reminder scheduled for', formData.getReadyReminderHours, 'hours before event');
+        } catch (error) {
+          console.error('❌ [CALENDAR] Failed to schedule get ready reminder:', error);
         }
       }
 
@@ -592,6 +611,32 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
             </select>
             <p className="mt-1 text-xs text-gray-500">
               Get reminded to purchase these items before your event
+            </p>
+          </div>
+
+          {/* Get Ready Reminder */}
+          <div>
+            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+              <Bell className="w-4 h-4" />
+              <span>Get Ready Reminder</span>
+            </label>
+            <select
+              value={formData.getReadyReminderHours}
+              onChange={(e) => setFormData({ ...formData, getReadyReminderHours: Number(e.target.value) })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value={0}>No reminder</option>
+              <option value={1}>1 hour before event</option>
+              <option value={2}>2 hours before event</option>
+              <option value={3}>3 hours before event</option>
+              <option value={4}>4 hours before event</option>
+              <option value={6}>6 hours before event</option>
+              <option value={12}>12 hours before event</option>
+              <option value={24}>1 day before event</option>
+              <option value={48}>2 days before event</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Get reminded to plan and prepare your outfit
             </p>
           </div>
 
