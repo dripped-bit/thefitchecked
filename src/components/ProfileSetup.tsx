@@ -139,10 +139,10 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
     <div className="min-h-screen flex flex-col px-6 py-8 max-w-md mx-auto bg-transparent">
       {/* Header */}
       <div className="flex items-center justify-between mb-0 relative">
-        <button className="glass-beige-light p-2 hover:glass-beige hover:scale-105 rounded-full transition-all duration-300">
-          <ArrowLeft className="w-6 h-6 text-gray-600" />
+        <button className="ios-button-secondary p-2 rounded-full">
+          <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-2xl md:text-3xl font-bold text-center bg-gradient-to-r from-gray-400 via-gray-100 via-white via-gray-100 to-gray-400 bg-clip-text text-transparent bg-[length:200%_100%] animate-metallic-shimmer drop-shadow-2xl hover:drop-shadow-3xl transition-all duration-300 absolute left-1/2 transform -translate-x-1/2">Complete Your Profile</h1>
+        <h1 className="ios-large-title text-center absolute left-1/2 transform -translate-x-1/2">Complete Your Profile</h1>
         <div className="w-10 h-10" />
       </div>
 
@@ -150,7 +150,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
         {/* Basic Info */}
         <div className="space-y-2">
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1">
+            <label className="block ios-subheadline font-semibold mb-1">
               What's your name?
             </label>
             <input
@@ -160,18 +160,12 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
               onFocus={() => setActiveField('name')}
               onBlur={() => handleFieldBlur('name')}
               placeholder="Enter your name"
-              className={`w-full px-4 py-4 glass-beige-light rounded-xl border-2 transition-all duration-300 text-lg ${
-                activeField === 'name'
-                  ? 'border-blue-500 shadow-lg shadow-blue-200/50 animate-glow-blue'
-                  : errors.name
-                  ? 'border-red-500 shadow-lg shadow-red-200/50 animate-shake'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+              className="ios-input w-full"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1">
+            <label className="block ios-subheadline font-semibold mb-1">
               How old are you?
             </label>
             <input
@@ -183,19 +177,13 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
               placeholder="Enter your age"
               min="13"
               max="100"
-              className={`w-full px-4 py-4 glass-beige-light rounded-xl border-2 transition-all duration-300 text-lg ${
-                activeField === 'age'
-                  ? 'border-blue-500 shadow-lg shadow-blue-200/50 animate-glow-blue'
-                  : errors.age
-                  ? 'border-red-500 shadow-lg shadow-red-200/50 animate-shake'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+              className="ios-input w-full"
             />
           </div>
 
           {/* Gender Selection */}
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1">
+            <label className="block ios-subheadline font-semibold mb-1">
               Gender
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -203,14 +191,14 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
                 <button
                   key={option.id}
                   onClick={() => setFormData(prev => ({ ...prev, gender: option.id }))}
-                  className={`p-2 rounded-xl border-2 transition-all duration-300 text-left ${
+                  className={`p-2 rounded-ios-lg transition-all text-left ${
                     formData.gender === option.id
-                      ? 'border-purple-500 glass-beige-dark'
-                      : 'border-gray-200 hover:border-gray-300 glass-beige-light'
-                  } hover:scale-105 hover:shadow-lg`}
+                      ? 'ios-card border-2 border-ios-blue bg-ios-blue/10'
+                      : 'ios-card hover:shadow-ios-md'
+                  }`}
                 >
                   <div className="text-lg mb-1">{option.emoji}</div>
-                  <p className="text-xs font-medium text-gray-700">{option.label}</p>
+                  <p className="ios-caption-1">{option.label}</p>
                 </button>
               ))}
             </div>
@@ -219,30 +207,30 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
 
         {/* Style Preferences */}
         <div>
-          <label className="block text-sm font-semibold text-gray-800 mb-1 flex items-center">
-            <Heart className="w-5 h-5 mr-2 text-pink-500" />
+          <label className="block ios-subheadline font-semibold mb-1 flex items-center">
+            <Heart className="w-5 h-5 mr-2 text-ios-pink" />
             Style Preferences (Optional)
           </label>
-          <p className="text-xs text-gray-600 mb-2">Select styles you love to get personalized recommendations</p>
+          <p className="ios-caption-1 text-ios-label-secondary mb-2">Select styles you love to get personalized recommendations</p>
           
           <div className="grid grid-cols-2 gap-2">
             {styleOptions.map((style) => (
               <button
                 key={style.id}
                 onClick={() => handleStylePreferenceToggle(style.id)}
-                className={`p-2 rounded-xl border-2 transition-all duration-300 text-left ${
+                className={`p-2 rounded-ios-lg transition-all text-left ${
                   formData.stylePreferences.includes(style.id)
-                    ? 'border-pink-500 glass-beige-dark'
-                    : 'border-gray-200 hover:border-gray-300 glass-beige-light'
-                } hover:scale-105 hover:shadow-lg`}
+                    ? 'ios-card border-2 border-ios-purple bg-ios-purple/10'
+                    : 'ios-card hover:shadow-ios-md'
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-lg mb-1">{style.emoji}</div>
-                    <p className="text-xs font-medium text-gray-700">{style.label}</p>
+                    <p className="ios-caption-1">{style.label}</p>
                   </div>
                   {formData.stylePreferences.includes(style.id) && (
-                    <CheckCircle className="w-5 h-5 text-pink-500" />
+                    <CheckCircle className="w-5 h-5 text-ios-purple" />
                   )}
                 </div>
               </button>
@@ -273,10 +261,10 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete }) => {
 
       {/* Progress Indicator */}
       <div className="flex justify-center space-x-2 mt-0">
-        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-        <div className="w-6 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
+        <div className="w-2 h-2 bg-ios-purple rounded-full"></div>
+        <div className="w-2 h-2 bg-ios-purple rounded-full"></div>
+        <div className="w-2 h-2 bg-ios-purple rounded-full"></div>
+        <div className="w-6 h-2 bg-gradient-to-r from-ios-purple to-ios-pink rounded-full"></div>
       </div>
     </div>
   );

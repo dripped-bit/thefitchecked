@@ -169,16 +169,16 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="ios-card rounded-ios-xl p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
-          <Settings className="w-5 h-5 text-gray-700" />
-          <h3 className="text-lg font-semibold text-gray-800">Calendar Connections</h3>
+          <Settings className="w-5 h-5 text-ios-label-secondary" />
+          <h3 className="ios-title-2">Calendar Connections</h3>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-ios-label-tertiary hover:text-ios-label-secondary transition-colors"
           >
             ×
           </button>
@@ -187,27 +187,27 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
 
       {/* Google Calendar Connection */}
       <div className="space-y-4">
-        <div className="border border-gray-200 rounded-lg p-4">
+        <div className="ios-card rounded-ios-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-ios-blue/10 rounded-ios-lg flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-ios-blue" />
               </div>
               <div>
-                <h4 className="font-medium text-gray-800">Google Calendar</h4>
-                <p className="text-sm text-gray-500">Sync your Google Calendar events</p>
+                <h4 className="ios-subheadline font-semibold">Google Calendar</h4>
+                <p className="ios-callout text-ios-label-secondary">Sync your Google Calendar events</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               {googleConnected ? (
-                <div className="flex items-center space-x-2 text-green-600">
+                <div className="flex items-center space-x-2 text-ios-green">
                   <CheckCircle2 className="w-5 h-5" />
-                  <span className="text-sm font-medium">Connected</span>
+                  <span className="ios-callout font-semibold">Connected</span>
                 </div>
               ) : (
-                <div className="flex items-center space-x-2 text-gray-400">
+                <div className="flex items-center space-x-2 text-ios-label-tertiary">
                   <XCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Not Connected</span>
+                  <span className="ios-callout font-semibold">Not Connected</span>
                 </div>
               )}
             </div>
@@ -215,15 +215,15 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
 
           {/* Connected Info */}
           {googleConnected && googleEmail && (
-            <div className="bg-blue-50 rounded-lg p-3 mb-3">
-              <div className="flex items-center space-x-2 text-blue-700 mb-2">
+            <div className="bg-ios-blue/10 rounded-ios-lg p-3 mb-3">
+              <div className="flex items-center space-x-2 text-ios-blue mb-2">
                 <Mail className="w-4 h-4" />
-                <span className="text-sm">{googleEmail}</span>
+                <span className="ios-callout">{googleEmail}</span>
               </div>
               {lastSync && (
-                <div className="flex items-center space-x-2 text-blue-600">
+                <div className="flex items-center space-x-2 text-ios-blue">
                   <Clock className="w-4 h-4" />
-                  <span className="text-sm">
+                  <span className="ios-callout">
                     Last synced: {lastSync.toLocaleString()}
                   </span>
                 </div>
@@ -233,10 +233,10 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
 
           {/* Error Message */}
           {syncError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
-              <div className="flex items-center space-x-2 text-red-700">
+            <div className="bg-ios-red/10 border border-ios-red/20 rounded-ios-lg p-3 mb-3">
+              <div className="flex items-center space-x-2 text-ios-red">
                 <AlertCircle className="w-4 h-4" />
-                <span className="text-sm">{syncError}</span>
+                <span className="ios-callout">{syncError}</span>
               </div>
             </div>
           )}
@@ -248,14 +248,14 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
                 <button
                   onClick={handleSync}
                   disabled={isSyncing}
-                  className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="ios-button-primary flex-1 flex items-center justify-center space-x-2"
                 >
                   <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                   <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
                 </button>
                 <button
                   onClick={handleDisconnectGoogle}
-                  className="flex items-center space-x-2 border border-red-300 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors"
+                  className="ios-button-secondary flex items-center space-x-2 border-ios-red text-ios-red"
                 >
                   <Unlink className="w-4 h-4" />
                   <span>Disconnect</span>
@@ -265,7 +265,7 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
               <button
                 onClick={handleConnectGoogle}
                 disabled={isConnecting}
-                className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-3 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ios-button-primary w-full flex items-center justify-center space-x-2"
               >
                 <Link className="w-4 h-4" />
                 <span>{isConnecting ? 'Connecting...' : 'Connect Google Calendar'}</span>
@@ -276,27 +276,27 @@ const CalendarConnectionSettings: React.FC<CalendarConnectionSettingsProps> = ({
         </div>
 
         {/* Apple Calendar (Coming Soon) */}
-        <div className="border border-gray-200 rounded-lg p-4 opacity-60">
+        <div className="ios-card rounded-ios-lg p-4 opacity-60">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-gray-500" />
+              <div className="w-10 h-10 bg-ios-fill rounded-ios-lg flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-ios-label-tertiary" />
               </div>
               <div>
-                <h4 className="font-medium text-gray-800">Apple Calendar</h4>
-                <p className="text-sm text-gray-500">CalDAV sync - Coming soon</p>
+                <h4 className="ios-subheadline font-semibold">Apple Calendar</h4>
+                <p className="ios-callout text-ios-label-secondary">CalDAV sync - Coming soon</p>
               </div>
             </div>
-            <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+            <span className="ios-caption-2 text-ios-label-tertiary bg-ios-fill px-3 py-1 rounded-ios-full">
               Coming Soon
             </span>
           </div>
         </div>
 
         {/* Info Box */}
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <h5 className="font-medium text-purple-800 mb-2">About Calendar Sync</h5>
-          <ul className="text-sm text-purple-700 space-y-1">
+        <div className="bg-ios-purple/10 border border-ios-purple/20 rounded-ios-lg p-4">
+          <h5 className="ios-subheadline font-semibold text-ios-purple mb-2">About Calendar Sync</h5>
+          <ul className="ios-callout text-ios-purple space-y-1">
             <li>• Events are synced automatically every hour</li>
             <li>• Only upcoming events (next 60 days) are imported</li>
             <li>• Events are categorized automatically for outfit suggestions</li>

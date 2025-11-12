@@ -49,7 +49,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLoginClick, onLogout, onNav
     return (
       <button
         onClick={onLoginClick}
-        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium"
+        className="ios-button-primary flex items-center gap-2"
       >
         <LogIn className="w-4 h-4" />
         <span>Sign In</span>
@@ -65,24 +65,18 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLoginClick, onLogout, onNav
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center transition-opacity hover:opacity-80"
       >
-        <div className="w-6 h-6 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
+        <div className="w-6 h-6 bg-gradient-to-r from-ios-purple to-ios-pink rounded-full flex items-center justify-center shadow-ios-sm">
           <User className="w-4 h-4 text-white" />
         </div>
       </button>
 
-      {/* Dropdown Menu with Liquid Glass Effect */}
+      {/* Dropdown Menu */}
       {isOpen && (
-        <div
-          className={`absolute right-0 mt-2 w-64 ${glassModalClasses.light} py-2 z-50`}
-          style={{
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)'
-          }}
-        >
+        <div className="absolute right-0 mt-2 w-64 ios-card rounded-ios-lg shadow-ios-xl py-2 z-50">
           {/* User Info */}
-          <div className="px-4 py-3 border-b border-white/20">
-            <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
-            <p className="text-xs text-gray-500 mt-1">
+          <div className="px-4 py-3 border-b border-ios-separator">
+            <p className="ios-callout font-semibold truncate">{user.email}</p>
+            <p className="ios-caption-1 text-ios-label-tertiary mt-1">
               Joined {new Date(user.createdAt).toLocaleDateString()}
             </p>
           </div>
@@ -94,18 +88,18 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLoginClick, onLogout, onNav
                 setIsOpen(false);
                 onNavigateToCloset?.();
               }}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-white/30 flex items-center gap-2 transition-colors"
+              className="w-full px-4 py-2 text-left ios-callout hover:bg-ios-fill flex items-center gap-2 transition-colors"
             >
-              <ShoppingBag className="w-4 h-4 text-gray-600" />
+              <ShoppingBag className="w-4 h-4 text-ios-label-secondary" />
               <span>My Closet</span>
             </button>
           </div>
 
           {/* Logout */}
-          <div className="border-t border-white/20 pt-2">
+          <div className="border-t border-ios-separator pt-2">
             <button
               onClick={handleLogout}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-white/30 flex items-center gap-2 text-red-600 transition-colors"
+              className="w-full px-4 py-2 text-left ios-callout hover:bg-ios-fill flex items-center gap-2 text-ios-red transition-colors"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>

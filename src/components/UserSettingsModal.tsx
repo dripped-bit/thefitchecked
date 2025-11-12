@@ -83,24 +83,18 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+        className="absolute inset-0 ios-blur bg-black/50" 
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div
-        className={`relative ${glassModalClasses.light} max-w-md w-full mx-4 transform transition-all duration-300`}
-        style={{
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
-        }}
-      >
+      <div className="relative ios-card ios-slide-up max-w-md w-full mx-4">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-ios-blue/10 to-ios-purple/10 p-6">
           <div className="absolute top-2 right-2">
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-ios-label-tertiary hover:text-ios-label-secondary transition-colors"
               aria-label="Close settings"
             >
               <X className="w-5 h-5" />
@@ -108,11 +102,11 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           </div>
 
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-ios-blue to-ios-purple rounded-full mb-4 shadow-ios-md">
               <User className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Settings</h2>
-            <p className="text-gray-600">Manage your profile and preferences</p>
+            <h2 className="ios-large-title mb-2">Settings</h2>
+            <p className="ios-body text-ios-label-secondary">Manage your profile and preferences</p>
           </div>
         </div>
 
@@ -120,21 +114,21 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         <div className="p-6 space-y-6">
           {/* User Info (Read-only) */}
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-              <User className="w-4 h-4 mr-2 text-gray-500" />
+            <label className="flex items-center ios-subheadline font-semibold mb-2">
+              <User className="w-4 h-4 mr-2 text-ios-label-tertiary" />
               Name
             </label>
-            <div className="px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-700">
+            <div className="px-4 py-3 rounded-ios-lg border border-ios-separator bg-ios-fill">
               {userData.firstName}
             </div>
           </div>
 
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-              <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+            <label className="flex items-center ios-subheadline font-semibold mb-2">
+              <Calendar className="w-4 h-4 mr-2 text-ios-label-tertiary" />
               Birthday
             </label>
-            <div className="px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-700">
+            <div className="px-4 py-3 rounded-ios-lg border border-ios-separator bg-ios-fill">
               {new Date(userData.birthday).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -145,8 +139,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
 
           {/* Location (Editable) */}
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="w-4 h-4 mr-2 text-blue-500" />
+            <label className="flex items-center ios-subheadline font-semibold mb-2">
+              <MapPin className="w-4 h-4 mr-2 text-ios-blue" />
               Location
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -155,7 +149,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                 placeholder="City"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-blue-200 focus:outline-none focus:ring-2"
+                className="ios-input"
                 disabled={isSaving}
               />
               <input
@@ -163,15 +157,15 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                 placeholder="State"
                 value={state}
                 onChange={(e) => setState(e.target.value)}
-                className="px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-blue-200 focus:outline-none focus:ring-2"
+                className="ios-input"
                 disabled={isSaving}
               />
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 ios-caption-1 text-ios-label-tertiary">
               📍 Used for weather-appropriate outfit suggestions
             </p>
             {userData.timezone && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 ios-caption-1 text-ios-label-tertiary">
                 🕐 Timezone: {userData.timezone}
               </p>
             )}
@@ -179,18 +173,18 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
 
           {/* Status Messages */}
           {saveStatus === 'success' && (
-            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-xl">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-sm text-green-700 font-medium">
+            <div className="flex items-center gap-2 p-3 bg-ios-green/10 border border-ios-green/20 rounded-ios-lg">
+              <CheckCircle className="w-5 h-5 text-ios-green" />
+              <span className="ios-callout font-semibold text-ios-green">
                 Settings saved successfully!
               </span>
             </div>
           )}
 
           {saveStatus === 'error' && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <span className="text-sm text-red-700 font-medium">
+            <div className="flex items-center gap-2 p-3 bg-ios-red/10 border border-ios-red/20 rounded-ios-lg">
+              <AlertCircle className="w-5 h-5 text-ios-red" />
+              <span className="ios-callout font-semibold text-ios-red">
                 {errorMessage}
               </span>
             </div>
@@ -200,7 +194,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           <button
             onClick={handleSave}
             disabled={!hasChanges || isSaving}
-            className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="ios-button-primary w-full flex items-center justify-center"
           >
             {isSaving ? (
               <>
@@ -216,7 +210,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           </button>
 
           {!hasChanges && (
-            <p className="text-xs text-center text-gray-500">
+            <p className="ios-caption-1 text-center text-ios-label-tertiary">
               Make changes to enable save button
             </p>
           )}
