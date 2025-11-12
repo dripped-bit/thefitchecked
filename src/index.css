@@ -1,9 +1,9 @@
+/* Apple Design System */
+@import './styles/apple-design.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Apple Design System */
-@import './styles/apple-design.css';
 
 /* Global Background */
 body {

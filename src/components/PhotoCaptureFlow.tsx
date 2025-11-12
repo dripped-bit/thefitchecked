@@ -153,7 +153,7 @@ const PhotoCaptureFlow: React.FC<PhotoCaptureFlowProps> = ({ onNext }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-4 sm:px-6 py-4 sm:py-8 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col px-4 sm:px-6 py-4 sm:py-8 relative overflow-hidden" style={{ backgroundColor: 'var(--ios-system-background)' }}>
       {/* Background Pattern Overlay */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-stone-900 via-transparent to-slate-900"></div>
