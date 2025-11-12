@@ -1278,11 +1278,11 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
   const getAchievementColor = (category: string) => {
     switch (category) {
-      case 'organizing': return 'text-blue-600 bg-blue-100';
-      case 'sustainability': return 'text-green-600 bg-green-100';
-      case 'creativity': return 'text-purple-600 bg-purple-100';
-      case 'social': return 'text-pink-600 bg-pink-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'organizing': return 'bg-ios-blue text-white';
+      case 'sustainability': return 'bg-ios-green text-white';
+      case 'creativity': return 'bg-ios-purple text-white';
+      case 'social': return 'bg-ios-pink text-white';
+      default: return 'bg-ios-fill text-ios-label';
     }
   };
 
@@ -1318,9 +1318,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
-            <div className="bg-white/80 backdrop-blur-sm rounded-full px-4 py-2 flex items-center space-x-2">
-              <Star className="w-4 h-4 text-yellow-500" />
-              <span className="font-medium text-gray-800">Level {currentLevel}</span>
+            <div className="ios-blur bg-white/80 rounded-ios-full px-4 py-2 flex items-center space-x-2 shadow-ios-sm">
+              <Star className="w-4 h-4 text-ios-yellow" />
+              <span className="ios-callout font-semibold">Level {currentLevel}</span>
             </div>
           </div>
         </div>
@@ -1340,7 +1340,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
         <div className="relative z-10 text-center pb-12">
           <button
             onClick={() => setDoorsOpen(true)}
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-2xl font-semibold text-lg hover:from-purple-700 hover:to-indigo-700 transform hover:scale-105 transition-all duration-200 shadow-2xl"
+            className="ios-button-primary bg-gradient-to-r from-ios-purple to-ios-indigo hover:opacity-90 transform hover:scale-105 transition-all shadow-ios-lg px-8 py-4"
           >
             <div className="flex items-center space-x-3">
               <Sparkles className="w-6 h-6" />
@@ -1388,8 +1388,8 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           <div className="flex items-center space-x-3 md:space-x-6">
             {/* Item Count - Always visible */}
             <div className="flex items-center space-x-2 bg-blue-100 rounded-full px-3 py-1">
-              <Package className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">{clothingItems.length} Items</span>
+              <Package className="w-4 h-4 text-ios-blue" />
+              <span className="ios-callout font-semibold text-ios-blue">{clothingItems.length} Items</span>
             </div>
 
             {/* Desktop Stats - Hidden on mobile */}
@@ -1398,9 +1398,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
               <span className="text-sm font-medium text-purple-800">{sustainabilityScore}% Eco</span>
             </div>
 
-            <div className="hidden md:flex items-center space-x-2 bg-yellow-100 rounded-full px-3 py-1">
-              <Star className="w-4 h-4 text-yellow-600" />
-              <span className="text-sm font-medium text-yellow-800">Level {currentLevel}</span>
+            <div className="hidden md:flex items-center space-x-2 bg-ios-yellow/20 rounded-ios-full px-3 py-1">
+              <Star className="w-4 h-4 text-ios-yellow" />
+              <span className="ios-callout font-semibold text-ios-yellow">Level {currentLevel}</span>
             </div>
 
             <button
@@ -1428,14 +1428,14 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           {/* Close sidebar button - Mobile only */}
           <button
             onClick={() => setSidebarOpen(false)}
-            className="md:hidden absolute top-4 right-4 p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="md:hidden absolute top-4 right-4 w-8 h-8 rounded-full bg-ios-fill hover:bg-ios-fill-secondary flex items-center justify-center transition-colors"
           >
-            <X className="w-5 h-5 text-gray-600" />
+            <X className="w-5 h-5 text-ios-label-secondary" />
           </button>
 
           {/* Smart Calendar Section */}
           <div className="mb-6 pt-8 md:pt-0">
-            <h3 className="font-semibold text-gray-800 mb-3">Calendar</h3>
+            <h3 className="ios-headline mb-3">Calendar</h3>
             <button
               onClick={() => {
                 setCurrentView('smart-calendar');
@@ -1450,7 +1450,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
           {/* Upload Section */}
           <div className="mb-6">
-            <h3 className="font-semibold text-gray-800 mb-3">Add to Closet</h3>
+            <h3 className="ios-headline mb-3">Add to Closet</h3>
             <div className="space-y-2">
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -1512,12 +1512,12 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
             {/* Upload Progress Indicator */}
             {uploadProgress.isUploading && (
-              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="mt-3 p-4 bg-ios-blue/10 border border-ios-blue/20 rounded-ios-lg">
                 <div className="flex items-center space-x-2 mb-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span className="text-sm font-medium text-blue-800">AI Processing</span>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-ios-blue"></div>
+                  <span className="ios-subheadline font-semibold text-ios-blue">AI Processing</span>
                 </div>
-                <p className="text-xs text-blue-600 mb-2">{uploadProgress.message}</p>
+                <p className="ios-caption-1 text-ios-blue mb-2">{uploadProgress.message}</p>
 
                 {/* Progress Steps */}
                 <div className="flex space-x-1">
@@ -1583,7 +1583,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
           {/* Categories */}
           <div className="mb-6">
-            <h3 className="font-semibold text-gray-800 mb-3">Categories</h3>
+            <h3 className="ios-headline mb-3">Categories</h3>
             <div className="space-y-1">
               {categories.map((category) => (
                 <button
@@ -1618,7 +1618,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
           {/* Quick Actions */}
           <div className="mb-6">
-            <h3 className="font-semibold text-gray-800 mb-3">Quick Actions</h3>
+            <h3 className="ios-headline mb-3">Quick Actions</h3>
             <div className="space-y-2">
               <button
                 onClick={() => {
@@ -1635,7 +1635,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
           {/* Upload Settings */}
           <div className="mb-6">
-            <h3 className="font-semibold text-gray-800 mb-3">Upload Settings</h3>
+            <h3 className="ios-headline mb-3">Upload Settings</h3>
             <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
