@@ -177,7 +177,6 @@ class CompleteFashnTryOnService {
       const response = await fetch(`${this.baseUrl}/v1/run`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestBody)
@@ -223,11 +222,7 @@ class CompleteFashnTryOnService {
       try {
         console.log(`🔄 [FASHN] Polling attempt ${attempt + 1}/${maxAttempts}...`);
 
-        const response = await fetch(`${this.baseUrl}/v1/status/${jobId}`, {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`
-          }
-        });
+        const response = await fetch(`${this.baseUrl}/v1/status/${jobId}`);
 
         if (!response.ok) {
           throw new Error(`Status check failed: ${response.status}`);
