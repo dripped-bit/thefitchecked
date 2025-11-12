@@ -47,6 +47,74 @@ interface UserProfile {
   boundaries: string[];
 }
 
+/**
+ * Transform saved style profile data to component format
+ * Handles both old (nested) and new (flat) formats
+ */
+function transformStyleProfileData(savedData: any): UserProfile {
+  // If already in correct format, return as-is
+  if (savedData.styleVibes && Array.isArray(savedData.styleVibes)) {
+    return savedData as UserProfile;
+  }
+
+  // Transform from old nested format to new flat format
+  return {
+    styleVibes: savedData.fashionPersonality?.archetypes || [],
+    uploads: {
+      inspiration1: savedData.uploads?.goToOutfit || savedData.uploads?.inspiration || null,
+      inspiration2: savedData.uploads?.dreamPurchase || savedData.uploads?.favoritePiece || null
+    },
+    favoriteColors: savedData.fashionPersonality?.colorPalette || [],
+    avoidColors: savedData.fashionPersonality?.avoidColors || [],
+    favoriteStores: savedData.shopping?.favoriteStores || [],
+    customStores: savedData.shopping?.customStores || [],
+    occasionPriorities: [
+      ...(savedData.occasions?.weekend || []),
+      ...(savedData.occasions?.nightOut || [])
+    ],
+    fitPreference: Array.isArray(savedData.preferences?.fits) 
+      ? savedData.preferences.fits[0] || '' 
+      : savedData.preferences?.fits || '',
+    threeWords: savedData.descriptions?.threeWords || ['', '', ''],
+    lifestyle: savedData.lifestyle?.workEnvironment || savedData.lifestyle?.morningRoutine || [],
+    boundaries: savedData.boundaries || []
+  };
+}
+
+/**
+ * Transform component format back to nested format for saving
+ */
+function transformToNestedFormat(userProfile: UserProfile): any {
+  return {
+    fashionPersonality: {
+      archetypes: userProfile.styleVibes,
+      colorPalette: userProfile.favoriteColors,
+      avoidColors: userProfile.avoidColors
+    },
+    shopping: {
+      favoriteStores: userProfile.favoriteStores,
+      customStores: userProfile.customStores
+    },
+    preferences: {
+      fits: userProfile.fitPreference ? [userProfile.fitPreference] : []
+    },
+    lifestyle: {
+      workEnvironment: userProfile.lifestyle
+    },
+    occasions: {
+      weekend: userProfile.occasionPriorities
+    },
+    boundaries: userProfile.boundaries,
+    descriptions: {
+      threeWords: userProfile.threeWords
+    },
+    uploads: {
+      goToOutfit: userProfile.uploads.inspiration1,
+      dreamPurchase: userProfile.uploads.inspiration2
+    }
+  };
+}
+
 const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
   onNext,
   onBack,
@@ -79,10 +147,17 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
   // Load saved preferences on mount
   useEffect(() => {
     const loadSavedPreferences = async () => {
-      const savedProfile = await stylePreferencesService.loadStyleProfile();
-      if (savedProfile) {
-        console.log('✅ Loaded saved style preferences');
-        setUserProfile(savedProfile as UserProfile);
+      try {
+        const savedProfile = await stylePreferencesService.loadStyleProfile();
+        if (savedProfile) {
+          console.log('✅ Loaded saved style preferences');
+          const transformedProfile = transformStyleProfileData(savedProfile);
+          console.log('✅ Transformed profile for editing:', transformedProfile);
+          setUserProfile(transformedProfile);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load/transform style preferences:', error);
+        // Keep default empty profile on error
       }
     };
     loadSavedPreferences();
@@ -92,15 +167,21 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
   useEffect(() => {
     const saveProfile = async () => {
       if (currentSection > 0) {
-        await stylePreferencesService.saveStyleProfile(userProfile);
-        
-        // Track unsaved changes in edit mode
-        if (isEditMode) {
-          setHasUnsavedChanges(true);
+        try {
+          // Transform to nested format before saving
+          const nestedFormat = transformToNestedFormat(userProfile);
+          await stylePreferencesService.saveStyleProfile(nestedFormat);
+          
+          // Track unsaved changes in edit mode
+          if (isEditMode) {
+            setHasUnsavedChanges(true);
+          }
+          
+          setIsSaved(true);
+          setTimeout(() => setIsSaved(false), 2000);
+        } catch (error) {
+          console.error('❌ Failed to save style preferences:', error);
         }
-        
-        setIsSaved(true);
-        setTimeout(() => setIsSaved(false), 2000);
       }
     };
     saveProfile();
@@ -166,30 +247,8 @@ const StyleProfileStreamlined: React.FC<StyleProfileStreamlinedProps> = ({
       console.log('💾 Saving style profile...');
 
       // Save to IndexedDB for local access (always works)
-      await stylePreferencesService.saveStyleProfile({
-        fashionPersonality: {
-          archetypes: userProfile.styleVibes,
-          colorPalette: userProfile.favoriteColors,
-          avoidColors: userProfile.avoidColors
-        },
-        shopping: {
-          favoriteStores: userProfile.favoriteStores,
-          customStores: userProfile.customStores
-        },
-        preferences: {
-          fits: userProfile.fitPreference ? [userProfile.fitPreference] : []
-        },
-        lifestyle: {
-          workEnvironment: userProfile.lifestyle
-        },
-        occasions: {
-          weekend: userProfile.occasionPriorities
-        },
-        boundaries: userProfile.boundaries,
-        descriptions: {
-          threeWords: userProfile.threeWords
-        }
-      } as any);
+      const nestedFormat = transformToNestedFormat(userProfile);
+      await stylePreferencesService.saveStyleProfile(nestedFormat as any);
 
       console.log('✅ Style profile saved to IndexedDB');
 
