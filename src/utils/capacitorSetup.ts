@@ -7,6 +7,7 @@
 
 import statusBar from './statusBar';
 import appLifecycle from './appLifecycle';
+import productLinkHandler from '../services/productLinkHandler';
 
 /**
  * Initialize all Capacitor plugins
@@ -21,6 +22,9 @@ export const initializeCapacitor = async () => {
 
     // Initialize App Lifecycle & Deep Linking
     await appLifecycle.initialize();
+
+    // Initialize Product Link Handler (Browser listeners)
+    productLinkHandler.initializeBrowserListeners();
 
     console.log('✅ Capacitor initialization complete');
   } catch (err) {

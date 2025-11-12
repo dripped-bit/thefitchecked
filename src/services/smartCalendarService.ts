@@ -14,7 +14,8 @@ export interface ShoppingLink {
   url: string;
   affiliateUrl?: string;
   price?: string;
-  image?: string;
+  image?: string; // Product image URL
+  imageUrl?: string; // Alternative field name for compatibility
 }
 
 export interface CalendarEvent {
@@ -178,6 +179,8 @@ class SmartCalendarService {
       const user = await authService.getCurrentUser();
       const userId = user?.id || null;
 
+      console.log('📅 [CALENDAR] Creating event with user_id:', userId);
+
       // Build rich description if outfit items provided
       let finalDescription = eventData.description || '';
       if (eventData.outfitItems && eventData.outfitItems.length > 0) {
@@ -206,11 +209,11 @@ class SmartCalendarService {
         .single();
 
       if (error) {
-        console.error('❌ Error creating calendar event:', error);
+        console.error('❌ [CALENDAR] Error creating calendar event:', error);
         return null;
       }
 
-      console.log('✅ Calendar event created:', data.id);
+      console.log('✅ [CALENDAR] Event created successfully! ID:', data.id, 'user_id:', userId, 'start_time:', eventData.startTime.toISOString());
 
       // Optional: Sync to Google Calendar if user is connected
       try {
@@ -241,32 +244,43 @@ class SmartCalendarService {
   /**
    * Fetch upcoming events from Supabase
    */
-  async fetchUpcomingEvents(days: number = 30): Promise<CalendarEvent[]> {
+  async fetchUpcomingEvents(days: number = 365): Promise<CalendarEvent[]> {
     try {
       const user = await authService.getCurrentUser();
       const userId = user?.id || null;
+
+      console.log('📅 [CALENDAR] Fetching events for user_id:', userId);
 
       const startDate = new Date();
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + days);
 
-      const { data, error } = await supabase
+      // Build query with proper NULL handling
+      let query = supabase
         .from('calendar_events')
         .select('*')
-        .eq('user_id', userId)
         .gte('start_time', startDate.toISOString())
         .lte('start_time', endDate.toISOString())
         .order('start_time', { ascending: true });
 
+      // Handle NULL user_id properly for anonymous users
+      if (userId === null) {
+        query = query.is('user_id', null);
+      } else {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data, error } = await query;
+
       if (error) {
-        console.error('❌ Error fetching calendar events:', error);
+        console.error('❌ [CALENDAR] Error fetching calendar events:', error);
         return [];
       }
 
-      console.log(`✅ Fetched ${data?.length || 0} upcoming events`);
+      console.log(`✅ [CALENDAR] Fetched ${data?.length || 0} upcoming events for user_id: ${userId}`);
       return (data || []).map(event => this.transformDatabaseEvent(event));
     } catch (error) {
-      console.error('❌ Failed to fetch calendar events:', error);
+      console.error('❌ [CALENDAR] Failed to fetch calendar events:', error);
       return [];
     }
   }

@@ -43,6 +43,16 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>shein</string>
+		<string>amazon</string>
+		<string>target</string>
+		<string>zara</string>
+		<string>hm</string>
+		<string>nordstrom</string>
+		<string>asos</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>

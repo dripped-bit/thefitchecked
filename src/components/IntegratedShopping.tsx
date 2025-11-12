@@ -20,6 +20,7 @@ import optionalProductSearchService from '../services/optionalProductSearchServi
 import serpApiService, { ProductSearchResult } from '../services/serpApiService';
 import { buildPriorityStoreQuery, SEARCH_STRATEGY, getPriorityStoreDomains } from '../config/priorityStores';
 import { affiliateLinkService } from '../services/affiliateLinkService';
+import productLinkHandler from '../services/productLinkHandler';
 
 interface IntegratedShoppingProps {
   selectedOutfit: GeneratedOutfit;
@@ -535,7 +536,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
                         console.log('🎯 [IMAGE-CLICK] Opening product URL:', affiliateUrl);
                         affiliateLinkService.trackClick(affiliateUrl, undefined, product);
-                        window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+                        productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown');
                       }}
                     >
                       <img
@@ -629,10 +630,10 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                           );
 
                           console.log('🎯 [INTEGRATED-SHOPPING] Final URL to open:', affiliateUrl);
-                          console.log('✅ [INTEGRATED-SHOPPING] Opening in new tab...');
+                          console.log('✅ [INTEGRATED-SHOPPING] Opening product link...');
 
                           affiliateLinkService.trackClick(affiliateUrl, undefined, product);
-                          window.open(affiliateUrl, '_blank');
+                          productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown');
                         }}
                         className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center text-sm"
                       >

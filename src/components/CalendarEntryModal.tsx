@@ -9,6 +9,14 @@ import smartCalendarService from '../services/smartCalendarService';
 import { affiliateLinkService } from '../services/affiliateLinkService';
 import { glassModalClasses } from '../styles/glassEffects';
 
+interface ProductWithImage {
+  url: string;
+  title?: string;
+  imageUrl?: string;
+  store?: string;
+  price?: string;
+}
+
 interface CalendarEntryModalProps {
   outfit: {
     outfit?: any;
@@ -22,6 +30,7 @@ interface CalendarEntryModalProps {
   onSave: (calendarEntry: CalendarEntry) => void;
   onClose: () => void;
   initialShoppingLinks?: string[]; // Array of product URLs to pre-fill
+  selectedProducts?: ProductWithImage[]; // Array of clicked products with images
 }
 
 interface CalendarEntry {
@@ -48,7 +57,8 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
   outfit,
   onSave,
   onClose,
-  initialShoppingLinks = []
+  initialShoppingLinks = [],
+  selectedProducts = []
 }) => {
   const [formData, setFormData] = useState({
     eventDate: '',
@@ -60,9 +70,25 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
 
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Get outfit image URL
+  // Get outfit image URL - prefer product images over generated outfit
   const getOutfitImage = () => {
+    // If user clicked on products, show the first product image
+    if (selectedProducts.length > 0 && selectedProducts[0].imageUrl) {
+      return selectedProducts[0].imageUrl;
+    }
+    // Otherwise fallback to generated outfit image
     return outfit?.image || outfit?.avatarUrl || outfit?.imageUrl || '';
+  };
+
+  // Get all product images for display
+  const getProductImages = () => {
+    return selectedProducts
+      .filter(p => p.imageUrl)
+      .map(p => ({
+        url: p.imageUrl!,
+        title: p.title,
+        store: p.store
+      }));
   };
 
   // Get outfit description
@@ -162,6 +188,24 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
       // Calculate reminder in minutes (days * 24 hours * 60 minutes)
       const reminderMinutes = formData.reminderDays * 24 * 60;
 
+      // Build shopping links with product images
+      const shoppingLinksWithImages = processedLinks.map((link, index) => {
+        // Try to find matching product from selectedProducts
+        const matchingProduct = selectedProducts.find(p => p.url === link.url);
+        
+        return {
+          url: link.url,
+          store: link.store,
+          affiliateUrl: link.affiliateUrl,
+          image: matchingProduct?.imageUrl, // Add product image
+          imageUrl: matchingProduct?.imageUrl, // Alternative field
+          title: matchingProduct?.title,
+          price: matchingProduct?.price
+        };
+      });
+
+      console.log('🖼️ [CALENDAR-MODAL] Shopping links with images:', shoppingLinksWithImages);
+
       const event = await smartCalendarService.createEvent({
         title: `Outfit for ${formData.occasionName || 'Event'}`,
         description: formData.notes || getOutfitDescription(),
@@ -172,11 +216,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
         outfitItems: outfitItems,
         occasion: formData.occasionName,
         reminderMinutes: reminderMinutes,
-        shoppingLinks: processedLinks.map(link => ({
-          url: link.url,
-          store: link.store,
-          affiliateUrl: link.affiliateUrl
-        }))
+        shoppingLinks: shoppingLinksWithImages
       });
 
       if (!event) {
@@ -300,22 +340,54 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
 
         {/* Outfit Preview */}
         <div className="p-6 bg-gradient-to-br from-blue-50 to-purple-50">
-          <div className="flex gap-4 items-start">
-            {getOutfitImage() && (
-              <img
-                src={getOutfitImage()}
-                alt="Outfit preview"
-                className="w-24 h-32 object-cover rounded-lg shadow-md"
-              />
-            )}
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 mb-1">
-                {getOutfitDescription()}
-              </h3>
-              <p className="text-sm text-gray-600">
-                Save this outfit for your upcoming event
-              </p>
+          <div className="space-y-4">
+            <div className="flex gap-4 items-start">
+              {getOutfitImage() && (
+                <img
+                  src={getOutfitImage()}
+                  alt="Outfit preview"
+                  className="w-24 h-32 object-cover rounded-lg shadow-md"
+                />
+              )}
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">
+                  {getOutfitDescription()}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {selectedProducts.length > 0 
+                    ? `Saving ${selectedProducts.length} product${selectedProducts.length !== 1 ? 's' : ''} to calendar`
+                    : 'Save this outfit for your upcoming event'}
+                </p>
+              </div>
             </div>
+            
+            {/* Product Images Grid - Show when products are selected */}
+            {selectedProducts.length > 1 && (
+              <div>
+                <p className="text-xs font-medium text-gray-700 mb-2">
+                  Selected Products ({selectedProducts.length})
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {getProductImages().slice(0, 8).map((img, idx) => (
+                    <div key={idx} className="relative">
+                      <img
+                        src={img.url}
+                        alt={img.title || 'Product'}
+                        className="w-full aspect-square object-cover rounded-md shadow-sm"
+                        title={img.title || img.store || 'Product'}
+                      />
+                      {idx === 7 && selectedProducts.length > 8 && (
+                        <div className="absolute inset-0 bg-black bg-opacity-60 rounded-md flex items-center justify-center">
+                          <span className="text-white text-sm font-semibold">
+                            +{selectedProducts.length - 8}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

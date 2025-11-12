@@ -392,6 +392,13 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
             originalPrompt: selectedOutfit.originalPrompt || ''
           }}
           initialShoppingLinks={collectedShoppingLinks.map(p => p.url)}
+          selectedProducts={collectedShoppingLinks.map(p => ({
+            url: p.url,
+            title: p.title,
+            imageUrl: p.imageUrl,
+            store: p.store,
+            price: p.price
+          }))}
           onSave={handleCalendarSaveComplete}
           onClose={() => setShowSaveToCalendarModal(false)}
         />

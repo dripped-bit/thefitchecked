@@ -8,6 +8,7 @@ import { ExternalLink, Heart, Star, ShoppingCart, X, User } from 'lucide-react';
 import { OutfitSearchResults, SearchResults } from '../services/optionalProductSearchService';
 import { ProductSearchResult } from '../services/perplexityService';
 import { affiliateLinkService } from '../services/affiliateLinkService';
+import productLinkHandler from '../services/productLinkHandler';
 
 interface ProductSearchResultsProps {
   searchResults: OutfitSearchResults;
@@ -58,10 +59,10 @@ const ProductSearchResults: React.FC<ProductSearchResultsProps> = ({
       );
 
       console.log('🎯 [PRODUCT-SEARCH-RESULTS] Final URL to open:', affiliateUrl);
-      console.log('✅ [PRODUCT-SEARCH-RESULTS] Opening in new tab...');
+      console.log('✅ [PRODUCT-SEARCH-RESULTS] Opening product link...');
 
       affiliateLinkService.trackClick(affiliateUrl, undefined, product);
-      window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+      productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown');
     } else {
       console.warn('⚠️ [PRODUCT-SEARCH-RESULTS] No URL found for product:', product.title);
     }
