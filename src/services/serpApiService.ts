@@ -267,10 +267,14 @@ class SerpApiService {
       console.log(`🔍 [DEBUG] Before adult filter: ${filteredResults.length} products`);
       
       // CONTEXT-AWARE - Filter out children's products (with adult fashion whitelist)
-      filteredResults = this.filterAdultProducts(filteredResults);
-      
-      // NEW: Debug logging after adult filter
-      console.log(`🔍 [DEBUG] After adult filter: ${filteredResults.length} products`);
+      // WRAPPED: If filter fails, keep original results
+      try {
+        filteredResults = this.filterAdultProducts(filteredResults);
+        console.log(`🔍 [DEBUG] After adult filter: ${filteredResults.length} products`);
+      } catch (filterError) {
+        console.error(`⚠️ [FILTER] Adult filter crashed, using unfiltered results:`, filterError);
+        // Keep original filtered results rather than crashing
+      }
       
       if (filteredResults.length === 0) {
         console.error(`❌ [DEBUG] All products filtered out! Original count: ${deduplicatedResults.length}`);
@@ -285,6 +289,11 @@ class SerpApiService {
 
     } catch (error) {
       console.error('❌ [SERPAPI] Search failed:', error);
+      console.error('❌ [SERPAPI] Error details:', {
+        message: error?.message || 'Unknown error',
+        type: error?.constructor?.name || typeof error,
+        stack: error?.stack?.split('\n').slice(0, 3).join('\n') || 'No stack trace'
+      });
       return [];
     }
   }
@@ -406,9 +415,16 @@ class SerpApiService {
    * Now includes whitelist for valid adult fashion terms that contain problematic keywords
    */
   private filterAdultProducts(results: ProductSearchResult[]): ProductSearchResult[] {
-    const userDataService = require('./userDataService').default;
-    const userData = userDataService.getAllUserData();
-    const gender = userData?.profile?.gender || '';
+    let gender = '';
+    
+    // TRY to get user gender, but don't fail if unavailable
+    try {
+      const userDataService = require('./userDataService').default;
+      const userData = userDataService.getAllUserData();
+      gender = userData?.profile?.gender || '';
+    } catch (error) {
+      console.log('ℹ️ [FILTER] User data unavailable, using gender-neutral filter');
+    }
 
     // NEW: Whitelist of valid adult fashion terms (checked FIRST before filtering)
     const adultFashionTerms = [
