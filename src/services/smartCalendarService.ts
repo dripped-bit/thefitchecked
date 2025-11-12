@@ -6,6 +6,7 @@
 import { supabase } from './supabaseClient';
 import authService from './authService';
 import googleCalendarService from './googleCalendarService';
+import weatherService from './weatherService';
 
 // Types and Interfaces
 export interface ShoppingLink {
@@ -56,12 +57,14 @@ export interface OutfitItem {
 
 export interface WeatherData {
   temperature: number;
-  condition: string;
+  feelsLike: number;
   humidity: number;
   windSpeed: number;
-  precipitationChance: number;
+  weatherDescription: string;
+  precipitation: number;
   uvIndex: number;
-  feels_like: number;
+  location: string;
+  timestamp: string;
 }
 
 export interface OutfitHistory {
@@ -93,13 +96,11 @@ export interface RepeatWarning {
 class SmartCalendarService {
   private calendarProvider: 'google' | 'apple' | null = null;
   private accessToken: string | null = null;
-  private weatherApiKey: string | null = null;
   private outfitHistory: OutfitHistory[] = [];
   private outfitPlans: OutfitPlan[] = [];
 
   constructor() {
     this.loadStoredData();
-    this.weatherApiKey = import.meta.env.VITE_WEATHER_API_KEY || '0ab6ad071c324e63a3d225838252509';
   }
 
   /**
@@ -370,60 +371,44 @@ class SmartCalendarService {
   }
 
   // =====================
-  // Weather Integration (WeatherAPI.com)
+  // Weather Integration (Open-Meteo)
   // =====================
 
   async getWeatherForecast(location: string = 'auto:ip', date?: Date): Promise<WeatherData | null> {
     try {
-      if (!this.weatherApiKey) {
-        console.warn('⚠️ Weather API key not configured');
-        return this.getMockWeather();
-      }
-
-      const daysAhead = date ? Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
-
-      // WeatherAPI.com supports up to 14 days forecast on paid plans, 3 days on free
-      // Use current weather for past dates or immediate forecast
-      const endpoint = daysAhead > 0 && daysAhead <= 14
-        ? `https://api.weatherapi.com/v1/forecast.json?key=${this.weatherApiKey}&q=${location}&days=${Math.min(daysAhead + 1, 14)}`
-        : `https://api.weatherapi.com/v1/current.json?key=${this.weatherApiKey}&q=${location}`;
-
       console.log(`🌤️ [WEATHER] Fetching weather for ${location}...`);
 
-      const response = await fetch(endpoint);
-
-      if (!response.ok) {
-        console.error('❌ Weather API error:', response.status);
-        return this.getMockWeather();
+      // Parse location to get city and state
+      // Handle 'auto:ip' by using user's current location
+      if (location === 'auto:ip') {
+        const currentWeather = await weatherService.getCurrentWeather();
+        
+        // If date is provided, get forecast
+        if (date) {
+          const forecast = await weatherService.getWeatherForecast(
+            currentWeather.location.latitude,
+            currentWeather.location.longitude,
+            date
+          );
+          return this.convertToSmartCalendarFormat(forecast);
+        }
+        
+        return this.convertToSmartCalendarFormat(currentWeather);
       }
 
-      const data = await response.json();
+      // Parse city, state location
+      const parts = location.split(',').map(s => s.trim());
+      const city = parts[0];
+      const state = parts[1];
 
-      // Parse current or forecast weather
-      let weatherInfo;
-      if (daysAhead > 0 && data.forecast?.forecastday) {
-        // Get forecast for specific date
-        const targetDate = date?.toISOString().split('T')[0];
-        const forecastDay = data.forecast.forecastday.find((day: any) => day.date === targetDate)
-          || data.forecast.forecastday[0];
-        weatherInfo = forecastDay?.day || data.current;
+      // Use Open-Meteo weatherService
+      if (date) {
+        const forecast = await weatherService.getWeatherForecastByCity(city, state, date);
+        return this.convertToSmartCalendarFormat(forecast);
       } else {
-        // Use current weather
-        weatherInfo = data.current;
+        const currentWeather = await weatherService.getWeatherByCity(city, state);
+        return this.convertToSmartCalendarFormat(currentWeather);
       }
-
-      const weatherData: WeatherData = {
-        temperature: Math.round(weatherInfo.temp_f || weatherInfo.avgtemp_f || 72),
-        condition: this.mapWeatherCondition(weatherInfo.condition?.text || 'Clear'),
-        humidity: weatherInfo.humidity || weatherInfo.avghumidity || 50,
-        windSpeed: Math.round(weatherInfo.wind_mph || weatherInfo.maxwind_mph || 0),
-        precipitationChance: Math.round(weatherInfo.daily_chance_of_rain || weatherInfo.cloud || 0),
-        uvIndex: weatherInfo.uv || weatherInfo.uv || 5,
-        feels_like: Math.round(weatherInfo.feelslike_f || weatherInfo.temp_f || weatherInfo.avgtemp_f || 72)
-      };
-
-      console.log('✅ [WEATHER] Weather data retrieved:', weatherData.temperature + '°F', weatherData.condition);
-      return weatherData;
 
     } catch (error) {
       console.error('❌ Weather fetch failed:', error);
@@ -432,7 +417,24 @@ class SmartCalendarService {
   }
 
   /**
-   * Map WeatherAPI.com condition text to our simplified conditions
+   * Convert Open-Meteo WeatherData to SmartCalendarService format
+   */
+  private convertToSmartCalendarFormat(weather: any): WeatherData {
+    return {
+      temperature: weather.temperature,
+      feelsLike: weather.feelsLike,
+      humidity: weather.humidity,
+      windSpeed: weather.windSpeed,
+      weatherDescription: weather.weatherDescription,
+      precipitation: weather.precipitation,
+      uvIndex: weather.uvIndex,
+      location: weather.location.city || `${weather.location.latitude},${weather.location.longitude}`,
+      timestamp: weather.timestamp
+    };
+  }
+
+  /**
+   * Map weather description to our simplified conditions (for backward compatibility)
    */
   private mapWeatherCondition(conditionText: string): string {
     const text = conditionText.toLowerCase();
@@ -452,12 +454,14 @@ class SmartCalendarService {
   private getMockWeather(): WeatherData {
     return {
       temperature: 72,
-      condition: 'partly_cloudy',
+      feelsLike: 75,
       humidity: 65,
       windSpeed: 8,
-      precipitationChance: 20,
+      weatherDescription: 'Partly cloudy',
+      precipitation: 0.2,
       uvIndex: 6,
-      feels_like: 75
+      location: 'Unknown',
+      timestamp: new Date().toISOString()
     };
   }
 
