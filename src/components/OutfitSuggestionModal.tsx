@@ -140,37 +140,31 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div
-        className={`${glassModalClasses.light} max-w-4xl w-full max-h-[90vh] overflow-y-auto`}
-        style={{
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
-        }}
-      >
+    <div className="fixed inset-0 ios-blur bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="ios-card ios-slide-up max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-ios-separator p-6 flex items-center justify-between">
           <div>
             <div className="flex items-center space-x-2 mb-1">
-              <Sparkles className="w-6 h-6 text-purple-600" />
-              <h2 className="text-2xl font-bold text-gray-900">AI Outfit Suggestions</h2>
+              <Sparkles className="w-6 h-6 text-ios-purple" />
+              <h2 className="ios-large-title">AI Outfit Suggestions</h2>
             </div>
-            <p className="text-gray-600">
+            <p className="ios-body text-ios-label-secondary">
               {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               {event && ` • ${event.title}`}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-ios-fill rounded-full transition-colors"
           >
-            <X className="w-6 h-6 text-gray-500" />
+            <X className="w-6 h-6 text-ios-label-tertiary" />
           </button>
         </div>
 
         {/* Weather Context */}
         {weather && (
-          <div className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
+          <div className="p-6 bg-gradient-to-r from-ios-blue/10 to-ios-purple/10 border-b border-ios-separator">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="text-3xl">
@@ -178,14 +172,14 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
-                    <Thermometer className="w-4 h-4 text-gray-600" />
-                    <span className="font-semibold text-gray-900">{weather.temperature}°F</span>
-                    <span className="text-gray-600">(feels like {weather.feelsLike}°F)</span>
+                    <Thermometer className="w-4 h-4 text-ios-label-secondary" />
+                    <span className="ios-title-3 font-bold">{weather.temperature}°F</span>
+                    <span className="ios-callout text-ios-label-secondary">(feels like {weather.feelsLike}°F)</span>
                   </div>
-                  <p className="text-sm text-gray-600">{weather.weatherDescription}</p>
+                  <p className="ios-callout text-ios-label-secondary">{weather.weatherDescription}</p>
                 </div>
               </div>
-              <div className="text-right text-sm text-gray-600">
+              <div className="text-right ios-caption-1 text-ios-label-secondary">
                 <p>💧 {weather.precipitation}" rain</p>
                 <p>💨 {weather.windSpeed} mph</p>
                 <p>☀️ UV {weather.uvIndex}</p>
@@ -197,9 +191,9 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
         {/* Loading State */}
         {isGenerating && (
           <div className="p-12 text-center">
-            <Sparkles className="w-12 h-12 text-purple-600 animate-pulse mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">Generating Outfits...</h3>
-            <p className="text-gray-600">Claude AI is analyzing your closet, weather, and occasion</p>
+            <Sparkles className="w-12 h-12 text-ios-purple animate-pulse mx-auto mb-4" />
+            <h3 className="ios-title-1 mb-2">Generating Outfits...</h3>
+            <p className="ios-body text-ios-label-secondary">Claude AI is analyzing your closet, weather, and occasion</p>
           </div>
         )}
 
@@ -207,15 +201,15 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
         {!isGenerating && suggestions.length > 0 && (
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-800">
+              <h3 className="ios-title-2">
                 {suggestions.length} Outfit{suggestions.length !== 1 ? 's' : ''} for You
               </h3>
               <button
                 onClick={handleRegenerate}
-                className="flex items-center space-x-2 text-purple-600 hover:text-purple-800 transition-colors"
+                className="flex items-center space-x-2 text-ios-purple hover:text-ios-purple/80 transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span className="text-sm font-medium">Regenerate</span>
+                <span className="ios-callout font-semibold">Regenerate</span>
               </button>
             </div>
 
@@ -223,40 +217,40 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
               {suggestions.map((suggestion, index) => (
                 <div
                   key={suggestion.id}
-                  className={`border-2 rounded-xl p-6 transition-all cursor-pointer ${
+                  className={`border-2 rounded-ios-xl p-6 transition-all cursor-pointer ${
                     selectedSuggestion === suggestion.id
-                      ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
-                      : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
+                      ? 'border-ios-purple bg-ios-purple/10 ring-2 ring-ios-purple/20'
+                      : 'border-ios-separator hover:border-ios-purple/50 hover:shadow-ios-md'
                   }`}
                   onClick={() => handleSelectOutfit(suggestion)}
                 >
                   {/* Outfit Number & Confidence */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold">
+                      <div className="w-8 h-8 bg-ios-purple text-white rounded-full flex items-center justify-center font-bold shadow-ios-sm">
                         {index + 1}
                       </div>
                       {selectedSuggestion === suggestion.id && (
-                        <Check className="w-5 h-5 text-purple-600" />
+                        <Check className="w-5 h-5 text-ios-purple" />
                       )}
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="text-sm font-medium text-gray-700">{suggestion.confidence}%</span>
+                      <Star className="w-4 h-4 text-ios-yellow fill-current" />
+                      <span className="ios-callout font-semibold">{suggestion.confidence}%</span>
                     </div>
                   </div>
 
                   {/* Outfit Items */}
                   <div className="mb-4">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Outfit Items</h4>
+                    <h4 className="ios-caption-2 font-semibold text-ios-label-tertiary uppercase mb-2">Outfit Items</h4>
                     <div className="space-y-2">
                       {suggestion.outfitItems.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center space-x-2 text-sm"
+                          className="flex items-center space-x-2"
                         >
-                          <Shirt className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                          <span className="text-gray-800 truncate">{item.name}</span>
+                          <Shirt className="w-4 h-4 text-ios-purple flex-shrink-0" />
+                          <span className="ios-callout truncate">{item.name}</span>
                         </div>
                       ))}
                     </div>
@@ -264,18 +258,18 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
 
                   {/* Reasoning */}
                   <div className="mb-4">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Why This Works</h4>
-                    <p className="text-sm text-gray-700">{suggestion.reasoning}</p>
+                    <h4 className="ios-caption-2 font-semibold text-ios-label-tertiary uppercase mb-2">Why This Works</h4>
+                    <p className="ios-callout text-ios-label-secondary">{suggestion.reasoning}</p>
                   </div>
 
                   {/* Style Notes */}
                   {suggestion.styleNotes.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Style Tips</h4>
+                      <h4 className="ios-caption-2 font-semibold text-ios-label-tertiary uppercase mb-2">Style Tips</h4>
                       <ul className="space-y-1">
                         {suggestion.styleNotes.map((note, idx) => (
-                          <li key={idx} className="text-xs text-gray-600 flex items-start">
-                            <span className="w-1 h-1 bg-purple-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                          <li key={idx} className="ios-caption-1 text-ios-label-secondary flex items-start">
+                            <span className="w-1 h-1 bg-ios-purple rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
                             {note}
                           </li>
                         ))}
@@ -290,7 +284,7 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
             <div className="mt-8 flex items-center justify-between">
               <button
                 onClick={onClose}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="ios-button-secondary px-6 py-3"
               >
                 Cancel
               </button>
@@ -300,7 +294,7 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
                   onClose();
                 }}
                 disabled={!selectedSuggestion}
-                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ios-button-primary px-6 py-3"
               >
                 Save to Weekly Queue
               </button>
@@ -311,9 +305,9 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
         {/* Empty State */}
         {!isGenerating && suggestions.length === 0 && (
           <div className="p-12 text-center">
-            <Shirt className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">No Suggestions Available</h3>
-            <p className="text-gray-500 mb-4">
+            <Shirt className="w-12 h-12 text-ios-label-quaternary mx-auto mb-4" />
+            <h3 className="ios-title-2 mb-2">No Suggestions Available</h3>
+            <p className="ios-body text-ios-label-secondary mb-4">
               {clothingItems.length === 0
                 ? 'Add clothing items to your closet to get AI outfit suggestions'
                 : 'Could not generate outfit suggestions. Please try again.'}
@@ -321,7 +315,7 @@ const OutfitSuggestionModal: React.FC<OutfitSuggestionModalProps> = ({
             {clothingItems.length > 0 && (
               <button
                 onClick={handleRegenerate}
-                className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                className="ios-button-primary"
               >
                 Try Again
               </button>

@@ -106,27 +106,21 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
   const now = new Date().toTimeString().slice(0, 5);
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div
-        className={`${glassModalClasses.light} max-w-2xl w-full max-h-[90vh] overflow-y-auto`}
-        style={{
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
-        }}
-      >
+    <div className="fixed inset-0 ios-blur bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="ios-card ios-slide-up max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 bg-white border-b border-ios-separator px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-r from-ios-purple to-ios-blue rounded-full flex items-center justify-center shadow-ios-sm">
               <Calendar className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Add Calendar Event</h2>
+            <h2 className="ios-large-title">Add Calendar Event</h2>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-ios-fill rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-ios-label-tertiary" />
           </button>
         </div>
 
@@ -134,14 +128,14 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm font-medium">{error}</p>
+            <div className="bg-ios-red/10 border border-ios-red/20 rounded-ios-lg p-4">
+              <p className="text-ios-red ios-callout font-semibold">{error}</p>
             </div>
           )}
 
           {/* Event Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block ios-subheadline font-semibold mb-2">
               Event Title *
             </label>
             <input
@@ -149,21 +143,21 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Team Meeting, Dinner with Friends"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="ios-input w-full"
               required
             />
           </div>
 
           {/* Event Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block ios-subheadline font-semibold mb-2">
               <Tag className="w-4 h-4 inline mr-1" />
               Event Type *
             </label>
             <select
               value={formData.eventType}
               onChange={(e) => setFormData({ ...formData, eventType: e.target.value as any })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="ios-input w-full"
             >
               <option value="personal">Personal</option>
               <option value="work">Work</option>
@@ -177,7 +171,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
           {/* Date and Time - Start */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block ios-subheadline font-semibold mb-2">
                 <Calendar className="w-4 h-4 inline mr-1" />
                 Start Date *
               </label>
@@ -185,12 +179,12 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
                 type="date"
                 value={formData.startDate || today}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="ios-input w-full"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block ios-subheadline font-semibold mb-2">
                 <Clock className="w-4 h-4 inline mr-1" />
                 Start Time *
               </label>
@@ -198,7 +192,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
                 type="time"
                 value={formData.startTime || now}
                 onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="ios-input w-full"
                 required
               />
             </div>
@@ -207,32 +201,32 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
           {/* Date and Time - End */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block ios-subheadline font-semibold mb-2">
                 End Date (optional)
               </label>
               <input
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="ios-input w-full"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block ios-subheadline font-semibold mb-2">
                 End Time (optional)
               </label>
               <input
                 type="time"
                 value={formData.endTime}
                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="ios-input w-full"
               />
             </div>
           </div>
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block ios-subheadline font-semibold mb-2">
               <MapPin className="w-4 h-4 inline mr-1" />
               Location (optional)
             </label>
@@ -241,13 +235,13 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               placeholder="e.g., Conference Room A, Central Park"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="ios-input w-full"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block ios-subheadline font-semibold mb-2">
               <FileText className="w-4 h-4 inline mr-1" />
               Description (optional)
             </label>
@@ -256,7 +250,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Add notes about this event..."
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              className="ios-input w-full resize-none"
             />
           </div>
 
@@ -267,9 +261,9 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
                 type="checkbox"
                 checked={formData.isAllDay}
                 onChange={(e) => setFormData({ ...formData, isAllDay: e.target.checked })}
-                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                className="w-5 h-5 text-ios-blue rounded focus:ring-ios-blue"
               />
-              <span className="text-sm font-medium text-gray-700">All-day event</span>
+              <span className="ios-callout">All-day event</span>
             </label>
 
             <label className="flex items-center space-x-3 cursor-pointer">
@@ -277,27 +271,27 @@ const AddEventModal: React.FC<AddEventModalProps> = ({ isOpen, onClose, onEventC
                 type="checkbox"
                 checked={formData.weatherRequired}
                 onChange={(e) => setFormData({ ...formData, weatherRequired: e.target.checked })}
-                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                className="w-5 h-5 text-ios-blue rounded focus:ring-ios-blue"
               />
-              <span className="text-sm font-medium text-gray-700">
+              <span className="ios-callout">
                 Weather-dependent (outdoor event)
               </span>
             </label>
           </div>
 
           {/* Actions */}
-          <div className="flex space-x-3 pt-4 border-t border-gray-200">
+          <div className="flex space-x-3 pt-4 border-t border-ios-separator">
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="ios-button-secondary flex-1"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ios-button-primary flex-1"
             >
               {isSaving ? 'Creating...' : 'Create Event'}
             </button>

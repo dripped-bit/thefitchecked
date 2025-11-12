@@ -116,30 +116,30 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 ios-blur bg-black/70 z-50 flex items-center justify-center p-4"
       onClick={handleClose}
     >
       <div
-        className={`${glassModalClasses.light} w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl`}
+        className="ios-card ios-slide-up w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-ios-separator">
           <div className="flex items-center space-x-3">
-            <Calendar className="w-6 h-6 text-blue-600" />
-            <h2 className="text-2xl font-bold text-gray-900">Edit Event</h2>
+            <Calendar className="w-6 h-6 text-ios-blue" />
+            <h2 className="ios-large-title">Edit Event</h2>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-ios-fill rounded-full transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-ios-label-tertiary" />
           </button>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="mx-6 mt-4 p-3 bg-ios-red/10 border border-ios-red/20 rounded-ios-lg text-ios-red ios-callout">
             {error}
           </div>
         )}
@@ -148,7 +148,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Event Title */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <Tag className="w-4 h-4" />
               <span>Event Title *</span>
             </label>
@@ -158,14 +158,14 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g., Dinner with Friends, Work Meeting..."
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="ios-input w-full"
             />
           </div>
 
           {/* Start Date & Time */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
                 <Calendar className="w-4 h-4" />
                 <span>Start Date *</span>
               </label>
@@ -174,11 +174,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="ios-input w-full"
               />
             </div>
             <div>
-              <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
                 <Clock className="w-4 h-4" />
                 <span>Start Time *</span>
               </label>
@@ -187,7 +187,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
                 value={formData.startTime}
                 onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="ios-input w-full"
               />
             </div>
           </div>
@@ -195,7 +195,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
           {/* End Date & Time */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
                 <Calendar className="w-4 h-4" />
                 <span>End Date</span>
               </label>
@@ -203,11 +203,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="ios-input w-full"
               />
             </div>
             <div>
-              <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
                 <Clock className="w-4 h-4" />
                 <span>End Time</span>
               </label>
@@ -215,14 +215,14 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
                 type="time"
                 value={formData.endTime}
                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="ios-input w-full"
               />
             </div>
           </div>
 
           {/* Location */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <MapPin className="w-4 h-4" />
               <span>Location</span>
             </label>
@@ -231,20 +231,20 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               placeholder="e.g., Downtown Restaurant, Conference Room..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="ios-input w-full"
             />
           </div>
 
           {/* Event Type */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <Tag className="w-4 h-4" />
               <span>Event Type</span>
             </label>
             <select
               value={formData.eventType}
               onChange={(e) => setFormData({ ...formData, eventType: e.target.value as any })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="ios-input w-full"
             >
               <option value="personal">Personal</option>
               <option value="work">Work</option>
@@ -257,14 +257,14 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
 
           {/* Reminder */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <Bell className="w-4 h-4" />
               <span>Reminder</span>
             </label>
             <select
               value={formData.reminderMinutes}
               onChange={(e) => setFormData({ ...formData, reminderMinutes: Number(e.target.value) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="ios-input w-full"
             >
               <option value={0}>No reminder</option>
               <option value={15}>15 minutes before</option>
@@ -279,7 +279,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
 
           {/* Description/Notes */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <FileText className="w-4 h-4" />
               <span>Outfit Details / Notes</span>
             </label>
@@ -288,14 +288,14 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Describe your outfit or add styling notes..."
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="ios-input w-full resize-none"
             />
           </div>
 
           {/* Shopping Links Display (Read-only for now) */}
           {event.shoppingLinks && event.shoppingLinks.length > 0 && (
             <div>
-              <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
                 <ShoppingBag className="w-4 h-4" />
                 <span>Shopping Links</span>
               </label>
@@ -306,20 +306,20 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
                     href={link.affiliateUrl || link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors group"
+                    className="flex items-center justify-between p-3 bg-ios-blue/10 hover:bg-ios-blue/20 rounded-ios-lg border border-ios-blue/20 transition-colors group"
                   >
                     <div className="flex items-center space-x-2 flex-1 min-w-0">
-                      <ShoppingBag className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      <ShoppingBag className="w-4 h-4 text-ios-blue flex-shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-blue-900 truncate">
+                        <p className="ios-callout font-semibold text-ios-blue truncate">
                           {link.title || link.store}
                         </p>
                         {link.price && (
-                          <p className="text-xs text-blue-700">{link.price}</p>
+                          <p className="ios-caption-1 text-ios-blue">{link.price}</p>
                         )}
                       </div>
                     </div>
-                    <ExternalLink className="w-4 h-4 text-blue-600 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                    <ExternalLink className="w-4 h-4 text-ios-blue flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
                   </a>
                 ))}
               </div>
@@ -333,9 +333,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
                 type="checkbox"
                 checked={formData.weatherRequired}
                 onChange={(e) => setFormData({ ...formData, weatherRequired: e.target.checked })}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-ios-blue border-gray-300 rounded focus:ring-ios-blue"
               />
-              <span className="text-sm text-gray-700">Track weather for this event</span>
+              <span className="ios-callout">Track weather for this event</span>
             </label>
           </div>
 
@@ -344,14 +344,14 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ isOpen, event, onClose,
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="ios-button-secondary flex-1"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ios-button-primary flex-1"
             >
               {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
