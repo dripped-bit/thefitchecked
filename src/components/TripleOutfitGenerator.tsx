@@ -129,6 +129,13 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       colorPalette: 'jewel tones or metallics, gold, emerald, ruby red, sapphire, or champagne',
       silhouette: 'form-fitting or dramatic, bodycon or voluminous statement',
       negativeExclusions: 'casual, muted, understated, simple, minimalist'
+    },
+    {
+      name: 'Casual',
+      description: 'relaxed fit, comfortable fabrics, effortless everyday style, laid-back aesthetic',
+      colorPalette: 'soft neutrals, denim blue, olive, warm grays, or earthy tones',
+      silhouette: 'relaxed and comfortable, loose or slightly oversized, easy-wearing',
+      negativeExclusions: 'formal, structured, tailored, stiff, overly dressy, black-tie'
     }
   ];
 
@@ -144,7 +151,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       'bohemian': 'Bohemian',
       'classic': 'Elegant',   // Map 'classic' → 'Elegant'
       'edgy': 'Edgy',
-      'casual': 'Minimalist'  // Map 'casual' → 'Minimalist' (simple, relaxed)
+      'casual': 'Casual'  // Map 'casual' → 'Casual' (relaxed, comfortable, everyday)
     };
     
     const interpretationName = vibeMap[vibe.toLowerCase()] || 'Elegant';
