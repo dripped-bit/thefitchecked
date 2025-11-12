@@ -754,12 +754,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
     <>
 
       <div className="min-h-screen pb-[calc(49px+env(safe-area-inset-bottom))] pt-safe relative overflow-hidden">
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.08]"
-        style={{ backgroundImage: "url('/avatarhomepage.png')" }}
-      />
-
+      
       {/* Content Layer */}
       <div className="relative z-10">
       {/* Header */}
@@ -1091,10 +1086,10 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                 </div>
               )}
 
-              {/* Weather indicator */}
-              <div className="absolute bottom-4 left-4 bg-white/70 backdrop-blur-sm text-slate-700 px-3 py-2 rounded-full text-sm font-medium flex items-center space-x-2 shadow-sm">
-                {getWeatherIcon()}
-                <span>{weather ? `${weather.temperature}°` : 'Loading...'}</span>
+              {/* Weather indicator - Apple-style glassmorphic design */}
+              <div className="weather-indicator">
+                <span className="weather-icon">{getWeatherIcon()}</span>
+                <span className="weather-temp">{weather ? `${weather.temperature}°` : 'Loading...'}</span>
               </div>
             </div>
 

@@ -346,3 +346,34 @@ body::after {
     padding-top: env(safe-area-inset-top);
   }
 }
+
+/* Apple-Style Weather Indicator */
+.weather-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  padding: 6px 12px 6px 8px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.weather-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.weather-temp {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: -0.3px;
+}
