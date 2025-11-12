@@ -634,23 +634,21 @@ Flat-lay product photography style, clean white background, professional lightin
                 },
                 {
                   type: 'text',
-                  text: `User searched for: "${occasion.originalInput || occasion.occasion}"
-
-Analyze this outfit image and create a SHORT shopping search query.
+                  text: `Analyze this ${personalityName} outfit image and create a shopping search query that describes what you see.
 
 RULES:
-1. START with user's exact keywords (e.g., if they said "blue dress", START with "blue dress")
-2. Add ONLY 1-2 core visible details (length/style if obvious)
-3. Keep query under 5 words total
-4. DO NOT over-describe or add excessive adjectives
+1. Describe the MAIN garment visible (dress, top, pants, skirt, etc.)
+2. Include COLOR if prominent
+3. Include KEY style details (floral, striped, fitted, oversized, etc.)
+4. Include LENGTH/CUT if relevant (mini, maxi, cropped, wide-leg, etc.)
+5. Keep query 6-8 words maximum
+6. Focus on what would help find THIS SPECIFIC outfit item
 
 Examples:
-- User: "blue dress" → Return: "blue maxi dress"
-- User: "casual top" → Return: "casual striped top"
-- User: "black pants" → Return: "black wide leg pants"
-- User: "red skirt" → Return: "red midi skirt"
-
-CRITICAL: Preserve user's original intent. Less is more.
+- Image shows: pink floral dress with puff sleeves → Return: "pink floral mini dress puff sleeves"
+- Image shows: white cropped blazer → Return: "white cropped blazer structured"
+- Image shows: blue wide-leg jeans → Return: "blue high waisted wide leg jeans"
+- Image shows: black leather jacket → Return: "black leather moto jacket"
 
 Return ONLY the search query, nothing else.`
                 }
