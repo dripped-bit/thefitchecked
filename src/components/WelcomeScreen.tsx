@@ -41,15 +41,15 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
         <div className="absolute bottom-1/3 right-1/4 w-24 h-24 border rotate-12 opacity-20" style={{ borderColor: 'var(--ios-blue)' }}></div>
       </div>
 
-      {/* Logo */}
-      <div className="mb-8 z-10">
+      {/* Logo - Apple Design */}
+      <div className="mb-8 z-10 ios-fade-in">
         <div className="relative">
           <img
             src="/Untitled design.PNG"
             alt="TheFitChecked Logo"
-            className="w-80 md:w-96 h-auto mx-auto drop-shadow-2xl bg-transparent animate-keyboard-bounce hover:scale-105 transition-transform duration-300"
+            className="w-80 md:w-96 h-auto mx-auto bg-transparent animate-keyboard-bounce hover:scale-105 transition-transform duration-300"
             style={{
-              filter: 'contrast(1.2) brightness(1.1)',
+              filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.15)) contrast(1.2) brightness(1.1)',
               mixBlendMode: 'multiply'
             }}
           />
@@ -69,54 +69,39 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
         </div>
       </div>
 
-      {/* Elegant Cursive Tagline */}
-      <p className="font-dancing-script text-4xl md:text-5xl mb-12 leading-relaxed max-w-md text-center" style={{ color: 'var(--ios-label)' }}>
+      {/* Elegant Cursive Tagline - Apple Typography */}
+      <p className="font-dancing-script ios-large-title mb-12 leading-relaxed max-w-md text-center ios-fade-in" style={{ animationDelay: '0.2s' }}>
         Shop Smarter, Return Never
       </p>
 
-      {/* Feature Blocks with Custom Image Icons */}
-      <div className="space-y-4 mb-12 z-10 max-w-xs mx-auto text-left">
-        {/* 3D Avatar Feature */}
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-            <Camera className="w-5 h-5" style={{ color: 'var(--ios-blue)' }} />
+      {/* Feature Blocks - Apple Design Cards */}
+      <div className="space-y-3 mb-12 z-10 max-w-xs mx-auto">
+        {[
+          { icon: Camera, title: '3D Avatar from Photos', desc: 'Professional-grade avatar creation' },
+          { icon: Zap, title: 'Virtual Try-On Magic', desc: 'AI-powered fitting technology' },
+          { icon: Sparkles, title: 'Digital Closet & Styling', desc: 'Curated wardrobe management' }
+        ].map((feature, idx) => (
+          <div key={idx} className="ios-card p-4 ios-scale-in" style={{ animationDelay: `${idx * 0.1 + 0.3}s` }}>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-ios-md bg-ios-blue/10 flex items-center justify-center flex-shrink-0">
+                <feature.icon className="w-5 h-5 text-ios-blue" />
+              </div>
+              <div>
+                <h3 className="ios-headline">{feature.title}</h3>
+                <p className="ios-caption-1 text-ios-label-secondary">{feature.desc}</p>
+              </div>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-sm ios-headline" style={{ color: 'var(--ios-label)' }}>3D Avatar from Photos</h3>
-            <p className="text-xs ios-footnote" style={{ color: 'var(--ios-secondary-label)' }}>Professional-grade avatar creation</p>
-          </div>
-        </div>
-
-        {/* Virtual Try-On Feature */}
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-            <Zap className="w-5 h-5" style={{ color: 'var(--ios-blue)' }} />
-          </div>
-          <div>
-            <h3 className="font-semibold text-sm ios-headline" style={{ color: 'var(--ios-label)' }}>Virtual Try-On Magic</h3>
-            <p className="text-xs ios-footnote" style={{ color: 'var(--ios-secondary-label)' }}>AI-powered fitting technology</p>
-          </div>
-        </div>
-
-        {/* Digital Closet Feature */}
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-            <Sparkles className="w-5 h-5" style={{ color: 'var(--ios-blue)' }} />
-          </div>
-          <div>
-            <h3 className="font-semibold text-sm ios-headline" style={{ color: 'var(--ios-label)' }}>Digital Closet & Styling</h3>
-            <p className="text-xs ios-footnote" style={{ color: 'var(--ios-secondary-label)' }}>Curated wardrobe management</p>
-          </div>
-        </div>
+        ))}
       </div>
-      {/* Saved Avatar Option - Show if avatars exist */}
+      {/* Saved Avatar Option - Apple Design */}
       {hasSavedAvatars && (
-        <div className="w-full max-w-sm mx-auto mb-6">
-          <div className="bg-white/5 backdrop-blur-lg border border-green-500/20 rounded-2xl p-4">
+        <div className="w-full max-w-sm mx-auto mb-6 ios-slide-up">
+          <div className="ios-card ios-blur bg-ios-bg-secondary/95 border border-ios-green/20 p-4">
             <div className="text-center">
-              <User className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <h3 className="text-white font-semibold mb-2">Welcome Back!</h3>
-              <p className="text-gray-300 text-sm mb-4">
+              <User className="w-8 h-8 text-ios-green mx-auto mb-2" />
+              <h3 className="ios-title-3 mb-2">Welcome Back!</h3>
+              <p className="ios-callout text-ios-label-secondary mb-4">
                 {savedAvatars.length} saved avatar{savedAvatars.length !== 1 ? 's' : ''} available
               </p>
 
@@ -141,7 +126,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
                     haptics.light();
                     setShowAvatarSelector(true);
                   }}
-                  className="w-full text-green-400 hover:text-green-300 text-sm transition-colors"
+                  className="w-full ios-callout text-ios-green hover:text-ios-blue transition-colors"
                 >
                   Choose from {savedAvatars.length} avatars
                 </button>
@@ -151,21 +136,21 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
         </div>
       )}
 
-      {/* Avatar Selector Modal */}
+      {/* Avatar Selector Modal - Apple Design */}
       {showAvatarSelector && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 border border-white/20 rounded-2xl p-6 max-w-md w-full max-h-80 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 ios-blur flex items-center justify-center p-4 z-50">
+          <div className="ios-card ios-blur bg-ios-bg-secondary/95 p-6 max-w-md w-full max-h-80 overflow-y-auto ios-slide-up">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Choose Your Avatar</h3>
+              <h3 className="ios-title-2">Choose Your Avatar</h3>
               <button
                 onClick={() => setShowAvatarSelector(false)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-ios-label-secondary hover:text-ios-label transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="ios-list rounded-ios-lg overflow-hidden">
               {savedAvatars.map((avatar) => (
                 <button
                   key={avatar.id}
@@ -173,19 +158,21 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
                     handleLoadAvatar(avatar.id);
                     setShowAvatarSelector(false);
                   }}
-                  className="w-full flex items-center p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all duration-200 hover:scale-[1.02]"
+                  className="ios-list-item w-full"
                 >
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
-                    <User className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="text-left flex-1">
-                    <h4 className="text-white font-medium">{avatar.name}</h4>
-                    <p className="text-gray-400 text-sm">
-                      Created {new Date(avatar.createdAt).toLocaleDateString()}
-                      {avatar.isDefault && (
-                        <span className="ml-2 text-green-400 text-xs">• Default</span>
-                      )}
-                    </p>
+                  <div className="flex items-center w-full">
+                    <div className="w-12 h-12 bg-gradient-to-r from-ios-blue to-ios-purple rounded-ios-md flex items-center justify-center mr-3">
+                      <User className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <h4 className="ios-body">{avatar.name}</h4>
+                      <p className="ios-caption-1 text-ios-label-secondary">
+                        Created {new Date(avatar.createdAt).toLocaleDateString()}
+                        {avatar.isDefault && (
+                          <span className="ml-2 text-ios-green">• Default</span>
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </button>
               ))}
@@ -231,8 +218,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onNext, onLoadSavedAvatar
         </div>
       </IOSButton>
 
-      {/* Skip Option */}
-      <button className="mt-8 text-gray-500 text-sm hover:text-amber-600 hover:scale-105 transition-all duration-300 font-medium tracking-wide">
+      {/* Skip Option - Apple Style */}
+      <button className="mt-8 ios-callout text-ios-label-tertiary hover:text-ios-blue transition-colors">
         I'll explore later
       </button>
 

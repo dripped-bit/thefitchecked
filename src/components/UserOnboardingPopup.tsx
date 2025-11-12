@@ -82,44 +82,38 @@ const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplet
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onSkip}></div>
+      {/* Backdrop - Apple Blur */}
+      <div className="absolute inset-0 bg-black/50 ios-blur" onClick={onSkip}></div>
 
-      {/* Modal */}
-      <div
-        className={`relative ${glassModalClasses.light} max-w-md w-full mx-4 transform transition-all duration-300 scale-100`}
-        style={{
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
-        }}
-      >
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      {/* Modal - Apple Card */}
+      <div className="relative ios-card ios-blur bg-ios-bg-secondary/95 max-w-md w-full mx-4 ios-slide-up">
+        {/* Header - Apple Design */}
+        <div className="relative overflow-hidden rounded-t-ios-2xl bg-gradient-to-br from-ios-blue/10 to-ios-indigo/10 p-6">
           <div className="absolute top-2 right-2">
             <button
               onClick={onSkip}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="w-8 h-8 rounded-full bg-ios-fill hover:bg-ios-fill-secondary flex items-center justify-center transition-colors"
               aria-label="Skip onboarding"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 text-ios-label-secondary" />
             </button>
           </div>
 
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-ios-blue to-ios-indigo rounded-full mb-4 shadow-ios-md">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to FitChecked!</h2>
-            <p className="text-gray-600">Let's personalize your experience</p>
+            <h2 className="ios-title-1 mb-2">Welcome to FitChecked!</h2>
+            <p className="ios-body text-ios-label-secondary">Let's personalize your experience</p>
           </div>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* First Name */}
+          {/* First Name - iOS Input */}
           <div>
-            <label htmlFor="firstName" className="flex items-center text-sm font-medium text-gray-700 mb-2">
-              <User className="w-4 h-4 mr-2 text-blue-500" />
+            <label htmlFor="firstName" className="flex items-center ios-subheadline text-ios-label-secondary mb-2">
+              <User className="w-4 h-4 mr-2 text-ios-blue" />
               What should we call you?
             </label>
             <input
@@ -128,22 +122,18 @@ const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplet
               value={formData.firstName}
               onChange={(e) => handleInputChange('firstName', e.target.value)}
               placeholder="Enter your first name"
-              className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                errors.firstName
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-              } focus:outline-none focus:ring-2`}
+              className={`ios-input ${errors.firstName ? 'border-ios-red' : ''}`}
               disabled={isSubmitting}
             />
             {errors.firstName && (
-              <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
+              <p className="mt-1 ios-caption-1 text-ios-red">{errors.firstName}</p>
             )}
           </div>
 
-          {/* Birthday */}
+          {/* Birthday - iOS Input */}
           <div>
-            <label htmlFor="birthday" className="flex items-center text-sm font-medium text-gray-700 mb-2">
-              <Calendar className="w-4 h-4 mr-2 text-blue-500" />
+            <label htmlFor="birthday" className="flex items-center ios-subheadline text-ios-label-secondary mb-2">
+              <Calendar className="w-4 h-4 mr-2 text-ios-blue" />
               When's your birthday?
             </label>
             <input
@@ -151,23 +141,19 @@ const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplet
               id="birthday"
               value={formData.birthday}
               onChange={(e) => handleInputChange('birthday', e.target.value)}
-              className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                errors.birthday
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-              } focus:outline-none focus:ring-2`}
+              className={`ios-input ${errors.birthday ? 'border-ios-red' : ''}`}
               disabled={isSubmitting}
             />
             {errors.birthday && (
-              <p className="mt-1 text-sm text-red-600">{errors.birthday}</p>
+              <p className="mt-1 ios-caption-1 text-ios-red">{errors.birthday}</p>
             )}
-            <p className="mt-1 text-xs text-gray-500">We'll send you special birthday messages!</p>
+            <p className="mt-1 ios-caption-1 text-ios-label-tertiary">We'll send you special birthday messages!</p>
           </div>
 
-          {/* Location for Weather */}
+          {/* Location for Weather - iOS Inputs */}
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="w-4 h-4 mr-2 text-blue-500" />
+            <label className="flex items-center ios-subheadline text-ios-label-secondary mb-2">
+              <MapPin className="w-4 h-4 mr-2 text-ios-blue" />
               Where are you located?
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -176,7 +162,7 @@ const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplet
                 placeholder="City"
                 value={formData.city || ''}
                 onChange={(e) => handleInputChange('city', e.target.value)}
-                className="px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-blue-200 focus:outline-none focus:ring-2"
+                className="ios-input"
                 disabled={isSubmitting}
               />
               <input
@@ -184,35 +170,34 @@ const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplet
                 placeholder="State"
                 value={formData.state || ''}
                 onChange={(e) => handleInputChange('state', e.target.value)}
-                className="px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-blue-200 focus:outline-none focus:ring-2"
+                className="ios-input"
                 disabled={isSubmitting}
               />
             </div>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 ios-caption-1 text-ios-label-tertiary">
               📍 We'll use this for weather-appropriate outfit suggestions
             </p>
           </div>
 
-          {/* Privacy Notice */}
-          <div className="bg-gray-50 rounded-xl p-4">
+          {/* Privacy Notice - Apple Style */}
+          <div className="bg-ios-fill rounded-ios-lg p-4">
             <div className="flex items-start space-x-3">
-              <Shield className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <Shield className="w-5 h-5 text-ios-green flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-sm font-medium text-gray-800 mb-1">Privacy & Data</h4>
-                <p className="text-xs text-gray-600 leading-relaxed">
-                  Your information is stored locally on your device only. We never share your personal data with third parties.
-                  You can clear this data anytime in your browser settings.
+                <h4 className="ios-subheadline mb-1">Privacy & Data</h4>
+                <p className="ios-caption-1 text-ios-label-secondary leading-relaxed">
+                  Your information is stored locally on your device only. We never share your personal data.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Buttons */}
+          {/* Buttons - iOS Style */}
           <div className="flex space-x-3">
             <button
               type="button"
               onClick={onSkip}
-              className="flex-1 px-4 py-3 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium transition-colors"
+              className="flex-1 ios-button-secondary"
               disabled={isSubmitting}
             >
               Skip for now
@@ -220,7 +205,7 @@ const UserOnboardingPopup: React.FC<OnboardingPopupProps> = ({ isOpen, onComplet
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 ios-button-primary bg-gradient-to-r from-ios-blue to-ios-indigo disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center">
