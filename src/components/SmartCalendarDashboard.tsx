@@ -186,11 +186,11 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
   const getEventTypeColor = (eventType: string) => {
     const colors = {
-      work: 'bg-blue-100 text-blue-800 border-blue-200',
-      personal: 'bg-green-100 text-green-800 border-green-200',
-      travel: 'bg-purple-100 text-purple-800 border-purple-200',
-      formal: 'bg-gray-100 text-gray-800 border-gray-200',
-      casual: 'bg-orange-100 text-orange-800 border-orange-200'
+      work: 'bg-ios-blue text-white',
+      personal: 'bg-ios-green text-white',
+      travel: 'bg-ios-purple text-white',
+      formal: 'bg-ios-fill text-ios-label',
+      casual: 'bg-ios-orange text-white'
     };
     return colors[eventType as keyof typeof colors] || colors.casual;
   };
@@ -249,46 +249,46 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <button
           onClick={generateMorningOptions}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 md:p-4 rounded-xl hover:scale-105 transition-all"
+          className="ios-card bg-gradient-to-br from-ios-blue to-ios-indigo text-white p-3 md:p-4 rounded-ios-xl hover:opacity-90 transition-all shadow-ios-md"
         >
           <div className="flex items-center space-x-2">
             <Zap className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="text-sm md:text-base font-medium">Morning Mode</span>
+            <span className="ios-callout font-semibold">Morning Mode</span>
           </div>
-          <p className="text-xs mt-1 opacity-90 hidden md:block">3 outfit options for today</p>
+          <p className="ios-caption-2 mt-1 opacity-90 hidden md:block">3 outfit options for today</p>
         </button>
 
         <button
           onClick={() => setCurrentView('queue')}
-          className="bg-gradient-to-r from-green-500 to-teal-600 text-white p-3 md:p-4 rounded-xl hover:scale-105 transition-all"
+          className="ios-card bg-gradient-to-br from-ios-green to-ios-teal text-white p-3 md:p-4 rounded-ios-xl hover:opacity-90 transition-all shadow-ios-md"
         >
           <div className="flex items-center space-x-2">
             <Clock className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="text-sm md:text-base font-medium">Outfit Queue</span>
+            <span className="ios-callout font-semibold">Outfit Queue</span>
           </div>
-          <p className="text-xs mt-1 opacity-90 hidden md:block">{outfitQueue.length} planned outfits</p>
+          <p className="ios-caption-2 mt-1 opacity-90 hidden md:block">{outfitQueue.length} planned outfits</p>
         </button>
 
         <button
           onClick={() => setCurrentView('packing')}
-          className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-3 md:p-4 rounded-xl hover:scale-105 transition-all"
+          className="ios-card bg-gradient-to-br from-ios-orange to-ios-red text-white p-3 md:p-4 rounded-ios-xl hover:opacity-90 transition-all shadow-ios-md"
         >
           <div className="flex items-center space-x-2">
             <Package className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="text-sm md:text-base font-medium">Packing Lists</span>
+            <span className="ios-callout font-semibold">Packing Lists</span>
           </div>
-          <p className="text-xs mt-1 opacity-90 hidden md:block">Smart travel planning</p>
+          <p className="ios-caption-2 mt-1 opacity-90 hidden md:block">Smart travel planning</p>
         </button>
 
         <button
           onClick={() => setShowWoreThisToday(true)}
-          className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-3 md:p-4 rounded-xl hover:scale-105 transition-all"
+          className="ios-card bg-gradient-to-br from-ios-purple to-ios-pink text-white p-3 md:p-4 rounded-ios-xl hover:opacity-90 transition-all shadow-ios-md"
         >
           <div className="flex items-center space-x-2">
             <Camera className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="text-sm md:text-base font-medium">Wore This</span>
+            <span className="ios-callout font-semibold">Wore This</span>
           </div>
-          <p className="text-xs mt-1 opacity-90 hidden md:block">Track your outfit</p>
+          <p className="ios-caption-2 mt-1 opacity-90 hidden md:block">Track your outfit</p>
         </button>
       </div>
 
@@ -305,43 +305,43 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   const renderMorningMode = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Good Morning! ☀️</h2>
-        <p className="text-gray-600">Here are your personalized outfit options for today</p>
+        <h2 className="ios-title-1 mb-2">Good Morning! ☀️</h2>
+        <p className="ios-body text-ios-label-secondary">Here are your personalized outfit options for today</p>
       </div>
 
       {morningOptions && (
         <div>
           {/* Weather Bar */}
-          <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl p-4 mb-6">
+          <div className="ios-card bg-gradient-to-br from-ios-blue/10 to-ios-purple/10 rounded-ios-xl p-4 mb-6 border border-ios-separator">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 {getWeatherIcon(morningOptions.weather.condition)}
                 <div>
-                  <p className="font-medium text-gray-800">{morningOptions.weather.temperature}°F</p>
-                  <p className="text-sm text-gray-600">Feels like {morningOptions.weather.feels_like}°F</p>
+                  <p className="ios-title-3 font-bold">{morningOptions.weather.temperature}°F</p>
+                  <p className="ios-caption-1 text-ios-label-secondary">Feels like {morningOptions.weather.feels_like}°F</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-600">Precipitation: {morningOptions.weather.precipitationChance}%</p>
-                <p className="text-sm text-gray-600">UV Index: {morningOptions.weather.uvIndex}</p>
+                <p className="ios-callout text-ios-label-secondary">Precipitation: {morningOptions.weather.precipitationChance}%</p>
+                <p className="ios-callout text-ios-label-secondary">UV Index: {morningOptions.weather.uvIndex}</p>
               </div>
             </div>
           </div>
 
           {/* Today's Events */}
           {morningOptions.todaysEvents.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-              <h3 className="font-medium text-gray-800 mb-3">Today's Schedule</h3>
+            <div className="ios-card rounded-ios-xl p-4 mb-6">
+              <h3 className="ios-headline mb-3">Today's Schedule</h3>
               <div className="space-y-2">
                 {morningOptions.todaysEvents.map((event) => (
-                  <div key={event.id} className="flex items-center space-x-3 text-sm">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    <span>{event.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    <span className="font-medium">{event.title}</span>
+                  <div key={event.id} className="flex items-center space-x-3 ios-callout">
+                    <Clock className="w-4 h-4 text-ios-label-tertiary" />
+                    <span className="text-ios-label-secondary">{event.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="font-semibold">{event.title}</span>
                     {event.location && (
                       <>
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="text-gray-600">{event.location}</span>
+                        <MapPin className="w-4 h-4 text-ios-label-tertiary" />
+                        <span className="text-ios-label-secondary">{event.location}</span>
                       </>
                     )}
                   </div>
@@ -353,23 +353,23 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
           {/* Outfit Options */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[morningOptions.option1, morningOptions.option2, morningOptions.option3].map((option, index) => (
-              <div key={option.id} className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-all">
+              <div key={option.id} className="ios-card rounded-ios-xl p-4 hover:shadow-ios-lg transition-all">
                 <div className="text-center mb-4">
-                  <div className="w-32 h-40 bg-gray-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                    <Sparkles className="w-8 h-8 text-gray-400" />
-                    <span className="text-xs text-gray-500 ml-2">Outfit {index + 1}</span>
+                  <div className="w-32 h-40 bg-ios-fill rounded-ios-lg mx-auto mb-3 flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-ios-label-tertiary" />
+                    <span className="ios-caption-2 text-ios-label-secondary ml-2">Outfit {index + 1}</span>
                   </div>
                   <div className="flex items-center justify-center space-x-1 mb-2">
-                    <Star className="w-4 h-4 text-yellow-500" />
-                    <span className="text-sm font-medium">{option.confidence}% Match</span>
+                    <Star className="w-4 h-4 text-ios-yellow fill-current" />
+                    <span className="ios-callout font-semibold">{option.confidence}% Match</span>
                   </div>
-                  <p className="text-sm text-gray-600">{option.notes}</p>
+                  <p className="ios-caption-1 text-ios-label-secondary">{option.notes}</p>
                 </div>
 
                 <div className="space-y-2">
                   <button
                     onClick={() => recordOutfitWorn(option.outfitItems, option.eventId)}
-                    className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors"
+                    className="ios-button-primary w-full"
                   >
                     <div className="flex items-center justify-center space-x-2">
                       <CheckCircle className="w-4 h-4" />
@@ -378,10 +378,10 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
                   </button>
 
                   <div className="flex space-x-2">
-                    <button className="flex-1 text-green-600 hover:bg-green-50 py-1 rounded transition-colors">
+                    <button className="flex-1 text-ios-green hover:bg-ios-green/10 py-2 rounded-ios-md transition-colors">
                       <ThumbsUp className="w-4 h-4 mx-auto" />
                     </button>
-                    <button className="flex-1 text-red-600 hover:bg-red-50 py-1 rounded transition-colors">
+                    <button className="flex-1 text-ios-red hover:bg-ios-red/10 py-2 rounded-ios-md transition-colors">
                       <ThumbsDown className="w-4 h-4 mx-auto" />
                     </button>
                   </div>
@@ -525,7 +525,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   console.log('✅ [SMART-CALENDAR] Calendar connected, showing dashboard');
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-ios-bg p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -533,27 +533,27 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
             {onBack && (
               <button
                 onClick={onBack}
-                className="text-gray-600 hover:text-gray-800"
+                className="text-ios-label-secondary hover:text-ios-label"
               >
                 <X className="w-6 h-6" />
               </button>
             )}
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Smart Calendar</h1>
-              <p className="text-gray-600">AI-powered outfit planning with calendar sync</p>
+              <h1 className="ios-large-title">Smart Calendar</h1>
+              <p className="ios-body text-ios-label-secondary">AI-powered outfit planning with calendar sync</p>
             </div>
           </div>
 
           <button
             onClick={() => setCurrentView('settings')}
-            className="text-gray-600 hover:text-gray-800"
+            className="text-ios-label-secondary hover:text-ios-label"
           >
             <Settings className="w-6 h-6" />
           </button>
         </div>
 
         {/* Main Content */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="ios-card rounded-ios-2xl shadow-ios-xl overflow-hidden">
           <div className="p-6">
             {isLoading && (
               <div className="text-center py-8">
