@@ -198,8 +198,8 @@ const CompleteFashnTryOn: React.FC<CompleteFashnTryOnProps> = ({
   // =====================
 
   const handleClearDatabase = () => {
-    completeFashnTryOnService.clearDatabase();
-    setDatabaseStats(completeFashnTryOnService.getDatabaseStats());
+    completeFashnTryOnService.clearCache();
+    setDatabaseStats(completeFashnTryOnService.getCacheStats());
   };
 
   // =====================
