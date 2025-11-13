@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw, Home, Shirt, Calendar, Sparkles, User } from 'lucide-react';
+import { App as KonstaApp } from 'konsta/react';
 import useDevMode from './hooks/useDevMode';
 import { IOSTabBar, Tab } from './components/ui/IOSTabBar';
 // Force Apple Design System CSS to be included in build
@@ -1118,7 +1119,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen relative">
+    <KonstaApp theme="ios" safeAreas className="min-h-screen relative">
       {/* User Menu - Top Right */}
       {!shareId && currentScreen !== 'loading' && !authLoading && authUser && (
         <div className="fixed top-4 right-4 z-50">
@@ -1476,7 +1477,7 @@ function App() {
       </div>
       </>
     )}
-    </div>
+    </KonstaApp>
   );
 }
 

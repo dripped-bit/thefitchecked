@@ -25,6 +25,7 @@ const ProductActionPullDown: React.FC<ProductActionPullDownProps> = ({
     <Actions
       opened={isOpen}
       onBackdropClick={onKeepLooking}
+      backdrop
     >
       <ActionsGroup>
         <ActionsLabel>
