@@ -319,13 +319,13 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         </button>
 
         <button
-          onClick={() => setShowWoreThis(!showWoreThis)}
+          onClick={() => setShowWoreThisToday(!showWoreThisToday)}
           style={{
             flex: 1,
             padding: '12px 16px',
             borderRadius: '12px',
             border: 'none',
-            background: showWoreThis ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
+            background: showWoreThisToday ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
             color: '#4A4A4A',
             fontSize: '14px',
             fontWeight: '600',
