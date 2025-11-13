@@ -95,6 +95,14 @@ const VisualClosetEnhanced: React.FC = () => {
   const [showDeleteToast, setShowDeleteToast] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [itemDetails, setItemDetails] = useState({
+    name: '',
+    brand: '',
+    price: '',
+    description: ''
+  });
 
   // Filter items based on search
   const filteredItems = useMemo(() => {
@@ -140,21 +148,18 @@ const VisualClosetEnhanced: React.FC = () => {
       
       if (image.webPath && selectedCategory) {
         console.log('Captured image:', image.webPath);
-        
-        // Add item to closet
-        const newItem = await addItem({
+        // Store image and show details modal
+        setCapturedImage(image.webPath);
+        setShowUploadModal(false);
+        setShowDetailsModal(true);
+        // Pre-fill name
+        setItemDetails({
           name: `New ${selectedCategory} item`,
-          category: selectedCategory,
-          image_url: image.webPath,
-          favorite: false
+          brand: '',
+          price: '',
+          description: ''
         });
-        
-        if (newItem) {
-          console.log('✅ Item added to closet:', newItem);
-        }
       }
-      
-      setShowUploadModal(false);
     } catch (error) {
       console.error('Camera error:', error);
     }
@@ -171,23 +176,46 @@ const VisualClosetEnhanced: React.FC = () => {
       
       if (image.webPath && selectedCategory) {
         console.log('Selected image:', image.webPath);
-        
-        // Add item to closet
-        const newItem = await addItem({
+        // Store image and show details modal
+        setCapturedImage(image.webPath);
+        setShowUploadModal(false);
+        setShowDetailsModal(true);
+        // Pre-fill name
+        setItemDetails({
           name: `New ${selectedCategory} item`,
-          category: selectedCategory,
-          image_url: image.webPath,
-          favorite: false
+          brand: '',
+          price: '',
+          description: ''
         });
-        
-        if (newItem) {
-          console.log('✅ Item added to closet:', newItem);
-        }
       }
-      
-      setShowUploadModal(false);
     } catch (error) {
       console.error('Gallery error:', error);
+    }
+  };
+
+  const handleSaveItem = async () => {
+    if (!capturedImage || !selectedCategory) return;
+
+    try {
+      const newItem = await addItem({
+        name: itemDetails.name || `New ${selectedCategory} item`,
+        category: selectedCategory,
+        image_url: capturedImage,
+        brand: itemDetails.brand || undefined,
+        price: itemDetails.price ? parseFloat(itemDetails.price) : undefined,
+        notes: itemDetails.description || undefined,
+        favorite: false
+      });
+      
+      if (newItem) {
+        console.log('✅ Item added to closet:', newItem);
+        // Reset and close
+        setCapturedImage(null);
+        setItemDetails({ name: '', brand: '', price: '', description: '' });
+        setShowDetailsModal(false);
+      }
+    } catch (error) {
+      console.error('Error saving item:', error);
     }
   };
 
@@ -567,6 +595,183 @@ const VisualClosetEnhanced: React.FC = () => {
                 }}
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Item Details Modal */}
+      {showDetailsModal && capturedImage && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001,
+            padding: '20px',
+            overflowY: 'auto'
+          }}
+          onClick={() => {
+            setShowDetailsModal(false);
+            setCapturedImage(null);
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '20px',
+              padding: '24px',
+              maxWidth: '500px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '20px', textAlign: 'center' }}>
+              Add Item Details
+            </h3>
+
+            {/* Image Preview */}
+            <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+              <img 
+                src={capturedImage} 
+                alt="Preview" 
+                style={{ 
+                  maxWidth: '200px', 
+                  maxHeight: '200px', 
+                  borderRadius: '12px',
+                  objectFit: 'cover'
+                }} 
+              />
+            </div>
+            
+            {/* Form Fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Item Name *
+                </label>
+                <input
+                  type="text"
+                  value={itemDetails.name}
+                  onChange={(e) => setItemDetails({ ...itemDetails, name: e.target.value })}
+                  placeholder="e.g., Blue Denim Jacket"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Brand
+                </label>
+                <input
+                  type="text"
+                  value={itemDetails.brand}
+                  onChange={(e) => setItemDetails({ ...itemDetails, brand: e.target.value })}
+                  placeholder="e.g., Levi's, Zara, H&M"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Price
+                </label>
+                <input
+                  type="number"
+                  value={itemDetails.price}
+                  onChange={(e) => setItemDetails({ ...itemDetails, price: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Description / Notes
+                </label>
+                <textarea
+                  value={itemDetails.description}
+                  onChange={(e) => setItemDetails({ ...itemDetails, description: e.target.value })}
+                  placeholder="Add any notes about this item..."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setCapturedImage(null);
+                  setItemDetails({ name: '', brand: '', price: '', description: '' });
+                }}
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  background: '#f5f5f5',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveItem}
+                disabled={!itemDetails.name.trim()}
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  background: itemDetails.name.trim() ? 'linear-gradient(135deg, #FF69B4 0%, #FF1493 100%)' : '#ccc',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: itemDetails.name.trim() ? 'pointer' : 'not-allowed',
+                  color: 'white'
+                }}
+              >
+                Save Item
               </button>
             </div>
           </div>
