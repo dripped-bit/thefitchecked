@@ -246,38 +246,76 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
   const renderCalendarView = () => (
     <div className="space-y-6">
-      {/* Quick Actions Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      {/* Pink Liquid Glass Tab Bar */}
+      <div 
+        style={{
+          background: 'rgba(255, 192, 203, 0.4)',
+          backdropFilter: 'blur(30px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(200%)',
+          boxShadow: '0 8px 32px 0 rgba(255, 182, 193, 0.37)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+          borderRadius: '16px',
+          padding: '8px',
+          display: 'flex',
+          gap: '8px',
+          overflow: 'auto'
+        }}
+      >
         <button
           onClick={generateMorningOptions}
-          className="ios-card bg-gradient-to-br from-ios-blue to-ios-indigo text-white p-3 md:p-4 rounded-ios-xl hover:opacity-90 transition-all shadow-ios-md"
+          style={{
+            flex: 1,
+            padding: '12px 16px',
+            borderRadius: '12px',
+            border: 'none',
+            background: currentView === 'morning' ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
+            color: '#4A4A4A',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            whiteSpace: 'nowrap'
+          }}
         >
-          <div className="flex items-center space-x-2">
-            <Zap className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="ios-callout font-semibold">Morning Mode</span>
-          </div>
-          <p className="ios-caption-2 mt-1 opacity-90 hidden md:block">3 outfit options for today</p>
+          Morning Mode
         </button>
 
         <button
           onClick={() => setCurrentView('queue')}
-          className="ios-card bg-gradient-to-br from-ios-green to-ios-teal text-white p-3 md:p-4 rounded-ios-xl hover:opacity-90 transition-all shadow-ios-md"
+          style={{
+            flex: 1,
+            padding: '12px 16px',
+            borderRadius: '12px',
+            border: 'none',
+            background: currentView === 'queue' ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
+            color: '#4A4A4A',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            whiteSpace: 'nowrap'
+          }}
         >
-          <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="ios-callout font-semibold">Outfit Queue</span>
-          </div>
-          <p className="ios-caption-2 mt-1 opacity-90 hidden md:block">{outfitQueue.length} planned outfits</p>
+          Outfit Queue
         </button>
 
         <button
           onClick={() => setCurrentView('packing')}
-          className="ios-card bg-gradient-to-br from-ios-orange to-ios-red text-white p-3 md:p-4 rounded-ios-xl hover:opacity-90 transition-all shadow-ios-md"
+          style={{
+            flex: 1,
+            padding: '12px 16px',
+            borderRadius: '12px',
+            border: 'none',
+            background: currentView === 'packing' ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
+            color: '#4A4A4A',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            whiteSpace: 'nowrap'
+          }}
         >
-          <div className="flex items-center space-x-2">
-            <Package className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="ios-callout font-semibold">Packing Lists</span>
-          </div>
+          Packing List
         </button>
 
         <button

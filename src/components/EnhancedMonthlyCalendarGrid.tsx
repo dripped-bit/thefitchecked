@@ -224,8 +224,8 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      <div className="bg-white border-b border-gray-200 p-4">
+    <div className="flex flex-col h-full bg-gray-50" style={{ maxWidth: '100%', width: '100%' }}>
+      <div className="bg-white border-b border-gray-200 p-4" style={{ maxWidth: '100%' }}>
         <div className="flex items-center justify-center mb-4">
           <div className="flex items-center space-x-2">
             <button
@@ -255,7 +255,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto p-2" style={{ maxWidth: '100%' }}>
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-500">Loading calendar...</div>

@@ -1340,14 +1340,14 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       >
         <div className="flex items-start justify-start py-1 px-2">
           <h1
-            className="text-white font-semibold tracking-wider"
+            className="font-semibold tracking-wider"
             style={{
               fontSize: '2.18rem',
               fontFamily: "'Dancing Script', cursive",
               fontWeight: 700,
               letterSpacing: '0.15em',
-              textShadow: '0 0 20px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(255, 182, 193, 0.4)',
-              background: 'linear-gradient(180deg, #FFFFFF 0%, #FFF5F7 100%)',
+              textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+              background: 'linear-gradient(180deg, #4A4A4A 0%, #2C2C2C 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
