@@ -219,13 +219,12 @@ const VisualClosetEnhanced: React.FC = () => {
               >
                 <div className="section-header-content">
                   <div className="section-info">
-                    <h3 className="section-title">{category.title}</h3>
-                    <span className="item-count">
-                      {category.items.length}
+                    <h3 className="section-title">
+                      {category.title} {category.items.length}
                       {categoryStats.favoriteCount > 0 && (
-                        <> · {categoryStats.favoriteCount} ❤️</>
+                        <span className="text-sm ml-2">· {categoryStats.favoriteCount} ❤️</span>
                       )}
-                    </span>
+                    </h3>
                     <p className="section-description">{category.description}</p>
                   </div>
                 </div>
@@ -361,11 +360,7 @@ const VisualClosetEnhanced: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Action Button */}
-      <button className="fab-add glass-fab" onClick={() => handleAddItem()}>
-        <Plus size={24} />
-        <span>Add Item</span>
-      </button>
+
 
       {/* Action Sheet Modal */}
       {showActionSheet && selectedItemData && (

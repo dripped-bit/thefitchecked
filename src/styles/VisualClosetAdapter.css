@@ -2,7 +2,7 @@
 .visual-closet-adapter {
   width: 100%;
   min-height: 100vh;
-  padding: 160px 20px 20px 20px;
+  padding: 240px 20px 20px 20px;
   background: linear-gradient(135deg, #f5f5f7 0%, #e8e8ed 100%);
 }
 
@@ -119,10 +119,10 @@
 /* Header */
 .visual-closet-header {
   position: fixed;
-  top: 0;
+  top: 80px;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 999;
   padding: 20px;
   margin: 0;
   margin-bottom: 24px;
