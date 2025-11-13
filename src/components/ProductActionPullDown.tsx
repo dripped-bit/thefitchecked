@@ -1,12 +1,12 @@
 /**
- * Product Action Pull-Down Menu
+ * Product Action Sheet
  * iOS-style action sheet that appears after user closes a product browser
  * Offers options to save to calendar or keep looking
+ * Follows Apple HIG for action sheets
  */
 
 import React from 'react';
 import { Actions, ActionsGroup, ActionsButton, ActionsLabel } from 'konsta/react';
-import { Calendar, Search } from 'lucide-react';
 
 interface ProductActionPullDownProps {
   isOpen: boolean;
@@ -29,18 +29,16 @@ const ProductActionPullDown: React.FC<ProductActionPullDownProps> = ({
       <ActionsGroup>
         <ActionsLabel>
           {productTitle 
-            ? `What would you like to do with this item?` 
+            ? `You viewed a product. What would you like to do?` 
             : 'What would you like to do?'}
         </ActionsLabel>
         <ActionsButton
           bold
           onClick={onSaveToCalendar}
         >
-          <Calendar className="w-5 h-5 mr-2 inline" />
           Save to Calendar
         </ActionsButton>
         <ActionsButton onClick={onKeepLooking}>
-          <Search className="w-5 h-5 mr-2 inline" />
           Keep Looking
         </ActionsButton>
       </ActionsGroup>
