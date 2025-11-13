@@ -22,7 +22,7 @@ export interface FashnResult {
   result?: {
     images?: string[];      // Format 1: array of images
     image?: string;         // Format 2: single image
-    output?: string;        // Format 3: output field
+    output?: string[];      // Format 3: output field (array of image URLs)
     data?: {                // Format 4: nested data object
       images?: string[];
     };
@@ -237,6 +237,7 @@ class CompleteFashnTryOnService {
 
   private async pollFashnResult(jobId: string, maxAttempts: number = 30): Promise<TryOnResult> {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      let result: FashnResult | undefined;
       try {
         console.log(`🔄 [FASHN] Polling attempt ${attempt + 1}/${maxAttempts}...`);
 
@@ -246,7 +247,7 @@ class CompleteFashnTryOnService {
           throw new Error(`Status check failed: ${response.status}`);
         }
 
-        const result: FashnResult = await response.json();
+        result = await response.json();
         console.log('📊 [FASHN] Job status:', result.status);
 
         // Add detailed logging for completed jobs to diagnose issues
@@ -271,10 +272,10 @@ class CompleteFashnTryOnService {
               imageUrl = result.result.image;
               console.log('✅ [FASHN] Found image in result.image');
             }
-            // Format 3: result.output
-            else if (result.result?.output) {
-              imageUrl = result.result.output;
-              console.log('✅ [FASHN] Found image in result.output');
+            // Format 3: result.output[0]
+            else if (result.result?.output?.[0]) {
+              imageUrl = result.result.output[0];
+              console.log('✅ [FASHN] Found image in result.output[0]');
             }
             // Format 4: result.data.images[0]
             else if (result.result?.data?.images?.[0]) {
