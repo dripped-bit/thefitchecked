@@ -1,15 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { Heart, Plus, Search, ChevronDown, ChevronUp, Trash2, Edit2 } from 'lucide-react';
-import { closetService, ClothingItem } from '../services/closetService';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Heart, Plus, Search, ChevronDown, ChevronUp, Trash2, Edit2, Share2, Loader2, CheckCircle, X } from 'lucide-react';
+import { useCloset, ClothingCategory } from '../hooks/useCloset';
 import '../styles/VisualClosetAdapter.css';
 
 interface CategoryConfig {
-  id: string;
+  id: ClothingCategory;
   title: string;
   icon: string;
   color: string;
   description: string;
-  categories: string[];
 }
 
 const CATEGORY_MAPPING: CategoryConfig[] = [
@@ -18,107 +17,93 @@ const CATEGORY_MAPPING: CategoryConfig[] = [
     title: 'Tops & Blouses',
     icon: '👕',
     color: 'rgba(255, 182, 193, 0.2)',
-    description: 'T-shirts, shirts, blouses, tanks',
-    categories: ['tops', 'shirts', 'blouses']
+    description: 'T-shirts, shirts, blouses, tanks'
   },
   {
     id: 'bottoms',
     title: 'Bottoms',
     icon: '👖',
     color: 'rgba(173, 216, 230, 0.2)',
-    description: 'Jeans, pants, shorts, skirts',
-    categories: ['bottoms', 'pants', 'jeans', 'shorts', 'skirts']
+    description: 'Jeans, pants, shorts, skirts'
   },
   {
     id: 'dresses',
     title: 'Dresses',
     icon: '👗',
     color: 'rgba(221, 160, 221, 0.2)',
-    description: 'Casual, formal, maxi, mini',
-    categories: ['dresses']
+    description: 'Casual, formal, maxi, mini'
   },
   {
     id: 'sweaters',
     title: 'Sweaters & Cardigans',
     icon: '🧥',
     color: 'rgba(255, 228, 196, 0.2)',
-    description: 'Knits, hoodies, cardigans',
-    categories: ['sweaters', 'hoodies', 'cardigans']
+    description: 'Knits, hoodies, cardigans'
   },
   {
     id: 'outerwear',
     title: 'Outerwear',
     icon: '🧥',
     color: 'rgba(169, 169, 169, 0.2)',
-    description: 'Jackets, coats, blazers',
-    categories: ['outerwear', 'jackets', 'coats', 'blazers']
+    description: 'Jackets, coats, blazers'
   },
   {
     id: 'shoes',
     title: 'Shoes',
     icon: '👠',
     color: 'rgba(244, 164, 96, 0.2)',
-    description: 'Sneakers, heels, boots, flats',
-    categories: ['shoes', 'sneakers', 'boots', 'heels']
+    description: 'Sneakers, heels, boots, flats'
   },
   {
     id: 'accessories',
     title: 'Accessories',
     icon: '👜',
     color: 'rgba(216, 191, 216, 0.2)',
-    description: 'Bags, jewelry, scarves, hats',
-    categories: ['accessories', 'bags', 'jewelry', 'scarves', 'hats']
+    description: 'Bags, jewelry, scarves, hats'
   }
 ];
 
 interface VisualClosetAdapterProps {
-  clothingItems: ClothingItem[];
-  selectedCategory: string;
-  onCategoryChange: (category: string) => void;
-  onItemClick: (item: ClothingItem) => void;
-  onAddItem: () => void;
-  onDeleteItem: (itemId: string) => void;
-  onToggleFavorite: (itemId: string) => void;
+  onAddItem?: () => void;
 }
 
 export const VisualClosetAdapter: React.FC<VisualClosetAdapterProps> = ({
-  clothingItems,
-  selectedCategory,
-  onCategoryChange,
-  onItemClick,
-  onAddItem,
-  onDeleteItem,
-  onToggleFavorite
+  onAddItem
 }) => {
+  const {
+    items,
+    loading,
+    error,
+    deleteItem,
+    toggleFavorite,
+    searchItems,
+    getCategoryStats
+  } = useCloset();
   const [searchText, setSearchText] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<typeof items[0] | null>(null);
   const [showItemActions, setShowItemActions] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   const filteredItems = useMemo(() => {
-    if (!searchText) return clothingItems;
-    const lowerSearch = searchText.toLowerCase();
-    return clothingItems.filter(item =>
-      item.name?.toLowerCase().includes(lowerSearch) ||
-      item.category?.toLowerCase().includes(lowerSearch) ||
-      item.brand?.toLowerCase().includes(lowerSearch)
-    );
-  }, [searchText, clothingItems]);
+    if (!searchText) return items;
+    return searchItems(searchText);
+  }, [searchText, items, searchItems]);
+
+  const stats = useMemo(() => getCategoryStats(), [getCategoryStats]);
 
   const categoryData = useMemo(() => {
     return CATEGORY_MAPPING.map(categoryConfig => {
-      const items = filteredItems.filter(item => {
-        const itemCategory = item.category?.toLowerCase() || '';
-        return categoryConfig.categories.some(cat => 
-          itemCategory.includes(cat.toLowerCase())
-        );
-      });
+      const categoryItems = filteredItems.filter(item => 
+        item.category === categoryConfig.id
+      );
 
       return {
         ...categoryConfig,
-        items,
-        count: items.length,
-        favoriteCount: items.filter(i => i.isFavorite).length
+        items: categoryItems,
+        count: categoryItems.length,
+        favoriteCount: categoryItems.filter(i => i.favorite).length
       };
     });
   }, [filteredItems]);
@@ -135,24 +120,70 @@ export const VisualClosetAdapter: React.FC<VisualClosetAdapterProps> = ({
     });
   };
 
-  const handleItemClick = (item: ClothingItem) => {
+  const handleItemClick = (item: typeof items[0]) => {
     setSelectedItem(item);
     setShowItemActions(true);
-    onItemClick(item);
   };
 
-  const handleToggleFavorite = async (e: React.MouseEvent, item: ClothingItem) => {
+  const handleToggleFavorite = async (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
-    onToggleFavorite(item.id);
+    const success = await toggleFavorite(itemId);
+    if (success) {
+      setToastMessage('Favorite updated');
+      setShowToast(true);
+    }
   };
 
   const handleDelete = async (itemId: string) => {
     setShowItemActions(false);
-    onDeleteItem(itemId);
+    const success = await deleteItem(itemId);
+    if (success) {
+      setToastMessage('Item deleted successfully');
+      setShowToast(true);
+    } else {
+      setToastMessage('Failed to delete item');
+      setShowToast(true);
+    }
   };
 
-  const totalItems = clothingItems.length;
-  const totalFavorites = clothingItems.filter(i => i.isFavorite).length;
+  const totalItems = items.length;
+  const totalFavorites = items.filter(i => i.favorite).length;
+
+  // Auto-hide toast after 3 seconds
+  useEffect(() => {
+    if (showToast) {
+      const timer = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showToast]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="visual-closet-adapter">
+        <div className="loading-container">
+          <Loader2 className="loading-spinner" size={48} />
+          <p>Loading your closet...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="visual-closet-adapter">
+        <div className="error-container">
+          <p className="error-text">Failed to load closet: {error.message}</p>
+          <button className="btn-outline" onClick={() => window.location.reload()}>
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="visual-closet-adapter">
@@ -251,35 +282,38 @@ export const VisualClosetAdapter: React.FC<VisualClosetAdapterProps> = ({
                         >
                           <div className="item-image-container">
                             <img
-                              src={item.image || item.originalImage || '/placeholder.png'}
-                              alt={item.name || 'Clothing item'}
+                              src={item.thumbnail_url || item.image_url}
+                              alt={item.name}
                               className="item-image"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src = '/placeholder.png';
                               }}
                             />
-                            {item.isFavorite && (
+                            {item.favorite && (
                               <div className="favorite-badge">
                                 <Heart size={16} fill="currentColor" color="#ff4444" />
                               </div>
                             )}
                             <button
                               className="favorite-toggle"
-                              onClick={(e) => handleToggleFavorite(e, item)}
+                              onClick={(e) => handleToggleFavorite(e, item.id)}
                             >
                               <Heart
                                 size={20}
-                                fill={item.isFavorite ? 'currentColor' : 'none'}
-                                color={item.isFavorite ? '#ff4444' : '#ffffff'}
+                                fill={item.favorite ? 'currentColor' : 'none'}
+                                color={item.favorite ? '#ff4444' : '#ffffff'}
                               />
                             </button>
                           </div>
                           <div className="item-info">
-                            <p className="item-name">
-                              {item.name || 'Unnamed Item'}
-                            </p>
+                            <p className="item-name">{item.name}</p>
                             {item.brand && (
                               <span className="item-brand">{item.brand}</span>
+                            )}
+                            {item.times_worn > 0 && (
+                              <span className="item-stats">
+                                Worn {item.times_worn}x
+                              </span>
                             )}
                           </div>
                         </div>
@@ -320,16 +354,18 @@ export const VisualClosetAdapter: React.FC<VisualClosetAdapterProps> = ({
             <div className="action-buttons">
               <button
                 className="action-btn"
-                onClick={() => {
-                  onToggleFavorite(selectedItem.id);
+                onClick={async () => {
+                  await toggleFavorite(selectedItem.id);
                   setShowItemActions(false);
+                  setToastMessage('Favorite updated');
+                  setShowToast(true);
                 }}
               >
                 <Heart
                   size={20}
-                  fill={selectedItem.isFavorite ? 'currentColor' : 'none'}
+                  fill={selectedItem.favorite ? 'currentColor' : 'none'}
                 />
-                {selectedItem.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                {selectedItem.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
               </button>
               <button
                 className="action-btn"
@@ -337,6 +373,16 @@ export const VisualClosetAdapter: React.FC<VisualClosetAdapterProps> = ({
               >
                 <Edit2 size={20} />
                 Edit Item
+              </button>
+              <button
+                className="action-btn"
+                onClick={() => {
+                  // TODO: Implement share functionality
+                  setShowItemActions(false);
+                }}
+              >
+                <Share2 size={20} />
+                Share Item
               </button>
               <button
                 className="action-btn danger"
@@ -354,6 +400,22 @@ export const VisualClosetAdapter: React.FC<VisualClosetAdapterProps> = ({
             </div>
           </div>
         </>
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="toast-container">
+          <div className="toast glass-card">
+            <CheckCircle size={20} color="#34C759" />
+            <span>{toastMessage}</span>
+            <button
+              className="toast-close"
+              onClick={() => setShowToast(false)}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

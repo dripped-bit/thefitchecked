@@ -1850,26 +1850,8 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
           {currentView === 'interior' && (
             <VisualClosetAdapter
-              clothingItems={clothingItems}
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-              onItemClick={(item) => {
-                console.log('Item clicked:', item);
-              }}
               onAddItem={() => {
                 fileInputRef.current?.click();
-              }}
-              onDeleteItem={(itemId) => {
-                const item = clothingItems.find(i => i.id === itemId);
-                if (item) {
-                  handleDeleteClick(item);
-                }
-              }}
-              onToggleFavorite={(itemId) => {
-                const item = clothingItems.find(i => i.id === itemId);
-                if (item) {
-                  handleToggleFavorite(item);
-                }
               }}
             />
           )}
