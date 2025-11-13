@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, ChevronRight, ChevronLeft } from 'lucide-react';
+import { ShoppingBag, ChevronRight, ChevronLeft, X } from 'lucide-react';
 import SmartOccasionInput, { ParsedOccasion, SmartSuggestion, BudgetRange } from './SmartOccasionInput';
 import TripleOutfitGenerator, { GeneratedOutfit } from './TripleOutfitGenerator';
 import IntegratedShopping from './IntegratedShopping';
@@ -40,17 +40,13 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
   const [showSaveToCalendarModal, setShowSaveToCalendarModal] = useState(false);
   const [collectedShoppingLinks, setCollectedShoppingLinks] = useState<ProductSearchResult[]>([]);
 
-  // Budget selection modal state
-  const [showBudgetModal, setShowBudgetModal] = useState(false);
-  const [selectedBudget, setSelectedBudget] = useState<BudgetRange | null>(null);
-  const [currentBudgetIndex, setCurrentBudgetIndex] = useState(0);
-
+  // Budget selection state (default to middle tier)
   const budgetTiers = [
-    { label: 'Value', range: '$1-50', icon: '🏷️', min: 1, max: 50 },
-    { label: 'Budget', range: '$50-100', icon: '💰', min: 50, max: 100 },
-    { label: 'Mid-Range', range: '$100-250', icon: '💎', min: 100, max: 250 },
-    { label: 'Premium', range: '$250+', icon: '👑', min: 250, max: 1000 }
+    { label: 'Value', range: '$1-50', icon: '💵', min: 1, max: 50 },
+    { label: 'Budget', range: '$50-150', icon: '💳', min: 50, max: 150 },
+    { label: 'Premium', range: '$150+', icon: '💎', min: 150, max: 999999 }
   ];
+  const [selectedBudget, setSelectedBudget] = useState<BudgetRange | null>(budgetTiers[1]); // Default to middle tier
 
   const handleOccasionParsed = (occasion: ParsedOccasion) => {
     setParsedOccasion(occasion);
@@ -212,12 +208,6 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
     setCollectedShoppingLinks(products);
   };
 
-  const handleBudgetSelect = (budget: BudgetRange) => {
-    setSelectedBudget(budget);
-    setShowBudgetModal(false);
-    setCurrentState('shopping');
-  };
-
   const handleCalendarSaveComplete = (calendarEntry: any) => {
     console.log('✅ [CALENDAR] Outfit saved successfully:', {
       id: calendarEntry.id,
@@ -323,7 +313,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
             avatarData={avatarData}
             onOutfitSelected={handleOutfitSelected}
             onOutfitApplied={handleOutfitApplied}
-            onShopThisLook={() => setShowBudgetModal(true)}
+            onShopThisLook={() => setCurrentState('shopping')}
             hasTriedOn={hasTriedOn}
           />
         </div>
@@ -402,67 +392,6 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
           onSave={handleCalendarSaveComplete}
           onClose={() => setShowSaveToCalendarModal(false)}
         />
-      )}
-
-      {/* Budget Selection Modal */}
-      {showBudgetModal && selectedOutfit && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <div className="text-center mb-6">
-              <div className="inline-flex w-16 h-16 bg-gradient-to-r from-green-600 to-blue-600 rounded-full items-center justify-center text-white mb-4">
-                <ShoppingBag className="w-8 h-8" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Choose Your Budget</h3>
-              <p className="text-gray-600">
-                Select your budget range to find the best products for your {selectedOutfit.personality.name} outfit
-              </p>
-            </div>
-
-            {/* Budget Selector with Arrows */}
-            <div className="flex items-center justify-center gap-4 py-6">
-              <button
-                onClick={() => setCurrentBudgetIndex((prev) => (prev - 1 + budgetTiers.length) % budgetTiers.length)}
-                className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full hover:from-green-100 hover:to-blue-100 transition-all shadow-md active:scale-95"
-              >
-                <ChevronLeft className="w-6 h-6 text-gray-700" />
-              </button>
-
-              <div className="flex-1 max-w-xs">
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-2xl p-6 text-center shadow-lg">
-                  <div className="text-4xl mb-2">{budgetTiers[currentBudgetIndex].icon}</div>
-                  <div className="text-xl font-bold text-gray-900 mb-1">
-                    {budgetTiers[currentBudgetIndex].label}
-                  </div>
-                  <div className="text-lg text-gray-700 font-semibold">
-                    {budgetTiers[currentBudgetIndex].range}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setCurrentBudgetIndex((prev) => (prev + 1) % budgetTiers.length)}
-                className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full hover:from-green-100 hover:to-blue-100 transition-all shadow-md active:scale-95"
-              >
-                <ChevronRight className="w-6 h-6 text-gray-700" />
-              </button>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowBudgetModal(false)}
-                className="flex-1 px-4 py-3 text-gray-600 hover:text-gray-900 border-2 border-gray-300 rounded-xl transition-colors font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleBudgetSelect(budgetTiers[currentBudgetIndex])}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl font-medium hover:shadow-lg transition-all active:scale-95"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

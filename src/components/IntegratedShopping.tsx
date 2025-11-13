@@ -53,32 +53,18 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   const [shoppingSections, setShoppingSections] = useState<ShoppingSection[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchProgress, setSearchProgress] = useState('');
-  const [selectedBudget, setSelectedBudget] = useState<'all' | 'value' | 'budget' | 'mid' | 'luxury' | null>(null);
   const [savedToCalendar, setSavedToCalendar] = useState(false);
   const [clickedProducts, setClickedProducts] = useState<ProductSearchResult[]>([]);
 
-  // Auto-set budget filter based on budget prop
-  useEffect(() => {
-    if (budget) {
-      console.log('💰 [BUDGET] Auto-setting budget filter from budget prop:', budget);
+  // Budget tiers matching SmartOccasionPlanner
+  const budgetTiers = [
+    { label: 'Value', range: '$1-50', min: 1, max: 50 },
+    { label: 'Budget', range: '$50-150', min: 50, max: 150 },
+    { label: 'Premium', range: '$150+', min: 150, max: 999999 }
+  ];
 
-      // Map budget to IntegratedShopping budget categories
-      // Budget: Value ($1-50), Budget ($50-100), Mid-Range ($100-250), Premium ($250+)
-      // IntegratedShopping: value ($1-50), budget ($50-100), mid ($100-250), luxury ($250+)
-      const budgetMap: Record<string, 'value' | 'budget' | 'mid' | 'luxury'> = {
-        'Value': 'value',        // $1-50 → value ($1-50)
-        'Budget': 'budget',      // $50-100 → budget ($50-100)
-        'Mid-Range': 'mid',      // $100-250 → mid ($100-250)
-        'Premium': 'luxury'      // $250+ → luxury ($250+)
-      };
-
-      const mappedBudget = budgetMap[budget.label];
-      if (mappedBudget) {
-        setSelectedBudget(mappedBudget);
-        console.log(`✅ [BUDGET] Budget filter set to: ${mappedBudget} (from ${budget.label})`);
-      }
-    }
-  }, [budget]);
+  // Default to middle tier (Budget)
+  const [activeBudgetIndex, setActiveBudgetIndex] = useState(1);
 
   // Notify parent when clicked products change
   useEffect(() => {
@@ -346,25 +332,13 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   };
 
   const getBudgetFilteredSections = () => {
-    // If no budget selected, return empty array (hide products)
-    if (selectedBudget === null) return [];
-
-    if (selectedBudget === 'all') return shoppingSections;
+    const selectedTier = budgetTiers[activeBudgetIndex];
 
     return shoppingSections.map(section => ({
       ...section,
       products: section.products.filter(product => {
-        const price = parseInt(product.price.replace('$', ''));
-        switch (selectedBudget) {
-          case 'budget':
-            return price < 70;
-          case 'mid':
-            return price >= 70 && price <= 150;
-          case 'luxury':
-            return price > 150;
-          default:
-            return true;
-        }
+        const price = parseInt(product.price.replace(/[$,]/g, ''));
+        return price >= selectedTier.min && price <= selectedTier.max;
       })
     })).filter(section => section.products.length > 0);
   };
@@ -476,57 +450,31 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
           </div>
         </div>
 
-        {/* Budget Filter */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-4">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Filter by budget:</span>
-            {occasion.budgetRange && (
-              <span className="text-xs text-purple-600 font-medium bg-purple-50 px-2 py-1 rounded-full">
-                ✓ Auto-selected: {occasion.budgetRange.range}
-              </span>
-            )}
-          </div>
-          <div className="flex space-x-2">
-            {[
-              { id: 'all', label: 'All', range: '' },
-              { id: 'value', label: 'Value', range: '$1-$50' },
-              { id: 'budget', label: 'Budget', range: '$50-$100' },
-              { id: 'mid', label: 'Mid-range', range: '$100-$250' },
-              { id: 'luxury', label: 'Luxury', range: '$250+' }
-            ].map((option) => (
+        {/* Apple-Style Segmented Control for Budget Selection */}
+        <div className="flex justify-center">
+          <div className="inline-flex bg-ios-gray-5 rounded-ios-lg p-1" role="group">
+            {budgetTiers.map((tier, index) => (
               <button
-                key={option.id}
-                onClick={() => setSelectedBudget(option.id as any)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedBudget === option.id
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                key={tier.label}
+                onClick={() => setActiveBudgetIndex(index)}
+                className={`px-6 py-3 rounded-ios-md transition-all duration-200 ${
+                  activeBudgetIndex === index
+                    ? 'bg-white text-ios-label shadow-ios-sm'
+                    : 'text-ios-label-secondary hover:text-ios-label'
                 }`}
               >
-                {option.label}
-                {option.range && <span className="block text-xs opacity-75">{option.range}</span>}
+                <div className={`font-semibold ${activeBudgetIndex === index ? 'text-ios-label' : ''}`}>
+                  {tier.label}
+                </div>
+                <div className={`text-xs mt-0.5 ${
+                  activeBudgetIndex === index ? 'text-ios-label-secondary' : 'text-ios-label-tertiary'
+                }`}>
+                  {tier.range}
+                </div>
               </button>
             ))}
           </div>
         </div>
-
-        {/* Select Budget Prompt (shown when no budget selected) */}
-        {selectedBudget === null && shoppingSections.length > 0 && (
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-2xl p-12 text-center">
-            <div className="max-w-md mx-auto space-y-4">
-              <div className="text-6xl mb-4">💰</div>
-              <h3 className="text-2xl font-bold text-gray-900">Select Your Budget First</h3>
-              <p className="text-gray-600 text-lg">
-                Choose a budget range above to see matching products
-              </p>
-              <div className="flex items-center justify-center space-x-2 text-sm text-purple-600 mt-6">
-                <span>👆</span>
-                <span className="font-medium">Pick a budget filter to view options</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Shopping Sections */}
         <div className="space-y-8">
