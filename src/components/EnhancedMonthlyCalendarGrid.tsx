@@ -259,37 +259,37 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
         </div>
       </div>
 
-      {/* Liquid Glass Calendar Header */}
+      {/* Weekday Headers - Part of scrollable area */}
+      {/* Scrollable Calendar Area */}
       <div 
-        className="border-b sticky"
-        style={{
-          top: '44px',
-          zIndex: 30,
-          backdropFilter: 'blur(30px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(30px) saturate(180%)',
-          background: 'rgba(255, 255, 255, 0.75)',
-          borderBottom: '0.5px solid rgba(0, 0, 0, 0.04)',
-        }}
-      >
-        <div className="px-4 py-2">
-
-          <div className="grid grid-cols-7 gap-1">
-            {weekDays.map((day) => (
-              <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
-                {day}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div 
-        className="flex-1 overflow-y-auto overflow-x-hidden p-4" 
+        className="flex-1 overflow-y-auto overflow-x-hidden" 
         style={{ 
-          width: '100%',
           WebkitOverflowScrolling: 'touch'
         }}
       >
+        {/* Liquid Glass Calendar Header */}
+        <div 
+          className="border-b sticky top-0"
+          style={{
+            zIndex: 30,
+            backdropFilter: 'blur(30px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+            background: 'rgba(255, 255, 255, 0.75)',
+            borderBottom: '0.5px solid rgba(0, 0, 0, 0.04)',
+          }}
+        >
+          <div className="px-4 py-2">
+            <div className="grid grid-cols-7 gap-1">
+              {weekDays.map((day) => (
+                <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
+                  {day}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-500">Loading calendar...</div>
@@ -314,15 +314,19 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
             })}
           </div>
         )}
+        </div>
       </div>
 
-      <CalendarStatsPanel
+      {/* Fixed Stats Panel at Bottom */}
+      <div className="flex-shrink-0 pb-safe">
+        <CalendarStatsPanel
         mostWornItem={monthStats.mostWornItem}
         currentStreak={monthStats.currentStreak}
-        totalPlanned={monthStats.totalPlanned}
-        totalWorn={monthStats.totalWorn}
-        month={monthName}
-      />
+          totalPlanned={monthStats.totalPlanned}
+          totalWorn={monthStats.totalWorn}
+          month={monthName}
+        />
+      </div>
 
       {selectedDate && (
         <ScheduleOutfitModal
