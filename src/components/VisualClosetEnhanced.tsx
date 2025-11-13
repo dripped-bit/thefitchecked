@@ -177,33 +177,6 @@ const VisualClosetEnhanced: React.FC = () => {
 
   return (
     <div className="visual-closet-adapter">
-      {/* Header */}
-      <div className="visual-closet-header glass-card">
-        <div className="search-container">
-          <Search className="search-icon" size={20} />
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Search your closet..."
-            className="search-input"
-          />
-        </div>
-
-        {/* Quick Stats */}
-        <div className="stats-container">
-          <div className="stat-chip glass-card">
-            <span className="stat-value">{items.length}</span>
-            <span className="stat-label">Total Items</span>
-          </div>
-          <div className="stat-chip glass-card">
-            <Heart className="stat-icon" size={16} fill="currentColor" />
-            <span className="stat-value">{items.filter(i => i.favorite).length}</span>
-            <span className="stat-label">Favorites</span>
-          </div>
-        </div>
-      </div>
-
       {/* Closet Grid */}
       <div className="closet-grid">
         {categoryData.map((category) => {
@@ -219,12 +192,7 @@ const VisualClosetEnhanced: React.FC = () => {
               >
                 <div className="section-header-content">
                   <div className="section-info">
-                    <h3 className="section-title">
-                      {category.title} {category.items.length}
-                      {categoryStats.favoriteCount > 0 && (
-                        <span className="text-sm ml-2">· {categoryStats.favoriteCount} ❤️</span>
-                      )}
-                    </h3>
+                    <h3 className="section-title">{category.title}</h3>
                     <p className="section-description">{category.description}</p>
                   </div>
                 </div>
@@ -238,11 +206,19 @@ const VisualClosetEnhanced: React.FC = () => {
                   >
                     <Plus size={20} />
                   </button>
-                  {isExpanded ? (
-                    <ChevronUp className="expand-icon" size={20} />
-                  ) : (
-                    <ChevronDown className="expand-icon" size={20} />
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-700">
+                      {category.items.length}
+                      {categoryStats.favoriteCount > 0 && (
+                        <span className="text-xs ml-1">· {categoryStats.favoriteCount} ❤️</span>
+                      )}
+                    </span>
+                    {isExpanded ? (
+                      <ChevronUp className="expand-icon" size={20} />
+                    ) : (
+                      <ChevronDown className="expand-icon" size={20} />
+                    )}
+                  </div>
                 </div>
               </div>
 
