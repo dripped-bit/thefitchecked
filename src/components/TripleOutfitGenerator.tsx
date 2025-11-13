@@ -101,7 +101,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       description: 'tailored silhouette, classic lines, refined details, structured pieces, timeless elegance',
       colorPalette: 'classic neutrals, navy, black, ivory, burgundy, or emerald',
       silhouette: 'tailored and structured, fitted waist, clean lines',
-      negativeExclusions: 'casual, bohemian, loose-fitting, distressed, oversized'
+      negativeExclusions: 'casual, bohemian, loose-fitting, distressed, oversized, buckles, clasps, metal hardware, leather details, cutouts, asymmetric cuts, deconstructed, studs, chains, grommets, safety pins, ripped, torn, frayed'
     },
     {
       name: 'Edgy',
@@ -147,7 +147,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     const vibeMap: { [key: string]: string } = {
       'elegant': 'Elegant',
       'romantic': 'Romantic',
-      'bold': 'Edgy',        // Map 'bold' → 'Edgy'
+      'bold': 'Glam',        // Map 'bold' → 'Glam' (glamorous/confident elegant)
       'minimalist': 'Minimalist',
       'bohemian': 'Bohemian',
       'classic': 'Elegant',   // Map 'classic' → 'Elegant'
@@ -162,47 +162,42 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
 
   /**
    * Get the 3 style interpretations to use for outfit generation
-   * Priority: User's saved vibes → Default (Romantic, Elegant, Edgy)
+   * Priority: User's primary style + complementary variations
    */
   const getStyleInterpretationsForGeneration = (): typeof styleInterpretations => {
     if (userStyleVibes.length === 0) {
-      // No user preferences - use defaults
+      // No user preferences - use elegant-focused defaults
       return [
         styleInterpretations[0], // Romantic
-        styleInterpretations[1], // Elegant  
-        styleInterpretations[2]  // Edgy
+        styleInterpretations[1], // Elegant
+        styleInterpretations[5]  // Glam (instead of Edgy)
       ];
     }
-    
-    // Map user's vibes to interpretations
-    const userStyles = userStyleVibes
-      .slice(0, 3)  // Take up to 3
-      .map(vibe => mapVibeToInterpretation(vibe));
-    
-    // If user only selected 2, add default 3rd
-    if (userStyles.length === 2) {
-      const hasClassic = userStyles.some(s => s.name === 'Elegant');
-      const hasCasual = userStyles.some(s => s.name === 'Minimalist');
-      
-      // Add Classic (Elegant) if not present
-      if (!hasClassic) {
-        userStyles.push(styleInterpretations.find(s => s.name === 'Elegant')!);
-      } else if (!hasCasual) {
-        // Otherwise add Casual (Minimalist)
-        userStyles.push(styleInterpretations.find(s => s.name === 'Minimalist')!);
-      } else {
-        // Both present, add Romantic as 3rd
-        userStyles.push(styleInterpretations[0]);
-      }
-    }
-    
-    // If user only selected 1, fill with defaults
-    if (userStyles.length === 1) {
-      userStyles.push(styleInterpretations[1]); // Elegant
-      userStyles.push(styleInterpretations[3]); // Minimalist
-    }
-    
-    console.log('🎨 Using style interpretations:', userStyles.map(s => s.name));
+
+    // Get user's primary style (first vibe)
+    const primaryStyle = mapVibeToInterpretation(userStyleVibes[0]);
+
+    // Create complementary variations based on primary style
+    // Each primary style gets 2 complementary styles that share similar aesthetics
+    const styleVariations: { [key: string]: string[] } = {
+      'Elegant': ['Elegant', 'Romantic', 'Glam'],      // Classic elegant + romantic + glamorous
+      'Romantic': ['Romantic', 'Elegant', 'Bohemian'], // Romantic + elegant + free-spirited
+      'Glam': ['Glam', 'Elegant', 'Romantic'],         // Glamorous + elegant + romantic
+      'Minimalist': ['Minimalist', 'Elegant', 'Casual'], // Minimalist + elegant + relaxed
+      'Bohemian': ['Bohemian', 'Romantic', 'Casual'],  // Boho + romantic + casual
+      'Casual': ['Casual', 'Minimalist', 'Bohemian'],  // Casual + minimalist + boho
+      'Edgy': ['Edgy', 'Glam', 'Minimalist']           // Edgy + glam + minimalist
+    };
+
+    // Get variation style names for user's primary style
+    const variationNames = styleVariations[primaryStyle.name] || ['Elegant', 'Romantic', 'Glam'];
+
+    // Map variation names to style interpretation objects
+    const userStyles = variationNames.map(name =>
+      styleInterpretations.find(s => s.name === name)!
+    );
+
+    console.log('🎨 Primary style:', primaryStyle.name, '→ Variations:', userStyles.map(s => s.name));
     return userStyles as typeof styleInterpretations;
   };
 
