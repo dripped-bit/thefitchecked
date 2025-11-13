@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, RefreshCw, Plus, SlidersHorizontal } from 'lucide-react';
 import CalendarDayCell from './CalendarDayCell';
 import CalendarStatsPanel from './CalendarStatsPanel';
 import ScheduleOutfitModal from './ScheduleOutfitModal';
@@ -225,33 +225,102 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full bg-gray-50" style={{ maxWidth: '100%', width: '100%' }}>
-      <div className="bg-white border-b border-gray-200 p-4" style={{ maxWidth: '100%' }}>
-        <div className="flex items-center justify-center mb-4">
+      {/* Liquid Glass Toolbar */}
+      <div 
+        className="sticky top-0 z-40 border-b"
+        style={{
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          background: 'rgba(255, 255, 255, 0.8)',
+          borderBottom: '0.5px solid rgba(0, 0, 0, 0.04)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+        }}
+      >
+        <div className="flex items-center justify-between px-4 py-2" style={{ minHeight: '44px' }}>
+          {/* Left Actions */}
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => console.log('Search outfits')}
+              className="p-2.5 hover:bg-gray-100/80 rounded-full transition-all active:scale-95"
+              style={{ minWidth: '44px', minHeight: '44px' }}
+              aria-label="Search outfits"
+            >
+              <Search className="w-5 h-5 text-gray-700" />
+            </button>
+            <button
+              onClick={fetchMonthData}
+              className="p-2.5 hover:bg-gray-100/80 rounded-full transition-all active:scale-95"
+              style={{ minWidth: '44px', minHeight: '44px' }}
+              aria-label="Refresh calendar"
+            >
+              <RefreshCw className="w-5 h-5 text-gray-700" />
+            </button>
+          </div>
+
+          {/* Center - Month Title */}
           <div className="flex items-center space-x-2">
             <button
               onClick={handlePreviousMonth}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-100/80 rounded-full transition-all active:scale-95"
+              aria-label="Previous month"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-5 h-5 text-gray-700" />
             </button>
-            <span className="text-2xl font-bold text-gray-900 min-w-[240px] text-center">
+            <span className="text-xl font-bold text-gray-900 min-w-[200px] text-center">
               {monthName}
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-100/80 rounded-full transition-all active:scale-95"
+              aria-label="Next month"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-5 h-5 text-gray-700" />
+            </button>
+          </div>
+
+          {/* Right Actions */}
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="p-2.5 hover:bg-blue-100/80 rounded-full transition-all active:scale-95"
+              style={{ minWidth: '44px', minHeight: '44px' }}
+              aria-label="Add outfit"
+            >
+              <Plus className="w-5 h-5 text-blue-600" />
+            </button>
+            <button
+              onClick={() => console.log('Open filters')}
+              className="p-2.5 hover:bg-gray-100/80 rounded-full transition-all active:scale-95"
+              style={{ minWidth: '44px', minHeight: '44px' }}
+              aria-label="Filter options"
+            >
+              <SlidersHorizontal className="w-5 h-5 text-gray-700" />
             </button>
           </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-7 gap-1">
-          {weekDays.map((day) => (
-            <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
-              {day}
-            </div>
-          ))}
+      {/* Liquid Glass Calendar Header */}
+      <div 
+        className="border-b sticky"
+        style={{
+          top: '44px',
+          zIndex: 30,
+          backdropFilter: 'blur(30px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(180%)',
+          background: 'rgba(255, 255, 255, 0.75)',
+          borderBottom: '0.5px solid rgba(0, 0, 0, 0.04)',
+        }}
+      >
+        <div className="px-4 py-2">
+
+          <div className="grid grid-cols-7 gap-1">
+            {weekDays.map((day) => (
+              <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
+                {day}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

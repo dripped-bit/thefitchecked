@@ -74,24 +74,26 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
       className={cn(
         // Fixed positioning
         'fixed bottom-0 left-0 right-0 z-50',
-        // Safe area for iPhone home indicator
-        'pb-safe',
+        // Safe area for iPhone home indicator - proper iOS bottom padding
+        'pb-[env(safe-area-inset-bottom)]',
         'px-safe',
         // Smooth transition
-        'transition-all duration-300',
+        'transition-all duration-300 ease-out',
         className
       )}
       style={{
-        backdropFilter: 'blur(30px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(30px) saturate(200%)',
-        background: 'rgba(255, 255, 255, 0.72)',
+        // iOS 18 Liquid Glass effect
+        backdropFilter: 'blur(40px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+        background: 'rgba(255, 255, 255, 0.80)',
+        // Subtle border and shadow for depth
         borderTop: '0.5px solid rgba(0, 0, 0, 0.04)',
-        boxShadow: '0 -0.5px 0 0 rgba(0, 0, 0, 0.04), 0 -1px 8px 0 rgba(0, 0, 0, 0.02)'
+        boxShadow: '0 -1px 3px 0 rgba(0, 0, 0, 0.03), 0 -1px 10px 0 rgba(0, 0, 0, 0.02), 0 -4px 16px 0 rgba(0, 0, 0, 0.01)'
       }}
       role="tablist"
       aria-label="Main navigation"
     >
-      <div className="flex items-center justify-around h-[49px] gap-3 px-2">
+      <div className="flex items-center justify-around h-[49px] gap-4 px-3">
         {displayTabs.map((tab, index) => {
           const isActive = tab.id === activeTab;
 
@@ -106,12 +108,18 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
                   'min-w-[44px] min-h-[44px]',
                   // Flex to fill space evenly
                   'flex-1',
-                  // Transition
-                  'transition-all duration-200',
-                  // Active state
+                  // Smooth transitions for all properties
+                  'transition-all duration-200 ease-out',
+                  // Active pill background
+                  isActive && 'bg-gray-100/80',
+                  // Rounded pill shape for active state
+                  'rounded-full',
+                  // Hover state for inactive tabs
+                  !isActive && 'hover:bg-gray-50/50',
+                  // Active state - subtle scale
                   'active:scale-95',
-                  // Focus styles
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ios-blue)] focus-visible:ring-offset-2'
+                  // Focus styles for accessibility
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2'
                 )}
                 role="tab"
                 aria-selected={isActive}
@@ -121,14 +129,18 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
               <div
                 className={cn(
                   'relative flex items-center justify-center',
-                  'transition-all duration-200',
-                  // Icon size
-                  'w-6 h-6',
-                  // Color based on active state
+                  'transition-all duration-200 ease-out',
+                  // Icon size - slightly larger for modern iOS
+                  'w-[26px] h-[26px]',
+                  // Color based on active state - iOS blue for active
                   isActive
-                    ? 'text-[#007AFF]'
-                    : 'text-[#8E8E93]'
+                    ? 'text-blue-600'
+                    : 'text-gray-600'
                 )}
+                style={{
+                  // Smooth transform on active
+                  transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                }}
               >
                 {tab.icon}
 
@@ -155,26 +167,31 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
               {/* Label */}
               <span
                 className={cn(
-                  'mt-0.5 text-[10px] font-medium',
-                  'transition-all duration-200',
+                  'mt-1 text-[10px] font-medium tracking-tight',
+                  'transition-all duration-200 ease-out',
                   // Color based on active state
                   isActive
-                    ? 'text-[#007AFF]'
-                    : 'text-[#8E8E93]'
+                    ? 'text-blue-600'
+                    : 'text-gray-600'
                 )}
+                style={{
+                  // Slightly bolder when active
+                  fontWeight: isActive ? 600 : 500,
+                }}
               >
                 {tab.label}
               </span>
               </button>
               
-              {/* Glass divider between tabs (not after last tab) */}
+              {/* Subtle glass divider between tabs (not after last tab) */}
               {index < displayTabs.length - 1 && (
                 <div
-                  className="h-8 w-px"
+                  className="h-8 w-px transition-opacity duration-200"
                   style={{
-                    background: 'linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0) 100%)',
-                    backdropFilter: 'blur(4px)',
-                    WebkitBackdropFilter: 'blur(4px)',
+                    background: 'linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.06) 50%, rgba(0, 0, 0, 0) 100%)',
+                    backdropFilter: 'blur(2px)',
+                    WebkitBackdropFilter: 'blur(2px)',
+                    opacity: 0.5,
                   }}
                   aria-hidden="true"
                 />

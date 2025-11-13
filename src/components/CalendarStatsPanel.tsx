@@ -24,10 +24,27 @@ export const CalendarStatsPanel: React.FC<CalendarStatsPanelProps> = ({
   month,
 }) => {
   return (
-    <div className="bg-white border-t border-gray-200 p-4 space-y-4">
+    <div 
+      className="border-t p-4 space-y-4"
+      style={{
+        backdropFilter: 'blur(40px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+        background: 'rgba(255, 255, 255, 0.8)',
+        borderTop: '0.5px solid rgba(0, 0, 0, 0.04)',
+        boxShadow: '0 -1px 3px 0 rgba(0, 0, 0, 0.02), 0 -1px 2px 0 rgba(0, 0, 0, 0.03)',
+      }}
+    >
       {/* Most Worn This Month */}
       {mostWornItem && (
-        <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+        <div 
+          className="flex items-center space-x-4 p-3 rounded-xl"
+          style={{
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            background: 'rgba(249, 250, 251, 0.6)',
+            border: '1px solid rgba(0, 0, 0, 0.04)',
+          }}
+        >
           <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
             <img
               src={mostWornItem.image_url}
@@ -47,7 +64,15 @@ export const CalendarStatsPanel: React.FC<CalendarStatsPanelProps> = ({
       )}
 
       {/* Streak Counter */}
-      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+      <div 
+        className="flex items-center justify-between p-3 rounded-xl"
+        style={{
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          background: 'linear-gradient(135deg, rgba(239, 246, 255, 0.8) 0%, rgba(245, 243, 255, 0.8) 100%)',
+          border: '1px solid rgba(59, 130, 246, 0.1)',
+        }}
+      >
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-blue-600" />
@@ -64,11 +89,27 @@ export const CalendarStatsPanel: React.FC<CalendarStatsPanelProps> = ({
 
       {/* Monthly Summary */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="p-3 bg-gray-50 rounded-lg">
+        <div 
+          className="p-3 rounded-xl"
+          style={{
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            background: 'rgba(249, 250, 251, 0.6)',
+            border: '1px solid rgba(0, 0, 0, 0.04)',
+          }}
+        >
           <div className="text-2xl font-bold text-gray-900">{totalPlanned}</div>
           <div className="text-sm text-gray-600">Outfits Planned</div>
         </div>
-        <div className="p-3 bg-gray-50 rounded-lg">
+        <div 
+          className="p-3 rounded-xl"
+          style={{
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            background: 'rgba(236, 253, 245, 0.6)',
+            border: '1px solid rgba(34, 197, 94, 0.1)',
+          }}
+        >
           <div className="text-2xl font-bold text-green-600">{totalWorn}</div>
           <div className="text-sm text-gray-600">Outfits Worn</div>
         </div>
