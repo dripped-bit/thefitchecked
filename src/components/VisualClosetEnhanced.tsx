@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Camera as CapacitorCamera } from '@capacitor/camera';
 import { useCloset, ClothingCategory } from '../hooks/useCloset';
+import backgroundRemovalService from '../services/backgroundRemovalService';
 import '../styles/VisualClosetAdapter.css';
 
 interface CategoryConfig {
@@ -197,10 +198,25 @@ const VisualClosetEnhanced: React.FC = () => {
     if (!capturedImage || !selectedCategory) return;
 
     try {
+      console.log('🎨 [CLOSET] Processing image with background removal...');
+      
+      // Step 1: Remove background from image
+      const bgRemovalResult = await backgroundRemovalService.removeBackground(capturedImage);
+      const processedImageUrl = bgRemovalResult.success && bgRemovalResult.imageUrl 
+        ? bgRemovalResult.imageUrl 
+        : capturedImage;
+
+      if (bgRemovalResult.fallback) {
+        console.warn('⚠️ [CLOSET] Background removal used fallback:', bgRemovalResult.originalError);
+      } else {
+        console.log('✅ [CLOSET] Background removed successfully');
+      }
+
+      // Step 2: Save item with processed image
       const newItem = await addItem({
         name: itemDetails.name || `New ${selectedCategory} item`,
         category: selectedCategory,
-        image_url: capturedImage,
+        image_url: processedImageUrl, // Use processed image with background removed
         brand: itemDetails.brand || undefined,
         price: itemDetails.price ? parseFloat(itemDetails.price) : undefined,
         notes: itemDetails.description || undefined,
