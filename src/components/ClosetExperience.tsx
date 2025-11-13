@@ -1338,7 +1338,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           padding: '0.35rem 0.5rem'
         }}
       >
-        <div className="flex items-end justify-start py-0.5 px-1">
+        <div className="flex items-end justify-between py-0.5 px-1">
           <h1
             className="font-semibold tracking-wider"
             style={{
@@ -1355,6 +1355,26 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           >
             WARDROBE
           </h1>
+
+          {/* Add Item Button */}
+          <button
+            onClick={() => {
+              // Trigger add item modal - will pass to VisualClosetEnhanced
+              const event = new CustomEvent('openAddItemModal');
+              window.dispatchEvent(event);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all active:scale-95"
+            style={{
+              background: 'rgba(255, 255, 255, 0.3)',
+              backdropFilter: 'blur(10px)',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: '#4A4A4A',
+            }}
+          >
+            <Plus size={18} />
+            <span>Add Item</span>
+          </button>
         </div>
       </div>
 

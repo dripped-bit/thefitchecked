@@ -104,6 +104,18 @@ const VisualClosetEnhanced: React.FC = () => {
     price: '',
     description: ''
   });
+  const [selectedItemCategory, setSelectedItemCategory] = useState<ClothingCategory>('tops');
+
+  // Listen for Add Item button click from header
+  useEffect(() => {
+    const handleOpenAddItem = () => {
+      setShowUploadModal(true);
+      setSelectedCategory(null); // Let user choose category
+    };
+
+    window.addEventListener('openAddItemModal', handleOpenAddItem);
+    return () => window.removeEventListener('openAddItemModal', handleOpenAddItem);
+  }, []);
 
   // Filter items based on search
   const filteredItems = useMemo(() => {
@@ -412,48 +424,6 @@ const VisualClosetEnhanced: React.FC = () => {
           );
         })}
 
-        {/* Add Item Button at Bottom of Closet */}
-        <div className="closet-section">
-          <button
-            className="add-item-bottom-btn"
-            onClick={() => handleAddItem()}
-            style={{
-              width: '100%',
-              padding: '20px',
-              borderRadius: '16px',
-              border: 'none',
-              background: 'linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 100%)',
-              opacity: '0.3',
-              color: '#4A4A4A',
-              fontSize: '17px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              transition: 'all 0.3s ease',
-              backdropFilter: 'blur(20px)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '0.5';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '0.3';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-            onMouseDown={(e) => {
-              e.currentTarget.style.transform = 'scale(0.98)';
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-          >
-            <Plus size={24} />
-            <span>Add Item</span>
-          </button>
-        </div>
       </div>
 
 
@@ -698,6 +668,39 @@ const VisualClosetEnhanced: React.FC = () => {
                     fontSize: '16px'
                   }}
                 />
+              </div>
+
+              {/* Clothing Type Selector */}
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Clothing Type *
+                </label>
+                <select
+                  value={selectedItemCategory}
+                  onChange={(e) => {
+                    setSelectedItemCategory(e.target.value as ClothingCategory);
+                    setSelectedCategory(e.target.value as ClothingCategory);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="tops">👕 Tops & Blouses</option>
+                  <option value="bottoms">👖 Bottoms</option>
+                  <option value="dresses">👗 Dresses</option>
+                  <option value="outerwear">🧥 Outerwear</option>
+                  <option value="shoes">👟 Shoes</option>
+                  <option value="accessories">👜 Accessories</option>
+                </select>
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                  Select where this item should be categorized
+                </p>
               </div>
 
               <div>
