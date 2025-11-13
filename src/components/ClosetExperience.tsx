@@ -171,16 +171,6 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
   const [isDragMode, setIsDragMode] = useState(false);
 
-  // Background removal settings (load from localStorage)
-  const [autoRemoveBackground, setAutoRemoveBackground] = useState<boolean>(() => {
-    const saved = localStorage.getItem('autoRemoveBackground');
-    return saved !== null ? JSON.parse(saved) : true; // Default: ON
-  });
-  const [keepOriginal, setKeepOriginal] = useState<boolean>(() => {
-    const saved = localStorage.getItem('keepOriginalImage');
-    return saved !== null ? JSON.parse(saved) : true; // Default: Keep both versions
-  });
-
   // Track which items are showing original version (item IDs)
   const [showingOriginalVersions, setShowingOriginalVersions] = useState<Set<string>>(new Set());
 
@@ -300,30 +290,9 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     }
   }, [currentView]);
 
-  // Save background removal settings to localStorage
-  useEffect(() => {
-    localStorage.setItem('autoRemoveBackground', JSON.stringify(autoRemoveBackground));
-    console.log('💾 [SETTINGS] Auto background removal:', autoRemoveBackground ? 'ON' : 'OFF');
-  }, [autoRemoveBackground]);
-
-  useEffect(() => {
-    localStorage.setItem('keepOriginalImage', JSON.stringify(keepOriginal));
-    console.log('💾 [SETTINGS] Keep original images:', keepOriginal ? 'ON' : 'OFF');
-  }, [keepOriginal]);
-
   // Initialize achievements
   useEffect(() => {
     setAchievements([
-      {
-        id: 'first-upload',
-        title: 'First Steps',
-        description: 'Upload your first clothing item',
-        icon: <Shirt className="w-5 h-5" />,
-        unlocked: clothingItems.length > 0,
-        progress: Math.min(clothingItems.length, 1),
-        maxProgress: 1,
-        category: 'organizing'
-      },
       {
         id: 'organized-closet',
         title: 'Organization Master',
@@ -1548,19 +1517,6 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
               </div>
             )}
 
-            {/* AI Features Info */}
-            {!uploadProgress.isUploading && !uploadProgress.message && (
-              <div className="mt-3 p-2 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
-                <div className="flex items-center space-x-2 mb-1">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
-                  <span className="text-xs font-medium text-purple-800">AI-Powered Processing</span>
-                </div>
-                <p className="text-xs text-purple-600">
-                  ✨ Automatic background removal • 🤖 Smart categorization • 🎨 Color detection
-                </p>
-              </div>
-            )}
-
             <input
               ref={fileInputRef}
               type="file"
@@ -1616,99 +1572,6 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="mb-6">
-            <h3 className="ios-headline mb-3">Quick Actions</h3>
-            <div className="space-y-2">
-              <button
-                onClick={() => {
-                  generateOutfitOfTheDay();
-                  setSidebarOpen(false); // Close sidebar on mobile after action
-                }}
-                className="w-full flex items-center space-x-2 bg-gradient-to-r from-orange-500 to-yellow-600 text-white py-2 px-4 rounded-lg hover:from-orange-600 hover:to-yellow-700 transition-all"
-              >
-                <Shuffle className="w-4 h-4" />
-                <span>Outfit of the Day</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Upload Settings */}
-          <div className="mb-6">
-            <h3 className="ios-headline mb-3">Upload Settings</h3>
-            <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-gray-700">Auto Remove Background</label>
-                  <p className="text-xs text-gray-500">Automatically remove backgrounds from uploads</p>
-                </div>
-                <button
-                  onClick={() => setAutoRemoveBackground(!autoRemoveBackground)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    autoRemoveBackground ? 'bg-purple-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      autoRemoveBackground ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-gray-700">Keep Original Image</label>
-                  <p className="text-xs text-gray-500">Save both original and transparent versions</p>
-                </div>
-                <button
-                  onClick={() => setKeepOriginal(!keepOriginal)}
-                  disabled={!autoRemoveBackground}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    keepOriginal && autoRemoveBackground ? 'bg-purple-600' : 'bg-gray-300'
-                  } ${!autoRemoveBackground ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      keepOriginal ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {!autoRemoveBackground && (
-                <div className="text-xs text-gray-500 italic mt-2">
-                  💡 Enable auto background removal to access advanced options
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Achievements Preview */}
-          <div>
-            <h3 className="font-semibold text-gray-800 mb-3">Recent Achievements</h3>
-            <div className="space-y-2">
-              {achievements.slice(0, 3).map((achievement) => (
-                <div
-                  key={achievement.id}
-                  className={`p-3 rounded-lg border ${
-                    achievement.unlocked ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2 mb-1">
-                    {achievement.icon}
-                    <span className="text-sm font-medium">{achievement.title}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${(achievement.progress / achievement.maxProgress) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Mobile Overlay - Click to close sidebar */}
@@ -1985,25 +1848,13 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
           {currentView === 'interior' && (
             <>
-              {/* Header Actions */}
-              <div className="flex items-center justify-between mb-6">
+              {/* Header */}
+              <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">
                   {selectedCategory === 'all' ? 'All Items' :
                    selectedCategory === 'favorites' ? 'Favorites' :
                    categories.find(c => c.id === selectedCategory)?.name}
                 </h2>
-
-                <div className="flex items-center space-x-3">
-                  <button className="flex items-center space-x-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Trophy className="w-4 h-4" />
-                    <span>Challenges</span>
-                  </button>
-
-                  <button className="flex items-center space-x-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                    <Award className="w-4 h-4" />
-                    <span>Achievements</span>
-                  </button>
-                </div>
               </div>
 
               {/* Clothing Grid */}
