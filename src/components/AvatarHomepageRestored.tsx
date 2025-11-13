@@ -823,12 +823,8 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
             {/* Tab 3: Edit Style */}
             <button
-              onClick={() => setShowUserSettingsModal(true)}
-              className={`flex-1 py-2.5 px-4 rounded-full text-sm font-medium transition-all ${
-                showUserSettingsModal
-                  ? 'bg-white text-pink-600 shadow-sm'
-                  : 'text-white/90'
-              }`}
+              onClick={onNavigateToStyleProfile}
+              className="flex-1 py-2.5 px-4 rounded-full text-sm font-medium transition-all text-white/90 hover:bg-white/10"
             >
               Edit Style
             </button>
