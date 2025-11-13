@@ -878,7 +878,7 @@ function App() {
               console.log('✅ [APP] Loading screen complete, navigating to Avatar Homepage');
               setCurrentScreen('avatarHomepage');
             }}
-            autoCompleteAfter={9000}
+            autoCompleteAfter={4500}
           />
         );
 
@@ -1096,7 +1096,7 @@ function App() {
           console.log('⚠️ [APP] Auth loading screen timeout - forcing auth complete');
           setAuthLoading(false);
         }}
-        autoCompleteAfter={10000} // 10 seconds max for auth check
+        autoCompleteAfter={5000} // 5 seconds max for auth check
       />
     );
   }
