@@ -116,6 +116,8 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
         'fixed bottom-0 left-0 right-0 z-50',
         // Transparent background - pills float above content
         'bg-transparent',
+        // Pointer events pass through container
+        'pointer-events-none',
         // Safe area for iPhone home indicator
         'pb-[env(safe-area-inset-bottom)]',
         'px-safe',
@@ -125,7 +127,7 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
       aria-label="Main navigation"
     >
       {/* Centered container for floating pills */}
-      <div className="flex items-center justify-center gap-3 py-2 px-4">
+      <div className="flex items-center justify-center gap-3 py-2 px-4 pointer-events-none">
         {groupedTabs.map((group, groupIndex) => (
           <React.Fragment key={`group-${groupIndex}`}>
             {/* Floating Glass Pill for each group */}
@@ -141,6 +143,8 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
                 'shadow-[0_4px_20px_rgba(0,0,0,0.12)]',
                 // Border for depth
                 'border border-white/40',
+                // Re-enable pointer events on pill
+                'pointer-events-auto',
                 // Smooth transitions
                 'transition-all duration-300 ease-out'
               )}

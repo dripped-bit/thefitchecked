@@ -345,12 +345,13 @@ function App() {
     }
   }, [currentScreen]);
 
-  // iOS Tab Bar Configuration with Grouped Layout
+  // iOS Tab Bar Configuration with 3-Pill Layout
+  // Pill 1: Home (solo) | Pill 2: Closet + Calendar | Pill 3: Profile (solo)
   const tabs: Tab[] = [
     { id: 'home', label: 'Home', icon: <Home className="w-6 h-6" />, route: 'avatarHomepage', group: 0 },
-    { id: 'closet', label: 'Closet', icon: <Shirt className="w-6 h-6" />, route: 'closet', group: 0 },
+    { id: 'closet', label: 'Closet', icon: <Shirt className="w-6 h-6" />, route: 'closet', group: 1 },
     { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-6 h-6" />, route: 'smartCalendar', group: 1 },
-    { id: 'profile', label: 'Profile', icon: <User className="w-6 h-6" />, route: 'profile', group: 1 },
+    { id: 'profile', label: 'Profile', icon: <User className="w-6 h-6" />, route: 'profile', group: 2 },
   ];
   const [activeTab, setActiveTab] = useState('home');
   const [appData, setAppData] = useState<AppData>({
