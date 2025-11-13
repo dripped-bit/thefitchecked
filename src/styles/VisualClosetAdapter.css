@@ -600,6 +600,7 @@
   backdrop-filter: blur(20px);
   border-radius: 16px 16px 0 0;
   padding: 24px;
+  padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   z-index: 2001;
   animation: slideUp 0.3s ease;
   max-height: 70vh;

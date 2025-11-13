@@ -1,5 +1,4 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
 
 interface OutfitItem {
   id: string;
@@ -34,77 +33,110 @@ export const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
   const dayNumber = date.getDate();
   const hasOutfit = scheduledOutfit && scheduledOutfit.outfit_items?.length > 0;
   const wasWorn = scheduledOutfit?.was_worn;
+  const firstItem = scheduledOutfit?.outfit_items[0];
+  const additionalItemsCount = (scheduledOutfit?.outfit_items?.length || 0) - 1;
 
   return (
     <div
       onClick={onClick}
-      className={`
-        relative min-h-[100px] p-2 border border-gray-200 
-        transition-all cursor-pointer hover:bg-gray-50
-        ${!isCurrentMonth ? 'bg-gray-50 opacity-50' : 'bg-white'}
-        ${isToday ? 'ring-2 ring-blue-500' : ''}
-      `}
+      className="relative overflow-hidden cursor-pointer transition-all hover:shadow-md"
+      style={{
+        aspectRatio: '1', // Square cells
+        backgroundColor: isCurrentMonth ? '#FAFAF5' : '#F5F5F0',
+        minHeight: '100px',
+      }}
     >
-      {/* Day Number */}
-      <div className="flex items-center justify-between mb-1">
-        <span
-          className={`
-            text-sm font-semibold
-            ${isToday ? 'text-blue-600' : 'text-gray-700'}
-            ${!isCurrentMonth ? 'text-gray-400' : ''}
-          `}
-        >
-          {dayNumber}
-        </span>
-        
-        {/* Worn Indicator */}
-        {wasWorn && (
-          <div className="w-2 h-2 rounded-full bg-green-500" title="Outfit worn" />
-        )}
+      {/* Date Number - Top Left */}
+      <div
+        className="absolute top-1 left-1 z-10 w-7 h-7 flex items-center justify-center rounded-full text-sm font-semibold"
+        style={{
+          backgroundColor: isToday ? '#000' : 'transparent',
+          color: isToday ? '#fff' : isCurrentMonth ? '#000' : '#999',
+        }}
+      >
+        {dayNumber}
       </div>
 
-      {/* Outfit Thumbnails */}
-      {hasOutfit && (
-        <div className="space-y-1">
-          {/* Show up to 4 items in a 2x2 grid */}
-          <div className="grid grid-cols-2 gap-1">
-            {scheduledOutfit.outfit_items.slice(0, 4).map((item) => (
-              <div
-                key={item.id}
-                className="aspect-square rounded overflow-hidden bg-gray-100 border border-gray-200"
-              >
-                <img
-                  src={item.image_url}
-                  alt={item.name}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-            ))}
-          </div>
+      {/* Worn Indicator - Top Right (small green dot) */}
+      {wasWorn && (
+        <div
+          className="absolute top-2 right-2 z-10 w-2 h-2 rounded-full"
+          style={{
+            backgroundColor: '#10B981', // Green
+            boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.8)',
+          }}
+          title="Outfit worn"
+        />
+      )}
 
-          {/* More items indicator */}
-          {scheduledOutfit.outfit_items.length > 4 && (
-            <div className="text-xs text-gray-500 text-center">
-              +{scheduledOutfit.outfit_items.length - 4} more
-            </div>
-          )}
+      {/* FULL-SIZE OUTFIT PHOTO (INDYX Style) */}
+      {hasOutfit && firstItem ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <img
+            src={firstItem.image_url}
+            alt={firstItem.name}
+            className="w-full h-full object-cover"
+            style={{
+              objectPosition: 'center top', // Show item from top
+            }}
+            loading="lazy"
+          />
 
-          {/* Occasion label */}
+          {/* Subtle gradient overlay for readability */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%)',
+            }}
+          />
+
+          {/* Occasion label at bottom */}
           {scheduledOutfit.occasion && (
-            <div className="text-xs text-gray-600 truncate">
+            <div
+              className="absolute bottom-0 left-0 right-0 px-1 py-1 text-[9px] font-medium truncate text-center"
+              style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                color: '#fff',
+              }}
+            >
               {scheduledOutfit.occasion}
             </div>
           )}
+
+          {/* Multiple items indicator - Bottom Right */}
+          {additionalItemsCount > 0 && (
+            <div
+              className="absolute bottom-1 right-1 z-10 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+              style={{
+                backgroundColor: 'rgba(255, 105, 180, 0.95)', // Pink
+                color: '#fff',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+              }}
+            >
+              +{additionalItemsCount}
+            </div>
+          )}
+        </div>
+      ) : (
+        // Empty state - show large date number
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span
+            className="text-3xl font-light"
+            style={{
+              color: isCurrentMonth ? '#E0E0E0' : '#F0F0F0',
+            }}
+          >
+            {dayNumber}
+          </span>
         </div>
       )}
 
-      {/* Empty state - show plus icon on hover */}
-      {!hasOutfit && isCurrentMonth && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-white/80">
-          <div className="text-gray-400 text-2xl">+</div>
-        </div>
-      )}
+      {/* Hover state - subtle scale */}
+      <style jsx>{`
+        div:hover {
+          transform: scale(1.02);
+        }
+      `}</style>
     </div>
   );
 };

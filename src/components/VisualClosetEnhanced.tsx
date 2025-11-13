@@ -86,7 +86,8 @@ const VisualClosetEnhanced: React.FC = () => {
     toggleFavorite,
     searchItems,
     getCategoryStats,
-    addItem
+    addItem,
+    updateItem
   } = useCloset();
 
   const [searchText, setSearchText] = useState('');
@@ -105,6 +106,8 @@ const VisualClosetEnhanced: React.FC = () => {
     description: ''
   });
   const [selectedItemCategory, setSelectedItemCategory] = useState<ClothingCategory>('tops');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<ClothingItem | null>(null);
 
   // Listen for Add Item button click from header
   useEffect(() => {
@@ -276,9 +279,43 @@ const VisualClosetEnhanced: React.FC = () => {
   };
 
   const handleEditItem = (itemId: string) => {
-    console.log('Edit item:', itemId);
-    // TODO: Navigate to edit-item page
-    // router.push(`/edit-item/${itemId}`);
+    const item = items.find(i => i.id === itemId);
+    if (item) {
+      setEditingItem(item);
+      setItemDetails({
+        name: item.name,
+        brand: item.brand || '',
+        price: item.price || '',
+        description: item.description || ''
+      });
+      setSelectedItemCategory(item.category);
+      setSelectedCategory(item.category);
+      setShowEditModal(true);
+    }
+    setShowActionSheet(false);
+  };
+
+  const handleUpdateItem = async () => {
+    if (!editingItem) return;
+
+    try {
+      const success = await updateItem(editingItem.id, {
+        name: itemDetails.name || editingItem.name,
+        category: selectedCategory || editingItem.category,
+        brand: itemDetails.brand || undefined,
+        price: itemDetails.price ? parseFloat(itemDetails.price) : undefined,
+        notes: itemDetails.description || undefined
+      });
+
+      if (success) {
+        // Reset and close
+        setEditingItem(null);
+        setItemDetails({ name: '', brand: '', price: '', description: '' });
+        setShowEditModal(false);
+      }
+    } catch (error) {
+      console.error('Error updating item:', error);
+    }
   };
 
   const selectedItemData = items.find(item => item.id === selectedItem);
@@ -803,6 +840,218 @@ const VisualClosetEnhanced: React.FC = () => {
                 }}
               >
                 Save Item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Item Modal */}
+      {showEditModal && editingItem && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001,
+            padding: '20px',
+            overflowY: 'auto'
+          }}
+          onClick={() => {
+            setShowEditModal(false);
+            setEditingItem(null);
+            setItemDetails({ name: '', brand: '', price: '', description: '' });
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '20px',
+              padding: '24px',
+              paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 0px))',
+              maxWidth: '500px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '20px', textAlign: 'center' }}>
+              Edit Item Details
+            </h3>
+
+            {/* Image Preview */}
+            <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+              <img
+                src={editingItem.image_url}
+                alt="Preview"
+                style={{
+                  maxWidth: '200px',
+                  maxHeight: '200px',
+                  borderRadius: '12px',
+                  objectFit: 'cover'
+                }}
+              />
+            </div>
+
+            {/* Form Fields */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Item Name *
+                </label>
+                <input
+                  type="text"
+                  value={itemDetails.name}
+                  onChange={(e) => setItemDetails({ ...itemDetails, name: e.target.value })}
+                  placeholder="e.g., Blue Denim Jacket"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+
+              {/* Clothing Type Selector */}
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Clothing Type *
+                </label>
+                <select
+                  value={selectedItemCategory}
+                  onChange={(e) => {
+                    setSelectedItemCategory(e.target.value as ClothingCategory);
+                    setSelectedCategory(e.target.value as ClothingCategory);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="tops">👕 Tops & Blouses</option>
+                  <option value="bottoms">👖 Bottoms</option>
+                  <option value="dresses">👗 Dresses</option>
+                  <option value="outerwear">🧥 Outerwear</option>
+                  <option value="shoes">👟 Shoes</option>
+                  <option value="accessories">👜 Accessories</option>
+                </select>
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                  Select where this item should be categorized
+                </p>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Brand
+                </label>
+                <input
+                  type="text"
+                  value={itemDetails.brand}
+                  onChange={(e) => setItemDetails({ ...itemDetails, brand: e.target.value })}
+                  placeholder="e.g., Levi's, Zara, H&M"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Price
+                </label>
+                <input
+                  type="number"
+                  value={itemDetails.price}
+                  onChange={(e) => setItemDetails({ ...itemDetails, price: e.target.value })}
+                  placeholder="0.00"
+                  step="0.01"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                  Description / Notes
+                </label>
+                <textarea
+                  value={itemDetails.description}
+                  onChange={(e) => setItemDetails({ ...itemDetails, description: e.target.value })}
+                  placeholder="Add any notes about this item..."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingItem(null);
+                  setItemDetails({ name: '', brand: '', price: '', description: '' });
+                }}
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  background: '#f5f5f5',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateItem}
+                disabled={!itemDetails.name.trim()}
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  background: itemDetails.name.trim() ? 'linear-gradient(135deg, #FF69B4 0%, #FF1493 100%)' : '#ccc',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: itemDetails.name.trim() ? 'pointer' : 'not-allowed',
+                  color: 'white'
+                }}
+              >
+                Update Item
               </button>
             </div>
           </div>
