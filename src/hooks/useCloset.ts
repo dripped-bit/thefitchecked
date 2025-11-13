@@ -104,6 +104,13 @@ export const useCloset = () => {
   // Add new clothing item
   const addItem = useCallback(async (item: ClothingItemInput): Promise<ClothingItem | null> => {
     try {
+      // Get current user for RLS policy
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No authenticated user found');
+        return null;
+      }
+
       const { data, error: insertError } = await supabase
         .from('clothing_items')
         .insert([item])
