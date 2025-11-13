@@ -581,7 +581,6 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
             )}
             <div>
               <h1 className="ios-large-title">Smart Calendar</h1>
-              <p className="ios-body text-ios-label-secondary">AI-powered outfit planning with calendar sync</p>
             </div>
           </div>
 

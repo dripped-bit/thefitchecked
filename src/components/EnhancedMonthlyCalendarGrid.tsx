@@ -224,8 +224,8 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="flex flex-col h-full bg-gray-50" style={{ maxWidth: '100%', width: '100%' }}>
-      {/* Liquid Glass Toolbar */}
+    <div className="flex flex-col h-full bg-gray-50" style={{ width: '100%' }}>
+      {/* Month/Year Navigation */}
       <div 
         className="sticky top-0 z-40 border-b"
         style={{
@@ -236,37 +236,16 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
         }}
       >
-        <div className="flex items-center justify-between px-4 py-2" style={{ minHeight: '44px' }}>
-          {/* Left Actions */}
-          <div className="flex items-center space-x-1">
-            <button
-              onClick={() => console.log('Search outfits')}
-              className="p-2.5 hover:bg-gray-100/80 rounded-full transition-all active:scale-95"
-              style={{ minWidth: '44px', minHeight: '44px' }}
-              aria-label="Search outfits"
-            >
-              <Search className="w-5 h-5 text-gray-700" />
-            </button>
-            <button
-              onClick={fetchMonthData}
-              className="p-2.5 hover:bg-gray-100/80 rounded-full transition-all active:scale-95"
-              style={{ minWidth: '44px', minHeight: '44px' }}
-              aria-label="Refresh calendar"
-            >
-              <RefreshCw className="w-5 h-5 text-gray-700" />
-            </button>
-          </div>
-
-          {/* Center - Month Title */}
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-center px-4 py-3" style={{ minHeight: '44px' }}>
+          <div className="flex items-center space-x-4">
             <button
               onClick={handlePreviousMonth}
               className="p-2 hover:bg-gray-100/80 rounded-full transition-all active:scale-95"
               aria-label="Previous month"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-700" />
+              <ChevronLeft className="w-6 h-6 text-gray-700" />
             </button>
-            <span className="text-xl font-bold text-gray-900 min-w-[200px] text-center">
+            <span className="text-2xl font-bold text-gray-900 min-w-[250px] text-center">
               {monthName}
             </span>
             <button
@@ -274,27 +253,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
               className="p-2 hover:bg-gray-100/80 rounded-full transition-all active:scale-95"
               aria-label="Next month"
             >
-              <ChevronRight className="w-5 h-5 text-gray-700" />
-            </button>
-          </div>
-
-          {/* Right Actions */}
-          <div className="flex items-center space-x-1">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="p-2.5 hover:bg-blue-100/80 rounded-full transition-all active:scale-95"
-              style={{ minWidth: '44px', minHeight: '44px' }}
-              aria-label="Add outfit"
-            >
-              <Plus className="w-5 h-5 text-blue-600" />
-            </button>
-            <button
-              onClick={() => console.log('Open filters')}
-              className="p-2.5 hover:bg-gray-100/80 rounded-full transition-all active:scale-95"
-              style={{ minWidth: '44px', minHeight: '44px' }}
-              aria-label="Filter options"
-            >
-              <SlidersHorizontal className="w-5 h-5 text-gray-700" />
+              <ChevronRight className="w-6 h-6 text-gray-700" />
             </button>
           </div>
         </div>
@@ -324,13 +283,13 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2" style={{ maxWidth: '100%' }}>
+      <div className="flex-1 overflow-y-auto p-4" style={{ width: '100%' }}>
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-500">Loading calendar...</div>
           </div>
         ) : (
-          <div className="grid grid-cols-7 gap-1 auto-rows-fr">
+          <div className="grid grid-cols-7 gap-2 auto-rows-fr">
             {calendarDays.map((day, index) => {
               const dateKey = day.date.toISOString().split('T')[0];
               const isToday =
