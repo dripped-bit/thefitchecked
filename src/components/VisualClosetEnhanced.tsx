@@ -218,11 +218,10 @@ const VisualClosetEnhanced: React.FC = () => {
                 style={{ backgroundColor: category.color }}
               >
                 <div className="section-header-content">
-                  <span className="section-icon">{category.icon}</span>
                   <div className="section-info">
                     <h3 className="section-title">{category.title}</h3>
                     <span className="item-count">
-                      {category.items.length} {category.items.length === 1 ? 'item' : 'items'}
+                      {category.items.length}
                       {categoryStats.favoriteCount > 0 && (
                         <> · {categoryStats.favoriteCount} ❤️</>
                       )}
@@ -317,6 +316,49 @@ const VisualClosetEnhanced: React.FC = () => {
             </div>
           );
         })}
+
+        {/* Add Item Button at Bottom of Closet */}
+        <div className="closet-section">
+          <button
+            className="add-item-bottom-btn"
+            onClick={() => handleAddItem()}
+            style={{
+              width: '100%',
+              padding: '20px',
+              borderRadius: '16px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 100%)',
+              opacity: '0.3',
+              color: 'white',
+              fontSize: '17px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              transition: 'all 0.3s ease',
+              backdropFilter: 'blur(20px)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '0.5';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '0.3';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.transform = 'scale(0.98)';
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+          >
+            <Plus size={24} />
+            <span>Add Item</span>
+          </button>
+        </div>
       </div>
 
       {/* Floating Action Button */}
