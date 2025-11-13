@@ -391,47 +391,43 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+      className="fixed inset-0 ios-blur bg-black bg-opacity-70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className={`${glassModalClasses.light} w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto pb-safe`}
-        style={{
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
-        }}
+        className="ios-card ios-slide-up w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b border-ios-separator">
           <div className="flex items-center space-x-3">
-            <Calendar className="w-6 h-6 text-blue-600" />
-            <h2 className="text-2xl font-bold text-gray-900">Add to Calendar</h2>
+            <Calendar className="w-6 h-6 text-ios-blue" />
+            <h2 className="ios-large-title">Add to Calendar</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-ios-fill rounded-full transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-ios-label-tertiary" />
           </button>
         </div>
 
         {/* Outfit Preview */}
-        <div className="p-6 bg-gradient-to-br from-blue-50 to-purple-50">
+        <div className="p-6 bg-gradient-to-br from-ios-blue/10 to-ios-purple/10">
           <div className="space-y-4">
             <div className="flex gap-4 items-start">
               {getOutfitImage() && (
                 <img
                   src={getOutfitImage()}
                   alt="Outfit preview"
-                  className="w-24 h-32 object-cover rounded-lg shadow-md"
+                  className="w-24 h-32 object-cover rounded-ios-lg shadow-ios-md"
                 />
               )}
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-1">
+                <h3 className="ios-headline mb-1">
                   {getOutfitDescription()}
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="ios-callout text-ios-label-secondary">
                   {selectedProducts.length > 0 
                     ? `Saving ${selectedProducts.length} product${selectedProducts.length !== 1 ? 's' : ''} to calendar`
                     : 'Save this outfit for your upcoming event'}
@@ -442,7 +438,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
             {/* Product Images Grid - Show when products are selected */}
             {selectedProducts.length > 1 && (
               <div>
-                <p className="text-xs font-medium text-gray-700 mb-2">
+                <p className="ios-caption-2 font-semibold text-ios-label-secondary uppercase mb-2">
                   Selected Products ({selectedProducts.length})
                 </p>
                 <div className="grid grid-cols-4 gap-2">
@@ -451,12 +447,12 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
                       <img
                         src={img.url}
                         alt={img.title || 'Product'}
-                        className="w-full aspect-square object-cover rounded-md shadow-sm"
+                        className="w-full aspect-square object-cover rounded-ios-md shadow-ios-sm"
                         title={img.title || img.store || 'Product'}
                       />
                       {idx === 7 && selectedProducts.length > 8 && (
-                        <div className="absolute inset-0 bg-black bg-opacity-60 rounded-md flex items-center justify-center">
-                          <span className="text-white text-sm font-semibold">
+                        <div className="absolute inset-0 bg-black bg-opacity-60 rounded-ios-md flex items-center justify-center">
+                          <span className="text-white ios-callout font-semibold">
                             +{selectedProducts.length - 8}
                           </span>
                         </div>
@@ -473,7 +469,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Event Date */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <Calendar className="w-4 h-4" />
               <span>Event Date *</span>
             </label>
@@ -489,13 +485,13 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               }}
               min={new Date().toISOString().split('T')[0]}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="ios-input w-full"
             />
           </div>
 
           {/* Location Input */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <MapPin className="w-4 h-4" />
               <span>Location (City, State)</span>
             </label>
@@ -505,37 +501,37 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               onChange={(e) => setEventLocation(e.target.value)}
               onBlur={handleLocationChange}
               placeholder="e.g., Austin, Texas"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="ios-input w-full"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="ios-caption-1 text-ios-label-tertiary mt-1">
               Weather forecast will be shown for this location
             </p>
           </div>
 
           {/* Weather Forecast Display */}
           {loadingWeather && (
-            <div className="bg-gray-50 p-4 rounded-lg animate-pulse flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-              <div className="text-sm text-gray-600">Loading weather forecast...</div>
+            <div className="bg-ios-fill p-4 rounded-ios-lg animate-pulse flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-ios-blue" />
+              <div className="ios-callout text-ios-label-secondary">Loading weather forecast...</div>
             </div>
           )}
 
           {weatherForecast && !loadingWeather && (
-            <div className="bg-gradient-to-br from-blue-50 to-sky-50 p-4 rounded-lg border border-blue-200">
+            <div className="bg-gradient-to-br from-ios-blue/10 to-ios-blue/5 p-4 rounded-ios-lg border border-ios-blue/20">
               <div className="flex items-center gap-3 mb-2">
                 <div className="text-3xl">
                   {getWeatherIcon(weatherForecast.weatherCode)}
                 </div>
                 <div>
-                  <div className="font-semibold text-lg text-gray-900">
+                  <div className="ios-title-3 font-bold">
                     {weatherForecast.temperature}°F
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="ios-callout text-ios-label-secondary">
                     {weatherForecast.weatherDescription}
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-2 text-xs text-gray-600 mt-3">
+              <div className="grid grid-cols-4 gap-2 ios-caption-1 text-ios-label-secondary mt-3">
                 <div className="flex items-center gap-1">
                   <span>🌡️</span>
                   <span>Feels {weatherForecast.feelsLike}°F</span>
@@ -553,7 +549,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
                   <span>UV {weatherForecast.uvIndex}</span>
                 </div>
               </div>
-              <div className="mt-2 text-xs text-gray-500">
+              <div className="mt-2 ios-caption-1 text-ios-label-tertiary">
                 Weather forecast for {eventLocation} on {new Date(formData.eventDate).toLocaleDateString()}
               </div>
             </div>
@@ -561,7 +557,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
 
           {/* Occasion Name */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <FileText className="w-4 h-4" />
               <span>Occasion Name</span>
             </label>
@@ -570,13 +566,13 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               value={formData.occasionName}
               onChange={(e) => setFormData({ ...formData, occasionName: e.target.value })}
               placeholder="e.g., Sarah's Birthday, Date Night, Work Conference..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="ios-input w-full"
             />
           </div>
 
           {/* Shopping Links */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <ShoppingBag className="w-4 h-4" />
               <span>Shopping Links (Optional)</span>
             </label>
@@ -585,23 +581,23 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               onChange={(e) => setFormData({ ...formData, shoppingLinks: e.target.value })}
               placeholder="Paste product links here, one per line...&#10;https://www.amazon.com/dp/...&#10;https://www.fashionnova.com/products/..."
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="ios-input w-full resize-none"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 ios-caption-1 text-ios-label-tertiary">
               Add direct product links to purchase items for this outfit
             </p>
           </div>
 
           {/* Reminder to Buy */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <Bell className="w-4 h-4" />
               <span>Reminder to Buy</span>
             </label>
             <select
               value={formData.reminderDays}
               onChange={(e) => setFormData({ ...formData, reminderDays: Number(e.target.value) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="ios-input w-full"
             >
               <option value={0}>No reminder</option>
               <option value={3}>3 days before event</option>
@@ -609,21 +605,21 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               <option value={14}>2 weeks before event</option>
               <option value={30}>1 month before event</option>
             </select>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 ios-caption-1 text-ios-label-tertiary">
               Get reminded to purchase these items before your event
             </p>
           </div>
 
           {/* Get Ready Reminder */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <Bell className="w-4 h-4" />
               <span>Get Ready Reminder</span>
             </label>
             <select
               value={formData.getReadyReminderHours}
               onChange={(e) => setFormData({ ...formData, getReadyReminderHours: Number(e.target.value) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="ios-input w-full"
             >
               <option value={0}>No reminder</option>
               <option value={1}>1 hour before event</option>
@@ -635,14 +631,14 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               <option value={24}>1 day before event</option>
               <option value={48}>2 days before event</option>
             </select>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 ios-caption-1 text-ios-label-tertiary">
               Get reminded to plan and prepare your outfit
             </p>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+            <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <FileText className="w-4 h-4" />
               <span>Notes</span>
             </label>
@@ -651,7 +647,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Add any additional notes or styling tips..."
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="ios-input w-full resize-none"
             />
           </div>
 
@@ -660,14 +656,14 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="ios-button-secondary flex-1"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isProcessing}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="ios-button-primary flex-1"
             >
               {isProcessing ? 'Saving...' : 'Save to Calendar'}
             </button>

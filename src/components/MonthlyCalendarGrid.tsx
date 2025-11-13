@@ -121,14 +121,14 @@ const MonthlyCalendarGrid: React.FC<MonthlyCalendarGridProps> = ({
 
   const getEventTypeColor = (eventType: string): string => {
     const colors: { [key: string]: string } = {
-      work: 'bg-blue-500',
-      personal: 'bg-green-500',
-      travel: 'bg-purple-500',
-      formal: 'bg-gray-700',
-      casual: 'bg-orange-500',
-      other: 'bg-pink-500'
+      work: 'bg-ios-blue',
+      personal: 'bg-ios-green',
+      travel: 'bg-ios-purple',
+      formal: 'bg-ios-label-primary',
+      casual: 'bg-ios-orange',
+      other: 'bg-ios-pink'
     };
-    return colors[eventType] || 'bg-gray-400';
+    return colors[eventType] || 'bg-ios-label-tertiary';
   };
 
   const monthNames = [
@@ -139,17 +139,17 @@ const MonthlyCalendarGrid: React.FC<MonthlyCalendarGridProps> = ({
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+    <div className="ios-card rounded-ios-xl overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 p-4 md:p-6">
+      <div className="bg-gradient-to-r from-ios-fill to-ios-fill/50 border-b border-ios-separator p-4 md:p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+            <h2 className="ios-title-1 md:ios-large-title">
               {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </h2>
             <button
               onClick={goToToday}
-              className="hidden md:block text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
+              className="hidden md:block ios-callout font-semibold text-ios-blue hover:text-ios-blue/80 transition-colors"
             >
               Today
             </button>
@@ -158,21 +158,21 @@ const MonthlyCalendarGrid: React.FC<MonthlyCalendarGridProps> = ({
           <div className="flex items-center space-x-2">
             <button
               onClick={previousMonth}
-              className="p-2 hover:bg-white rounded-lg transition-colors"
+              className="p-2 hover:bg-ios-fill rounded-lg transition-colors"
               aria-label="Previous month"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+              <ChevronLeft className="w-5 h-5 text-ios-label-secondary" />
             </button>
             <button
               onClick={nextMonth}
-              className="p-2 hover:bg-white rounded-lg transition-colors"
+              className="p-2 hover:bg-ios-fill rounded-lg transition-colors"
               aria-label="Next month"
             >
-              <ChevronRight className="w-5 h-5 text-gray-600" />
+              <ChevronRight className="w-5 h-5 text-ios-label-secondary" />
             </button>
             <button
               onClick={onAddEvent}
-              className="ml-2 flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              className="ios-button-primary ml-2 flex items-center space-x-2"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden md:inline">Add Event</span>
@@ -182,11 +182,11 @@ const MonthlyCalendarGrid: React.FC<MonthlyCalendarGridProps> = ({
       </div>
 
       {/* Week Day Headers */}
-      <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+      <div className="grid grid-cols-7 border-b border-ios-separator bg-ios-fill">
         {weekDays.map((day) => (
           <div
             key={day}
-            className="p-2 md:p-3 text-center text-xs md:text-sm font-semibold text-gray-600"
+            className="p-2 md:p-3 text-center ios-caption-1 md:ios-callout font-semibold text-ios-label-secondary"
           >
             {day}
           </div>
@@ -259,10 +259,10 @@ const MonthlyCalendarGrid: React.FC<MonthlyCalendarGridProps> = ({
       </div>
 
       {/* Mobile Today Button */}
-      <div className="md:hidden border-t border-gray-200 p-3">
+      <div className="md:hidden border-t border-ios-separator p-3">
         <button
           onClick={goToToday}
-          className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+          className="ios-button-secondary w-full"
         >
           Go to Today
         </button>
