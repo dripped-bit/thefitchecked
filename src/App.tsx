@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw, Home, Shirt, Calendar, Sparkles, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw, Home, Shirt, Calendar, Sparkles, User, LogOut } from 'lucide-react';
 import { App as KonstaApp } from 'konsta/react';
 import useDevMode from './hooks/useDevMode';
 import { IOSTabBar, Tab } from './components/ui/IOSTabBar';
@@ -348,7 +348,7 @@ function App() {
     { id: 'home', label: 'Home', icon: <Home className="w-6 h-6" />, route: 'avatarHomepage' },
     { id: 'closet', label: 'Closet', icon: <Shirt className="w-6 h-6" />, route: 'closet' },
     { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-6 h-6" />, route: 'smartCalendar' },
-    { id: 'create', label: 'Create', icon: <Sparkles className="w-6 h-6" />, route: 'myCreations' },
+    { id: 'signout', label: 'Sign Out', icon: <LogOut className="w-6 h-6" />, route: 'signout' },
   ];
   const [activeTab, setActiveTab] = useState('home');
   const [appData, setAppData] = useState<AppData>({
@@ -839,16 +839,23 @@ function App() {
   };
 
   // Handle tab bar changes
-  const handleTabChange = (tabId: string) => {
+  const handleTabChange = async (tabId: string) => {
     const tab = tabs.find(t => t.id === tabId);
     if (tab && tab.route) {
-      if (tabId === 'closet') {
+      if (tabId === 'signout') {
+        // Handle sign out
+        await authService.signOut();
+        setAuthUser(null);
+        setCurrentScreen('welcome');
+        setActiveTab('home');
+      } else if (tabId === 'closet') {
         // Use door transition for closet
         handleNavigateToCloset();
+        setActiveTab(tabId);
       } else {
         setCurrentScreen(tab.route as Screen);
+        setActiveTab(tabId);
       }
-      setActiveTab(tabId);
     }
   };
 

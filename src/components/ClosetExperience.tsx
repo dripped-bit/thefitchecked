@@ -1335,14 +1335,14 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           WebkitBackdropFilter: 'blur(30px) saturate(200%)',
           boxShadow: '0 8px 32px 0 rgba(255, 182, 193, 0.37)',
           border: '1px solid rgba(255, 255, 255, 0.18)',
-          padding: '0.5rem 1rem'
+          padding: '0.35rem 0.5rem'
         }}
       >
-        <div className="flex items-start justify-start py-1 px-2">
+        <div className="flex items-end justify-start py-0.5 px-1">
           <h1
             className="font-semibold tracking-wider"
             style={{
-              fontSize: '2.18rem',
+              fontSize: '1.853rem',
               fontFamily: "'Dancing Script', cursive",
               fontWeight: 700,
               letterSpacing: '0.15em',
