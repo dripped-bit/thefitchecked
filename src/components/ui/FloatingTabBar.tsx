@@ -112,33 +112,44 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
   return (
     <nav
       className={cn(
-        // Fixed positioning
+        // Fixed positioning at bottom
         'fixed bottom-0 left-0 right-0 z-50',
-        // iOS 18 Liquid Glass floating effect
-        'bg-white/70 backdrop-blur-xl',
-        // Subtle border and shadow for floating depth
-        'border-t border-white/20',
-        'shadow-[0_-4px_16px_rgba(0,0,0,0.1)]',
+        // Transparent background - pills float above content
+        'bg-transparent',
         // Safe area for iPhone home indicator
         'pb-[env(safe-area-inset-bottom)]',
         'px-safe',
-        // Smooth transition
-        'transition-all duration-300 ease-out',
         className
       )}
-      style={{
-        // iOS Safari requires WebKit prefix for backdrop-filter
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        backdropFilter: 'blur(24px) saturate(180%)',
-      }}
       role="tablist"
       aria-label="Main navigation"
     >
-      <div className="flex items-center justify-around py-2 px-2">
+      {/* Centered container for floating pills */}
+      <div className="flex items-center justify-center gap-3 py-2 px-4">
         {groupedTabs.map((group, groupIndex) => (
           <React.Fragment key={`group-${groupIndex}`}>
-            {/* Tab Group */}
-            <div className="flex items-center justify-center gap-2">
+            {/* Floating Glass Pill for each group */}
+            <div
+              className={cn(
+                // Floating pill styles
+                'flex items-center justify-center gap-1 px-3 py-2',
+                // Glass morphism effect
+                'bg-white/70 backdrop-blur-xl',
+                // Rounded pill shape
+                'rounded-full',
+                // Shadow for floating effect
+                'shadow-[0_4px_20px_rgba(0,0,0,0.12)]',
+                // Border for depth
+                'border border-white/40',
+                // Smooth transitions
+                'transition-all duration-300 ease-out'
+              )}
+              style={{
+                // iOS Safari requires WebKit prefix for backdrop-filter
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+              }}
+            >
               {group.map((tab) => {
                 const isActive = tab.id === activeTab;
 
@@ -147,18 +158,20 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
                     key={tab.id}
                     onClick={() => handleTabClick(tab.id)}
                     className={cn(
-                      // Base styles - minimal, floating on glass
+                      // Base styles - compact for pill layout
                       'flex flex-col items-center justify-center',
-                      // 44pt minimum touch target (HIG requirement)
-                      'min-w-[60px] py-1',
+                      // Compact sizing for pills
+                      'min-w-[56px] px-2 py-1',
                       // Smooth transitions
                       'transition-all duration-200 ease-out',
-                      // Active state - subtle scale up
-                      isActive && 'scale-110',
+                      // Active state - subtle scale
+                      isActive && 'scale-105',
                       // Press feedback
                       'active:scale-95',
+                      // Rounded for pill aesthetic
+                      'rounded-full',
                       // Focus styles for accessibility
-                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/50 focus-visible:ring-offset-2'
+                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/50'
                     )}
                     role="tab"
                     aria-selected={isActive}
@@ -216,11 +229,6 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
                 );
               })}
             </div>
-
-            {/* Divider between groups */}
-            {groupingStyle !== 'none' && groupIndex < groupedTabs.length - 1 && (
-              <div className="h-8 w-px bg-gray-300/30" aria-hidden="true" />
-            )}
           </React.Fragment>
         ))}
       </div>
