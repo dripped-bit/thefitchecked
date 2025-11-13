@@ -763,10 +763,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
       {/* NEW HEADER - Baby Pink Gradient */}
       <div className="bg-gradient-to-br from-pink-300 via-pink-400 to-rose-400 pt-safe-top">
         {/* Top row - icons */}
-        <div className="flex justify-between items-center px-4 py-3">
-          <button onClick={onBack}>
-            <Menu className="w-6 h-6 text-white" />
-          </button>
+        <div className="flex justify-end items-center px-4 py-3">
           <div className="flex items-center space-x-4">
             {/* Weather indicator */}
             {weather && (
