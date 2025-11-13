@@ -319,14 +319,22 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         </button>
 
         <button
-          onClick={() => setShowWoreThisToday(true)}
-          className="ios-card bg-gradient-to-br from-ios-purple to-ios-pink text-white p-3 md:p-4 rounded-ios-xl hover:opacity-90 transition-all shadow-ios-md"
+          onClick={() => setShowWoreThis(!showWoreThis)}
+          style={{
+            flex: 1,
+            padding: '12px 16px',
+            borderRadius: '12px',
+            border: 'none',
+            background: showWoreThis ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
+            color: '#4A4A4A',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            whiteSpace: 'nowrap'
+          }}
         >
-          <div className="flex items-center space-x-2">
-            <Camera className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="ios-callout font-semibold">Wore This</span>
-          </div>
-          <p className="ios-caption-2 mt-1 opacity-90 hidden md:block">Track your outfit</p>
+          Wore This
         </button>
       </div>
 

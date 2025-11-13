@@ -82,11 +82,11 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
         className
       )}
       style={{
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        background: 'rgba(255, 192, 203, 0.6)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.5)',
-        boxShadow: '0 -2px 12px rgba(255, 182, 193, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.5)'
+        backdropFilter: 'blur(30px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(30px) saturate(200%)',
+        background: 'rgba(255, 255, 255, 0.72)',
+        borderTop: '0.5px solid rgba(0, 0, 0, 0.04)',
+        boxShadow: '0 -0.5px 0 0 rgba(0, 0, 0, 0.04), 0 -1px 8px 0 rgba(0, 0, 0, 0.02)'
       }}
       role="tablist"
       aria-label="Main navigation"
@@ -126,8 +126,8 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
                   'w-6 h-6',
                   // Color based on active state
                   isActive
-                    ? 'text-[var(--ios-blue)]'
-                    : 'text-[var(--ios-label-secondary)]'
+                    ? 'text-[#007AFF]'
+                    : 'text-[#8E8E93]'
                 )}
               >
                 {tab.icon}
@@ -159,8 +159,8 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
                   'transition-all duration-200',
                   // Color based on active state
                   isActive
-                    ? 'text-[var(--ios-blue)]'
-                    : 'text-[var(--ios-label-secondary)]'
+                    ? 'text-[#007AFF]'
+                    : 'text-[#8E8E93]'
                 )}
               >
                 {tab.label}
