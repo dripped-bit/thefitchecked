@@ -283,7 +283,13 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4" style={{ width: '100%' }}>
+      <div 
+        className="flex-1 overflow-y-auto overflow-x-hidden p-4" 
+        style={{ 
+          width: '100%',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-500">Loading calendar...</div>

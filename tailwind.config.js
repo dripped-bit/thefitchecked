@@ -385,6 +385,10 @@ export default {
         'safe-area-pt': 'env(safe-area-inset-top)',
         'safe-area-pl': 'env(safe-area-inset-left)',
         'safe-area-pr': 'env(safe-area-inset-right)',
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
       },
       borderRadius: {
         'ios-sm': '8px',

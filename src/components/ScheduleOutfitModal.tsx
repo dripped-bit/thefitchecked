@@ -213,6 +213,7 @@ export const ScheduleOutfitModal: React.FC<ScheduleOutfitModalProps> = ({
                 onChange={(e) => setOccasion(e.target.value)}
                 placeholder="e.g., Work Meeting, Date Night"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={{ fontSize: '16px' }}
               />
             </div>
 
@@ -226,6 +227,7 @@ export const ScheduleOutfitModal: React.FC<ScheduleOutfitModalProps> = ({
                 placeholder="Add any notes about this outfit..."
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                style={{ fontSize: '16px' }}
               />
             </div>
           </div>

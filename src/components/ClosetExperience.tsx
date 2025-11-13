@@ -1557,7 +1557,10 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
         )}
 
         {/* Main Content Area */}
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div 
+          className="flex-1 p-6 overflow-y-auto overflow-x-hidden"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {currentView === 'outfit-creator' && (
             <OutfitCreator
               clothingItems={clothingItems}
@@ -2078,7 +2081,10 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
       {/* Outfit of the Day Modal */}
       {showOOTDModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div 
+          className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
             {/* Error State */}
             {ootdError && (
               <>
