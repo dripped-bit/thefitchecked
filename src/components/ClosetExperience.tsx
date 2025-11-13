@@ -5,7 +5,7 @@ import {
   Leaf, TrendingUp, Award, Gift, CheckCircle, X, Play,
   Palette, Shuffle, Share2, Volume2, VolumeX, Crown,
   Tag, Package, Zap, Users, MapPin, Clock, ChevronLeft, ChevronRight, ExternalLink,
-  Menu
+  Menu, Plus
 } from 'lucide-react';
 import { glassNavClasses } from '../styles/glassEffects';
 import VisualClosetEnhanced from './VisualClosetEnhanced';
