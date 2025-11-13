@@ -8,7 +8,7 @@ interface LoadingScreenProps {
   autoCompleteAfter?: number; // milliseconds
 }
 
-export function LoadingScreen({ isLoading = true, message, onLoadingComplete, autoCompleteAfter = 9000 }: LoadingScreenProps) {
+export function LoadingScreen({ isLoading = true, message, onLoadingComplete, autoCompleteAfter = 5100 }: LoadingScreenProps) {
   const [show, setShow] = useState(isLoading);
   const [fadeOut, setFadeOut] = useState(false);
 
@@ -17,7 +17,7 @@ export function LoadingScreen({ isLoading = true, message, onLoadingComplete, au
       setShow(true);
       setFadeOut(false);
 
-      // Auto-complete after specified duration (default 9 seconds for MP4 animation)
+      // Auto-complete after specified duration (default 5.1 seconds to match MP4 animation)
       if (onLoadingComplete && autoCompleteAfter > 0) {
         console.log(`⏱️ [LOADING-SCREEN] Auto-complete timer started: ${autoCompleteAfter}ms`);
         const timer = setTimeout(() => {
@@ -43,10 +43,15 @@ export function LoadingScreen({ isLoading = true, message, onLoadingComplete, au
       <div className="loading-content">
         <video
           autoPlay
-          loop
           muted
           playsInline
           className="loading-video"
+          onEnded={() => {
+            console.log('🎬 [LOADING-SCREEN] Video ended naturally');
+            if (onLoadingComplete) {
+              onLoadingComplete();
+            }
+          }}
         >
           <source src="/loading-animation.mp4" type="video/mp4" />
         </video>
