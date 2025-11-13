@@ -1336,12 +1336,12 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           boxShadow: '0 2px 12px rgba(255, 182, 193, 0.3)'
         }}
       >
-        <div className="flex flex-col items-center justify-center py-2 px-4">
+        <div className="flex items-center justify-center py-2 px-4">
           <h1
             className="text-white font-semibold tracking-wider"
             style={{
-              fontSize: '2.6rem',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif',
+              fontSize: '3.12rem',
+              fontFamily: "'Dancing Script', cursive",
               fontWeight: 700,
               letterSpacing: '0.15em',
               textShadow: '0 0 20px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(255, 182, 193, 0.4)',
@@ -1353,22 +1353,6 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           >
             WARDROBE
           </h1>
-          {/* Add to Closet Button */}
-          <div className="flex items-center justify-center mt-3 space-x-2">
-            <Plus className="w-5 h-5 text-white" style={{ filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.6))' }} />
-            <span 
-              className="text-white tracking-widest"
-              style={{
-                fontFamily: "'Dancing Script', cursive",
-                fontSize: '16px',
-                fontWeight: 400,
-                letterSpacing: '0.15em',
-                textShadow: '0 0 12px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.1)'
-              }}
-            >
-              GARMENTS
-            </span>
-          </div>
         </div>
       </div>
 
