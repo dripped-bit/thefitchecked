@@ -17,7 +17,18 @@ export default {
           cyan: '#06D6A0',
           yellow: '#FFD93D',
           orange: '#FF8C42'
-        }
+        },
+        // iOS Design System Colors
+        'ios-blue': '#007AFF',
+        'ios-green': '#34C759',
+        'ios-indigo': '#5856D6',
+        'ios-orange': '#FF9500',
+        'ios-pink': '#FF2D55',
+        'ios-purple': '#AF52DE',
+        'ios-red': '#FF3B30',
+        'ios-teal': '#5AC8FA',
+        'ios-yellow': '#FFCC00',
+        'ios-gray': '#8E8E93',
       },
       animation: {
         'fadeIn': 'fadeIn 0.3s ease-in-out',
@@ -366,6 +377,19 @@ export default {
         'safe-area-pt': 'env(safe-area-inset-top)',
         'safe-area-pl': 'env(safe-area-inset-left)',
         'safe-area-pr': 'env(safe-area-inset-right)',
+      },
+      borderRadius: {
+        'ios-sm': '8px',
+        'ios-md': '10px',
+        'ios-lg': '12px',
+        'ios-xl': '16px',
+        'ios-2xl': '20px',
+      },
+      boxShadow: {
+        'ios-sm': '0 1px 3px rgba(0, 0, 0, 0.12)',
+        'ios-md': '0 4px 8px rgba(0, 0, 0, 0.12)',
+        'ios-lg': '0 8px 16px rgba(0, 0, 0, 0.12)',
+        'ios-xl': '0 12px 24px rgba(0, 0, 0, 0.15)',
       }
     },
   },
