@@ -109,9 +109,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
     preferredColors: [] as string[]
   });
 
-  // Immersive Space state
-  const [showImmersiveSpace, setShowImmersiveSpace] = useState(false);
-
   // Custom outfit generation state
   const [outfitPrompt, setOutfitPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<'casual' | 'formal' | 'trendy' | 'vintage' | 'minimalist' | 'edgy'>('casual');
@@ -763,13 +760,9 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between p-6 bg-white/70 backdrop-blur-sm border-b border-gray-200">
         {/* Personalized Greeting with Time */}
-        <div 
-          className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={() => setShowImmersiveSpace(true)}
-        >
-          <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+        <div className="flex flex-col">
+          <h1 className="text-xl font-bold text-slate-800">
             {getTimeBasedGreeting()} {getUserFirstName()}
-            <span className="text-sm">✨</span>
           </h1>
           <div className="text-sm text-slate-600">
             {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -1565,131 +1558,6 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
           quality: CURRENT_PERFECT_PROMPT.quality
         }}
       />
-
-      {/* Immersive Space Overlay */}
-      {showImmersiveSpace && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 99999,
-            background: 'rgba(255, 192, 203, 0.6)',
-            backdropFilter: 'blur(40px)',
-            WebkitBackdropFilter: 'blur(40px)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2rem',
-            animation: 'fadeIn 0.5s ease-in-out'
-          }}
-          onClick={() => setShowImmersiveSpace(false)}
-        >
-          <div
-            style={{
-              textAlign: 'center',
-              color: 'white',
-              textShadow: '0 4px 20px rgba(255, 192, 203, 0.8), 0 2px 8px rgba(0, 0, 0, 0.3)',
-              animation: 'floatIn 0.8s ease-out'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h1
-              style={{
-                fontSize: 'clamp(3rem, 8vw, 6rem)',
-                fontWeight: 'bold',
-                marginBottom: '1.5rem',
-                fontFamily: "'Dancing Script', cursive",
-                letterSpacing: '0.05em'
-              }}
-            >
-              {getTimeBasedGreeting()}
-            </h1>
-            <h2
-              style={{
-                fontSize: 'clamp(2.5rem, 6vw, 5rem)',
-                fontWeight: '600',
-                marginBottom: '3rem',
-                fontFamily: "'Dancing Script', cursive"
-              }}
-            >
-              {getUserFirstName()}
-            </h2>
-            <div
-              style={{
-                fontSize: 'clamp(1.2rem, 3vw, 2rem)',
-                marginBottom: '2rem',
-                opacity: 0.9,
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
-              }}
-            >
-              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-            {weather && (
-              <div
-                style={{
-                  fontSize: 'clamp(1rem, 2.5vw, 1.5rem)',
-                  opacity: 0.85,
-                  marginBottom: '3rem',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
-                }}
-              >
-                {weather.temperature}°F · {weather.weatherDescription}
-              </div>
-            )}
-            <button
-              onClick={() => setShowImmersiveSpace(false)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.3)',
-                border: '2px solid rgba(255, 255, 255, 0.5)',
-                color: 'white',
-                padding: '1rem 3rem',
-                fontSize: '1.2rem',
-                borderRadius: '50px',
-                cursor: 'pointer',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                fontWeight: '600',
-                transition: 'all 0.3s ease',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-                boxShadow: '0 4px 20px rgba(255, 255, 255, 0.3)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)';
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes floatIn {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
       </div>
       </div>
     </>
