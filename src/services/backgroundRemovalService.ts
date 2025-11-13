@@ -85,6 +85,13 @@ class BackgroundRemovalService {
    */
   private async removeBackgroundFalAI(imageUrl: string): Promise<BackgroundRemovalResult> {
     console.log('🎨 [FAL-AI] Starting BiRefNet background removal...');
+    console.log('📸 [FAL-AI] Image URL type:', imageUrl.substring(0, 50) + '...');
+    
+    // Validate image URL format
+    if (!imageUrl.startsWith('data:image') && !imageUrl.startsWith('http')) {
+      console.error('❌ [FAL-AI] Invalid image URL format. Expected data URL or HTTP URL');
+      throw new Error(`Invalid image URL format: ${imageUrl.substring(0, 30)}...`);
+    }
 
     const response = await fetch(`${this.API_BASE}/fal-ai/birefnet`, {
       method: 'POST',
@@ -96,8 +103,12 @@ class BackgroundRemovalService {
       })
     });
 
+    console.log('🌐 [FAL-AI] Response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`fal.ai BiRefNet failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ [FAL-AI] Error response:', errorText);
+      throw new Error(`fal.ai BiRefNet failed: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();

@@ -107,9 +107,16 @@ export const useCloset = () => {
       // Get current user for RLS policy
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.error('No authenticated user found');
+        console.error('❌ [CLOSET-HOOK] No authenticated user found');
         return null;
       }
+
+      console.log('📝 [CLOSET-HOOK] Adding item with category:', item.category);
+      console.log('📝 [CLOSET-HOOK] Item details:', { 
+        name: item.name, 
+        category: item.category,
+        hasImage: !!item.image_url 
+      });
 
       const { data, error: insertError } = await supabase
         .from('clothing_items')
@@ -117,7 +124,12 @@ export const useCloset = () => {
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('❌ [CLOSET-HOOK] Insert error:', insertError);
+        throw insertError;
+      }
+      
+      console.log('✅ [CLOSET-HOOK] Item inserted with category:', data?.category);
       
       // Update local state
       if (data) {
@@ -126,7 +138,7 @@ export const useCloset = () => {
       
       return data;
     } catch (err) {
-      console.error('Error adding item:', err);
+      console.error('❌ [CLOSET-HOOK] Error adding item:', err);
       setError(err as Error);
       return null;
     }

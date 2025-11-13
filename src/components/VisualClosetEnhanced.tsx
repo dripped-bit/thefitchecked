@@ -143,14 +143,17 @@ const VisualClosetEnhanced: React.FC = () => {
       const image = await CapacitorCamera.getPhoto({
         quality: 90,
         allowEditing: false,
-        resultType: 'uri',
+        resultType: 'base64', // Changed from 'uri' to 'base64' for API compatibility
         source: 'camera'
       });
       
-      if (image.webPath && selectedCategory) {
-        console.log('Captured image:', image.webPath);
+      if (image.base64String && selectedCategory) {
+        // Convert to data URL format for background removal API
+        const base64Image = `data:image/jpeg;base64,${image.base64String}`;
+        console.log('📸 [CAMERA] Captured image as base64, length:', base64Image.length);
+        
         // Store image and show details modal
-        setCapturedImage(image.webPath);
+        setCapturedImage(base64Image);
         setShowUploadModal(false);
         setShowDetailsModal(true);
         // Pre-fill name
@@ -162,7 +165,7 @@ const VisualClosetEnhanced: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Camera error:', error);
+      console.error('❌ [CAMERA] Error:', error);
     }
   };
 
@@ -171,14 +174,17 @@ const VisualClosetEnhanced: React.FC = () => {
       const image = await CapacitorCamera.getPhoto({
         quality: 90,
         allowEditing: false,
-        resultType: 'uri',
+        resultType: 'base64', // Changed from 'uri' to 'base64' for API compatibility
         source: 'photos'
       });
       
-      if (image.webPath && selectedCategory) {
-        console.log('Selected image:', image.webPath);
+      if (image.base64String && selectedCategory) {
+        // Convert to data URL format for background removal API
+        const base64Image = `data:image/jpeg;base64,${image.base64String}`;
+        console.log('🖼️ [GALLERY] Selected image as base64, length:', base64Image.length);
+        
         // Store image and show details modal
-        setCapturedImage(image.webPath);
+        setCapturedImage(base64Image);
         setShowUploadModal(false);
         setShowDetailsModal(true);
         // Pre-fill name
@@ -190,7 +196,7 @@ const VisualClosetEnhanced: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Gallery error:', error);
+      console.error('❌ [GALLERY] Error:', error);
     }
   };
 
@@ -198,7 +204,9 @@ const VisualClosetEnhanced: React.FC = () => {
     if (!capturedImage || !selectedCategory) return;
 
     try {
+      console.log('💾 [CLOSET] Saving item to category:', selectedCategory);
       console.log('🎨 [CLOSET] Processing image with background removal...');
+      console.log('📸 [CLOSET] Image format:', capturedImage.substring(0, 30) + '...');
       
       // Step 1: Remove background from image
       const bgRemovalResult = await backgroundRemovalService.removeBackground(capturedImage);
@@ -213,6 +221,7 @@ const VisualClosetEnhanced: React.FC = () => {
       }
 
       // Step 2: Save item with processed image
+      console.log('💾 [CLOSET] Calling addItem with category:', selectedCategory);
       const newItem = await addItem({
         name: itemDetails.name || `New ${selectedCategory} item`,
         category: selectedCategory,
@@ -224,14 +233,15 @@ const VisualClosetEnhanced: React.FC = () => {
       });
       
       if (newItem) {
-        console.log('✅ Item added to closet:', newItem);
+        console.log('✅ [CLOSET] Item saved with category:', newItem.category);
+        console.log('✅ [CLOSET] Item added to closet:', newItem);
         // Reset and close
         setCapturedImage(null);
         setItemDetails({ name: '', brand: '', price: '', description: '' });
         setShowDetailsModal(false);
       }
     } catch (error) {
-      console.error('Error saving item:', error);
+      console.error('❌ [CLOSET] Error saving item:', error);
     }
   };
 
