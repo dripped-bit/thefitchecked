@@ -110,7 +110,8 @@ const VisualClosetEnhanced: React.FC = () => {
   useEffect(() => {
     const handleOpenAddItem = () => {
       setShowUploadModal(true);
-      setSelectedCategory(null); // Let user choose category
+      setSelectedCategory('tops'); // Default to tops category
+      setSelectedItemCategory('tops'); // Also set the item category state
     };
 
     window.addEventListener('openAddItemModal', handleOpenAddItem);
