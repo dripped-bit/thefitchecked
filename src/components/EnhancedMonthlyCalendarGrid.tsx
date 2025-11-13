@@ -226,8 +226,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-gray-50">
       <div className="bg-white border-b border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
+        <div className="flex items-center justify-center mb-4">
           <div className="flex items-center space-x-2">
             <button
               onClick={handlePreviousMonth}
@@ -235,7 +234,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <span className="text-lg font-semibold text-gray-900 min-w-[180px] text-center">
+            <span className="text-2xl font-bold text-gray-900 min-w-[240px] text-center">
               {monthName}
             </span>
             <button

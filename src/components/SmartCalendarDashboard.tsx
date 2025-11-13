@@ -278,7 +278,6 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
             <Package className="w-4 h-4 md:w-5 md:h-5" />
             <span className="ios-callout font-semibold">Packing Lists</span>
           </div>
-          <p className="ios-caption-2 mt-1 opacity-90 hidden md:block">Smart travel planning</p>
         </button>
 
         <button

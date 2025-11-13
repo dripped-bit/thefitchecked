@@ -1326,21 +1326,23 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
   return (
     <div className="min-h-screen pb-[calc(49px+env(safe-area-inset-bottom))] pt-safe closet-interior relative overflow-hidden">
-      {/* Baby Pink Header with Vintage WARDROBE Text */}
+      {/* Baby Pink Liquid Glass Header with WARDROBE Text */}
       <div
         className="border-b sticky top-0 z-30 pt-safe"
         style={{
-          background: 'linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 50%, #FFD1DC 100%)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          boxShadow: '0 2px 12px rgba(255, 182, 193, 0.3)'
+          background: 'rgba(255, 192, 203, 0.4)',
+          backdropFilter: 'blur(30px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(30px) saturate(200%)',
+          boxShadow: '0 8px 32px 0 rgba(255, 182, 193, 0.37)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+          padding: '0.5rem 1rem'
         }}
       >
-        <div className="flex items-center justify-center py-2 px-4">
+        <div className="flex items-start justify-start py-1 px-2">
           <h1
             className="text-white font-semibold tracking-wider"
             style={{
-              fontSize: '3.12rem',
+              fontSize: '2.18rem',
               fontFamily: "'Dancing Script', cursive",
               fontWeight: 700,
               letterSpacing: '0.15em',

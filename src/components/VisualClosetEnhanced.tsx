@@ -8,8 +8,11 @@ import {
   Trash2,
   Edit2,
   Share2,
-  X
+  X,
+  Camera,
+  Upload
 } from 'lucide-react';
+import { Camera as CapacitorCamera } from '@capacitor/camera';
 import { useCloset, ClothingCategory } from '../hooks/useCloset';
 import '../styles/VisualClosetAdapter.css';
 
@@ -89,6 +92,8 @@ const VisualClosetEnhanced: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [showDeleteToast, setShowDeleteToast] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | null>(null);
 
   // Filter items based on search
   const filteredItems = useMemo(() => {
@@ -119,9 +124,42 @@ const VisualClosetEnhanced: React.FC = () => {
   };
 
   const handleAddItem = (category?: ClothingCategory) => {
-    console.log('Add item:', category);
-    // TODO: Navigate to add-item page with category parameter
-    // router.push('/add-item' + (category ? `?category=${category}` : ''));
+    setSelectedCategory(category || 'tops');
+    setShowUploadModal(true);
+  };
+
+  const handleCameraCapture = async () => {
+    try {
+      const image = await CapacitorCamera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: 'uri',
+        source: 'camera'
+      });
+      
+      console.log('Captured image:', image.webPath);
+      // TODO: Upload to closet with selectedCategory
+      setShowUploadModal(false);
+    } catch (error) {
+      console.error('Camera error:', error);
+    }
+  };
+
+  const handleGalleryUpload = async () => {
+    try {
+      const image = await CapacitorCamera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: 'uri',
+        source: 'photos'
+      });
+      
+      console.log('Selected image:', image.webPath);
+      // TODO: Upload to closet with selectedCategory
+      setShowUploadModal(false);
+    } catch (error) {
+      console.error('Gallery error:', error);
+    }
   };
 
   const handleItemClick = (itemId: string) => {
@@ -410,6 +448,99 @@ const VisualClosetEnhanced: React.FC = () => {
             >
               <X size={16} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            zIndex: 10000
+          }}
+          onClick={() => setShowUploadModal(false)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '500px',
+              background: 'white',
+              borderRadius: '20px 20px 0 0',
+              padding: '24px',
+              paddingBottom: 'calc(24px + env(safe-area-inset-bottom))'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px', textAlign: 'center' }}>
+              Add to {selectedCategory}
+            </h3>
+            <p style={{ fontSize: '14px', color: '#86868b', marginBottom: '24px', textAlign: 'center' }}>
+              Choose how you'd like to add your item
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                onClick={handleCameraCapture}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '16px',
+                  background: 'rgba(255, 192, 203, 0.1)',
+                  border: '1px solid rgba(255, 192, 203, 0.3)',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Camera size={24} color="#FF69B4" />
+                <span>Take Photo</span>
+              </button>
+              
+              <button
+                onClick={handleGalleryUpload}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '16px',
+                  background: 'rgba(255, 192, 203, 0.1)',
+                  border: '1px solid rgba(255, 192, 203, 0.3)',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Upload size={24} color="#FF69B4" />
+                <span>Choose from Gallery</span>
+              </button>
+              
+              <button
+                onClick={() => setShowUploadModal(false)}
+                style={{
+                  padding: '16px',
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: '#86868b',
+                  cursor: 'pointer',
+                  marginTop: '8px'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
