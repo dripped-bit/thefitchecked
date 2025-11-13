@@ -43,6 +43,7 @@ interface AvatarHomepageProps {
   onNavigateToCloset?: () => void;
   onNavigateToMyOutfits?: () => void;
   onNavigateToMyCreations?: () => void;
+  onNavigateToSettings?: () => void;
   onResetAvatar?: () => void;
   onAvatarUpdate?: (avatarData: any) => void;
   avatarData?: any;
@@ -72,6 +73,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   onNavigateToCloset,
   onNavigateToMyOutfits,
   onNavigateToMyCreations,
+  onNavigateToSettings,
   onResetAvatar,
   onAvatarUpdate,
   avatarData,
@@ -772,7 +774,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                 <span className="ml-2 text-sm font-medium">{weather.temperature}°F</span>
               </div>
             )}
-            <button onClick={() => setShowSettingsModal(true)}>
+            <button onClick={() => onNavigateToSettings?.()}>
               <Settings className="w-6 h-6 text-white" />
             </button>
           </div>

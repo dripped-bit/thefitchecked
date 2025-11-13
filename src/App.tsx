@@ -18,6 +18,7 @@ import AvatarHomepage from './components/AvatarHomepageRestored';
 import UserOnboardingPopup from './components/UserOnboardingPopup';
 import ClosetExperience from './components/ClosetExperience';
 import ProfileScreen from './components/ProfileScreen';
+import SettingsScreen from './pages/SettingsScreen';
 import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
 import MyOutfitsPage from './pages/MyOutfitsPageAdvanced';
@@ -57,7 +58,7 @@ import clearCacheUtil from './utils/clearCache';
 // import './utils/directApiTest';
 // import './utils/keyChecker';
 
-type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest' | 'profile';
+type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest' | 'profile' | 'settings';
 
 interface AppData {
   capturedPhotos: CapturedPhoto[];
@@ -1006,6 +1007,7 @@ function App() {
               onNavigateToCloset={handleNavigateToCloset}
               onNavigateToMyOutfits={() => setCurrentScreen('myOutfits')}
               onNavigateToMyCreations={() => setCurrentScreen('myCreations')}
+              onNavigateToSettings={() => setCurrentScreen('settings')}
               onResetAvatar={handleResetAvatar}
               onAvatarUpdate={handleAvatarUpdate}
               avatarData={appData.avatarData}
@@ -1069,6 +1071,23 @@ function App() {
               setCurrentScreen('welcome');
               setActiveTab('home');
             }}
+          />
+        );
+
+      case 'settings':
+        return (
+          <SettingsScreen
+            onNavigateToStyleProfile={() => {
+              setIsEditingStyleProfile(true);
+              setCurrentScreen('styleProfile');
+            }}
+            onSignOut={async () => {
+              await authService.signOut();
+              setAuthUser(null);
+              setCurrentScreen('welcome');
+              setActiveTab('home');
+            }}
+            onBack={() => setCurrentScreen('avatarHomepage')}
           />
         );
 
@@ -1483,7 +1502,7 @@ function App() {
         />
 
         {/* Floating Tab Bar - Show on main app screens with paired grouping */}
-        {['avatarHomepage', 'closet', 'myOutfits', 'myCreations', 'smartCalendar', 'profile'].includes(currentScreen) && !authLoading && authUser && (
+        {['avatarHomepage', 'closet', 'myOutfits', 'myCreations', 'smartCalendar', 'profile', 'settings'].includes(currentScreen) && !authLoading && authUser && (
           <FloatingTabBar
             tabs={tabs}
             activeTab={activeTab}
