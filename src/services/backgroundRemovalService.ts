@@ -25,66 +25,202 @@ interface SmartCategorizationResult {
 
 class BackgroundRemovalService {
   private readonly API_BASE = '/api/fal';
+  private readonly REMOVEBG_API_KEY = import.meta.env.VITE_REMOVEBG_API_KEY;
+  private cache: Map<string, string> = new Map();
 
   /**
-   * Remove background from clothing image with fallback
+   * Remove background from clothing image with multiple fallback options
+   * Priority: fal.ai BiRefNet → remove.bg → original image
    */
   async removeBackground(imageUrl: string): Promise<BackgroundRemovalResult> {
-    try {
-      console.log('🎨 [BACKGROUND-REMOVAL] Starting background removal via proxy...');
-
-      // Use /api/fal proxy instead of direct fal.run call
-      const response = await fetch(`${this.API_BASE}/fal-ai/birefnet`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image_url: imageUrl
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Background removal failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('🎨 [BACKGROUND-REMOVAL] Raw result:', result);
-
-      // Check different possible result formats
-      let cleanImageUrl = null;
-      if (result?.data?.image?.url) {
-        cleanImageUrl = result.data.image.url;
-      } else if (result?.image?.url) {
-        cleanImageUrl = result.image.url;
-      } else if (result?.data?.output?.url) {
-        cleanImageUrl = result.data.output.url;
-      } else if (typeof result === 'string') {
-        cleanImageUrl = result;
-      }
-
-      if (cleanImageUrl) {
-        console.log('✅ [BACKGROUND-REMOVAL] Background removed successfully');
-        return {
-          success: true,
-          imageUrl: cleanImageUrl
-        };
-      } else {
-        throw new Error('No processed image URL found in result');
-      }
-
-    } catch (error) {
-      console.warn('⚠️ [BACKGROUND-REMOVAL] Background removal failed, using original image:',
-        error instanceof Error ? error.message : error);
-
-      // Fallback to original image
+    // Check cache first
+    const cachedResult = this.cache.get(imageUrl);
+    if (cachedResult) {
+      console.log('💾 [BACKGROUND-REMOVAL] Using cached result');
       return {
         success: true,
-        imageUrl: imageUrl, // Return original image as fallback
-        fallback: true,
-        originalError: error instanceof Error ? error.message : String(error)
+        imageUrl: cachedResult
       };
     }
+
+    // Try primary method: fal.ai BiRefNet (best for clothing)
+    try {
+      const result = await this.removeBackgroundFalAI(imageUrl);
+      if (result.success && result.imageUrl) {
+        // Cache successful result
+        this.cache.set(imageUrl, result.imageUrl);
+        return result;
+      }
+    } catch (error) {
+      console.warn('⚠️ [BACKGROUND-REMOVAL] fal.ai failed, trying remove.bg:', error);
+    }
+
+    // Fallback 1: remove.bg API (commercial-grade quality)
+    if (this.REMOVEBG_API_KEY) {
+      try {
+        const result = await this.removeBackgroundRemoveBG(imageUrl);
+        if (result.success && result.imageUrl) {
+          // Cache successful result
+          this.cache.set(imageUrl, result.imageUrl);
+          return result;
+        }
+      } catch (error) {
+        console.warn('⚠️ [BACKGROUND-REMOVAL] remove.bg failed, using original:', error);
+      }
+    }
+
+    // Fallback 2: Return original image
+    console.log('ℹ️ [BACKGROUND-REMOVAL] Using original image (no background removal)');
+    return {
+      success: true,
+      imageUrl: imageUrl,
+      fallback: true,
+      originalError: 'All background removal methods failed'
+    };
+  }
+
+  /**
+   * Primary method: fal.ai BiRefNet
+   * Best quality for clothing items, handles complex textures
+   */
+  private async removeBackgroundFalAI(imageUrl: string): Promise<BackgroundRemovalResult> {
+    console.log('🎨 [FAL-AI] Starting BiRefNet background removal...');
+
+    const response = await fetch(`${this.API_BASE}/fal-ai/birefnet`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        image_url: imageUrl
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`fal.ai BiRefNet failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('🎨 [FAL-AI] Raw result:', result);
+
+    // Check different possible result formats
+    let cleanImageUrl = null;
+    if (result?.data?.image?.url) {
+      cleanImageUrl = result.data.image.url;
+    } else if (result?.image?.url) {
+      cleanImageUrl = result.image.url;
+    } else if (result?.data?.output?.url) {
+      cleanImageUrl = result.data.output.url;
+    } else if (typeof result === 'string') {
+      cleanImageUrl = result;
+    }
+
+    if (cleanImageUrl) {
+      console.log('✅ [FAL-AI] Background removed successfully');
+      return {
+        success: true,
+        imageUrl: cleanImageUrl
+      };
+    }
+
+    throw new Error('No processed image URL found in fal.ai result');
+  }
+
+  /**
+   * Fallback method: remove.bg API
+   * Commercial-grade background removal with excellent clothing support
+   * Docs: https://www.remove.bg/api
+   */
+  private async removeBackgroundRemoveBG(imageUrl: string): Promise<BackgroundRemovalResult> {
+    if (!this.REMOVEBG_API_KEY) {
+      throw new Error('remove.bg API key not configured');
+    }
+
+    console.log('🎨 [REMOVE.BG] Starting background removal...');
+
+    // Convert image to base64 if it's a data URL, otherwise use URL directly
+    const isDataUrl = imageUrl.startsWith('data:');
+    
+    const formData = new FormData();
+    if (isDataUrl) {
+      // Extract base64 data
+      const base64Data = imageUrl.split(',')[1];
+      const blob = this.base64ToBlob(base64Data, 'image/jpeg');
+      formData.append('image_file_b64', base64Data);
+    } else {
+      formData.append('image_url', imageUrl);
+    }
+    
+    // Optimize for clothing/products
+    formData.append('size', 'auto');
+    formData.append('type', 'product'); // Optimized for clothing/products
+    formData.append('format', 'png'); // PNG for transparency
+    formData.append('crop', 'false'); // Keep original dimensions
+
+    const response = await fetch('https://api.remove.bg/v1.0/removebg', {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': this.REMOVEBG_API_KEY,
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`remove.bg API failed (${response.status}): ${errorText}`);
+    }
+
+    // Get the blob result
+    const blob = await response.blob();
+    
+    // Convert blob to data URL
+    const processedImageUrl = await this.blobToDataUrl(blob);
+
+    console.log('✅ [REMOVE.BG] Background removed successfully');
+    return {
+      success: true,
+      imageUrl: processedImageUrl
+    };
+  }
+
+  /**
+   * Helper: Convert base64 to Blob
+   */
+  private base64ToBlob(base64: string, type: string = 'image/png'): Blob {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type });
+  }
+
+  /**
+   * Helper: Convert Blob to data URL
+   */
+  private async blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  /**
+   * Clear cache (useful for memory management)
+   */
+  clearCache(): void {
+    this.cache.clear();
+    console.log('🗑️ [BACKGROUND-REMOVAL] Cache cleared');
+  }
+
+  /**
+   * Get cache size
+   */
+  getCacheSize(): number {
+    return this.cache.size;
   }
 
   /**
