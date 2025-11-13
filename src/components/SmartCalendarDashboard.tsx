@@ -39,6 +39,7 @@ import WoreThisTodayTracker from './WoreThisTodayTracker';
 import AddEventModal from './AddEventModal';
 import EditEventModal from './EditEventModal';
 import MonthlyCalendarGrid from './MonthlyCalendarGrid';
+import EnhancedMonthlyCalendarGrid from './EnhancedMonthlyCalendarGrid';
 import OutfitSuggestionModal from './OutfitSuggestionModal';
 import WeeklyOutfitQueue from './WeeklyOutfitQueue';
 import { calendarConnectionManager } from '../services/calendar/calendarConnectionManager';
@@ -292,13 +293,8 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         </button>
       </div>
 
-      {/* Monthly Calendar Grid */}
-      <MonthlyCalendarGrid
-        events={upcomingEvents}
-        onDateClick={handleDateClick}
-        onAddEvent={() => setShowAddEventModal(true)}
-        selectedDate={selectedDate}
-      />
+      {/* Enhanced Monthly Calendar Grid with Outfit Scheduling */}
+      <EnhancedMonthlyCalendarGrid />
     </div>
   );
 
