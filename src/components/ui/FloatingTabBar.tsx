@@ -127,14 +127,14 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
       aria-label="Main navigation"
     >
       {/* Centered container for floating pills */}
-      <div className="flex items-center justify-center gap-3 py-2 px-4 pointer-events-none">
+      <div className="flex items-center justify-center gap-2 py-1.5 px-3 pointer-events-none">
         {groupedTabs.map((group, groupIndex) => (
           <React.Fragment key={`group-${groupIndex}`}>
             {/* Floating Glass Pill for each group */}
             <div
               className={cn(
                 // Floating pill styles
-                'flex items-center justify-center gap-1 px-3 py-2',
+                'flex items-center justify-center gap-1 px-2.5 py-1.5',
                 // Glass morphism effect
                 'bg-white/70 backdrop-blur-xl',
                 // Rounded pill shape
@@ -164,8 +164,8 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
                     className={cn(
                       // Base styles - compact for pill layout
                       'flex flex-col items-center justify-center',
-                      // Compact sizing for pills
-                      'min-w-[56px] px-2 py-1',
+                      // Compact sizing for pills (20% smaller)
+                      'min-w-[45px] px-1.5 py-0.5',
                       // Smooth transitions
                       'transition-all duration-200 ease-out',
                       // Active state - subtle scale
@@ -186,8 +186,8 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
                       className={cn(
                         'relative flex items-center justify-center',
                         'transition-all duration-200 ease-out',
-                        // Icon size
-                        'w-6 h-6',
+                        // Icon size (20% smaller)
+                        'w-5 h-5',
                         // Color based on active state - pink for active
                         isActive
                           ? 'text-pink-500'

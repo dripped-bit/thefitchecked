@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Check } from 'lucide-react';
+import { X, Calendar, Check, Plus } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import authService from '../services/authService';
 
@@ -154,49 +154,17 @@ export const ScheduleOutfitModal: React.FC<ScheduleOutfitModalProps> = ({
                 <p className="text-sm">Create outfits in your closet first</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {savedOutfits.map((outfit) => (
-                  <button
-                    key={outfit.id}
-                    onClick={() => setSelectedOutfit(outfit.id)}
-                    className={`
-                      relative p-3 rounded-lg border-2 transition-all
-                      ${
-                        selectedOutfit === outfit.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }
-                    `}
-                  >
-                    {/* Outfit Images */}
-                    <div className="grid grid-cols-2 gap-1 mb-2">
-                      {outfit.outfit_items.slice(0, 4).map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="aspect-square rounded overflow-hidden bg-gray-100"
-                        >
-                          <img
-                            src={item.clothing_item.image_url}
-                            alt={item.clothing_item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Outfit Name */}
-                    <div className="text-sm font-medium text-gray-900 truncate">
-                      {outfit.name || 'Unnamed Outfit'}
-                    </div>
-
-                    {/* Selected Check */}
-                    {selectedOutfit === outfit.id && (
-                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </button>
-                ))}
+              <div className="flex justify-center">
+                <button
+                  onClick={() => {
+                    // TODO: Open outfit creator/selector
+                    console.log('Add outfit clicked');
+                  }}
+                  className="w-48 p-6 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 transition-all flex flex-col items-center justify-center space-y-2"
+                >
+                  <Plus className="w-12 h-12 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-600">Add Outfit</span>
+                </button>
               </div>
             )}
           </div>

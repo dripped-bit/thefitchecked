@@ -44,6 +44,7 @@ import outfitGenerationService from './services/outfitGenerationService';
 import localStorageMigrationService from './services/localStorageMigrationService';
 import reminderMonitorService from './services/reminderMonitorService';
 import { pushNotificationService } from './services/pushNotificationService';
+import { outfitReminderService } from './services/outfitReminderService';
 import appLifecycle from './utils/appLifecycle';
 import iOSAuth from './utils/iOSAuth';
 import statusBar from './utils/statusBar';
@@ -243,6 +244,14 @@ function App() {
     console.log('🔔 [APP] Initializing reminder notification service...');
     reminderNotificationService.initialize();
     console.log('✅ [APP] Reminder service initialized');
+
+    // Initialize outfit reminder service (for occasion reminders)
+    console.log('👔 [APP] Initializing outfit reminder service...');
+    outfitReminderService.initialize().then(() => {
+      console.log('✅ [APP] Outfit reminder service initialized');
+    }).catch((error) => {
+      console.error('❌ [APP] Failed to initialize outfit reminder service:', error);
+    });
 
     // Cleanup on unmount
     return () => {

@@ -15,6 +15,7 @@ import {
 import { Camera as CapacitorCamera } from '@capacitor/camera';
 import { useCloset, ClothingCategory } from '../hooks/useCloset';
 import backgroundRemovalService from '../services/backgroundRemovalService';
+import { LoadingScreen } from './LoadingScreen';
 import '../styles/VisualClosetAdapter.css';
 
 interface CategoryConfig {
@@ -109,6 +110,11 @@ const VisualClosetEnhanced: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ClothingItem | null>(null);
 
+  // Processing/Loading states for background removal
+  const [showProcessingModal, setShowProcessingModal] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('Processing...');
+  const [processingAbortController, setProcessingAbortController] = useState<AbortController | null>(null);
+
   // Listen for Add Item button click from header
   useEffect(() => {
     const handleOpenAddItem = () => {
@@ -162,26 +168,80 @@ const VisualClosetEnhanced: React.FC = () => {
         resultType: 'base64', // Changed from 'uri' to 'base64' for API compatibility
         source: 'camera'
       });
-      
+
       if (image.base64String && selectedCategory) {
         // Convert to data URL format for background removal API
         const base64Image = `data:image/jpeg;base64,${image.base64String}`;
         console.log('📸 [CAMERA] Captured image as base64, length:', base64Image.length);
-        
-        // Store image and show details modal
-        setCapturedImage(base64Image);
+
+        // Close upload modal, show processing modal
         setShowUploadModal(false);
-        setShowDetailsModal(true);
-        // Pre-fill name
-        setItemDetails({
-          name: `New ${selectedCategory} item`,
-          brand: '',
-          price: '',
-          description: ''
-        });
+        setShowProcessingModal(true);
+        setProcessingMessage('Removing background...');
+
+        // Create abort controller for cancellation
+        const abortController = new AbortController();
+        setProcessingAbortController(abortController);
+
+        try {
+          // Process background removal
+          console.log('🎨 [CAMERA] Starting background removal...');
+          const bgRemovalResult = await backgroundRemovalService.removeBackground(base64Image, abortController.signal);
+
+          // Check if aborted
+          if (abortController.signal.aborted) {
+            console.log('⚠️ [CAMERA] Processing was cancelled');
+            setShowProcessingModal(false);
+            return;
+          }
+
+          // Use processed image or fallback to original
+          const processedImageUrl = bgRemovalResult.success && bgRemovalResult.imageUrl
+            ? bgRemovalResult.imageUrl
+            : base64Image;
+
+          console.log('✅ [CAMERA] Background removal complete, success:', bgRemovalResult.success);
+
+          // Store processed image and show details modal
+          setCapturedImage(processedImageUrl);
+          setShowProcessingModal(false);
+          setShowDetailsModal(true);
+
+          // Pre-fill name
+          setItemDetails({
+            name: `New ${selectedCategory} item`,
+            brand: '',
+            price: '',
+            description: ''
+          });
+
+        } catch (processingError) {
+          console.error('❌ [CAMERA] Background removal error:', processingError);
+
+          // Check if aborted
+          if (abortController.signal.aborted) {
+            setShowProcessingModal(false);
+            return;
+          }
+
+          // Auto-fallback: use original image
+          console.log('⚠️ [CAMERA] Using original image as fallback');
+          setCapturedImage(base64Image);
+          setShowProcessingModal(false);
+          setShowDetailsModal(true);
+
+          // Pre-fill name
+          setItemDetails({
+            name: `New ${selectedCategory} item`,
+            brand: '',
+            price: '',
+            description: ''
+          });
+        }
       }
     } catch (error) {
       console.error('❌ [CAMERA] Error:', error);
+      setShowProcessingModal(false);
     }
   };
 
@@ -193,26 +253,75 @@ const VisualClosetEnhanced: React.FC = () => {
         resultType: 'base64', // Changed from 'uri' to 'base64' for API compatibility
         source: 'photos'
       });
-      
+
       if (image.base64String && selectedCategory) {
         // Convert to data URL format for background removal API
         const base64Image = `data:image/jpeg;base64,${image.base64String}`;
         console.log('🖼️ [GALLERY] Selected image as base64, length:', base64Image.length);
-        
-        // Store image and show details modal
-        setCapturedImage(base64Image);
+
+        // Close upload modal and show processing modal
         setShowUploadModal(false);
-        setShowDetailsModal(true);
-        // Pre-fill name
-        setItemDetails({
-          name: `New ${selectedCategory} item`,
-          brand: '',
-          price: '',
-          description: ''
-        });
+        setShowProcessingModal(true);
+        setProcessingMessage('Removing background...');
+
+        // Create abort controller for cancellation support
+        const abortController = new AbortController();
+        setProcessingAbortController(abortController);
+
+        try {
+          // Process background removal BEFORE showing details form
+          const bgRemovalResult = await backgroundRemovalService.removeBackground(base64Image, abortController.signal);
+
+          // Check if operation was aborted
+          if (abortController.signal.aborted) {
+            console.log('⚠️ [GALLERY] Background removal aborted by user');
+            setShowProcessingModal(false);
+            return;
+          }
+
+          // Use processed image if successful, fallback to original if failed
+          const processedImageUrl = bgRemovalResult.success && bgRemovalResult.imageUrl
+            ? bgRemovalResult.imageUrl
+            : base64Image;
+
+          if (bgRemovalResult.fallback) {
+            console.warn('⚠️ [GALLERY] Using original image (background removal failed)');
+          } else {
+            console.log('✅ [GALLERY] Background removed successfully');
+          }
+
+          // Store processed image and show details modal
+          setCapturedImage(processedImageUrl);
+          setShowProcessingModal(false);
+          setShowDetailsModal(true);
+
+          // Pre-fill name
+          setItemDetails({
+            name: `New ${selectedCategory} item`,
+            brand: '',
+            price: '',
+            description: ''
+          });
+
+        } catch (processingError) {
+          console.error('❌ [GALLERY] Background removal error, using original image:', processingError);
+          // Auto-fallback: use original image if processing fails
+          setCapturedImage(base64Image);
+          setShowProcessingModal(false);
+          setShowDetailsModal(true);
+
+          // Pre-fill name
+          setItemDetails({
+            name: `New ${selectedCategory} item`,
+            brand: '',
+            price: '',
+            description: ''
+          });
+        }
       }
     } catch (error) {
       console.error('❌ [GALLERY] Error:', error);
+      setShowProcessingModal(false);
     }
   };
 
@@ -221,33 +330,20 @@ const VisualClosetEnhanced: React.FC = () => {
 
     try {
       console.log('💾 [CLOSET] Saving item to category:', selectedCategory);
-      console.log('🎨 [CLOSET] Processing image with background removal...');
-      console.log('📸 [CLOSET] Image format:', capturedImage.substring(0, 30) + '...');
-      
-      // Step 1: Remove background from image
-      const bgRemovalResult = await backgroundRemovalService.removeBackground(capturedImage);
-      const processedImageUrl = bgRemovalResult.success && bgRemovalResult.imageUrl 
-        ? bgRemovalResult.imageUrl 
-        : capturedImage;
+      console.log('📸 [CLOSET] Image already processed (background removed earlier)');
 
-      if (bgRemovalResult.fallback) {
-        console.warn('⚠️ [CLOSET] Background removal used fallback:', bgRemovalResult.originalError);
-      } else {
-        console.log('✅ [CLOSET] Background removed successfully');
-      }
-
-      // Step 2: Save item with processed image
+      // Save item with already-processed image (background removed before modal opened)
       console.log('💾 [CLOSET] Calling addItem with category:', selectedCategory);
       const newItem = await addItem({
         name: itemDetails.name || `New ${selectedCategory} item`,
         category: selectedCategory,
-        image_url: processedImageUrl, // Use processed image with background removed
+        image_url: capturedImage, // Already processed image
         brand: itemDetails.brand || undefined,
         price: itemDetails.price ? parseFloat(itemDetails.price) : undefined,
         notes: itemDetails.description || undefined,
         favorite: false
       });
-      
+
       if (newItem) {
         console.log('✅ [CLOSET] Item saved with category:', newItem.category);
         console.log('✅ [CLOSET] Item added to closet:', newItem);
@@ -844,6 +940,24 @@ const VisualClosetEnhanced: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Processing/Loading Modal */}
+      {showProcessingModal && (
+        <LoadingScreen
+          isOpen={showProcessingModal}
+          message={processingMessage}
+          onCancel={() => {
+            // Abort the background removal operation
+            if (processingAbortController) {
+              processingAbortController.abort();
+              setProcessingAbortController(null);
+            }
+            // Close the processing modal
+            setShowProcessingModal(false);
+            console.log('⚠️ [CLOSET] Background removal cancelled by user');
+          }}
+        />
       )}
 
       {/* Edit Item Modal */}

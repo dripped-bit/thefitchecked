@@ -6,6 +6,16 @@ import ScheduleOutfitModal from './ScheduleOutfitModal';
 import { supabase } from '../services/supabaseClient';
 import authService from '../services/authService';
 
+interface ShoppingLink {
+  url: string;
+  store?: string;
+  image?: string;
+  imageUrl?: string;
+  title?: string;
+  price?: string;
+  affiliateUrl?: string;
+}
+
 interface ScheduledOutfit {
   id: string;
   scheduled_date: string;
@@ -17,6 +27,7 @@ interface ScheduledOutfit {
     image_url: string;
     category: string;
   }>;
+  shopping_links?: ShoppingLink[];
 }
 
 interface MonthStats {
@@ -59,49 +70,56 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      const startDate = startOfMonth.toISOString().split('T')[0];
-      const endDate = endOfMonth.toISOString().split('T')[0];
+      const startDate = startOfMonth.toISOString();
+      const endDate = endOfMonth.toISOString();
 
-      const { data: outfitsData, error: outfitsError } = await supabase
-        .from('scheduled_outfits')
-        .select(
-          `
-          id,
-          scheduled_date,
-          occasion,
-          was_worn,
-          outfit:outfits (
-            id,
-            name,
-            outfit_items (
-              clothing_item:clothing_items (
-                id,
-                name,
-                image_url,
-                category
-              )
-            )
-          )
-        `
-        )
-        .eq('user_id', user.id)
-        .gte('scheduled_date', startDate)
-        .lte('scheduled_date', endDate);
+      // Fetch from calendar_events table instead of scheduled_outfits
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .gte('start_time', startDate)
+        .lte('start_time', endDate)
+        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .order('start_time', { ascending: true });
 
-      if (outfitsError) throw outfitsError;
+      if (eventsError) throw eventsError;
+
+      // Debug: Log fetched data
+      console.log('📅 [CALENDAR] Fetched calendar events:', eventsData);
 
       const outfitsMap: Record<string, ScheduledOutfit> = {};
-      outfitsData?.forEach((item: any) => {
-        if (item.outfit && item.outfit.outfit_items) {
-          outfitsMap[item.scheduled_date] = {
-            id: item.id,
-            scheduled_date: item.scheduled_date,
-            occasion: item.occasion,
-            was_worn: item.was_worn,
-            outfit_items: item.outfit.outfit_items.map((oi: any) => oi.clothing_item),
-          };
-        }
+      eventsData?.forEach((event: any) => {
+        // Extract date from start_time
+        const eventDate = new Date(event.start_time);
+        const dateKey = eventDate.toISOString().split('T')[0];
+
+        // Create outfit items from shopping links if available
+        const outfitItems = event.shopping_links && event.shopping_links.length > 0
+          ? event.shopping_links.map((link: any, index: number) => ({
+              id: `${event.id}-item-${index}`,
+              name: link.title || link.store || 'Shopping Item',
+              image_url: link.image || link.imageUrl || '',
+              category: 'shopping-item'
+            }))
+          : [{
+              id: `${event.id}-default`,
+              name: event.title || 'Outfit',
+              image_url: '',
+              category: 'outfit'
+            }];
+
+        outfitsMap[dateKey] = {
+          id: event.id,
+          scheduled_date: dateKey,
+          occasion: event.title || event.description,
+          was_worn: false, // TODO: Add was_worn tracking to calendar_events
+          outfit_items: outfitItems,
+          shopping_links: event.shopping_links || []
+        };
       });
+
+      // Debug: Log final mapped outfits
+      console.log('📅 [CALENDAR] Mapped outfits for calendar:', outfitsMap);
 
       setScheduledOutfits(outfitsMap);
       await calculateMonthStats(user.id, startDate, endDate, outfitsMap);
@@ -224,9 +242,9 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="flex flex-col h-full bg-gray-50" style={{ width: '100%' }}>
+    <div className="flex flex-col h-full" style={{ width: '100%' }}>
       {/* Month/Year Navigation */}
-      <div 
+      <div
         className="sticky top-0 z-40 border-b"
         style={{
           backdropFilter: 'blur(40px) saturate(180%)',
@@ -236,7 +254,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
         }}
       >
-        <div className="flex items-center justify-center px-4 py-3" style={{ minHeight: '44px' }}>
+        <div className="flex items-center justify-center py-1" style={{ minHeight: '44px', paddingTop: '8px', paddingBottom: '4px' }}>
           <div className="flex items-center space-x-4">
             <button
               onClick={handlePreviousMonth}
@@ -268,7 +286,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
         }}
       >
         {/* Liquid Glass Calendar Header */}
-        <div 
+        <div
           className="border-b sticky top-0"
           style={{
             zIndex: 30,
@@ -276,26 +294,37 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
             WebkitBackdropFilter: 'blur(30px) saturate(180%)',
             background: 'rgba(255, 255, 255, 0.75)',
             borderBottom: '0.5px solid rgba(0, 0, 0, 0.04)',
+            paddingTop: '4px',
+            paddingBottom: '8px',
           }}
         >
-          <div className="px-4 py-2">
-            <div className="grid grid-cols-7 gap-1">
-              {weekDays.map((day) => (
-                <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
-                  {day}
-                </div>
-              ))}
-            </div>
+          <div className="grid grid-cols-7">
+            {weekDays.map((day) => (
+              <div key={day} className="text-center text-sm font-semibold text-gray-600 py-1">
+                {day}
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="p-4">
+        <div>
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-500">Loading calendar...</div>
           </div>
         ) : (
-          <div className="grid grid-cols-7 gap-2 auto-rows-fr">
+          <div
+            className="grid grid-cols-7"
+            style={{
+              gridAutoRows: '180px',
+              minHeight: '600px',
+              transform: 'none',
+              willChange: 'auto',
+              width: '100%',
+              padding: 0,
+              margin: 0,
+            }}
+          >
             {calendarDays.map((day, index) => {
               const dateKey = day.date.toISOString().split('T')[0];
               const isToday =

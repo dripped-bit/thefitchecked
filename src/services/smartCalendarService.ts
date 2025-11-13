@@ -205,7 +205,8 @@ class SmartCalendarService {
           event_type: eventData.eventType,
           is_all_day: eventData.isAllDay || false,
           outfit_id: eventData.outfitId || null,
-          weather_required: eventData.weatherRequired || false
+          weather_required: eventData.weatherRequired || false,
+          shopping_links: eventData.shoppingLinks || []
         })
         .select()
         .single();

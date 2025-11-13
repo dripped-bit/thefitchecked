@@ -94,13 +94,17 @@ const CompleteFashnTryOn: React.FC<CompleteFashnTryOnProps> = ({
     if (!avatarData) return;
 
     setIsProcessing(true);
+    setProcessingProgress(0); // Reset progress
     setProcessingStage('Applying single item...');
     setCurrentView('single');
 
     try {
       const result = await completeFashnTryOnService.tryOnSingleItem(
         avatarData.imageUrl || avatarData,
-        item
+        item,
+        (progress) => {
+          setProcessingProgress(progress);
+        }
       );
 
       setSingleResult(result);
@@ -166,13 +170,17 @@ const CompleteFashnTryOn: React.FC<CompleteFashnTryOnProps> = ({
     if (!avatarData || selectedItems.length === 0) return;
 
     setIsProcessing(true);
+    setProcessingProgress(0); // Reset progress
     setCurrentView('outfit');
     setProcessingStage('Checking cache...');
 
     try {
       const result = await completeFashnTryOnService.tryOnFullOutfit(
         avatarData.imageUrl || avatarData,
-        selectedItems
+        selectedItems,
+        (progress) => {
+          setProcessingProgress(progress);
+        }
       );
 
       setFinalOutfitResult(result.finalImageUrl || null);
@@ -434,13 +442,17 @@ const CompleteFashnTryOn: React.FC<CompleteFashnTryOnProps> = ({
             <div className="aspect-[3/4] bg-gray-100 rounded-xl flex items-center justify-center relative overflow-hidden">
               {isProcessing ? (
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#FF69B4' }}></div>
                   <p className="text-gray-600 font-medium">{processingStage}</p>
                   {processingProgress > 0 && (
                     <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                       <div
-                        className="bg-purple-600 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${processingProgress}%` }}
+                        className="h-2 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${processingProgress}%`,
+                          background: '#FF69B4',
+                          boxShadow: '0 0 10px rgba(255, 105, 180, 0.5)'
+                        }}
                       />
                     </div>
                   )}

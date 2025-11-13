@@ -781,16 +781,33 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
         </div>
 
         {/* Title - personalized greeting */}
-        <div className="px-6 py-1.5">
-          <h1 className="text-white text-3xl font-bold">
-            {getTimeBasedGreeting()}
-          </h1>
-          <p className="text-white/90 text-base mt-1">
-            {getUserFirstName()}
+        <div className="px-6 py-1.5 flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="text-white text-3xl font-bold">
+              {getTimeBasedGreeting()}
+            </h1>
+            <p className="text-white/90 text-base mt-1">
+              {getUserFirstName()}
           </p>
           <p className="text-white/80 text-sm mt-1">
             {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
+          </div>
+
+          {/* Weather/Location Icon Button */}
+          <button
+            onClick={() => {
+              // Scroll to weather section or trigger weather modal
+              const weatherSection = document.querySelector('.weather-section');
+              if (weatherSection) {
+                weatherSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }}
+            className="flex-shrink-0 ml-4 mt-1 w-11 h-11 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center active:scale-95 transition-all hover:bg-white/30"
+            title="View Weather & Location"
+          >
+            <Sun className="w-6 h-6 text-white" />
+          </button>
         </div>
 
         {/* Segmented Control with 3 tabs */}

@@ -19,6 +19,18 @@ interface ProductWithImage {
   price?: string;
 }
 
+interface ParsedOccasion {
+  originalInput: string;
+  occasion: string;
+  formality: 'casual' | 'semi-formal' | 'formal' | 'black-tie';
+  date?: string;
+  time?: string;
+  location?: string;
+  weather?: any;
+  confidence: number;
+  tags: string[];
+}
+
 interface CalendarEntryModalProps {
   outfit: {
     outfit?: any;
@@ -33,6 +45,7 @@ interface CalendarEntryModalProps {
   onClose: () => void;
   initialShoppingLinks?: string[]; // Array of product URLs to pre-fill
   selectedProducts?: ProductWithImage[]; // Array of clicked products with images
+  occasion?: ParsedOccasion; // Occasion context from outfit generation
 }
 
 interface CalendarEntry {
@@ -60,21 +73,32 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
   onSave,
   onClose,
   initialShoppingLinks = [],
-  selectedProducts = []
+  selectedProducts = [],
+  occasion
 }) => {
+  // Pre-populate from occasion context if available
+  const initialOccasionName = occasion?.occasion || outfit?.occasion || '';
+  const initialDate = occasion?.date || '';
+  const initialLocation = occasion?.location || '';
+  const initialNotes = occasion?.formality
+    ? `${occasion.formality.charAt(0).toUpperCase() + occasion.formality.slice(1)} event${occasion.originalInput ? ` - ${occasion.originalInput}` : ''}`
+    : '';
+
   const [formData, setFormData] = useState({
-    eventDate: '',
-    occasionName: outfit?.occasion || '',
+    eventDate: initialDate,
+    occasionName: initialOccasionName,
     shoppingLinks: initialShoppingLinks.join('\n'),
     reminderDays: 7,
     getReadyReminderHours: 2,
-    notes: ''
+    notes: initialNotes,
+    customReminderDays: 7 // For custom reminder input
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [eventLocation, setEventLocation] = useState('');
-  const [weatherForecast, setWeatherForecast] = useState<WeatherData | null>(null);
+  const [eventLocation, setEventLocation] = useState(initialLocation);
+  const [weatherForecast, setWeatherForecast] = useState<WeatherData | null>(occasion?.weather || null);
   const [loadingWeather, setLoadingWeather] = useState(false);
+  const [useCustomReminder, setUseCustomReminder] = useState(false);
 
   // Get outfit image URL - prefer product images over generated outfit
   const getOutfitImage = () => {
@@ -391,7 +415,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 ios-blur bg-black bg-opacity-70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+      className="fixed inset-0 ios-blur bg-black bg-opacity-70 flex items-end sm:items-center justify-center z-[60] p-0 sm:p-4"
       onClick={onClose}
     >
       <div
@@ -492,11 +516,11 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
             />
           </div>
 
-          {/* Location Input */}
+          {/* Location Input - REQUIRED */}
           <div>
             <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
               <MapPin className="w-4 h-4" />
-              <span>Location (City, State)</span>
+              <span>Location (City, State) *</span>
             </label>
             <input
               type="text"
@@ -505,9 +529,10 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               onBlur={handleLocationChange}
               placeholder="e.g., Austin, Texas"
               className="ios-input w-full"
+              required
             />
             <p className="ios-caption-1 text-ios-label-tertiary mt-1">
-              Weather forecast will be shown for this location
+              Required for weather forecast and styling recommendations
             </p>
           </div>
 
@@ -597,17 +622,62 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               <Bell className="w-4 h-4" />
               <span>Reminder to Buy</span>
             </label>
-            <select
-              value={formData.reminderDays}
-              onChange={(e) => setFormData({ ...formData, reminderDays: Number(e.target.value) })}
-              className="ios-input w-full"
-            >
-              <option value={0}>No reminder</option>
-              <option value={3}>3 days before event</option>
-              <option value={7}>1 week before event</option>
-              <option value={14}>2 weeks before event</option>
-              <option value={30}>1 month before event</option>
-            </select>
+            {!useCustomReminder ? (
+              <div className="space-y-2">
+                <select
+                  value={formData.reminderDays}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'custom') {
+                      setUseCustomReminder(true);
+                    } else {
+                      setFormData({ ...formData, reminderDays: Number(value) });
+                    }
+                  }}
+                  className="ios-input w-full"
+                >
+                  <option value={0}>No reminder</option>
+                  <option value={1}>1 day before event</option>
+                  <option value={3}>3 days before event</option>
+                  <option value={7}>1 week before event</option>
+                  <option value={14}>2 weeks before event</option>
+                  <option value={21}>3 weeks before event</option>
+                  <option value={30}>1 month before event</option>
+                  <option value="custom">Custom...</option>
+                </select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    max="90"
+                    value={formData.customReminderDays}
+                    onChange={(e) => {
+                      const days = Number(e.target.value);
+                      setFormData({
+                        ...formData,
+                        customReminderDays: days,
+                        reminderDays: days
+                      });
+                    }}
+                    className="ios-input flex-1"
+                    placeholder="Enter days"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setUseCustomReminder(false)}
+                    className="ios-button-secondary px-4"
+                  >
+                    Presets
+                  </button>
+                </div>
+                <p className="ios-caption-1 text-ios-label-secondary">
+                  Days before event (1-90)
+                </p>
+              </div>
+            )}
             <p className="mt-1 ios-caption-1 text-ios-label-tertiary">
               Get reminded to purchase these items before your event
             </p>
@@ -657,7 +727,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
           </div>
 
           {/* Fixed Footer - Action Buttons */}
-          <div className="flex-shrink-0 p-6 border-t border-ios-separator bg-white pb-safe">
+          <div className="flex-shrink-0 p-6 border-t border-ios-separator bg-white pb-[calc(env(safe-area-inset-bottom)+100px)]">
           <div className="flex gap-3">
             <button
               type="button"

@@ -24,15 +24,26 @@ interface SmartCategorizationResult {
 }
 
 class BackgroundRemovalService {
-  private readonly API_BASE = '/api/fal';
+  // Environment detection
+  private readonly IS_DEV = import.meta.env.DEV;
+  private readonly FAL_KEY = import.meta.env.VITE_FAL_KEY;
+
+  // Use Vite proxy in dev mode, direct API in production (iOS)
+  private readonly API_BASE = import.meta.env.DEV ? '/api/fal' : 'https://fal.run';
   private readonly REMOVEBG_API_KEY = import.meta.env.VITE_REMOVEBG_API_KEY;
   private cache: Map<string, string> = new Map();
 
   /**
    * Remove background from clothing image with multiple fallback options
-   * Priority: fal.ai BiRefNet → remove.bg → original image
+   * Priority: fal.ai rembg → remove.bg → original image
    */
-  async removeBackground(imageUrl: string): Promise<BackgroundRemovalResult> {
+  async removeBackground(imageUrl: string, signal?: AbortSignal): Promise<BackgroundRemovalResult> {
+    // Check if already aborted
+    if (signal?.aborted) {
+      console.log('🚫 [BACKGROUND-REMOVAL] Operation already aborted');
+      throw new Error('Background removal aborted');
+    }
+
     // Check cache first
     const cachedResult = this.cache.get(imageUrl);
     if (cachedResult) {
@@ -43,28 +54,38 @@ class BackgroundRemovalService {
       };
     }
 
-    // Try primary method: fal.ai BiRefNet (best for clothing)
+    // Try primary method: fal.ai rembg (best for clothing)
     try {
-      const result = await this.removeBackgroundFalAI(imageUrl);
+      const result = await this.removeBackgroundFalAI(imageUrl, signal);
       if (result.success && result.imageUrl) {
         // Cache successful result
         this.cache.set(imageUrl, result.imageUrl);
         return result;
       }
     } catch (error) {
+      // Check if aborted
+      if (signal?.aborted || (error instanceof Error && error.name === 'AbortError')) {
+        console.log('🚫 [BACKGROUND-REMOVAL] fal.ai aborted by user');
+        throw new Error('Background removal aborted');
+      }
       console.warn('⚠️ [BACKGROUND-REMOVAL] fal.ai failed, trying remove.bg:', error);
     }
 
     // Fallback 1: remove.bg API (commercial-grade quality)
     if (this.REMOVEBG_API_KEY) {
       try {
-        const result = await this.removeBackgroundRemoveBG(imageUrl);
+        const result = await this.removeBackgroundRemoveBG(imageUrl, signal);
         if (result.success && result.imageUrl) {
           // Cache successful result
           this.cache.set(imageUrl, result.imageUrl);
           return result;
         }
       } catch (error) {
+        // Check if aborted
+        if (signal?.aborted || (error instanceof Error && error.name === 'AbortError')) {
+          console.log('🚫 [BACKGROUND-REMOVAL] remove.bg aborted by user');
+          throw new Error('Background removal aborted');
+        }
         console.warn('⚠️ [BACKGROUND-REMOVAL] remove.bg failed, using original:', error);
       }
     }
@@ -80,61 +101,101 @@ class BackgroundRemovalService {
   }
 
   /**
-   * Primary method: fal.ai BiRefNet
-   * Best quality for clothing items, handles complex textures
+   * Primary method: fal.ai imageutils/rembg
+   * Fast and efficient background removal optimized for clothing items
+   * Docs: https://fal.ai/models/fal-ai/imageutils/rembg
    */
-  private async removeBackgroundFalAI(imageUrl: string): Promise<BackgroundRemovalResult> {
-    console.log('🎨 [FAL-AI] Starting BiRefNet background removal...');
-    console.log('📸 [FAL-AI] Image URL type:', imageUrl.substring(0, 50) + '...');
-    
+  private async removeBackgroundFalAI(imageUrl: string, signal?: AbortSignal): Promise<BackgroundRemovalResult> {
+    console.log('🎨 [FAL-AI-REMBG] Starting background removal...');
+    console.log('🌍 [FAL-AI-REMBG] Environment:', this.IS_DEV ? 'DEVELOPMENT' : 'PRODUCTION');
+    console.log('🔗 [FAL-AI-REMBG] API Base:', this.API_BASE);
+    console.log('📸 [FAL-AI-REMBG] Image URL type:', imageUrl.substring(0, 50) + '...');
+
     // Validate image URL format
     if (!imageUrl.startsWith('data:image') && !imageUrl.startsWith('http')) {
-      console.error('❌ [FAL-AI] Invalid image URL format. Expected data URL or HTTP URL');
+      console.error('❌ [FAL-AI-REMBG] Invalid image URL format. Expected data URL or HTTP URL');
       throw new Error(`Invalid image URL format: ${imageUrl.substring(0, 30)}...`);
     }
 
-    const response = await fetch(`${this.API_BASE}/fal-ai/birefnet`, {
+    // Build headers - add Authorization in production (direct API calls)
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // In production, add Authorization header for direct fal.ai API calls
+    if (!this.IS_DEV && this.FAL_KEY) {
+      headers['Authorization'] = `Key ${this.FAL_KEY}`;
+      console.log('🔑 [FAL-AI-REMBG] Using direct API with authorization');
+    } else if (this.IS_DEV) {
+      console.log('🔧 [FAL-AI-REMBG] Using dev proxy');
+    }
+
+    const response = await fetch(`${this.API_BASE}/fal-ai/imageutils/rembg`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
-        image_url: imageUrl
-      })
+        image_url: imageUrl,
+        sync_mode: false,
+        crop_to_bbox: false
+      }),
+      signal // Add abort signal support
     });
 
-    console.log('🌐 [FAL-AI] Response status:', response.status);
+    console.log('🌐 [FAL-AI-REMBG] Response status:', response.status);
+    console.log('🌐 [FAL-AI-REMBG] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ [FAL-AI] Error response:', errorText);
-      throw new Error(`fal.ai BiRefNet failed: ${response.status} - ${errorText}`);
+      console.error('❌ [FAL-AI-REMBG] Error response:', errorText);
+      throw new Error(`fal.ai rembg failed: ${response.status} - ${errorText}`);
     }
 
-    const result = await response.json();
-    console.log('🎨 [FAL-AI] Raw result:', result);
+    // Parse JSON response with error handling
+    let result;
+    try {
+      const responseText = await response.text();
+      console.log('📄 [FAL-AI-REMBG] Raw response text (first 500 chars):', responseText.substring(0, 500));
+      result = JSON.parse(responseText);
+      console.log('🎨 [FAL-AI-REMBG] Parsed JSON result:', JSON.stringify(result).substring(0, 500));
+    } catch (parseError) {
+      console.error('❌ [FAL-AI-REMBG] JSON parse error:', parseError);
+      throw new Error(`Failed to parse fal.ai response: ${parseError}`);
+    }
 
-    // Check different possible result formats
+    // Parse rembg response format
+    // Expected formats:
+    // 1. { data: { image: { url: string } } }
+    // 2. { image: { url: string } }
+    // 3. Direct string URL
     let cleanImageUrl = null;
+
+    console.log('🔍 [FAL-AI-REMBG] Checking result.data?.image?.url:', result?.data?.image?.url);
+    console.log('🔍 [FAL-AI-REMBG] Checking result.image?.url:', result?.image?.url);
+    console.log('🔍 [FAL-AI-REMBG] Result type:', typeof result);
+    console.log('🔍 [FAL-AI-REMBG] Result keys:', Object.keys(result || {}));
+
     if (result?.data?.image?.url) {
       cleanImageUrl = result.data.image.url;
+      console.log('✅ [FAL-AI-REMBG] Found image URL in result.data.image.url');
     } else if (result?.image?.url) {
       cleanImageUrl = result.image.url;
-    } else if (result?.data?.output?.url) {
-      cleanImageUrl = result.data.output.url;
+      console.log('✅ [FAL-AI-REMBG] Found image URL in result.image.url');
     } else if (typeof result === 'string') {
       cleanImageUrl = result;
+      console.log('✅ [FAL-AI-REMBG] Result is direct string URL');
     }
 
     if (cleanImageUrl) {
-      console.log('✅ [FAL-AI] Background removed successfully');
+      console.log('✅ [FAL-AI-REMBG] Background removed successfully');
+      console.log('📸 [FAL-AI-REMBG] Output URL:', cleanImageUrl.substring(0, 60) + '...');
       return {
         success: true,
         imageUrl: cleanImageUrl
       };
     }
 
-    throw new Error('No processed image URL found in fal.ai result');
+    console.error('❌ [FAL-AI-REMBG] No image URL in response. Full result:', JSON.stringify(result));
+    throw new Error('No processed image URL found in fal.ai rembg result');
   }
 
   /**
@@ -142,7 +203,7 @@ class BackgroundRemovalService {
    * Commercial-grade background removal with excellent clothing support
    * Docs: https://www.remove.bg/api
    */
-  private async removeBackgroundRemoveBG(imageUrl: string): Promise<BackgroundRemovalResult> {
+  private async removeBackgroundRemoveBG(imageUrl: string, signal?: AbortSignal): Promise<BackgroundRemovalResult> {
     if (!this.REMOVEBG_API_KEY) {
       throw new Error('remove.bg API key not configured');
     }
@@ -151,7 +212,7 @@ class BackgroundRemovalService {
 
     // Convert image to base64 if it's a data URL, otherwise use URL directly
     const isDataUrl = imageUrl.startsWith('data:');
-    
+
     const formData = new FormData();
     if (isDataUrl) {
       // Extract base64 data
@@ -161,7 +222,7 @@ class BackgroundRemovalService {
     } else {
       formData.append('image_url', imageUrl);
     }
-    
+
     // Optimize for clothing/products
     formData.append('size', 'auto');
     formData.append('type', 'product'); // Optimized for clothing/products
@@ -173,6 +234,7 @@ class BackgroundRemovalService {
       headers: {
         'X-Api-Key': this.REMOVEBG_API_KEY,
       },
+      signal, // Add abort signal support
       body: formData
     });
 

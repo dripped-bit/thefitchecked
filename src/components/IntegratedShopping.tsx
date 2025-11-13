@@ -28,8 +28,9 @@ interface IntegratedShoppingProps {
   occasion: ParsedOccasion;
   budget?: BudgetRange | null;
   onTryOnProduct?: (product: ProductSearchResult) => void;
-  onSaveToCalendar?: () => void;
+  onSaveToCalendar?: (occasion?: ParsedOccasion, products?: ProductSearchResult[]) => void;
   onProductsCollected?: (products: ProductSearchResult[]) => void;
+  onGenerateNew?: () => void;
   avatarData?: any;
   className?: string;
 }
@@ -48,6 +49,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   onTryOnProduct,
   onSaveToCalendar,
   onProductsCollected,
+  onGenerateNew,
   avatarData,
   className = ''
 }) => {
@@ -342,33 +344,46 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   const handleSaveToCalendar = () => {
     setSavedToCalendar(true);
     // Trigger the parent callback which opens the SaveToCalendarModal
-    onSaveToCalendar?.();
+    // Pass occasion and clicked products
+    onSaveToCalendar?.(occasion, clickedProducts);
   };
 
-  const handleSaveFromMenu = () => {
+  const handleSaveFromMenu = (selectedProduct?: any) => {
     console.log('📅 [INTEGRATED-SHOPPING] Save to Calendar selected from menu');
     setShowActionMenu(false);
-    
-    // Add product to collected shopping links
-    if (lastViewedProduct) {
+
+    // Update clicked products with the selected product if provided
+    if (selectedProduct) {
+      setClickedProducts(prev => {
+        const alreadyExists = prev.some(p => p.url === selectedProduct.url);
+        if (!alreadyExists) {
+          console.log('💾 [INTEGRATED-SHOPPING] Adding selected product to calendar save:', selectedProduct.title);
+          return [...prev, selectedProduct];
+        }
+        return prev;
+      });
+    } else if (lastViewedProduct) {
+      // Fallback to lastViewedProduct if no selection
       setClickedProducts(prev => {
         const alreadyExists = prev.some(p => p.url === lastViewedProduct.url);
         if (!alreadyExists) {
-          console.log('💾 [INTEGRATED-SHOPPING] Adding product to calendar save:', lastViewedProduct.title);
+          console.log('💾 [INTEGRATED-SHOPPING] Adding last viewed product to calendar save:', lastViewedProduct.title);
           return [...prev, lastViewedProduct];
         }
         return prev;
       });
     }
-    
+
     // Open calendar modal
     handleSaveToCalendar();
   };
 
-  const handleKeepLooking = () => {
-    console.log('🔍 [INTEGRATED-SHOPPING] Keep Looking selected from menu');
+  const handleGenerateNew = () => {
+    console.log('🔄 [INTEGRATED-SHOPPING] Generate New selected from menu');
     setShowActionMenu(false);
     setLastViewedProduct(null);
+    // Call parent callback to restart the outfit generation flow
+    onGenerateNew?.();
   };
 
   const getBudgetFilteredSections = () => {
@@ -600,12 +615,13 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
         )}
       </div>
 
-      {/* iOS Pull-Down Action Menu */}
+      {/* iOS Centered Action Menu */}
       <ProductActionPullDown
         isOpen={showActionMenu}
         onSaveToCalendar={handleSaveFromMenu}
-        onKeepLooking={handleKeepLooking}
+        onGenerateNew={handleGenerateNew}
         productTitle={lastViewedProduct?.title}
+        clickedProducts={clickedProducts}
       />
     </div>
   );

@@ -327,6 +327,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
                 onTryOnProduct={handleTryOnProduct}
                 onSaveToCalendar={handleSaveToCalendar}
                 onProductsCollected={handleProductsCollected}
+                onGenerateNew={handleStartOver}
                 avatarData={avatarData}
               />
             </div>
@@ -365,6 +366,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
             onTryOnProduct={handleTryOnProduct}
             onSaveToCalendar={handleSaveToCalendar}
             onProductsCollected={handleProductsCollected}
+            onGenerateNew={handleStartOver}
             avatarData={avatarData}
           />
         </div>
@@ -404,6 +406,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
             store: p.store,
             price: p.price
           }))}
+          occasion={parsedOccasion || undefined}
           onSave={handleCalendarSaveComplete}
           onClose={() => setShowSaveToCalendarModal(false)}
         />

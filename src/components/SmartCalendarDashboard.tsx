@@ -245,9 +245,9 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   };
 
   const renderCalendarView = () => (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
       {/* Pink Liquid Glass Tab Bar */}
-      <div 
+      <div
         style={{
           background: 'rgba(255, 192, 203, 0.4)',
           backdropFilter: 'blur(30px) saturate(200%)',
@@ -258,7 +258,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
           padding: '8px',
           display: 'flex',
           gap: '8px',
-          overflow: 'auto'
+          overflow: 'auto',
         }}
       >
         <button
@@ -566,10 +566,10 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   console.log('✅ [SMART-CALENDAR] Calendar connected, showing dashboard');
 
   return (
-    <div className="min-h-screen bg-ios-bg p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-ios-bg">
+      <div>
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-4">
             {onBack && (
               <button
@@ -579,9 +579,6 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
                 <X className="w-6 h-6" />
               </button>
             )}
-            <div>
-              <h1 className="ios-large-title">Smart Calendar</h1>
-            </div>
           </div>
 
           <button
@@ -593,8 +590,8 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         </div>
 
         {/* Main Content */}
-        <div className="ios-card rounded-ios-2xl shadow-ios-xl overflow-hidden">
-          <div className="p-6">
+        <div className="overflow-hidden">
+          <div>
             {isLoading && (
               <div className="text-center py-8">
                 <RefreshCw className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-4" />

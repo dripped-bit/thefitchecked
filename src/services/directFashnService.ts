@@ -355,6 +355,7 @@ class DirectFashnService {
       garmentType?: string;
       source?: string;
       photoType?: 'flat-lay' | 'model' | 'auto';
+      onProgress?: (progress: number) => void;
     } = {}
   ): Promise<string> {
     console.log('🚀 [NATIVE-FASHN] Starting native FASHN try-on request...');
@@ -681,13 +682,13 @@ class DirectFashnService {
     // Native FASHN API returns job ID for async processing
     if (data.id && !data.error) {
       console.log('⏳ [NATIVE-FASHN] Request submitted to native FASHN, starting polling...');
-      return await this.pollForCompletion(data.id);
+      return await this.pollForCompletion(data.id, options.onProgress);
     }
 
     // Handle processing status
     if (data.status === 'IN_PROGRESS' || data.status === 'IN_QUEUE') {
       console.log('⏳ [NATIVE-FASHN] Request is processing, starting polling...');
-      return await this.pollForCompletion(data.id);
+      return await this.pollForCompletion(data.id, options.onProgress);
     }
 
     // Handle error response
@@ -701,7 +702,7 @@ class DirectFashnService {
   /**
    * Poll for completion using native FASHN job ID
    */
-  private async pollForCompletion(jobId: string): Promise<string> {
+  private async pollForCompletion(jobId: string, onProgress?: (progress: number) => void): Promise<string> {
     const maxPollTime = 90000; // 90 seconds max - FASHN typically takes 40-60s, need generous buffer
     const basePollInterval = 2000; // Base poll every 2 seconds for faster feedback
     const startTime = Date.now();
@@ -713,7 +714,8 @@ class DirectFashnService {
       statusUrl,
       maxWaitTime: maxPollTime / 1000 + 's',
       basePollInterval: basePollInterval / 1000 + 's',
-      integration: 'Native FASHN API'
+      integration: 'Native FASHN API',
+      hasProgressCallback: !!onProgress
     });
 
     while (Date.now() - startTime < maxPollTime) {
@@ -734,6 +736,12 @@ class DirectFashnService {
         // Reset failure count on successful request
         consecutiveFailures = 0;
 
+        // Report progress to callback if provided (estimate based on 60s typical completion time)
+        if (onProgress) {
+          const estimatedProgress = Math.min((elapsed / 60) * 100, 95); // Cap at 95% until completion
+          onProgress(Math.round(estimatedProgress));
+        }
+
         console.log(`🔍 [NATIVE-FASHN] Status check (${elapsed}s):`, {
           status: statusData.status,
           hasResult: !!(statusData.result || statusData.output),
@@ -746,6 +754,11 @@ class DirectFashnService {
 
         if (statusData.status === 'COMPLETED' || statusData.status === 'completed') {
           console.log('✅ [NATIVE-FASHN] Native FASHN processing completed!');
+
+          // Report 100% completion
+          if (onProgress) {
+            onProgress(100);
+          }
 
           // Check for new output format first (array of URLs)
           if (statusData.output && statusData.output.length > 0) {

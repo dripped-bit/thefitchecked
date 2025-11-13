@@ -89,7 +89,7 @@ export class FashnTryOnService {
   async tryOnClothing(
     avatarImage: string | File | Blob,
     clothingImage: string | File | Blob,
-    options: Partial<FashnTryOnRequest> = {}
+    options: Partial<FashnTryOnRequest> & { onProgress?: (progress: number) => void } = {}
   ): Promise<FashnTryOnResult> {
     console.log('🚀 [FASHN-ONLY] Starting FASHN-only virtual try-on...');
 
@@ -178,7 +178,7 @@ export class FashnTryOnService {
       // Poll for completion if we have a job ID
       if (result.id) {
         console.log('⏳ [FASHN-ONLY] Starting polling for job:', result.id);
-        return await this.pollForCompletion(result.id, startTime);
+        return await this.pollForCompletion(result.id, startTime, options.onProgress);
       }
 
       throw new Error('FASHN API returned unexpected response format');
@@ -199,7 +199,7 @@ export class FashnTryOnService {
   /**
    * Poll FASHN API for job completion
    */
-  private async pollForCompletion(jobId: string, startTime: number): Promise<FashnTryOnResult> {
+  private async pollForCompletion(jobId: string, startTime: number, onProgress?: (progress: number) => void): Promise<FashnTryOnResult> {
     const maxPollTime = 120000; // 2 minutes
     const pollInterval = 2000; // 2 seconds
     const statusUrl = `${this.baseUrl}/v1/status/${jobId}`;
@@ -207,7 +207,8 @@ export class FashnTryOnService {
     console.log('🔄 [FASHN-ONLY] Starting status polling:', {
       jobId,
       maxPollTime: maxPollTime / 1000 + 's',
-      pollInterval: pollInterval / 1000 + 's'
+      pollInterval: pollInterval / 1000 + 's',
+      hasProgressCallback: !!onProgress
     });
 
     while (Date.now() - startTime < maxPollTime) {
@@ -226,6 +227,12 @@ export class FashnTryOnService {
         const statusData = await statusResponse.json();
         const elapsed = Math.round((Date.now() - startTime) / 1000);
 
+        // Report progress to callback if provided (estimate based on 60s typical completion time)
+        if (onProgress) {
+          const estimatedProgress = Math.min((elapsed / 60) * 100, 95); // Cap at 95% until completion
+          onProgress(Math.round(estimatedProgress));
+        }
+
         console.log(`🔍 [FASHN-ONLY] Status check (${elapsed}s):`, {
           status: statusData.status,
           hasOutput: !!statusData.output
@@ -235,6 +242,11 @@ export class FashnTryOnService {
           if (statusData.output && statusData.output.length > 0) {
             const processingTime = Date.now() - startTime;
             console.log('✅ [FASHN-ONLY] Try-on completed via polling!');
+
+            // Report 100% completion
+            if (onProgress) {
+              onProgress(100);
+            }
 
             return {
               success: true,

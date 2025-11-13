@@ -159,7 +159,8 @@ class CompleteFashnTryOnService {
   async applyClothingToAvatar(
     avatarUrl: string,
     clothingUrl: string,
-    clothingType: string
+    clothingType: string,
+    onProgress?: (progress: number) => void
   ): Promise<TryOnResult> {
     try {
       console.log('👔 [FASHN] Applying clothing to avatar...', { clothingType });
@@ -206,7 +207,7 @@ class CompleteFashnTryOnService {
       const { id } = await response.json();
       console.log('⏳ [FASHN] Job started, polling for results...', { jobId: id });
 
-      const result = await this.pollFashnResult(id);
+      const result = await this.pollFashnResult(id, 30, onProgress, startTime);
       const processingTime = Date.now() - startTime;
 
       if (result.success && result.finalImageUrl) {
@@ -235,11 +236,19 @@ class CompleteFashnTryOnService {
     }
   }
 
-  private async pollFashnResult(jobId: string, maxAttempts: number = 30): Promise<TryOnResult> {
+  private async pollFashnResult(jobId: string, maxAttempts: number = 30, onProgress?: (progress: number) => void, startTime?: number): Promise<TryOnResult> {
+    const pollStartTime = startTime || Date.now();
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       let result: FashnResult | undefined;
       try {
         console.log(`🔄 [FASHN] Polling attempt ${attempt + 1}/${maxAttempts}...`);
+
+        // Report progress based on elapsed time (estimate 60s completion)
+        if (onProgress) {
+          const elapsed = (Date.now() - pollStartTime) / 1000;
+          const estimatedProgress = Math.min((elapsed / 60) * 100, 95);
+          onProgress(Math.round(estimatedProgress));
+        }
 
         const response = await fetch(`${this.baseUrl}/v1/status/${jobId}`);
 
@@ -284,6 +293,11 @@ class CompleteFashnTryOnService {
             }
             
             if (imageUrl) {
+              // Report 100% completion
+              if (onProgress) {
+                onProgress(100);
+              }
+
               return {
                 success: true,
                 finalImageUrl: imageUrl,
@@ -347,7 +361,8 @@ class CompleteFashnTryOnService {
   async applyAccessoryToAvatar(
     avatarUrl: string,
     accessoryUrl: string,
-    accessoryType: 'jewelry' | 'bag' | 'belt' | 'hat' | 'shoes'
+    accessoryType: 'jewelry' | 'bag' | 'belt' | 'hat' | 'shoes',
+    onProgress?: (progress: number) => void
   ): Promise<TryOnResult> {
     try {
       console.log('💎 [FASHN] Applying accessory...', { accessoryType });
@@ -356,23 +371,23 @@ class CompleteFashnTryOnService {
       switch (accessoryType) {
         case 'jewelry':
           // Apply jewelry as overlay after clothing
-          return await this.applyJewelryOverlay(avatarUrl, accessoryUrl);
+          return await this.applyJewelryOverlay(avatarUrl, accessoryUrl, onProgress);
 
         case 'bag':
         case 'belt':
           // Include in garment image with auto category
-          return await this.applyClothingToAvatar(avatarUrl, accessoryUrl, accessoryType);
+          return await this.applyClothingToAvatar(avatarUrl, accessoryUrl, accessoryType, onProgress);
 
         case 'hat':
           // Use separate head region application
-          return await this.applyHeadAccessory(avatarUrl, accessoryUrl);
+          return await this.applyHeadAccessory(avatarUrl, accessoryUrl, onProgress);
 
         case 'shoes':
           // Apply with lower body category
-          return await this.applyClothingToAvatar(avatarUrl, accessoryUrl, 'shoes');
+          return await this.applyClothingToAvatar(avatarUrl, accessoryUrl, 'shoes', onProgress);
 
         default:
-          return await this.applyClothingToAvatar(avatarUrl, accessoryUrl, accessoryType);
+          return await this.applyClothingToAvatar(avatarUrl, accessoryUrl, accessoryType, onProgress);
       }
 
     } catch (error) {
@@ -388,8 +403,9 @@ class CompleteFashnTryOnService {
     }
   }
 
-  private async applyJewelryOverlay(avatarUrl: string, jewelryUrl: string): Promise<TryOnResult> {
+  private async applyJewelryOverlay(avatarUrl: string, jewelryUrl: string, onProgress?: (progress: number) => void): Promise<TryOnResult> {
     // For jewelry, we'll use the auto category with special handling
+    const startTime = Date.now();
     const requestBody = {
       model_name: 'tryon-v1.6',
       inputs: {
@@ -409,11 +425,12 @@ class CompleteFashnTryOnService {
     });
 
     const { id } = await response.json();
-    return await this.pollFashnResult(id);
+    return await this.pollFashnResult(id, 30, onProgress, startTime);
   }
 
-  private async applyHeadAccessory(avatarUrl: string, hatUrl: string): Promise<TryOnResult> {
+  private async applyHeadAccessory(avatarUrl: string, hatUrl: string, onProgress?: (progress: number) => void): Promise<TryOnResult> {
     // For hats, use upper body category to focus on head region
+    const startTime = Date.now();
     const requestBody = {
       model_name: 'tryon-v1.6',
       inputs: {
@@ -433,7 +450,7 @@ class CompleteFashnTryOnService {
     });
 
     const { id } = await response.json();
-    return await this.pollFashnResult(id);
+    return await this.pollFashnResult(id, 30, onProgress, startTime);
   }
 
   // =====================
@@ -442,7 +459,8 @@ class CompleteFashnTryOnService {
 
   async applyOutfitSequentially(
     avatarUrl: string,
-    items: ClothingItem[]
+    items: ClothingItem[],
+    onProgress?: (progress: number) => void
   ): Promise<{
     success: boolean;
     finalImageUrl?: string;
@@ -498,13 +516,15 @@ class CompleteFashnTryOnService {
           result = await this.applyAccessoryToAvatar(
             currentAvatarUrl,
             item.imageUrl,
-            accessoryType
+            accessoryType,
+            onProgress
           );
         } else {
           result = await this.applyClothingToAvatar(
             currentAvatarUrl,
             item.imageUrl,
-            item.clothingType
+            item.clothingType,
+            onProgress
           );
         }
 
@@ -631,7 +651,8 @@ class CompleteFashnTryOnService {
 
   async quickOutfitChange(
     avatarUrl: string,
-    items: ClothingItem[]
+    items: ClothingItem[],
+    onProgress?: (progress: number) => void
   ): Promise<{
     success: boolean;
     finalImageUrl?: string;
@@ -653,7 +674,7 @@ class CompleteFashnTryOnService {
 
     // Apply outfit sequentially if not cached
     console.log('🚀 [FASHN] Generating new outfit combination...');
-    const result = await this.applyOutfitSequentially(avatarUrl, items);
+    const result = await this.applyOutfitSequentially(avatarUrl, items, onProgress);
 
     if (result.success && result.finalImageUrl) {
       // Cache the successful result
@@ -738,14 +759,16 @@ class CompleteFashnTryOnService {
 
   async tryOnSingleItem(
     avatarUrl: string,
-    item: ClothingItem
+    item: ClothingItem,
+    onProgress?: (progress: number) => void
   ): Promise<TryOnResult> {
-    return await this.applyClothingToAvatar(avatarUrl, item.imageUrl, item.clothingType);
+    return await this.applyClothingToAvatar(avatarUrl, item.imageUrl, item.clothingType, onProgress);
   }
 
   async tryOnFullOutfit(
     avatarUrl: string,
-    items: ClothingItem[]
+    items: ClothingItem[],
+    onProgress?: (progress: number) => void
   ): Promise<{
     success: boolean;
     finalImageUrl?: string;
@@ -760,7 +783,7 @@ class CompleteFashnTryOnService {
     fromCache: boolean;
   }> {
     // Try quick change first (checks cache)
-    const quickResult = await this.quickOutfitChange(avatarUrl, items);
+    const quickResult = await this.quickOutfitChange(avatarUrl, items, onProgress);
 
     if (quickResult.success) {
       return {
@@ -772,7 +795,7 @@ class CompleteFashnTryOnService {
     }
 
     // Fall back to sequential application
-    const result = await this.applyOutfitSequentially(avatarUrl, items);
+    const result = await this.applyOutfitSequentially(avatarUrl, items, onProgress);
     return {
       ...result,
       fromCache: false

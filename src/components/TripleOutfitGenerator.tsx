@@ -76,6 +76,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   const [selectedOutfit, setSelectedOutfit] = useState<GeneratedOutfit | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [generationProgress, setGenerationProgress] = useState('');
+  const [tryOnProgress, setTryOnProgress] = useState(0); // Progress for FASHN try-on (0-100)
   const [hasStylePreferences, setHasStylePreferences] = useState(false);
   const [styleSummary, setStyleSummary] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -887,6 +888,7 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
 
   const generateTripleOutfits = async () => {
     setIsGenerating(true);
+    setTryOnProgress(0); // Reset progress
     setGenerationProgress('Generating your personalized outfit options...');
 
     try {
@@ -1181,7 +1183,10 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
             timeout: 90000,       // 90 seconds - FASHN typically takes 40-50s
             garmentDescription: outfit.originalPrompt || outfit.searchPrompt, // Use prompt for intelligent segmentation
             context: 'try_on',    // Use JPEG for speed during try-on
-            source: 'ai-generated' // AI-generated outfits are flat-lay style
+            source: 'ai-generated', // AI-generated outfits are flat-lay style
+            onProgress: (progress) => {
+              setTryOnProgress(progress);
+            }
           }
         );
       }
@@ -1298,9 +1303,20 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
             </p>
             <div className="max-w-md mx-auto">
               <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+                <div
+                  className="h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: tryOnProgress > 0 ? `${tryOnProgress}%` : '70%',
+                    background: '#FF69B4',
+                    boxShadow: '0 0 10px rgba(255, 105, 180, 0.5)',
+                    animation: tryOnProgress === 0 ? 'pulse 2s infinite' : 'none'
+                  }}
+                ></div>
               </div>
-              <p className="text-sm text-gray-500">{generationProgress}</p>
+              <p className="text-sm text-gray-500">
+                {generationProgress}
+                {tryOnProgress > 0 && ` (${tryOnProgress}%)`}
+              </p>
             </div>
           </div>
         </div>
