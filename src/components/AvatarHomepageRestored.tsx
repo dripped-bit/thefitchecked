@@ -6,7 +6,7 @@ import {
   TrendingUp, Camera, Share2, ShoppingCart, ShoppingBag, Heart,
   RotateCcw, Trash2, ArrowRightCircle, X, Check, DollarSign,
   Search, ExternalLink, Tag, Package, Users, MessageCircle, BookOpen,
-  DoorOpen, Pencil
+  DoorOpen, Pencil, Sparkles, Menu
 } from 'lucide-react';
 import GlassCard from './ui/GlassCard';
 import IOSButton from './ui/IOSButton';
@@ -182,6 +182,9 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   // Saved avatars tab state
   const [showSavedAvatarsTab, setShowSavedAvatarsTab] = useState(false);
 
+  // User settings modal state
+  const [showUserSettingsModal, setShowUserSettingsModal] = useState(false);
+
   // User's fashion rule from style preferences
   const [fashionRule, setFashionRule] = useState<string>('Today TheFitChecked');
 
@@ -288,7 +291,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
   // Weather icon helper
   const getWeatherIcon = () => {
-    if (weatherLoading) return <Loader className="w-4 h-4 animate-spin text-blue-500" />;
+    if (weatherLoading) return <Loader className="w-4 h-4 animate-spin text-pink-500" />;
     if (weatherError) return <AlertCircle className="w-4 h-4 text-red-500" />;
     if (!weather) return <Sun className="w-4 h-4 text-yellow-500" />;
 
@@ -300,10 +303,10 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
       return <Cloud className="w-4 h-4 text-gray-500" />;
     }
     if (desc.includes('rain') || desc.includes('drizzle')) {
-      return <CloudRain className="w-4 h-4 text-blue-500" />;
+      return <CloudRain className="w-4 h-4 text-pink-500" />;
     }
     if (desc.includes('snow') || desc.includes('freezing')) {
-      return <Snowflake className="w-4 h-4 text-blue-300" />;
+      return <Snowflake className="w-4 h-4 text-pink-300" />;
     }
     return <Sun className="w-4 h-4 text-yellow-500" />;
   };
@@ -757,47 +760,88 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
       
       {/* Content Layer */}
       <div className="relative z-10">
-      {/* Header */}
-      <div className="relative z-10 flex items-center justify-between p-6 bg-white/70 backdrop-blur-sm border-b border-gray-200">
-        {/* Personalized Greeting with Time */}
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-slate-800">
-            {getTimeBasedGreeting()} {getUserFirstName()}
+      {/* NEW HEADER - Baby Pink Gradient */}
+      <div className="bg-gradient-to-br from-pink-300 via-pink-400 to-rose-400 pt-safe-top">
+        {/* Top row - icons */}
+        <div className="flex justify-between items-center px-4 py-3">
+          <button onClick={onBack}>
+            <Menu className="w-6 h-6 text-white" />
+          </button>
+          <div className="flex items-center space-x-4">
+            {/* Weather indicator */}
+            {weather && (
+              <div className="flex items-center text-white">
+                {getWeatherIcon()}
+                <span className="ml-2 text-sm font-medium">{weather.temperature}°F</span>
+              </div>
+            )}
+            <button onClick={() => setShowSettingsModal(true)}>
+              <Settings className="w-6 h-6 text-white" />
+            </button>
+          </div>
+        </div>
+
+        {/* Title - personalized greeting */}
+        <div className="px-6 py-4">
+          <h1 className="text-white text-4xl font-bold">
+            {getTimeBasedGreeting()}
           </h1>
-          <div className="text-sm text-slate-600">
+          <p className="text-white/90 text-base mt-1">
+            {getUserFirstName()}
+          </p>
+          <p className="text-white/80 text-sm mt-1">
             {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
+          </p>
         </div>
 
-        {/* Weather with Date */}
-        <div className="flex items-center space-x-3 bg-white/50 rounded-2xl px-4 py-2">
-          {getWeatherIcon()}
-          <div className="text-sm">
-            <div className="font-semibold text-slate-800">
-              {weather ? `${weather.temperature}°F` : '--°F'}
-            </div>
-            <div className="text-slate-600">
-              {weather ? weather.weatherDescription : 'Loading...'}
-            </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
-            </div>
+        {/* Segmented Control with 3 tabs */}
+        <div className="px-4 pb-6">
+          <div className="bg-white/20 backdrop-blur-sm rounded-full p-1 flex">
+            {/* Tab 1: Saved Avatars */}
+            <button
+              onClick={() => setShowSavedAvatarsTab(true)}
+              className={`flex-1 py-2.5 px-4 rounded-full text-sm font-medium transition-all ${
+                showSavedAvatarsTab
+                  ? 'bg-white text-pink-600 shadow-sm'
+                  : 'text-white/90'
+              }`}
+            >
+              Saved Avatars
+            </button>
+
+            {/* Tab 2: Upload Outfit (MIDDLE) */}
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className={`flex-1 py-2.5 px-4 rounded-full text-sm font-medium transition-all ${
+                showUploadModal
+                  ? 'bg-white text-pink-600 shadow-sm'
+                  : 'text-white/90'
+              }`}
+            >
+              Upload Outfit
+            </button>
+
+            {/* Tab 3: Edit Style */}
+            <button
+              onClick={() => setShowUserSettingsModal(true)}
+              className={`flex-1 py-2.5 px-4 rounded-full text-sm font-medium transition-all ${
+                showUserSettingsModal
+                  ? 'bg-white text-pink-600 shadow-sm'
+                  : 'text-white/90'
+              }`}
+            >
+              Edit Style
+            </button>
           </div>
         </div>
-
-        {/* Settings */}
-        <button
-          onClick={() => setShowSettingsModal(true)}
-          className="p-2 text-slate-600 hover:text-slate-800 transition-colors"
-          title="Location & Time Settings"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
       </div>
 
-      {/* Main Content */}
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* Rounded White Content Overlay */}
+      <div className="flex-1 -mt-6 bg-white rounded-t-[32px] shadow-2xl overflow-hidden">
+        <div className="overflow-y-auto h-full pb-safe-bottom">
+          {/* Main Content */}
+          <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
 
           {/* Workflow Panel - Left Column */}
           <div className="lg:col-span-1">
@@ -854,14 +898,14 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                         placeholder="Min $"
                         value={budgetRange.min}
                         onChange={(e) => setBudgetRange(prev => ({ ...prev, min: e.target.value }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
                       />
                       <input
                         type="number"
                         placeholder="Max $"
                         value={budgetRange.max}
                         onChange={(e) => setBudgetRange(prev => ({ ...prev, max: e.target.value }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
                       />
                     </div>
                   </div>
@@ -873,7 +917,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                     <select
                       value={clothingSize}
                       onChange={(e) => setClothingSize(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
                     >
                       <option value="XS">XS</option>
                       <option value="S">S</option>
@@ -889,7 +933,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                   <button
                     onClick={handleShoppingSearch}
                     disabled={isSearching || isAnalyzingAvatar}
-                    className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center"
+                    className="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white py-2 px-4 rounded-lg font-medium hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 transition-colors flex items-center justify-center"
                   >
                     {isAnalyzingAvatar ? (
                       <>
@@ -990,7 +1034,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
+                          className="flex items-center text-xs text-pink-600 hover:text-pink-800 transition-colors"
                           onClick={(e) => {
                             console.log('🖱️ [CLICK] AvatarHomepage closet item clicked:', { url: item.url, store: item.store });
                             e.preventDefault();
@@ -1051,7 +1095,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center">
-                  <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center mb-6">
+                  <div className="w-24 h-24 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full flex items-center justify-center mb-6">
                     <User className="w-12 h-12 text-white" />
                   </div>
                   <h3 className="text-xl font-semibold text-slate-700 mb-2">Your Digital Avatar</h3>
@@ -1065,7 +1109,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
               {(applyingOutfit || isSeamlessTryOn) && (
                 <div className="absolute inset-0 bg-black/15 flex items-center justify-center">
                   <div className="bg-white/75 rounded-2xl px-6 py-4 flex flex-col items-center space-y-3 shadow-lg">
-                    <Loader className="w-6 h-6 animate-spin text-blue-600" />
+                    <Loader className="w-6 h-6 animate-spin text-pink-600" />
                     <span className="font-medium text-slate-800 text-center">
                       {tryOnProgress?.message || 'Generating and applying outfit...'}
                     </span>
@@ -1073,7 +1117,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                       <>
                         <div className="w-40 bg-gray-200 rounded-full h-3">
                           <div
-                            className="bg-gradient-to-r from-blue-600 to-green-600 h-3 rounded-full transition-all duration-500"
+                            className="bg-gradient-to-r from-pink-500 to-rose-500 h-3 rounded-full transition-all duration-500"
                             style={{ width: `${tryOnProgress.progress}%` }}
                           />
                         </div>
@@ -1115,7 +1159,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
               <button
                 onClick={() => setShowSavedAvatarsTab(true)}
-                className="flex items-center justify-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+                className="flex items-center justify-center space-x-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 shadow-lg"
               >
                 <Users className="w-4 h-4" />
                 <span>Saved Avatars</span>
@@ -1153,45 +1197,30 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
               />
             </div>
 
-            {/* Bottom Navigation Links */}
-            <div className="flex items-center justify-center space-x-6 mt-6">
-              {hasCompletedStyleProfile && (
-                <button
-                  onClick={onNavigateToStyleProfile}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors"
-                >
-                  <Palette className="w-5 h-5" />
-                  <span className="font-medium text-sm">Edit Style Preferences</span>
-                </button>
-              )}
-              <button
-                onClick={onResetAvatar}
-                className="flex items-center space-x-2 text-gray-700 hover:text-red-600 transition-colors"
-              >
-                <RotateCcw className="w-5 h-5" />
-                <span className="font-medium text-sm">Reset Avatar</span>
-              </button>
-            </div>
           </div>
 
-          {/* Right Sidebar */}
+          {/* Right Sidebar - Empty for now, removed Share button per redesign */}
           <div className="space-y-6">
-
-            {/* Navigation Buttons */}
-              <div className="space-y-3">
-                <button
-                  onClick={() => setShowShareModal(true)}
-                  className="w-full flex items-center justify-center space-x-2 bg-sky-300/30 text-black px-4 py-3 rounded-xl text-sm font-medium italic transition-colors hover:bg-sky-400/40"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Share Outfit</span>
-                </button>
-
-              </div>
-
           </div>
         </div>
       </main>
+        </div>
+      </div>
+
+      {/* Pink FAB Button for Quick Outfit Generation */}
+      <button
+        onClick={() => {
+          // Scroll to outfit generator section
+          const outfitGenerator = document.querySelector('.enhanced-outfit-generator');
+          if (outfitGenerator) {
+            outfitGenerator.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }}
+        className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-br from-pink-400 to-rose-400 rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform z-50"
+        title="Quick Outfit Generation"
+      >
+        <Sparkles className="w-6 h-6 text-white" />
+      </button>
 
       {/* Modals */}
       {showWebEnhancedModal && (
@@ -1353,7 +1382,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
             </button>
 
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-              <Settings className="w-6 h-6 mr-2 text-blue-600" />
+              <Settings className="w-6 h-6 mr-2 text-pink-600" />
               Location & Time Settings
             </h2>
 
@@ -1369,7 +1398,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                   value={settingsCity}
                   onChange={(e) => setSettingsCity(e.target.value)}
                   placeholder="e.g., San Francisco"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                 />
               </div>
 
@@ -1384,7 +1413,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                   value={settingsState}
                   onChange={(e) => setSettingsState(e.target.value)}
                   placeholder="e.g., CA or California"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                 />
               </div>
 
@@ -1397,7 +1426,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                 <select
                   value={settingsTimezone}
                   onChange={(e) => setSettingsTimezone(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                 >
                   <option value="America/New_York">Eastern (ET)</option>
                   <option value="America/Chicago">Central (CT)</option>
@@ -1461,7 +1490,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
                   }
                 }}
                 disabled={isSavingSettings || !settingsCity}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {isSavingSettings ? (
                   <>
