@@ -74,73 +74,59 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
       className={cn(
         // Fixed positioning
         'fixed bottom-0 left-0 right-0 z-50',
-        // Safe area for iPhone home indicator - proper iOS bottom padding
+        // iOS 18 Liquid Glass floating effect
+        'bg-white/70 backdrop-blur-xl',
+        // Subtle border and shadow for floating depth
+        'border-t border-white/20',
+        'shadow-[0_-4px_16px_rgba(0,0,0,0.1)]',
+        // Safe area for iPhone home indicator
         'pb-[env(safe-area-inset-bottom)]',
         'px-safe',
         // Smooth transition
         'transition-all duration-300 ease-out',
         className
       )}
-      style={{
-        // iOS 18 Liquid Glass effect
-        backdropFilter: 'blur(40px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-        background: 'rgba(255, 255, 255, 0.80)',
-        // Subtle border and shadow for depth
-        borderTop: '0.5px solid rgba(0, 0, 0, 0.04)',
-        boxShadow: '0 -1px 3px 0 rgba(0, 0, 0, 0.03), 0 -1px 10px 0 rgba(0, 0, 0, 0.02), 0 -4px 16px 0 rgba(0, 0, 0, 0.01)'
-      }}
       role="tablist"
       aria-label="Main navigation"
     >
-      <div className="flex items-center justify-around h-[49px] gap-4 px-3">
-        {displayTabs.map((tab, index) => {
+      <div className="flex items-center justify-around py-2 px-2">
+        {displayTabs.map((tab) => {
           const isActive = tab.id === activeTab;
 
           return (
-            <React.Fragment key={tab.id}>
-              <button
-                onClick={() => handleTabClick(tab.id)}
-                className={cn(
-                  // Base styles
-                  'relative flex flex-col items-center justify-center',
-                  // 44pt minimum touch target (HIG requirement)
-                  'min-w-[44px] min-h-[44px]',
-                  // Flex to fill space evenly
-                  'flex-1',
-                  // Smooth transitions for all properties
-                  'transition-all duration-200 ease-out',
-                  // Active pill background
-                  isActive && 'bg-gray-100/80',
-                  // Rounded pill shape for active state
-                  'rounded-full',
-                  // Hover state for inactive tabs
-                  !isActive && 'hover:bg-gray-50/50',
-                  // Active state - subtle scale
-                  'active:scale-95',
-                  // Focus styles for accessibility
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2'
-                )}
-                role="tab"
-                aria-selected={isActive}
-                aria-label={tab.label}
-              >
+            <button
+              key={tab.id}
+              onClick={() => handleTabClick(tab.id)}
+              className={cn(
+                // Base styles - minimal, floating on glass
+                'flex flex-col items-center justify-center',
+                // 44pt minimum touch target (HIG requirement)
+                'min-w-[60px] py-1',
+                // Smooth transitions
+                'transition-all duration-200 ease-out',
+                // Active state - subtle scale up
+                isActive && 'scale-110',
+                // Press feedback
+                'active:scale-95',
+                // Focus styles for accessibility
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/50 focus-visible:ring-offset-2'
+              )}
+              role="tab"
+              aria-selected={isActive}
+              aria-label={tab.label}
+            >
               {/* Icon Container */}
               <div
                 className={cn(
                   'relative flex items-center justify-center',
                   'transition-all duration-200 ease-out',
-                  // Icon size - slightly larger for modern iOS
-                  'w-[26px] h-[26px]',
-                  // Color based on active state - iOS blue for active
+                  // Icon size
+                  'w-6 h-6',
+                  // Color based on active state - pink for active
                   isActive
-                    ? 'text-blue-600'
+                    ? 'text-pink-500'
                     : 'text-gray-600'
                 )}
-                style={{
-                  // Smooth transform on active
-                  transform: isActive ? 'scale(1.05)' : 'scale(1)',
-                }}
               >
                 {tab.icon}
 
@@ -167,36 +153,17 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
               {/* Label */}
               <span
                 className={cn(
-                  'mt-1 text-[10px] font-medium tracking-tight',
+                  'mt-1 text-xs font-medium',
                   'transition-all duration-200 ease-out',
                   // Color based on active state
                   isActive
-                    ? 'text-blue-600'
-                    : 'text-gray-600'
+                    ? 'text-pink-500'
+                    : 'text-gray-500'
                 )}
-                style={{
-                  // Slightly bolder when active
-                  fontWeight: isActive ? 600 : 500,
-                }}
               >
                 {tab.label}
               </span>
-              </button>
-              
-              {/* Subtle glass divider between tabs (not after last tab) */}
-              {index < displayTabs.length - 1 && (
-                <div
-                  className="h-8 w-px transition-opacity duration-200"
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.06) 50%, rgba(0, 0, 0, 0) 100%)',
-                    backdropFilter: 'blur(2px)',
-                    WebkitBackdropFilter: 'blur(2px)',
-                    opacity: 0.5,
-                  }}
-                  aria-hidden="true"
-                />
-              )}
-            </React.Fragment>
+            </button>
           );
         })}
       </div>
