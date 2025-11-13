@@ -625,6 +625,7 @@ const VisualClosetEnhanced: React.FC = () => {
               background: 'white',
               borderRadius: '20px',
               padding: '24px',
+              paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 0px))',
               maxWidth: '500px',
               width: '100%',
               maxHeight: '90vh',
