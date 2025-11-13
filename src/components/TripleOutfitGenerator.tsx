@@ -85,6 +85,7 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [outfitToSave, setOutfitToSave] = useState<any>(null);
   const [userStyleVibes, setUserStyleVibes] = useState<string[]>([]);
+  const [activeOutfitIndex, setActiveOutfitIndex] = useState(0);
 
   // Style interpretation categories for outfit variations
   const styleInterpretations = [
@@ -1331,13 +1332,37 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
           {/* Date/Time/Weather display removed - was showing placeholder demo data */}
         </div>
 
-        {/* Triple Outfit Display */}
-        <div className="space-y-6">
-          {outfits.map((outfit) => (
+        {/* Triple Outfit Display with Segmented Control */}
+        {outfits.length > 0 && (
+          <>
+            {/* Apple-Style Segmented Control */}
+            <div className="flex justify-center mb-6">
+              <div className="inline-flex bg-ios-gray-5 rounded-ios-lg p-1" role="group">
+                {outfits.map((outfit, index) => {
+                  // Get label from user style vibes or use default
+                  const label = userStyleVibes[index] || `Outfit ${index + 1}`;
+
+                  return (
+                    <button
+                      key={outfit.personality.id}
+                      onClick={() => setActiveOutfitIndex(index)}
+                      className={`px-6 py-2 rounded-ios-md ios-callout font-semibold transition-all duration-200 ${
+                        activeOutfitIndex === index
+                          ? 'bg-white text-ios-label shadow-ios-sm'
+                          : 'text-ios-label-secondary hover:text-ios-label'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Single Outfit Display */}
             <div
-              key={outfit.personality.id}
               className={`block w-full relative ios-card ios-scale-in transition-all duration-300 ${
-                outfit.isSelected ? 'border-2 border-ios-purple shadow-ios-lg ring-4 ring-purple-100' : ''
+                outfits[activeOutfitIndex]?.isSelected ? 'border-2 border-ios-purple shadow-ios-lg ring-4 ring-purple-100' : ''
               }`}
             >
               {/* Simple Header - Apple Style */}
@@ -1348,10 +1373,10 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                       <Sparkles className="w-5 h-5 text-ios-purple" />
                     </div>
                     <div>
-                      <h4 className="ios-headline">{outfit.personality.name}</h4>
+                      <h4 className="ios-headline">{outfits[activeOutfitIndex]?.personality.name}</h4>
                     </div>
                   </div>
-                  {outfit.isSelected && (
+                  {outfits[activeOutfitIndex]?.isSelected && (
                     <div className="w-8 h-8 bg-ios-purple rounded-full flex items-center justify-center shadow-ios-sm">
                       <Check className="w-5 h-5 text-white" />
                     </div>
@@ -1363,13 +1388,13 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
               <div className="p-6">
                 <div className="relative w-full max-w-sm mx-auto bg-gray-100 rounded-xl overflow-hidden mb-4">
                   <img
-                    src={outfit.imageUrl}
-                    alt={`${outfit.personality.name} outfit`}
+                    src={outfits[activeOutfitIndex]?.imageUrl}
+                    alt={`${outfits[activeOutfitIndex]?.personality.name} outfit`}
                     className="w-full h-auto max-h-[600px] object-contain"
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-opacity duration-200 flex items-center justify-center">
                     <button
-                      onClick={() => handleImagePreview(outfit)}
+                      onClick={() => handleImagePreview(outfits[activeOutfitIndex])}
                       className="opacity-0 hover:opacity-100 bg-white text-gray-900 px-4 py-2 rounded-lg font-medium transition-opacity duration-200"
                     >
                       <Eye className="w-4 h-4 inline mr-2" />
@@ -1382,7 +1407,7 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                 <div className="mb-4">
                   <h5 className="ios-headline mb-2">Why we picked this:</h5>
                   <ul className="space-y-1">
-                    {outfit.reasoning.map((reason, index) => (
+                    {outfits[activeOutfitIndex]?.reasoning.map((reason, index) => (
                       <li key={index} className="ios-callout text-ios-label-secondary flex items-start">
                         <span className="text-ios-green mr-2">✓</span>
                         {reason}
@@ -1394,7 +1419,7 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                 {/* Match Confidence */}
                 <div className="flex justify-end mb-4">
                   <div className="text-xs text-gray-500">
-                    {Math.round(outfit.confidence * 100)}% match
+                    {Math.round((outfits[activeOutfitIndex]?.confidence || 0) * 100)}% match
                   </div>
                 </div>
 
@@ -1402,10 +1427,10 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                 <div className="space-y-2">
                   {avatarData?.imageUrl ? (
                     <button
-                      onClick={() => handleOutfitSelect(outfit)}
+                      onClick={() => handleOutfitSelect(outfits[activeOutfitIndex])}
                       disabled={isApplying}
                       className={`w-full ios-button-primary disabled:opacity-50 ${
-                        outfit.isSelected
+                        outfits[activeOutfitIndex]?.isSelected
                           ? 'bg-ios-purple'
                           : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
                       }`}
@@ -1415,7 +1440,7 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                           <RefreshCw className="w-4 h-4 inline mr-2 animate-spin" />
                           Trying On...
                         </>
-                      ) : outfit.isSelected ? (
+                      ) : outfits[activeOutfitIndex]?.isSelected ? (
                         <>
                           <Check className="w-4 h-4 inline mr-2" />
                           Tried On
@@ -1438,7 +1463,7 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                   )}
 
                   {/* Shop This Look - Only show on selected outfit AFTER try-on */}
-                  {outfit.isSelected && hasTriedOn && onShopThisLook && (
+                  {outfits[activeOutfitIndex]?.isSelected && hasTriedOn && onShopThisLook && (
                     <button
                       onClick={onShopThisLook}
                       className="w-full ios-button-primary bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 shadow-ios-md flex items-center justify-center space-x-2"
@@ -1450,7 +1475,7 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
 
                   {/* Calendar Button - iOS Style */}
                   <button
-                    onClick={() => handleAddToCalendar(outfit)}
+                    onClick={() => handleAddToCalendar(outfits[activeOutfitIndex])}
                     className="w-full ios-button-primary bg-ios-blue hover:opacity-90 flex items-center justify-center space-x-2"
                   >
                     <Calendar className="w-4 h-4" />
@@ -1459,7 +1484,7 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
 
                   {/* Share Button - iOS Secondary Style */}
                   <button
-                    onClick={() => handleShareOutfit(outfit)}
+                    onClick={() => handleShareOutfit(outfits[activeOutfitIndex])}
                     className="w-full ios-button-secondary border border-ios-blue text-ios-blue hover:bg-ios-blue/5 flex items-center justify-center space-x-2"
                   >
                     <Share2 className="w-4 h-4" />
@@ -1468,8 +1493,8 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         {/* Generate New Options - Apple Style */}
         <div className="text-center">
