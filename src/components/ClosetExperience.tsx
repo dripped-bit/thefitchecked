@@ -1323,10 +1323,10 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   }
 
   return (
-    <div className="min-h-screen pb-[calc(49px+env(safe-area-inset-bottom))] pt-safe closet-interior relative overflow-hidden">
-      {/* Baby Pink Liquid Glass Header with WARDROBE Text */}
+    <div className="min-h-screen pb-[calc(49px+env(safe-area-inset-bottom))] closet-interior relative overflow-hidden">
+      {/* Baby Pink Liquid Glass Header with WARDROBE Text - Sticky at top */}
       <div
-        className="border-b sticky top-0 z-30 pt-safe"
+        className="border-b sticky top-0 z-30 pt-[env(safe-area-inset-top)]"
         style={{
           background: 'rgba(255, 192, 203, 0.4)',
           backdropFilter: 'blur(30px) saturate(200%)',
