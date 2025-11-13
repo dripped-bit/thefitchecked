@@ -250,7 +250,7 @@ const VisualClosetEnhanced: React.FC = () => {
 
               {/* Items Grid */}
               <div
-                className={`items-grid ${isExpanded || category.items.length === 0 ? 'expanded' : 'collapsed'}`}
+                className={`items-grid ${isExpanded ? 'expanded' : 'collapsed'}`}
               >
                 {category.items.length === 0 ? (
                   <div className="empty-category">
@@ -267,7 +267,7 @@ const VisualClosetEnhanced: React.FC = () => {
                 ) : (
                   <>
                     {category.items
-                      .slice(0, isExpanded ? undefined : 6)
+                      .slice(0, isExpanded ? undefined : 4)
                       .map((item) => (
                         <div
                           key={item.id}
@@ -300,14 +300,14 @@ const VisualClosetEnhanced: React.FC = () => {
                         </div>
                       ))}
 
-                    {category.items.length > 6 && !isExpanded && (
+                    {category.items.length > 4 && !isExpanded && (
                       <div
                         className="show-more-card glass-card"
                         onClick={() => toggleCategory(category.id)}
                       >
                         <div className="show-more-content">
                           <Plus size={32} />
-                          <span>+{category.items.length - 6} more</span>
+                          <span>+{category.items.length - 4} more</span>
                         </div>
                       </div>
                     )}

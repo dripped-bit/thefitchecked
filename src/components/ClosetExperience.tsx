@@ -1340,7 +1340,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
           <h1
             className="text-white font-semibold tracking-wider"
             style={{
-              fontSize: '2rem',
+              fontSize: '2.6rem',
               fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif',
               fontWeight: 700,
               letterSpacing: '0.15em',

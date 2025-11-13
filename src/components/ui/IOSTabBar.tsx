@@ -74,12 +74,11 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
       className={cn(
         // Fixed positioning
         'fixed bottom-0 left-0 right-0 z-50',
-        // Glass effect with safe area
-        glassNavClasses.light,
-        'border-t',
         // Safe area for iPhone home indicator
         'pb-safe',
         'px-safe',
+        // Smooth transition
+        'transition-all duration-300',
         className
       )}
       style={{
