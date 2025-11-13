@@ -84,7 +84,10 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
       )}
       style={{
         backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        background: 'rgba(255, 192, 203, 0.3)',
+        borderTop: '1px solid rgba(255, 255, 255, 0.5)',
+        boxShadow: '0 -2px 12px rgba(255, 182, 193, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.5)'
       }}
       role="tablist"
       aria-label="Main navigation"

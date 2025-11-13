@@ -1326,63 +1326,33 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
   return (
     <div className="min-h-screen pb-[calc(49px+env(safe-area-inset-bottom))] pt-safe closet-interior relative overflow-hidden">
-      {/* Header with stats - Enhanced Liquid Glass Effect */}
+      {/* Baby Pink Header with Vintage WARDROBE Text */}
       <div
-        className={`${glassNavClasses.light} border-b p-4 sticky top-0 z-30`}
+        className="border-b sticky top-0 z-30 pt-safe"
         style={{
+          background: 'linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 50%, #FFD1DC 100%)',
           backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)'
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          boxShadow: '0 2px 12px rgba(255, 182, 193, 0.3)'
         }}
       >
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          {/* Left: Close Closet + Door Icon (mobile) */}
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={onBack}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Close Closet</span>
-            </button>
-
-            {/* Menu Icon - Mobile Only */}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden p-2 rounded-lg bg-purple-100 text-purple-600 hover:bg-purple-200 transition-colors"
-              title="Toggle Sidebar"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Right: Stats Bar */}
-          <div className="flex items-center space-x-3 md:space-x-6">
-            {/* Item Count - Always visible */}
-            <div className="flex items-center space-x-2 bg-blue-100 rounded-full px-3 py-1">
-              <Package className="w-4 h-4 text-ios-blue" />
-              <span className="ios-callout font-semibold text-ios-blue">{clothingItems.length} Items</span>
-            </div>
-
-            {/* Desktop Stats - Hidden on mobile */}
-            <div className="hidden md:flex items-center space-x-2 bg-purple-100 rounded-full px-3 py-1">
-              <Leaf className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-medium text-purple-800">{sustainabilityScore}% Eco</span>
-            </div>
-
-            <div className="hidden md:flex items-center space-x-2 bg-ios-yellow/20 rounded-ios-full px-3 py-1">
-              <Star className="w-4 h-4 text-ios-yellow" />
-              <span className="ios-callout font-semibold text-ios-yellow">Level {currentLevel}</span>
-            </div>
-
-            <button
-              onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-              className={`hidden md:block p-2 rounded-full transition-colors ${
-                isVoiceEnabled ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'
-              }`}
-            >
-              {isVoiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            </button>
-          </div>
+        <div className="flex items-center justify-center py-6 px-4">
+          <h1
+            className="text-white font-semibold tracking-wider"
+            style={{
+              fontSize: '2rem',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif',
+              fontWeight: 700,
+              letterSpacing: '0.15em',
+              textShadow: '0 0 20px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(255, 182, 193, 0.4)',
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #FFF5F7 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            WARDROBE
+          </h1>
         </div>
       </div>
 
