@@ -91,32 +91,32 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
       role="tablist"
       aria-label="Main navigation"
     >
-      <div className="flex items-center justify-around h-[49px]">
-        {displayTabs.map((tab) => {
+      <div className="flex items-center justify-around h-[49px] gap-3 px-2">
+        {displayTabs.map((tab, index) => {
           const isActive = tab.id === activeTab;
 
           return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabClick(tab.id)}
-              className={cn(
-                // Base styles
-                'relative flex flex-col items-center justify-center',
-                // 44pt minimum touch target (HIG requirement)
-                'min-w-[44px] min-h-[44px]',
-                // Flex to fill space evenly
-                'flex-1',
-                // Transition
-                'transition-all duration-200',
-                // Active state
-                'active:scale-95',
-                // Focus styles
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ios-blue)] focus-visible:ring-offset-2'
-              )}
-              role="tab"
-              aria-selected={isActive}
-              aria-label={tab.label}
-            >
+            <React.Fragment key={tab.id}>
+              <button
+                onClick={() => handleTabClick(tab.id)}
+                className={cn(
+                  // Base styles
+                  'relative flex flex-col items-center justify-center',
+                  // 44pt minimum touch target (HIG requirement)
+                  'min-w-[44px] min-h-[44px]',
+                  // Flex to fill space evenly
+                  'flex-1',
+                  // Transition
+                  'transition-all duration-200',
+                  // Active state
+                  'active:scale-95',
+                  // Focus styles
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ios-blue)] focus-visible:ring-offset-2'
+                )}
+                role="tab"
+                aria-selected={isActive}
+                aria-label={tab.label}
+              >
               {/* Icon Container */}
               <div
                 className={cn(
@@ -165,7 +165,21 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
               >
                 {tab.label}
               </span>
-            </button>
+              </button>
+              
+              {/* Glass divider between tabs (not after last tab) */}
+              {index < displayTabs.length - 1 && (
+                <div
+                  className="h-8 w-px"
+                  style={{
+                    background: 'linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0) 100%)',
+                    backdropFilter: 'blur(4px)',
+                    WebkitBackdropFilter: 'blur(4px)',
+                  }}
+                  aria-hidden="true"
+                />
+              )}
+            </React.Fragment>
           );
         })}
       </div>
