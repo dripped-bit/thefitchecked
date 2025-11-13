@@ -395,11 +395,11 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="ios-card ios-slide-up w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto pb-safe"
+        className="ios-card ios-slide-up w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-ios-separator">
+        {/* Header - Fixed */}
+        <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-ios-separator">
           <div className="flex items-center space-x-3">
             <Calendar className="w-6 h-6 text-ios-blue" />
             <h2 className="ios-large-title">Add to Calendar</h2>
@@ -412,9 +412,12 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
           </button>
         </div>
 
-        {/* Outfit Preview */}
-        <div className="p-6 bg-gradient-to-br from-ios-blue/10 to-ios-purple/10">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          {/* Scrollable Body */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Outfit Preview */}
+            <div className="p-6 bg-gradient-to-br from-ios-blue/10 to-ios-purple/10">
+            <div className="space-y-4">
             <div className="flex gap-4 items-start">
               {getOutfitImage() && (
                 <img
@@ -463,10 +466,10 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               </div>
             )}
           </div>
-        </div>
+          </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Form Fields */}
+          <div className="p-6 space-y-5">
           {/* Event Date */}
           <div>
             <label className="flex items-center space-x-2 ios-subheadline font-semibold mb-2">
@@ -650,9 +653,12 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               className="ios-input w-full resize-none"
             />
           </div>
+          </div>
+          </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
+          {/* Fixed Footer - Action Buttons */}
+          <div className="flex-shrink-0 p-6 border-t border-ios-separator bg-white pb-safe">
+          <div className="flex gap-3">
             <button
               type="button"
               onClick={onClose}
@@ -668,6 +674,7 @@ const CalendarEntryModal: React.FC<CalendarEntryModalProps> = ({
               {isProcessing ? 'Saving...' : 'Save to Calendar'}
             </button>
           </div>
+        </div>
         </form>
       </div>
     </div>
