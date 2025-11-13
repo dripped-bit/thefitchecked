@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw, Home, Shirt, Calendar, Sparkles, User, LogOut } from 'lucide-react';
 import { App as KonstaApp } from 'konsta/react';
 import useDevMode from './hooks/useDevMode';
-import { IOSTabBar, Tab } from './components/ui/IOSTabBar';
+import { FloatingTabBar, Tab } from './components/ui/FloatingTabBar';
 // Force Apple Design System CSS to be included in build
 import './styles/apple-design.css';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -17,6 +17,7 @@ import AvatarHomepage from './components/AvatarHomepageRestored';
 // import SeedreamTest from './components/SeedreamTest'; // DISABLED - test component not needed (fal.ai still active)
 import UserOnboardingPopup from './components/UserOnboardingPopup';
 import ClosetExperience from './components/ClosetExperience';
+import ProfileScreen from './components/ProfileScreen';
 import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
 import MyOutfitsPage from './pages/MyOutfitsPageAdvanced';
@@ -56,7 +57,7 @@ import clearCacheUtil from './utils/clearCache';
 // import './utils/directApiTest';
 // import './utils/keyChecker';
 
-type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest';
+type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest' | 'profile';
 
 interface AppData {
   capturedPhotos: CapturedPhoto[];
@@ -343,12 +344,12 @@ function App() {
     }
   }, [currentScreen]);
 
-  // iOS Tab Bar Configuration
+  // iOS Tab Bar Configuration with Grouped Layout
   const tabs: Tab[] = [
-    { id: 'home', label: 'Home', icon: <Home className="w-6 h-6" />, route: 'avatarHomepage' },
-    { id: 'closet', label: 'Closet', icon: <Shirt className="w-6 h-6" />, route: 'closet' },
-    { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-6 h-6" />, route: 'smartCalendar' },
-    { id: 'signout', label: 'Sign Out', icon: <LogOut className="w-6 h-6" />, route: 'signout' },
+    { id: 'home', label: 'Home', icon: <Home className="w-6 h-6" />, route: 'avatarHomepage', group: 0 },
+    { id: 'closet', label: 'Closet', icon: <Shirt className="w-6 h-6" />, route: 'closet', group: 0 },
+    { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-6 h-6" />, route: 'smartCalendar', group: 1 },
+    { id: 'profile', label: 'Profile', icon: <User className="w-6 h-6" />, route: 'profile', group: 1 },
   ];
   const [activeTab, setActiveTab] = useState('home');
   const [appData, setAppData] = useState<AppData>({
@@ -842,13 +843,7 @@ function App() {
   const handleTabChange = async (tabId: string) => {
     const tab = tabs.find(t => t.id === tabId);
     if (tab && tab.route) {
-      if (tabId === 'signout') {
-        // Handle sign out
-        await authService.signOut();
-        setAuthUser(null);
-        setCurrentScreen('welcome');
-        setActiveTab('home');
-      } else if (tabId === 'closet') {
+      if (tabId === 'closet') {
         // Use door transition for closet
         handleNavigateToCloset();
         setActiveTab(tabId);
@@ -1058,6 +1053,22 @@ function App() {
         return (
           <SmartCalendarDashboard
             onBack={() => setCurrentScreen('avatarHomepage')}
+          />
+        );
+
+      case 'profile':
+        return (
+          <ProfileScreen
+            onNavigateToStyleProfile={() => {
+              setIsEditingStyleProfile(true);
+              setCurrentScreen('styleProfile');
+            }}
+            onSignOut={async () => {
+              await authService.signOut();
+              setAuthUser(null);
+              setCurrentScreen('welcome');
+              setActiveTab('home');
+            }}
           />
         );
 
@@ -1471,12 +1482,13 @@ function App() {
           onComplete={handleExitDoorTransitionComplete}
         />
 
-        {/* iOS Tab Bar - Show on main app screens */}
-        {['avatarHomepage', 'closet', 'myOutfits', 'myCreations', 'smartCalendar'].includes(currentScreen) && !authLoading && authUser && (
-          <IOSTabBar
+        {/* Floating Tab Bar - Show on main app screens with paired grouping */}
+        {['avatarHomepage', 'closet', 'myOutfits', 'myCreations', 'smartCalendar', 'profile'].includes(currentScreen) && !authLoading && authUser && (
+          <FloatingTabBar
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={handleTabChange}
+            groupingStyle="paired"
             hapticFeedback={true}
           />
         )}

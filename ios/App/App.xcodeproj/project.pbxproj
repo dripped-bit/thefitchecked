@@ -50,7 +50,6 @@
 				B2D3BACF454CB2E9F8CC3406 /* Pods-App.debug.xcconfig */,
 				B0D3459A2D1FF173B303BE2C /* Pods-App.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -186,6 +185,7 @@
 		};
 		2BA4CF8902892B73C76631DD /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
