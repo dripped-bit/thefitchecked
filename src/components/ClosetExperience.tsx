@@ -8,6 +8,8 @@ import {
   Menu
 } from 'lucide-react';
 import { glassNavClasses } from '../styles/glassEffects';
+import { VisualClosetAdapter } from './VisualClosetAdapter';
+import '../styles/VisualClosetAdapter.css';
 import ClosetDoors from './ClosetDoors';
 import OutfitCreator from './OutfitCreator';
 import ClosetPage from './ClosetPage';
@@ -1847,6 +1849,33 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
 
           {currentView === 'interior' && (
+            <VisualClosetAdapter
+              clothingItems={clothingItems}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              onItemClick={(item) => {
+                console.log('Item clicked:', item);
+              }}
+              onAddItem={() => {
+                fileInputRef.current?.click();
+              }}
+              onDeleteItem={(itemId) => {
+                const item = clothingItems.find(i => i.id === itemId);
+                if (item) {
+                  handleDeleteClick(item);
+                }
+              }}
+              onToggleFavorite={(itemId) => {
+                const item = clothingItems.find(i => i.id === itemId);
+                if (item) {
+                  handleToggleFavorite(item);
+                }
+              }}
+            />
+          )}
+
+          {/* Old interior view code - keeping as fallback/reference */}
+          {false && currentView === 'interior-old' && (
             <>
               {/* Header */}
               <div className="mb-6">
