@@ -84,7 +84,8 @@ const VisualClosetEnhanced: React.FC = () => {
     deleteItem,
     toggleFavorite,
     searchItems,
-    getCategoryStats
+    getCategoryStats,
+    addItem
   } = useCloset();
 
   const [searchText, setSearchText] = useState('');
@@ -137,8 +138,22 @@ const VisualClosetEnhanced: React.FC = () => {
         source: 'camera'
       });
       
-      console.log('Captured image:', image.webPath);
-      // TODO: Upload to closet with selectedCategory
+      if (image.webPath && selectedCategory) {
+        console.log('Captured image:', image.webPath);
+        
+        // Add item to closet
+        const newItem = await addItem({
+          name: `New ${selectedCategory} item`,
+          category: selectedCategory,
+          image_url: image.webPath,
+          favorite: false
+        });
+        
+        if (newItem) {
+          console.log('✅ Item added to closet:', newItem);
+        }
+      }
+      
       setShowUploadModal(false);
     } catch (error) {
       console.error('Camera error:', error);
@@ -154,8 +169,22 @@ const VisualClosetEnhanced: React.FC = () => {
         source: 'photos'
       });
       
-      console.log('Selected image:', image.webPath);
-      // TODO: Upload to closet with selectedCategory
+      if (image.webPath && selectedCategory) {
+        console.log('Selected image:', image.webPath);
+        
+        // Add item to closet
+        const newItem = await addItem({
+          name: `New ${selectedCategory} item`,
+          category: selectedCategory,
+          image_url: image.webPath,
+          favorite: false
+        });
+        
+        if (newItem) {
+          console.log('✅ Item added to closet:', newItem);
+        }
+      }
+      
       setShowUploadModal(false);
     } catch (error) {
       console.error('Gallery error:', error);
