@@ -1360,33 +1360,22 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                 outfits[activeOutfitIndex]?.isSelected ? 'border-2 border-ios-purple shadow-ios-lg ring-4 ring-purple-100' : ''
               }`}
             >
-              {/* Simple Header - Apple Style */}
-              <div className="p-4 border-b bg-ios-purple/5 border-ios-separator rounded-t-ios-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-ios-purple/10 rounded-ios-md flex items-center justify-center">
-                      <Sparkles className="w-5 h-5 text-ios-purple" />
-                    </div>
-                    <div>
-                      <h4 className="ios-headline">{outfits[activeOutfitIndex]?.personality.name}</h4>
-                    </div>
-                  </div>
-                  {outfits[activeOutfitIndex]?.isSelected && (
-                    <div className="w-8 h-8 bg-ios-purple rounded-full flex items-center justify-center shadow-ios-sm">
-                      <Check className="w-5 h-5 text-white" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* Outfit Image */}
               <div className="p-6">
                 <div className="relative w-full max-w-sm mx-auto bg-gray-100 rounded-xl overflow-hidden mb-4">
                   <img
                     src={outfits[activeOutfitIndex]?.imageUrl}
-                    alt={`${outfits[activeOutfitIndex]?.personality.name} outfit`}
+                    alt={`Outfit ${activeOutfitIndex + 1}`}
                     className="w-full h-auto max-h-[600px] object-contain"
                   />
+                  
+                  {/* Selected badge overlay */}
+                  {outfits[activeOutfitIndex]?.isSelected && (
+                    <div className="absolute top-4 right-4 w-10 h-10 bg-ios-purple rounded-full flex items-center justify-center shadow-lg">
+                      <Check className="w-6 h-6 text-white" />
+                    </div>
+                  )}
+                  
                   <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-opacity duration-200 flex items-center justify-center">
                     <button
                       onClick={() => handleImagePreview(outfits[activeOutfitIndex])}
