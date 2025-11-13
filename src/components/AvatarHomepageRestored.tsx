@@ -830,7 +830,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
       </div>
 
       {/* Rounded White Content Overlay */}
-      <div className="flex-1 -mt-4 bg-white rounded-t-[32px] shadow-2xl overflow-hidden">
+      <div className="flex-1 -mt-4 bg-gradient-to-b from-white via-white to-pink-50/30 rounded-t-[32px] shadow-2xl overflow-hidden">
         <div className="overflow-y-auto h-full pb-safe-bottom">
           {/* Main Content */}
           <main className="relative z-10 max-w-7xl mx-auto px-6 py-5">

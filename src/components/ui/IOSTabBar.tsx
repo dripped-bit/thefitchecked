@@ -86,6 +86,11 @@ export const IOSTabBar: React.FC<IOSTabBarProps> = ({
         'transition-all duration-300 ease-out',
         className
       )}
+      style={{
+        // iOS Safari requires WebKit prefix for backdrop-filter
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+      }}
       role="tablist"
       aria-label="Main navigation"
     >
