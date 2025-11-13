@@ -1468,15 +1468,6 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                     </button>
                   )}
 
-                  {/* Calendar Button - iOS Style */}
-                  <button
-                    onClick={() => handleAddToCalendar(outfits[activeOutfitIndex])}
-                    className="w-full ios-button-primary bg-ios-blue hover:opacity-90 flex items-center justify-center space-x-2"
-                  >
-                    <Calendar className="w-4 h-4" />
-                    <span>Add to Calendar</span>
-                  </button>
-
                   {/* Share Button - iOS Secondary Style */}
                   <button
                     onClick={() => handleShareOutfit(outfits[activeOutfitIndex])}
