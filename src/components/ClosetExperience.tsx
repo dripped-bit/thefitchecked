@@ -8,7 +8,7 @@ import {
   Menu
 } from 'lucide-react';
 import { glassNavClasses } from '../styles/glassEffects';
-import { VisualClosetAdapter } from './VisualClosetAdapter';
+import VisualClosetEnhanced from './VisualClosetEnhanced';
 import '../styles/VisualClosetAdapter.css';
 import ClosetDoors from './ClosetDoors';
 import OutfitCreator from './OutfitCreator';
@@ -1849,11 +1849,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
 
           {currentView === 'interior' && (
-            <VisualClosetAdapter
-              onAddItem={() => {
-                fileInputRef.current?.click();
-              }}
-            />
+            <VisualClosetEnhanced />
           )}
 
           {/* Old interior view code - keeping as fallback/reference */}
