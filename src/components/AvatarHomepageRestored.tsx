@@ -756,14 +756,14 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
   return (
     <>
 
-      <div className="min-h-screen pb-[calc(49px+env(safe-area-inset-bottom))] pt-safe relative overflow-hidden">
+      <div className="min-h-screen pb-[calc(100px+env(safe-area-inset-bottom))] pt-safe relative overflow-hidden">
       
       {/* Content Layer */}
       <div className="relative z-10">
       {/* NEW HEADER - Baby Pink Gradient */}
-      <div className="bg-gradient-to-br from-pink-300 via-pink-400 to-rose-400 pt-safe-top">
+      <div className="bg-gradient-to-br from-pink-300 via-pink-400 to-rose-400">
         {/* Top row - icons */}
-        <div className="flex justify-end items-center px-4 py-2">
+        <div className="flex justify-end items-center px-4 py-1">
           <div className="flex items-center space-x-4">
             {/* Weather indicator */}
             {weather && (
@@ -779,8 +779,8 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
         </div>
 
         {/* Title - personalized greeting */}
-        <div className="px-6 py-3">
-          <h1 className="text-white text-4xl font-bold">
+        <div className="px-6 py-1.5">
+          <h1 className="text-white text-3xl font-bold">
             {getTimeBasedGreeting()}
           </h1>
           <p className="text-white/90 text-base mt-1">
@@ -792,7 +792,7 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
         </div>
 
         {/* Segmented Control with 3 tabs */}
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-3">
           <div className="bg-white/20 backdrop-blur-sm rounded-full p-1 flex">
             {/* Tab 1: Saved Avatars */}
             <button
