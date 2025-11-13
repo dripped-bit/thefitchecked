@@ -316,6 +316,21 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
             onShopThisLook={() => setCurrentState('shopping')}
             hasTriedOn={hasTriedOn}
           />
+
+          {/* Auto-show shopping inline after outfit is tried on and selected */}
+          {hasTriedOn && selectedOutfit && (
+            <div className="mt-8">
+              <IntegratedShopping
+                selectedOutfit={selectedOutfit}
+                occasion={parsedOccasion}
+                budget={selectedBudget}
+                onTryOnProduct={handleTryOnProduct}
+                onSaveToCalendar={handleSaveToCalendar}
+                onProductsCollected={handleProductsCollected}
+                avatarData={avatarData}
+              />
+            </div>
+          )}
         </div>
       )}
 

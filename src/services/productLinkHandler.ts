@@ -51,9 +51,19 @@ const RETAILER_DEEP_LINKS: Record<string, RetailerDeepLink> = {
 class ProductLinkHandler {
   private isNative: boolean;
   private browserListenersInitialized: boolean = false;
+  private onBrowserClosedCallback?: (productInfo: any) => void;
+  private currentProduct: any = null;
 
   constructor() {
     this.isNative = Capacitor.isNativePlatform();
+  }
+
+  /**
+   * Set callback to be invoked when browser closes
+   */
+  setOnBrowserClosed(callback: (productInfo: any) => void) {
+    this.onBrowserClosedCallback = callback;
+    console.log('✅ [PRODUCT-LINK] Browser closed callback registered');
   }
 
   /**
@@ -67,8 +77,12 @@ class ProductLinkHandler {
     // Listen for browser closed event
     Browser.addListener('browserFinished', () => {
       console.log('📱 [PRODUCT-LINK] User closed in-app browser');
-      // Could track engagement metrics here
-      // e.g., how long they spent on product page before returning
+      
+      // Trigger callback with product info
+      if (this.onBrowserClosedCallback && this.currentProduct) {
+        console.log('🔔 [PRODUCT-LINK] Triggering browser closed callback with product:', this.currentProduct.title);
+        this.onBrowserClosedCallback(this.currentProduct);
+      }
     });
 
     // Listen for browser page loaded event
@@ -166,24 +180,46 @@ class ProductLinkHandler {
    * 
    * @param url Product URL (with affiliate tracking if applicable)
    * @param store Store name (e.g., "SHEIN", "Amazon")
+   * @param productInfo Optional product information to pass to callback when browser closes
    * @returns Promise that resolves when link is opened
    */
-  async openProductLink(url: string, store: string = 'unknown'): Promise<void> {
+  async openProductLink(url: string, store: string = 'unknown', productInfo?: any): Promise<void> {
     console.log(`🔗 [PRODUCT-LINK] Opening product link:`, {
       url: url.substring(0, 100) + '...',
       store,
-      platform: this.isNative ? 'native' : 'web'
+      platform: this.isNative ? 'native' : 'web',
+      hasProductInfo: !!productInfo
     });
+
+    // Store product info for callback when browser closes
+    if (productInfo) {
+      this.currentProduct = productInfo;
+      console.log('💾 [PRODUCT-LINK] Stored product info for callback:', productInfo.title);
+    }
 
     // Web platform: Use standard window.open
     if (!this.isNative) {
       console.log('🌐 [PRODUCT-LINK] Web platform - using window.open');
       window.open(url, '_blank', 'noopener,noreferrer');
+      
+      // For web platform, simulate browser close after a delay (user likely navigated away)
+      // This is a workaround since we can't detect when external tab closes
+      if (productInfo && this.onBrowserClosedCallback) {
+        setTimeout(() => {
+          console.log('🌐 [PRODUCT-LINK] Web platform - simulating browser closed event');
+          if (this.onBrowserClosedCallback && this.currentProduct) {
+            this.onBrowserClosedCallback(this.currentProduct);
+          }
+        }, 3000); // 3 second delay to give user time to see the new tab
+      }
       return;
     }
 
     // Mobile platform: Try smart routing
     console.log('📱 [PRODUCT-LINK] Native platform - attempting smart routing');
+
+    // Initialize browser listeners if not already done
+    this.initializeBrowserListeners();
 
     // Strategy 1: Try deep link to retailer app
     const deepLinkSuccess = await this.tryDeepLink(url, store);

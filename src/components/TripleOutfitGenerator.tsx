@@ -1457,17 +1457,6 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
                     </button>
                   )}
 
-                  {/* Shop This Look - Only show on selected outfit AFTER try-on */}
-                  {outfits[activeOutfitIndex]?.isSelected && hasTriedOn && onShopThisLook && (
-                    <button
-                      onClick={onShopThisLook}
-                      className="w-full ios-button-primary bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 shadow-ios-md flex items-center justify-center space-x-2"
-                    >
-                      <ShoppingBag className="w-5 h-5" />
-                      <span>Shop This Look</span>
-                    </button>
-                  )}
-
                   {/* Share Button - iOS Secondary Style */}
                   <button
                     onClick={() => handleShareOutfit(outfits[activeOutfitIndex])}

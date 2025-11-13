@@ -21,6 +21,7 @@ import serpApiService, { ProductSearchResult } from '../services/serpApiService'
 import { buildPriorityStoreQuery, SEARCH_STRATEGY, getPriorityStoreDomains } from '../config/priorityStores';
 import { affiliateLinkService } from '../services/affiliateLinkService';
 import productLinkHandler from '../services/productLinkHandler';
+import ProductActionPullDown from './ProductActionPullDown';
 
 interface IntegratedShoppingProps {
   selectedOutfit: GeneratedOutfit;
@@ -56,6 +57,10 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   const [savedToCalendar, setSavedToCalendar] = useState(false);
   const [clickedProducts, setClickedProducts] = useState<ProductSearchResult[]>([]);
 
+  // Pull-down menu state
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [lastViewedProduct, setLastViewedProduct] = useState<ProductSearchResult | null>(null);
+
   // Budget tiers matching SmartOccasionPlanner
   const budgetTiers = [
     { label: 'Value', range: '$1-50', min: 1, max: 50 },
@@ -65,6 +70,15 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
   // Default to middle tier (Budget)
   const [activeBudgetIndex, setActiveBudgetIndex] = useState(1);
+
+  // Set up browser closed callback for pull-down menu
+  useEffect(() => {
+    productLinkHandler.setOnBrowserClosed((productInfo) => {
+      console.log('🔔 [INTEGRATED-SHOPPING] Browser closed, showing action menu for:', productInfo.title);
+      setLastViewedProduct(productInfo);
+      setShowActionMenu(true);
+    });
+  }, []);
 
   // Notify parent when clicked products change
   useEffect(() => {
@@ -331,15 +345,43 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
     onSaveToCalendar?.();
   };
 
+  const handleSaveFromMenu = () => {
+    console.log('📅 [INTEGRATED-SHOPPING] Save to Calendar selected from menu');
+    setShowActionMenu(false);
+    
+    // Add product to collected shopping links
+    if (lastViewedProduct) {
+      setClickedProducts(prev => {
+        const alreadyExists = prev.some(p => p.url === lastViewedProduct.url);
+        if (!alreadyExists) {
+          console.log('💾 [INTEGRATED-SHOPPING] Adding product to calendar save:', lastViewedProduct.title);
+          return [...prev, lastViewedProduct];
+        }
+        return prev;
+      });
+    }
+    
+    // Open calendar modal
+    handleSaveToCalendar();
+  };
+
+  const handleKeepLooking = () => {
+    console.log('🔍 [INTEGRATED-SHOPPING] Keep Looking selected from menu');
+    setShowActionMenu(false);
+    setLastViewedProduct(null);
+  };
+
   const getBudgetFilteredSections = () => {
     const selectedTier = budgetTiers[activeBudgetIndex];
 
     return shoppingSections.map(section => ({
       ...section,
-      products: section.products.filter(product => {
-        const price = parseInt(product.price.replace(/[$,]/g, ''));
-        return price >= selectedTier.min && price <= selectedTier.max;
-      })
+      products: section.products
+        .filter(product => {
+          const price = parseInt(product.price.replace(/[$,]/g, ''));
+          return price >= selectedTier.min && price <= selectedTier.max;
+        })
+        .slice(0, 3) // Limit to 3 products per section
     })).filter(section => section.products.length > 0);
   };
 
@@ -367,88 +409,6 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   return (
     <div className={`integrated-shopping ${className}`}>
       <div className="max-w-6xl mx-auto p-6 space-y-6">
-
-        {/* Header Section */}
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-2xl p-6">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-              <ShoppingBag className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-gray-900">Shop This Look</h3>
-              <p className="text-gray-600">
-                {selectedOutfit.personality.name} style for your {occasion.occasion}
-              </p>
-            </div>
-          </div>
-
-          {/* Why These Products */}
-          <div className="bg-white rounded-lg p-4 border border-green-200 mb-4">
-            <h4 className="font-medium text-gray-900 mb-2">Smart matching based on:</h4>
-            <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
-              <div className="flex items-center">
-                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                {occasion.occasion} occasion
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                {selectedOutfit.personality.name} personality
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
-                {occasion.formality} dress code
-              </div>
-            </div>
-          </div>
-
-          {/* Calendar Save Button - Now Prominent and Always Visible */}
-          <div className="space-y-2">
-            {clickedProducts.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center space-x-2">
-                    <ShoppingBag className="w-4 h-4 text-blue-600" />
-                    <span className="text-blue-700 font-medium">
-                      {clickedProducts.length} item{clickedProducts.length !== 1 ? 's' : ''} saved for calendar
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setClickedProducts([])}
-                    className="text-xs text-blue-600 hover:text-blue-800 underline"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-            )}
-            <button
-              onClick={handleSaveToCalendar}
-              disabled={savedToCalendar}
-              className={`w-full px-6 py-3 rounded-xl font-medium transition-all shadow-md ${
-                savedToCalendar
-                  ? 'bg-green-100 text-green-700 border border-green-300'
-                  : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700'
-              }`}
-            >
-              {savedToCalendar ? (
-                <>
-                  <CheckCircle className="w-5 h-5 inline mr-2" />
-                  <span className="font-semibold">Saved to Calendar</span>
-                </>
-              ) : (
-                <>
-                  <Calendar className="w-5 h-5 inline mr-2" />
-                  <span className="font-semibold">Save to Calendar</span>
-                  {clickedProducts.length > 0 && (
-                    <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                      +{clickedProducts.length} items
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-          </div>
-        </div>
 
         {/* Apple-Style Segmented Control for Budget Selection */}
         <div className="flex justify-center">
@@ -505,16 +465,6 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                       onClick={() => {
                         console.log('🖼️ [IMAGE-CLICK] Product image clicked');
 
-                        // Save product to clicked products (for calendar save)
-                        setClickedProducts(prev => {
-                          const alreadyClicked = prev.some(p => p.url === product.url);
-                          if (!alreadyClicked) {
-                            console.log('💾 [SHOPPING-CAPTURE] Product saved for calendar:', product.title);
-                            return [...prev, product];
-                          }
-                          return prev;
-                        });
-
                         // Convert to affiliate link and open
                         const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
                           product.url,
@@ -523,7 +473,16 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
                         console.log('🎯 [IMAGE-CLICK] Opening product URL:', affiliateUrl);
                         affiliateLinkService.trackClick(affiliateUrl, undefined, product);
-                        productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown');
+                        
+                        // Pass product info to handler for callback
+                        const productInfo = {
+                          url: product.url,
+                          title: product.title,
+                          imageUrl: product.imageUrl,
+                          store: product.store,
+                          price: product.price
+                        };
+                        productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown', productInfo);
                       }}
                     >
                       <img
@@ -601,16 +560,6 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                             price: product.price
                           });
 
-                          // Save product to clicked products (for calendar save)
-                          setClickedProducts(prev => {
-                            const alreadyClicked = prev.some(p => p.url === product.url);
-                            if (!alreadyClicked) {
-                              console.log('💾 [SHOPPING-CAPTURE] Product saved for calendar:', product.title);
-                              return [...prev, product];
-                            }
-                            return prev;
-                          });
-
                           const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
                             product.url,
                             product.store || 'unknown'
@@ -620,7 +569,16 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                           console.log('✅ [INTEGRATED-SHOPPING] Opening product link...');
 
                           affiliateLinkService.trackClick(affiliateUrl, undefined, product);
-                          productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown');
+                          
+                          // Pass product info to handler for callback
+                          const productInfo = {
+                            url: product.url,
+                            title: product.title,
+                            imageUrl: product.imageUrl,
+                            store: product.store,
+                            price: product.price
+                          };
+                          productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown', productInfo);
                         }}
                         className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center text-sm"
                       >
@@ -641,6 +599,14 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
           </div>
         )}
       </div>
+
+      {/* iOS Pull-Down Action Menu */}
+      <ProductActionPullDown
+        isOpen={showActionMenu}
+        onSaveToCalendar={handleSaveFromMenu}
+        onKeepLooking={handleKeepLooking}
+        productTitle={lastViewedProduct?.title}
+      />
     </div>
   );
 };
