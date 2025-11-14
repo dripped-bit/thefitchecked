@@ -28,7 +28,8 @@ import {
   PenLine,
   Luggage,
   Sunrise,
-  User
+  User,
+  ChevronLeft
 } from 'lucide-react';
 import smartCalendarService, {
   CalendarEvent,
