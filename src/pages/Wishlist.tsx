@@ -127,11 +127,16 @@ const fashionCategories = {
 interface WishlistItem {
   id: string;
   user_id: string;
-  product_name: string;
-  product_image: string;
-  product_price: string;
-  product_link: string;
-  source?: string;
+  name: string;
+  brand?: string;
+  price: string;
+  currency?: string;
+  image: string;
+  url: string;
+  retailer: string;
+  notes?: string;
+  original_price?: string;
+  discount?: string;
   category?: string;
   subcategory?: string;
   ai_generated?: boolean;
@@ -389,8 +394,8 @@ const Wishlist: React.FC = () => {
                   }}>
                     <div style={{ position: 'relative' }}>
                       <IonImg
-                        src={item.product_image}
-                        alt={item.product_name}
+                        src={item.image}
+                        alt={item.name}
                         style={{ 
                           height: '250px', 
                           objectFit: 'cover',
@@ -428,20 +433,20 @@ const Wishlist: React.FC = () => {
                         letterSpacing: '-0.32px',
                         lineHeight: '1.3',
                       }}>
-                        {item.product_name.length > 60
-                          ? `${item.product_name.substring(0, 60)}...`
-                          : item.product_name}
+                        {item.name.length > 60
+                          ? `${item.name.substring(0, 60)}...`
+                          : item.name}
                       </IonCardTitle>
                     </IonCardHeader>
 
                     <IonCardContent>
                       <IonText color="primary">
                         <strong style={{ fontSize: '18px', fontWeight: '600' }}>
-                          {item.product_price}
+                          {item.price}
                         </strong>
                       </IonText>
                       
-                      {item.source && (
+                      {item.retailer && (
                         <IonText 
                           color="medium" 
                           style={{ 
@@ -450,7 +455,7 @@ const Wishlist: React.FC = () => {
                             marginTop: '4px',
                           }}
                         >
-                          from {item.source}
+                          from {item.retailer}
                         </IonText>
                       )}
 
@@ -507,7 +512,7 @@ const Wishlist: React.FC = () => {
                       }}>
                         <IonButton
                           expand="block"
-                          onClick={() => openProductLink(item.product_link)}
+                          onClick={() => openProductLink(item.url)}
                           style={{ 
                             flex: 1,
                             '--border-radius': '10px',
