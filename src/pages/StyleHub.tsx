@@ -42,8 +42,9 @@ export default function StyleHub({
           {/* Back Button - Top Left */}
           <button
             onClick={onBack}
-            className="absolute top-0 left-0 w-10 h-10 flex items-center justify-center text-gray-700 active:text-gray-900 active:scale-95 transition-all rounded-full"
+            className="absolute top-0 left-0 z-50 w-10 h-10 flex items-center justify-center text-gray-700 active:text-gray-900 active:scale-95 transition-all rounded-full cursor-pointer"
             aria-label="Go back"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {/* SF Symbol arrow.backward */}
             <svg 
