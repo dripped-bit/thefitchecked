@@ -10,7 +10,7 @@ import {
   Luggage,
   ChevronRight
 } from 'lucide-react';
-import { IonIcon } from '@ionic/react';
+import { IonIcon, IonButton } from '@ionic/react';
 import { sparkles } from 'ionicons/icons';
 import AIDesignShopModal from '../components/AIDesignShopModal';
 
@@ -119,20 +119,28 @@ export default function StyleHub({
               <span>Wishlist</span>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
-            
-            {/* AI Design & Shop */}
-            <button
-              onClick={() => setShowAIDesign(true)}
-              className="ios-plain-list-item"
-            >
-              <IonIcon icon={sparkles} className="w-6 h-6 text-purple-500" />
-              <span>AI Design & Shop</span>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
           </div>
         </div>
         
       </div>
+
+      {/* Floating AI Design Button - Bottom Right */}
+      <IonButton
+        onClick={() => setShowAIDesign(true)}
+        style={{
+          position: 'fixed',
+          bottom: '80px', // Above tab bar
+          right: '20px',
+          borderRadius: '50%',
+          width: '60px',
+          height: '60px',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          zIndex: 1000,
+        }}
+        color="primary"
+      >
+        <IonIcon icon={sparkles} style={{ fontSize: '28px' }} />
+      </IonButton>
 
       {/* AI Design Shop Modal */}
       <AIDesignShopModal
