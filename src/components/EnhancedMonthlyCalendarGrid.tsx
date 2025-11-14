@@ -286,7 +286,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
     year: 'numeric',
   });
 
-  const weekDays = ['', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; // Empty first column for week numbers
+  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
     <div className="flex flex-col h-full" style={{ width: '100%' }}>
@@ -341,7 +341,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
             paddingBottom: '8px',
           }}
         >
-          <div className="grid grid-cols-8">
+          <div className="grid grid-cols-7">
             {weekDays.map((day, index) => (
               <div key={index} className="text-center text-sm font-semibold text-gray-600 py-1">
                 {day}
@@ -357,7 +357,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
           </div>
         ) : (
           <div
-            className="grid grid-cols-8"
+            className="grid grid-cols-7"
             style={{
               gridTemplateRows: `repeat(${rowsNeeded}, ${cellHeight}px)`,
               transform: 'none',
@@ -368,43 +368,6 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
             }}
           >
             {calendarDays.map((day, index) => {
-              // Add week number cell at the start of each row
-              if (index % 7 === 0) {
-                const weekNum = day.weekNumber || Math.floor(index / 7) + 1;
-                return (
-                  <React.Fragment key={`week-${index}`}>
-                    <div
-                      className="flex items-center justify-center text-gray-400 text-xs font-medium border border-gray-200"
-                      style={{
-                        backgroundColor: '#FAFAF5',
-                        height: `${cellHeight}px`,
-                      }}
-                    >
-                      {weekNum}
-                    </div>
-                    {day.isEmpty || !day.date ? (
-                      <div
-                        className="border border-gray-200"
-                        style={{
-                          backgroundColor: '#F5F5F0',
-                          height: `${cellHeight}px`,
-                        }}
-                      />
-                    ) : (
-                      <CalendarDayCell
-                        date={day.date}
-                        isCurrentMonth={day.isCurrentMonth}
-                        isToday={day.date.toDateString() === today.toDateString()}
-                        scheduledOutfit={scheduledOutfits[day.date.toISOString().split('T')[0]]}
-                        onClick={() => handleDayClick(day.date)}
-                        cellHeight={cellHeight}
-                      />
-                    )}
-                  </React.Fragment>
-                );
-              }
-
-              // Regular cell (not start of row)
               if (day.isEmpty || !day.date) {
                 return (
                   <div
