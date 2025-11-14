@@ -19,7 +19,7 @@ import UserOnboardingPopup from './components/UserOnboardingPopup';
 import ClosetExperience from './components/ClosetExperience';
 import ProfileScreen from './components/ProfileScreen';
 import StyleHub from './pages/StyleHub';
-import Wishlist from './pages/Wishlist';
+import Wishlist from './pages/WishlistNative';
 import SettingsScreen from './pages/SettingsScreen';
 import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
