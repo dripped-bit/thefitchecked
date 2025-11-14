@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Browser } from '@capacitor/browser';
 import { supabase } from '../services/supabaseClient';
 import CustomModal from './CustomModal';
+import serpApiService, { ProductSearchResult } from '../services/serpApiService';
 
 interface ShoppingResult {
   title: string;
@@ -46,8 +47,8 @@ const AIDesignShopModal: React.FC<AIDesignShopModalProps> = ({ isOpen, onClose }
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: `High-quality fashion product photography of ${designPrompt}, professional lighting, white background, studio quality, detailed texture`,
-          image_size: 'square',
+          prompt: `Full-body product photography of ${designPrompt}, complete garment visible from top to bottom, professional lighting, white background, studio quality, detailed texture, centered composition, no cropping`,
+          image_size: 'portrait_4_3',
           num_inference_steps: 28,
           guidance_scale: 7.5,
         }),
@@ -71,32 +72,58 @@ const AIDesignShopModal: React.FC<AIDesignShopModalProps> = ({ isOpen, onClose }
     }
   };
 
-  // SerpAPI Shopping Search
+  // Shopping Search using Service Layer
   const searchForProduct = async () => {
     if (!generatedImage) return;
 
     setIsSearching(true);
     try {
-      const response = await fetch(
-        `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(designPrompt)}&api_key=${import.meta.env.VITE_SERPAPI_KEY}&num=6`
+      console.log('🔍 Starting product search for:', designPrompt);
+
+      // Search using service layer (goes through /api/serp proxy)
+      const productResults = await serpApiService.searchProducts(
+        designPrompt,
+        {
+          maxResults: 12 // Get more results
+        }
       );
 
-      const data = await response.json();
-      
-      if (data.shopping_results) {
-        const results: ShoppingResult[] = data.shopping_results.slice(0, 6).map((item: any) => ({
+      console.log('✅ Found products:', productResults.length);
+
+      if (productResults.length === 0) {
+        // Fallback: Try broader search with just the category
+        console.log('🔄 No results, trying broader search...');
+        const categorySearch = designPrompt.split(' ')[0]; // First word (e.g., "jacket")
+        const fallbackResults = await serpApiService.searchProducts(categorySearch, {
+          maxResults: 12
+        });
+        
+        // Map ProductSearchResult to ShoppingResult
+        const mappedResults: ShoppingResult[] = fallbackResults.slice(0, 6).map((item: ProductSearchResult) => ({
           title: item.title,
-          link: item.link,
-          price: item.price || 'Price not available',
-          thumbnail: item.thumbnail,
-          source: item.source,
+          link: item.url,
+          price: item.price,
+          thumbnail: item.imageUrl,
+          source: item.store,
         }));
         
-        setSearchResults(results);
+        setSearchResults(mappedResults);
+      } else {
+        // Map ProductSearchResult to ShoppingResult
+        const mappedResults: ShoppingResult[] = productResults.slice(0, 6).map((item: ProductSearchResult) => ({
+          title: item.title,
+          link: item.url,
+          price: item.price,
+          thumbnail: item.imageUrl,
+          source: item.store,
+        }));
+        
+        setSearchResults(mappedResults);
       }
+
     } catch (error) {
-      console.error('Search error:', error);
-      setToastMessage('Failed to find shopping results');
+      console.error('❌ Product search error:', error);
+      setToastMessage('Failed to find shopping results. Please try again.');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } finally {
