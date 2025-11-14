@@ -126,8 +126,8 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
       role="tablist"
       aria-label="Main navigation"
     >
-      {/* Centered container for floating pills */}
-      <div className="flex items-center justify-center gap-2 py-1.5 px-3 pointer-events-none">
+      {/* Edge-aligned container for floating pills */}
+      <div className="flex items-center justify-between gap-2 py-1.5 px-3 pointer-events-none">
         {groupedTabs.map((group, groupIndex) => (
           <React.Fragment key={`group-${groupIndex}`}>
             {/* Floating Glass Pill for each group */}
@@ -135,23 +135,24 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
               className={cn(
                 // Floating pill styles
                 'flex items-center justify-center gap-1 px-2.5 py-1.5',
-                // Glass morphism effect
-                'bg-white/70 backdrop-blur-xl',
+                // ENHANCED GLASS MORPHISM (Apple ultra-thin material style)
+                'bg-white/30 backdrop-blur-2xl',
                 // Rounded pill shape
                 'rounded-full',
-                // Shadow for floating effect
-                'shadow-[0_4px_20px_rgba(0,0,0,0.12)]',
-                // Border for depth
-                'border border-white/40',
+                // Enhanced shadow for floating effect
+                'shadow-[0_8px_32px_rgba(0,0,0,0.15)]',
+                // Frosted glass border
+                'border border-white/20',
                 // Re-enable pointer events on pill
                 'pointer-events-auto',
                 // Smooth transitions
                 'transition-all duration-300 ease-out'
               )}
               style={{
-                // iOS Safari requires WebKit prefix for backdrop-filter
-                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                backdropFilter: 'blur(24px) saturate(180%)',
+                // iOS Safari ultra-thin material effect
+                WebkitBackdropFilter: 'blur(40px) saturate(180%) brightness(120%)',
+                backdropFilter: 'blur(40px) saturate(180%) brightness(120%)',
+                backgroundColor: 'rgba(255, 255, 255, 0.25)', // Ultra-thin clear glass
               }}
             >
               {group.map((tab) => {

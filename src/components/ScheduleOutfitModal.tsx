@@ -34,15 +34,72 @@ export const ScheduleOutfitModal: React.FC<ScheduleOutfitModalProps> = ({
 }) => {
   const [savedOutfits, setSavedOutfits] = useState<SavedOutfit[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(false);
   const [selectedOutfit, setSelectedOutfit] = useState<string | null>(null);
   const [occasion, setOccasion] = useState('');
   const [notes, setNotes] = useState('');
+  const [eventLocation, setEventLocation] = useState('');
+  const [shoppingLinks, setShoppingLinks] = useState<string[]>([]);
+  const [existingEvent, setExistingEvent] = useState<any>(null);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && selectedDate) {
+      fetchExistingOutfit();
       fetchSavedOutfits();
     }
-  }, [isOpen]);
+  }, [isOpen, selectedDate]);
+
+  const fetchExistingOutfit = async () => {
+    setLoadingExisting(true);
+    try {
+      const user = await authService.getCurrentUser();
+      if (!user) return;
+
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      
+      console.log('🔍 [MODAL] Fetching existing outfit for date:', dateStr);
+      
+      // Query calendar_events for this date
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('start_time', `${dateStr}T00:00:00`)
+        .lt('start_time', `${dateStr}T23:59:59`)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ [MODAL] Error fetching existing outfit:', error);
+        throw error;
+      }
+      
+      if (data) {
+        console.log('✅ [MODAL] Found existing event:', data);
+        setExistingEvent(data);
+        // Prefill form fields
+        setOccasion(data.title || '');
+        setNotes(data.description || '');
+        setEventLocation(data.location || '');
+        setShoppingLinks(data.shopping_links || []);
+        if (data.outfit_id) {
+          setSelectedOutfit(data.outfit_id);
+        }
+      } else {
+        console.log('📝 [MODAL] No existing event found for this date');
+        // Reset form for new entry
+        setExistingEvent(null);
+        setOccasion('');
+        setNotes('');
+        setEventLocation('');
+        setShoppingLinks([]);
+        setSelectedOutfit(null);
+      }
+    } catch (error) {
+      console.error('❌ [MODAL] Error fetching existing outfit:', error);
+    } finally {
+      setLoadingExisting(false);
+    }
+  };
 
   const fetchSavedOutfits = async () => {
     try {
@@ -75,39 +132,53 @@ export const ScheduleOutfitModal: React.FC<ScheduleOutfitModalProps> = ({
   };
 
   const handleSchedule = async () => {
-    if (!selectedOutfit) return;
-
     setLoading(true);
     try {
       const user = await authService.getCurrentUser();
       if (!user) throw new Error('Not authenticated');
 
-      const outfit = savedOutfits.find((o) => o.id === selectedOutfit);
-      if (!outfit) throw new Error('Outfit not found');
+      const scheduledDate = selectedDate.toISOString();
 
-      const scheduledDate = selectedDate.toISOString().split('T')[0];
+      // Prepare event data
+      const eventData = {
+        user_id: user.id,
+        title: occasion || 'Scheduled Outfit',
+        description: notes || null,
+        start_time: scheduledDate,
+        end_time: scheduledDate,
+        location: eventLocation || null,
+        outfit_id: selectedOutfit || null,
+        shopping_links: shoppingLinks.length > 0 ? shoppingLinks : null,
+        event_type: 'outfit',
+        is_all_day: true,
+        weather_required: false
+      };
 
-      const { error } = await supabase.from('scheduled_outfits').upsert(
-        {
-          user_id: user.id,
-          outfit_id: selectedOutfit,
-          scheduled_date: scheduledDate,
-          occasion: occasion || null,
-          notes: notes || null,
-          was_worn: false,
-        },
-        {
-          onConflict: 'user_id,scheduled_date',
-        }
-      );
+      if (existingEvent) {
+        // UPDATE existing event
+        console.log('📝 [MODAL] Updating existing event:', existingEvent.id);
+        const { error } = await supabase
+          .from('calendar_events')
+          .update(eventData)
+          .eq('id', existingEvent.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        console.log('✅ [MODAL] Event updated successfully');
+      } else {
+        // INSERT new event
+        console.log('📝 [MODAL] Creating new event');
+        const { error } = await supabase
+          .from('calendar_events')
+          .insert(eventData);
 
-      console.log('✅ Outfit scheduled successfully');
+        if (error) throw error;
+        console.log('✅ [MODAL] Event created successfully');
+      }
+
       onOutfitScheduled();
       onClose();
     } catch (error) {
-      console.error('Error scheduling outfit:', error);
+      console.error('❌ [MODAL] Error scheduling outfit:', error);
       alert('Failed to schedule outfit. Please try again.');
     } finally {
       setLoading(false);
@@ -142,6 +213,42 @@ export const ScheduleOutfitModal: React.FC<ScheduleOutfitModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Existing Event Banner */}
+          {existingEvent && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-blue-900">✓ Existing Outfit Scheduled</p>
+                  <p className="text-sm text-blue-700">{existingEvent.title}</p>
+                  {existingEvent.location && (
+                    <p className="text-xs text-blue-600 mt-1">📍 {existingEvent.location}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    // Clear existing and start fresh
+                    setExistingEvent(null);
+                    setOccasion('');
+                    setNotes('');
+                    setEventLocation('');
+                    setShoppingLinks([]);
+                    setSelectedOutfit(null);
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  Start Fresh
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loadingExisting && (
+            <div className="text-center py-4 text-gray-500">
+              <p>Loading existing outfit...</p>
+            </div>
+          )}
+
           {/* Saved Outfits Grid */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
@@ -183,6 +290,39 @@ export const ScheduleOutfitModal: React.FC<ScheduleOutfitModalProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 style={{ fontSize: '16px' }}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Location (optional)
+              </label>
+              <input
+                type="text"
+                value={eventLocation}
+                onChange={(e) => setEventLocation(e.target.value)}
+                placeholder="e.g., Downtown Office, Central Park"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                style={{ fontSize: '16px' }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Shopping Links (optional)
+              </label>
+              <textarea
+                value={shoppingLinks.join('\n')}
+                onChange={(e) => setShoppingLinks(e.target.value.split('\n').filter(l => l.trim()))}
+                placeholder="Paste shopping URLs, one per line"
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                style={{ fontSize: '16px' }}
+              />
+              {shoppingLinks.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  🛍️ {shoppingLinks.length} link{shoppingLinks.length !== 1 ? 's' : ''} added
+                </p>
+              )}
             </div>
 
             <div>
