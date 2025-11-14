@@ -1099,7 +1099,10 @@ function App() {
       case 'stylehub':
         return (
           <StyleHub
-            onBack={() => setCurrentScreen('avatarHomepage')}
+            onBack={() => {
+              setCurrentScreen('avatarHomepage');
+              setActiveTab('home');
+            }}
             onNavigateToMorningMode={() => {
               sessionStorage.setItem('calendar_initial_view', 'morning');
               sessionStorage.setItem('navigated_from_stylehub', 'true');
