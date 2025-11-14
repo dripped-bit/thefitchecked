@@ -22,6 +22,7 @@ import { buildPriorityStoreQuery, SEARCH_STRATEGY, getPriorityStoreDomains } fro
 import { affiliateLinkService } from '../services/affiliateLinkService';
 import productLinkHandler from '../services/productLinkHandler';
 import ProductActionPullDown from './ProductActionPullDown';
+import outfitCategoryDetector, { OutfitCategory } from '../services/outfitCategoryDetector';
 
 interface IntegratedShoppingProps {
   selectedOutfit: GeneratedOutfit;
@@ -58,6 +59,15 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
   const [searchProgress, setSearchProgress] = useState('');
   const [savedToCalendar, setSavedToCalendar] = useState(false);
   const [clickedProducts, setClickedProducts] = useState<ProductSearchResult[]>([]);
+
+  // Category-based search state
+  interface CategorySearchResults {
+    category: OutfitCategory;
+    products: ProductSearchResult[];
+    isLoading: boolean;
+  }
+  const [categoryResults, setCategoryResults] = useState<CategorySearchResults[]>([]);
+  const [activeCategory, setActiveCategory] = useState<number>(0);
 
   // Pull-down menu state
   const [showActionMenu, setShowActionMenu] = useState(false);
@@ -122,7 +132,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
   const searchContextualProducts = async () => {
     setIsSearching(true);
-    setSearchProgress('Searching Google Shopping for your outfit...');
+    setSearchProgress('Analyzing outfit composition...');
 
     try {
       // Use HYBRID search query: user input + AI enhancements
@@ -145,90 +155,20 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
       console.log('📝 [SHOPPING] User\'s original input:', userOriginalInput);
       console.log('🔍 [SHOPPING] AI-analyzed query:', aiAnalyzedQuery);
       console.log('🎯 [SHOPPING] Hybrid query (PRESERVES USER INTENT):', baseQuery);
-      console.log('🛍️ [SHOPPING] Query sent to search:', baseQuery);
-      console.log('🎨 [SHOPPING] Outfit personality:', selectedOutfit.personality.name);
 
-      let allProducts: ProductSearchResult[] = [];
+      // Detect outfit categories
+      const composition = outfitCategoryDetector.detectCategories(aiAnalyzedQuery, userOriginalInput);
+      
+      console.log('👔 [SHOPPING] Outfit composition:', composition.isMultiPiece ? 'Multi-piece' : 'Single-piece');
+      console.log('📋 [SHOPPING] Categories detected:', composition.categories.length);
 
-      // Search via SerpAPI (Google Shopping) with priority stores - simpler and more reliable
-      console.log('🔍 [SERPAPI] Searching Google Shopping with priority stores...');
-      setSearchProgress('Finding products from your preferred stores...');
-
-      // Use searchWithStores to prioritize the 72 saved stores first
-      const searchResults = await serpApiService.searchWithStores(baseQuery, {
-        maxResults: 20
-      });
-
-      allProducts.push(...searchResults);
-      console.log(`✅ [SERPAPI] Found ${searchResults.length} products from Google Shopping`);
-
-      // Log product details
-      searchResults.forEach((product, index) => {
-        console.log(`📦 [PRODUCT ${index + 1}]:`, {
-          title: product.title,
-          store: product.store,
-          price: product.price,
-          hasImage: !!product.imageUrl,
-          url: product.url
-        });
-      });
-
-      console.log('✅ [SHOPPING] Total products found:', allProducts.length);
-
-      // Remove duplicates
-      const uniqueProducts = allProducts.filter((product, index, self) =>
-        index === self.findIndex((p) => p.url === product.url)
-      );
-
-      // Filter out YouTube URLs (backup filter in case they slip through)
-      const nonYouTubeProducts = uniqueProducts.filter(product => {
-        const isYouTube = product.url.includes('youtube.com') || product.url.includes('youtu.be');
-        if (isYouTube) {
-          console.log('🚫 [FILTER] Removed YouTube result:', product.title);
-        }
-        return !isYouTube;
-      });
-
-      console.log(`✅ [FILTER] Filtered products: ${uniqueProducts.length} → ${nonYouTubeProducts.length} (removed ${uniqueProducts.length - nonYouTubeProducts.length} YouTube results)`);
-
-      // Final URL validation check
-      console.log('🔍 [URL-VALIDATION] Checking all product URLs for potential errors:');
-      nonYouTubeProducts.forEach((product, index) => {
-        const isLikelyProductPage =
-          product.url.includes('/products/') ||  // Shopify stores
-          product.url.includes('/dp/') ||        // Amazon
-          product.url.includes('/gp/product/') || // Amazon alternate
-          product.url.includes('/goods') ||      // SHEIN
-          product.url.includes('-p-') ||         // SHEIN product code
-          product.url.includes('/item/') ||      // Generic item
-          product.url.includes('/p/') ||         // Target, others
-          product.url.includes('productId=') ||  // Product ID param
-          product.url.includes('sku=');          // SKU param
-
-        if (!isLikelyProductPage) {
-          console.warn(`⚠️ [URL-VALIDATION] Product ${index + 1} may not be a product page:`, {
-            title: product.title,
-            url: product.url,
-            store: product.store,
-            reason: 'URL does not match known product page patterns'
-          });
-        } else {
-          console.log(`✅ [URL-VALIDATION] Product ${index + 1} looks valid:`, product.title);
-        }
-      });
-
-      // Categorize products into sections
-      const sections = categorizeBySimilarity(nonYouTubeProducts);
-      setShoppingSections(sections);
-
-      const priorityStores = getPriorityStoreDomains(true, false);
-      const priorityCount = nonYouTubeProducts.filter(p =>
-        priorityStores.some(domain => p.url.includes(domain))
-      ).length;
-
-      setSearchProgress(`Found ${nonYouTubeProducts.length} products (${priorityCount} from priority stores)!`);
-      setTimeout(() => setSearchProgress(''), 3000);
-
+      if (composition.isMultiPiece && composition.categories.length > 1) {
+        // Multi-category search
+        await searchByCategories(composition.categories, baseQuery);
+      } else {
+        // Single search (current behavior)
+        await searchSingleQuery(baseQuery);
+      }
     } catch (error) {
       console.error('Shopping search failed:', error);
       setSearchProgress('Search failed. Showing similar items...');
@@ -242,6 +182,153 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
     } finally {
       setIsSearching(false);
     }
+  };
+
+  /**
+   * Search by individual categories (NEW)
+   */
+  const searchByCategories = async (categories: OutfitCategory[], baseContext: string) => {
+    setSearchProgress('Searching by category...');
+    
+    // Initialize category results
+    setCategoryResults(categories.map(cat => ({
+      category: cat,
+      products: [],
+      isLoading: true
+    })));
+
+    // Search each category in parallel
+    await Promise.all(categories.map(async (category, index) => {
+      const query = buildCategoryQuery(category, baseContext);
+      console.log(`🔍 [CATEGORY-SEARCH] ${category.displayName}: "${query}"`);
+
+      try {
+        const results = await serpApiService.searchWithStores(query, {
+          maxResults: 8 // Less per category since multiple tabs
+        });
+
+        console.log(`✅ [CATEGORY-SEARCH] ${category.displayName}: Found ${results.length} products`);
+
+        setCategoryResults(prev => {
+          const updated = [...prev];
+          updated[index] = {
+            ...updated[index],
+            products: results,
+            isLoading: false
+          };
+          return updated;
+        });
+      } catch (error) {
+        console.error(`❌ [CATEGORY-SEARCH] ${category.displayName} failed:`, error);
+        setCategoryResults(prev => {
+          const updated = [...prev];
+          updated[index] = {
+            ...updated[index],
+            products: [],
+            isLoading: false
+          };
+          return updated;
+        });
+      }
+    }));
+
+    setSearchProgress('');
+  };
+
+  /**
+   * Build search query for a specific category
+   */
+  const buildCategoryQuery = (category: OutfitCategory, baseContext: string): string => {
+    // Combine base context with category-specific search term
+    return `${baseContext} ${category.searchTerm}`.trim();
+  };
+
+  /**
+   * Single query search (existing behavior)
+   */
+  const searchSingleQuery = async (baseQuery: string) => {
+    setSearchProgress('Searching Google Shopping for your outfit...');
+    
+    let allProducts: ProductSearchResult[] = [];
+
+    // Search via SerpAPI (Google Shopping) with priority stores
+    console.log('🔍 [SERPAPI] Searching Google Shopping with priority stores...');
+    setSearchProgress('Finding products from your preferred stores...');
+
+    // Use searchWithStores to prioritize the 72 saved stores first
+    const searchResults = await serpApiService.searchWithStores(baseQuery, {
+      maxResults: 20
+    });
+
+    allProducts.push(...searchResults);
+    console.log(`✅ [SERPAPI] Found ${searchResults.length} products from Google Shopping`);
+
+    // Log product details
+    searchResults.forEach((product, index) => {
+      console.log(`📦 [PRODUCT ${index + 1}]:`, {
+        title: product.title,
+        store: product.store,
+        price: product.price,
+        hasImage: !!product.imageUrl,
+        url: product.url
+      });
+    });
+
+    console.log('✅ [SHOPPING] Total products found:', allProducts.length);
+
+    // Remove duplicates
+    const uniqueProducts = allProducts.filter((product, index, self) =>
+      index === self.findIndex((p) => p.url === product.url)
+    );
+
+    // Filter out YouTube URLs (backup filter in case they slip through)
+    const nonYouTubeProducts = uniqueProducts.filter(product => {
+      const isYouTube = product.url.includes('youtube.com') || product.url.includes('youtu.be');
+      if (isYouTube) {
+        console.log('🚫 [FILTER] Removed YouTube result:', product.title);
+      }
+      return !isYouTube;
+    });
+
+    console.log(`✅ [FILTER] Filtered products: ${uniqueProducts.length} → ${nonYouTubeProducts.length} (removed ${uniqueProducts.length - nonYouTubeProducts.length} YouTube results)`);
+
+    // Final URL validation check
+    console.log('🔍 [URL-VALIDATION] Checking all product URLs for potential errors:');
+    nonYouTubeProducts.forEach((product, index) => {
+      const isLikelyProductPage =
+        product.url.includes('/products/') ||  // Shopify stores
+        product.url.includes('/dp/') ||        // Amazon
+        product.url.includes('/gp/product/') || // Amazon alternate
+        product.url.includes('/goods') ||      // SHEIN
+        product.url.includes('-p-') ||         // SHEIN product code
+        product.url.includes('/item/') ||      // Generic item
+        product.url.includes('/p/') ||         // Target, others
+        product.url.includes('productId=') ||  // Product ID param
+        product.url.includes('sku=');          // SKU param
+
+      if (!isLikelyProductPage) {
+        console.warn(`⚠️ [URL-VALIDATION] Product ${index + 1} may not be a product page:`, {
+          title: product.title,
+          url: product.url,
+          store: product.store,
+          reason: 'URL does not match known product page patterns'
+        });
+      } else {
+        console.log(`✅ [URL-VALIDATION] Product ${index + 1} looks valid:`, product.title);
+      }
+    });
+
+    // Categorize products into sections
+    const sections = categorizeBySimilarity(nonYouTubeProducts);
+    setShoppingSections(sections);
+
+    const priorityStores = getPriorityStoreDomains(true, false);
+    const priorityCount = nonYouTubeProducts.filter(p =>
+      priorityStores.some(domain => p.url.includes(domain))
+    ).length;
+
+    setSearchProgress(`Found ${nonYouTubeProducts.length} products (${priorityCount} from priority stores)!`);
+    setTimeout(() => setSearchProgress(''), 3000);
   };
 
   const createEnhancedSearchQuery = (): string => {
@@ -451,7 +538,145 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
           </div>
         </div>
 
-        {/* Shopping Sections */}
+        {/* Category Tabs - Only show if multi-piece outfit */}
+        {categoryResults.length > 1 && (
+          <div className="flex justify-center">
+            <div className="inline-flex bg-ios-gray-5 rounded-ios-lg p-1" role="tablist">
+              {categoryResults.map((categoryResult, index) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveCategory(index)}
+                  className={`px-6 py-3 rounded-ios-md transition-all duration-200 ${
+                    activeCategory === index
+                      ? 'bg-white text-ios-label shadow-ios-sm'
+                      : 'text-ios-label-secondary hover:text-ios-label'
+                  }`}
+                  role="tab"
+                  aria-selected={activeCategory === index}
+                >
+                  <div className={`font-semibold ${activeCategory === index ? 'text-ios-label' : ''}`}>
+                    {categoryResult.category.displayName}
+                  </div>
+                  <div className={`text-xs mt-0.5 ${
+                    activeCategory === index ? 'text-ios-label-secondary' : 'text-ios-label-tertiary'
+                  }`}>
+                    {categoryResult.isLoading
+                      ? 'Searching...'
+                      : `${categoryResult.products.length} items`
+                    }
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Category-based Products (if multi-piece) */}
+        {categoryResults.length > 0 && (
+          <div className="space-y-4">
+            {categoryResults[activeCategory]?.isLoading ? (
+              <div className="text-center py-8">
+                <Loader className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Searching for {categoryResults[activeCategory].category.displayName.toLowerCase()}...</p>
+              </div>
+            ) : categoryResults[activeCategory]?.products.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {categoryResults[activeCategory].products.map((product) => (
+                  <div key={product.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow flex flex-row">
+                    {/* Product Card - Same as below */}
+                    <div
+                      className="w-40 h-40 flex-shrink-0 bg-gray-100 relative group cursor-pointer"
+                      onClick={() => {
+                        const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
+                          product.url,
+                          product.store || 'unknown'
+                        );
+                        affiliateLinkService.trackClick(affiliateUrl, undefined, product);
+                        const productInfo = {
+                          url: product.url,
+                          title: product.title,
+                          imageUrl: product.imageUrl,
+                          store: product.store,
+                          price: product.price
+                        };
+                        productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown', productInfo);
+                        setClickedProducts(prev => {
+                          const alreadyExists = prev.some(p => p.url === productInfo.url);
+                          if (!alreadyExists) {
+                            return [...prev, productInfo];
+                          }
+                          return prev;
+                        });
+                      }}
+                    >
+                      <img
+                        src={product.imageUrl}
+                        alt={product.title}
+                        className="w-full h-full object-cover cursor-pointer"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.classList.add('flex', 'items-center', 'justify-center', 'bg-gradient-to-br', 'from-purple-100', 'to-blue-100');
+                            parent.innerHTML = `<div class="text-4xl">👕</div>`;
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 p-4 flex flex-col justify-between">
+                      <div>
+                        <h5 className="font-medium text-gray-900 mb-2 line-clamp-2">{product.title}</h5>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="font-bold text-lg text-gray-900">{product.price}</span>
+                          {product.originalPrice && product.originalPrice !== product.price && (
+                            <span className="text-sm text-gray-500 line-through">{product.originalPrice}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mb-3">{product.store}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const affiliateUrl = affiliateLinkService.convertToAffiliateLink(
+                            product.url,
+                            product.store || 'unknown'
+                          );
+                          affiliateLinkService.trackClick(affiliateUrl, undefined, product);
+                          const productInfo = {
+                            url: product.url,
+                            title: product.title,
+                            imageUrl: product.imageUrl,
+                            store: product.store,
+                            price: product.price
+                          };
+                          productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown', productInfo);
+                          setClickedProducts(prev => {
+                            const alreadyExists = prev.some(p => p.url === productInfo.url);
+                            if (!alreadyExists) {
+                              return [...prev, productInfo];
+                            }
+                            return prev;
+                          });
+                        }}
+                        className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center text-sm"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        View Product
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-600">No products found for {categoryResults[activeCategory]?.category.displayName.toLowerCase()}.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Shopping Sections (for single-piece outfits) */}
+        {categoryResults.length === 0 && (
         <div className="space-y-8">
           {getBudgetFilteredSections().map((section, sectionIndex) => (
             <div key={sectionIndex} className="space-y-4">
@@ -627,6 +852,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
             </div>
           ))}
         </div>
+        )}
 
         {searchProgress && (
           <div className="text-center">
