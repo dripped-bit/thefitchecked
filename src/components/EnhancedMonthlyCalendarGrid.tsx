@@ -53,10 +53,37 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [cellHeight, setCellHeight] = useState(120); // Dynamic cell height
 
   useEffect(() => {
     fetchMonthData();
   }, [currentDate]);
+
+  // Calculate optimal cell height to fit everything on one page
+  useEffect(() => {
+    const calculateCellHeight = () => {
+      const viewportHeight = window.innerHeight;
+      const toolbarHeight = 120; // 2x2 grid toolbar
+      const monthNavHeight = 60; // Month/year navigation
+      const weekdayHeaderHeight = 40; // Weekday header (Sun-Sat)
+      const statsPanelHeight = 80; // Bottom stats panel
+      const safeAreaPadding = 20; // Safe area padding
+
+      const availableHeight = viewportHeight - toolbarHeight - monthNavHeight - weekdayHeaderHeight - statsPanelHeight - safeAreaPadding;
+
+      // Calculate height for 5 rows (approximately 5 weeks visible)
+      const calculatedHeight = Math.floor(availableHeight / 5);
+
+      // Ensure minimum tap target size (44px per Apple HIG)
+      const finalHeight = Math.max(calculatedHeight, 80);
+
+      setCellHeight(finalHeight);
+    };
+
+    calculateCellHeight();
+    window.addEventListener('resize', calculateCellHeight);
+    return () => window.removeEventListener('resize', calculateCellHeight);
+  }, []);
 
   const fetchMonthData = async () => {
     setLoading(true);
@@ -277,13 +304,9 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
         </div>
       </div>
 
-      {/* Weekday Headers - Part of scrollable area */}
-      {/* Scrollable Calendar Area */}
-      <div 
-        className="flex-1 overflow-y-auto overflow-x-hidden" 
-        style={{ 
-          WebkitOverflowScrolling: 'touch'
-        }}
+      {/* Calendar Area - No scrolling, fits on one page */}
+      <div
+        className="flex-1 overflow-hidden"
       >
         {/* Liquid Glass Calendar Header */}
         <div
@@ -316,8 +339,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
           <div
             className="grid grid-cols-7"
             style={{
-              gridAutoRows: '180px',
-              minHeight: '600px',
+              gridAutoRows: `${cellHeight}px`,
               transform: 'none',
               willChange: 'auto',
               width: '100%',
@@ -338,6 +360,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
                   isToday={isToday}
                   scheduledOutfit={scheduledOutfits[dateKey]}
                   onClick={() => handleDayClick(day.date)}
+                  cellHeight={cellHeight}
                 />
               );
             })}

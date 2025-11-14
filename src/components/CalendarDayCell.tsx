@@ -32,6 +32,7 @@ interface CalendarDayCellProps {
   isToday: boolean;
   scheduledOutfit?: ScheduledOutfit;
   onClick: () => void;
+  cellHeight?: number;
 }
 
 export const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
@@ -40,6 +41,7 @@ export const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
   isToday,
   scheduledOutfit,
   onClick,
+  cellHeight = 120,
 }) => {
   const dayNumber = date.getDate();
   const hasOutfit = scheduledOutfit && scheduledOutfit.outfit_items?.length > 0;
@@ -70,20 +72,19 @@ export const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
       onClick={onClick}
       className="relative overflow-hidden cursor-pointer"
       style={{
-        aspectRatio: '1',
+        aspectRatio: '5/6', // Portrait orientation (slightly taller than wide)
         backgroundColor: isCurrentMonth ? '#FAFAF5' : '#F5F5F0',
         border: '1px solid #E5E5E5', // Clear visible border
-        height: '180px', // Fixed height - taller for better outfit display
-        minHeight: '180px',
+        height: `${cellHeight}px`, // Dynamic height based on viewport
         transform: 'none', // Prevents zoom glitches
         willChange: 'auto', // Prevents browser optimization issues
       }}
     >
-      {/* Date Number - Top Left - BIGGER (18px) */}
+      {/* Date Number - Top Right - Small (12px) */}
       <div
-        className="absolute top-2 left-2 z-10 w-9 h-9 flex items-center justify-center rounded-full font-bold"
+        className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full font-bold"
         style={{
-          fontSize: '18px', // Bigger, readable number
+          fontSize: '12px', // Small, unobtrusive number
           backgroundColor: isToday ? '#000' : 'transparent',
           color: isToday ? '#fff' : isCurrentMonth ? '#000' : '#999',
         }}
@@ -91,10 +92,10 @@ export const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
         {dayNumber}
       </div>
 
-      {/* Worn Indicator - Top Right (small green dot) */}
+      {/* Worn Indicator - Top Right below date (small green dot) */}
       {wasWorn && (
         <div
-          className="absolute top-2 right-2 z-10 w-2.5 h-2.5 rounded-full"
+          className="absolute top-10 right-2 z-10 w-2.5 h-2.5 rounded-full"
           style={{
             backgroundColor: '#10B981',
             boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.8)',
@@ -130,10 +131,10 @@ export const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
               }}
             />
 
-            {/* Shopping Bag Indicator - Top Right (if has shopping links) */}
+            {/* Shopping Bag Indicator - Top Left (if has shopping links) */}
             {hasShoppingLinks && (
               <div
-                className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center"
+                className="absolute top-2 left-2 z-10 w-7 h-7 rounded-full flex items-center justify-center"
                 style={{
                   backgroundColor: 'rgba(255, 105, 180, 0.95)',
                   color: '#fff',
@@ -178,19 +179,7 @@ export const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
             </div>
           )}
         </div>
-      ) : (
-        // Empty state - show large date number
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span
-            className="text-4xl font-light"
-            style={{
-              color: isCurrentMonth ? '#D0D0D0' : '#E8E8E8',
-            }}
-          >
-            {dayNumber}
-          </span>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 };

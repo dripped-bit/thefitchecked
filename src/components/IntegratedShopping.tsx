@@ -488,7 +488,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
                         console.log('🎯 [IMAGE-CLICK] Opening product URL:', affiliateUrl);
                         affiliateLinkService.trackClick(affiliateUrl, undefined, product);
-                        
+
                         // Pass product info to handler for callback
                         const productInfo = {
                           url: product.url,
@@ -498,6 +498,16 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                           price: product.price
                         };
                         productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown', productInfo);
+
+                        // Add product to clickedProducts for shopping links auto-population
+                        setClickedProducts(prev => {
+                          const alreadyExists = prev.some(p => p.url === productInfo.url);
+                          if (!alreadyExists) {
+                            console.log('✅ [IMAGE-CLICK] Added product to clickedProducts:', productInfo.title);
+                            return [...prev, productInfo];
+                          }
+                          return prev;
+                        });
                       }}
                     >
                       <img
@@ -584,7 +594,7 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                           console.log('✅ [INTEGRATED-SHOPPING] Opening product link...');
 
                           affiliateLinkService.trackClick(affiliateUrl, undefined, product);
-                          
+
                           // Pass product info to handler for callback
                           const productInfo = {
                             url: product.url,
@@ -594,6 +604,16 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
                             price: product.price
                           };
                           productLinkHandler.openProductLink(affiliateUrl, product.store || 'unknown', productInfo);
+
+                          // Add product to clickedProducts for shopping links auto-population
+                          setClickedProducts(prev => {
+                            const alreadyExists = prev.some(p => p.url === productInfo.url);
+                            if (!alreadyExists) {
+                              console.log('✅ [BUTTON-CLICK] Added product to clickedProducts:', productInfo.title);
+                              return [...prev, productInfo];
+                            }
+                            return prev;
+                          });
                         }}
                         className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center text-sm"
                       >

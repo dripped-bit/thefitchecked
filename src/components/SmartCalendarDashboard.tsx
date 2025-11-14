@@ -24,7 +24,11 @@ import {
   ShoppingBag,
   ExternalLink,
   FileText,
-  Bell
+  Bell,
+  PenLine,
+  Luggage,
+  Sunrise,
+  User
 } from 'lucide-react';
 import smartCalendarService, {
   CalendarEvent,
@@ -246,96 +250,40 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
   const renderCalendarView = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {/* Pink Liquid Glass Tab Bar */}
-      <div
-        style={{
-          background: 'rgba(255, 192, 203, 0.4)',
-          backdropFilter: 'blur(30px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(30px) saturate(200%)',
-          boxShadow: '0 8px 32px 0 rgba(255, 182, 193, 0.37)',
-          border: '1px solid rgba(255, 255, 255, 0.18)',
-          borderRadius: '16px',
-          padding: '8px',
-          display: 'flex',
-          gap: '8px',
-          overflow: 'auto',
-        }}
-      >
-        <button
-          onClick={generateMorningOptions}
+      {/* 2x2 Grid Tab Layout */}
+      <div style={{ padding: '16px' }}>
+        <div
           style={{
-            flex: 1,
-            padding: '12px 16px',
-            borderRadius: '12px',
-            border: 'none',
-            background: currentView === 'morning' ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
-            color: '#4A4A4A',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            whiteSpace: 'nowrap'
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '10px'
           }}
         >
-          Morning Mode
-        </button>
-
-        <button
-          onClick={() => setCurrentView('queue')}
-          style={{
-            flex: 1,
-            padding: '12px 16px',
-            borderRadius: '12px',
-            border: 'none',
-            background: currentView === 'queue' ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
-            color: '#4A4A4A',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          Outfit Queue
-        </button>
-
-        <button
-          onClick={() => setCurrentView('packing')}
-          style={{
-            flex: 1,
-            padding: '12px 16px',
-            borderRadius: '12px',
-            border: 'none',
-            background: currentView === 'packing' ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
-            color: '#4A4A4A',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          Packing List
-        </button>
-
-        <button
-          onClick={() => setShowWoreThisToday(!showWoreThisToday)}
-          style={{
-            flex: 1,
-            padding: '12px 16px',
-            borderRadius: '12px',
-            border: 'none',
-            background: showWoreThisToday ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
-            color: '#4A4A4A',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          Wore This
-        </button>
+          <SegmentButton
+            title="Outfit Queue"
+            icon={<PenLine size={24} />}
+            isSelected={currentView === 'queue'}
+            onClick={() => setCurrentView('queue')}
+          />
+          <SegmentButton
+            title="Packing List"
+            icon={<Luggage size={24} />}
+            isSelected={currentView === 'packing'}
+            onClick={() => setCurrentView('packing')}
+          />
+          <SegmentButton
+            title="Morning Mode"
+            icon={<Sunrise size={24} />}
+            isSelected={currentView === 'morning'}
+            onClick={generateMorningOptions}
+          />
+          <SegmentButton
+            title="Wore This"
+            icon={<User size={24} />}
+            isSelected={showWoreThisToday}
+            onClick={() => setShowWoreThisToday(!showWoreThisToday)}
+          />
+        </div>
       </div>
 
       {/* Enhanced Monthly Calendar Grid with Outfit Scheduling */}
@@ -837,6 +785,66 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
         </div>
       )}
     </div>
+  );
+};
+
+// SegmentButton Component
+interface SegmentButtonProps {
+  title: string;
+  icon: React.ReactNode;
+  isSelected: boolean;
+  onClick: () => void;
+}
+
+const SegmentButton: React.FC<SegmentButtonProps> = ({ title, icon, isSelected, onClick }) => {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px',
+        width: '100%',
+        padding: '14px 8px',
+        background: isSelected ? '#ec4899' : 'rgba(236, 72, 153, 0.15)',
+        color: isSelected ? '#ffffff' : '#000000',
+        border: isSelected ? 'none' : '1px solid rgba(236, 72, 153, 0.3)',
+        borderRadius: '12px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        fontFamily: 'inherit',
+      }}
+      onMouseEnter={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.background = 'rgba(236, 72, 153, 0.25)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.background = 'rgba(236, 72, 153, 0.15)';
+        }
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {icon}
+      </div>
+      <span
+        style={{
+          fontSize: '12px',
+          fontWeight: isSelected ? 600 : 400,
+          lineHeight: 1,
+          textAlign: 'center',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '100%',
+        }}
+      >
+        {title}
+      </span>
+    </button>
   );
 };
 

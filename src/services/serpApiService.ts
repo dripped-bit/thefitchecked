@@ -34,6 +34,8 @@ export interface ProductSearchOptions {
 
 class SerpApiService {
   private userStyleProfile: StyleProfilePreferences | null = null;
+  private readonly IDEAL_RESULTS = 5;      // Target number of products
+  private readonly MIN_ACCEPTABLE = 3;     // Minimum acceptable before requiring enhancement
 
   constructor() {
     console.log('✅ [SERPAPI] Service initialized - using backend API route');
@@ -143,22 +145,65 @@ class SerpApiService {
     // Try exact query first
     let results = await this.searchWithExactQuery(query, options);
 
-    // If insufficient results, try enhanced query as fallback
-    if (results.length < 5) {
-      console.log('🔄 [SERPAPI] Insufficient results, trying enhanced query...');
-      const enhancedQuery = this.enhanceQueryWithPreferences(query);
-      console.log('✨ [SERPAPI] Enhanced query:', enhancedQuery);
+    // TIER 1: If we have ideal results (>= 5), return immediately
+    if (results.length >= this.IDEAL_RESULTS) {
+      console.log(`✅ [SERPAPI] Found ${results.length} products, returning immediately (meets ideal threshold of ${this.IDEAL_RESULTS})`);
+      return results;
+    }
 
-      const enhancedResults = await this.searchWithExactQuery(enhancedQuery, options);
+    // TIER 2: If we have acceptable results (3-4), try enhancement but keep originals as fallback
+    if (results.length >= this.MIN_ACCEPTABLE && results.length < this.IDEAL_RESULTS) {
+      console.log(`🔄 [SERPAPI] Found ${results.length} products (min: ${this.MIN_ACCEPTABLE}), trying enhanced query for more...`);
 
-      // Merge results, prioritizing exact matches
-      const seenUrls = new Set(results.map(r => r.url));
-      const newResults = enhancedResults.filter(r => !seenUrls.has(r.url));
-      results = [...results, ...newResults].slice(0, maxResults);
+      try {
+        const enhancedQuery = this.enhanceQueryWithPreferences(query);
+        console.log('✨ [SERPAPI] Enhanced query:', enhancedQuery);
 
-      console.log(`✅ [SERPAPI] Combined results: ${results.length} (exact: ${results.length - newResults.length}, enhanced: ${newResults.length})`);
-    } else {
-      console.log(`✅ [SERPAPI] Sufficient results from exact query: ${results.length}`);
+        const enhancedResults = await this.searchWithExactQuery(enhancedQuery, options);
+
+        // Merge and deduplicate
+        const seenUrls = new Set(results.map(r => r.url));
+        const newResults = enhancedResults.filter(r => !seenUrls.has(r.url));
+        const mergedResults = [...results, ...newResults].slice(0, maxResults);
+
+        console.log(`✅ [SERPAPI] Merged results: ${mergedResults.length} total (exact: ${results.length}, enhanced: ${newResults.length})`);
+        return mergedResults;
+
+      } catch (error) {
+        console.error('❌ [SERPAPI] Enhanced query failed:', error);
+        console.log(`✅ [SERPAPI] Returning ${results.length} original results (above minimum of ${this.MIN_ACCEPTABLE})`);
+        return results; // FALLBACK: Return the 3-4 we have
+      }
+    }
+
+    // TIER 3: If we have fewer than minimum (< 3), must try enhanced query
+    if (results.length < this.MIN_ACCEPTABLE) {
+      console.log(`⚠️ [SERPAPI] Only ${results.length} products found (below minimum of ${this.MIN_ACCEPTABLE}), must try enhanced query...`);
+
+      try {
+        const enhancedQuery = this.enhanceQueryWithPreferences(query);
+        console.log('✨ [SERPAPI] Enhanced query:', enhancedQuery);
+
+        const enhancedResults = await this.searchWithExactQuery(enhancedQuery, options);
+
+        // Merge and deduplicate
+        const seenUrls = new Set(results.map(r => r.url));
+        const newResults = enhancedResults.filter(r => !seenUrls.has(r.url));
+        const mergedResults = [...results, ...newResults].slice(0, maxResults);
+
+        if (mergedResults.length < this.MIN_ACCEPTABLE) {
+          console.warn(`⚠️ [SERPAPI] Still only ${mergedResults.length} results after enhancement (below minimum of ${this.MIN_ACCEPTABLE})`);
+        }
+
+        console.log(`✅ [SERPAPI] Combined results: ${mergedResults.length} (exact: ${results.length}, enhanced: ${newResults.length})`);
+        return mergedResults;
+
+      } catch (error) {
+        console.error('❌ [SERPAPI] Enhanced query failed with insufficient results:', error);
+        // Return whatever we have, even if below minimum
+        console.log(`⚠️ [SERPAPI] Returning ${results.length} results despite being below minimum`);
+        return results.length > 0 ? results : [];
+      }
     }
 
     return results;
