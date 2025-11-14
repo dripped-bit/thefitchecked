@@ -1135,9 +1135,27 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
     try {
       console.log('🎭 Starting FASHN virtual try-on for occasion outfit...');
 
+      // Debug logging to identify failure point
+      console.log('🔍 [DEBUG] Outfit image URL:', outfit.imageUrl);
+      console.log('🔍 [DEBUG] Outfit original prompt:', outfit.originalPrompt);
+      console.log('🔍 [DEBUG] Outfit search prompt:', outfit.searchPrompt);
+
       // Step 1: Detect if outfit image contains multiple items
       console.log('🔍 [TRY-ON] Checking for multiple items in outfit image...');
       const detection = await multiItemDetectionService.detectMultipleItems(outfit.imageUrl);
+
+      // Debug: Log detection results
+      console.log('🔍 [DEBUG] Detection result:', {
+        hasMultipleItems: detection.hasMultipleItems,
+        itemCount: detection.itemCount,
+        items: detection.items.map(i => ({
+          name: i.name,
+          category: i.category,
+          boundingBox: i.boundingBox,
+          hasCroppedImage: !!i.croppedImageUrl
+        })),
+        error: detection.error
+      });
 
       let tryOnResult;
 
@@ -1172,23 +1190,104 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
           throw new Error('Sequential layering failed - falling back to single image try-on');
         }
       } else {
-        // Single cohesive outfit - use standard try-on
-        console.log('👔 [TRY-ON] Single cohesive outfit detected, using standard try-on');
+        // Detection failed or returned single item
+        // Check if prompt indicates this should be multi-piece (skirt+top, shorts+top, etc.)
+        const promptLower = `${outfit.originalPrompt || ''} ${outfit.searchPrompt || ''}`.toLowerCase();
+        const hasSkirtOrShorts = promptLower.includes('skirt') || promptLower.includes('shorts');
+        const hasTop = promptLower.includes('top') || promptLower.includes('shirt') || 
+                       promptLower.includes('blouse') || promptLower.includes('tank') ||
+                       promptLower.includes('crop');
 
-        tryOnResult = await directFashnService.tryOnClothing(
-          avatarData.imageUrl,    // Your avatar
-          outfit.imageUrl,        // The generated clothing from Seedream
-          {
-            category: 'auto',     // Let FASHN auto-detect clothing category
-            timeout: 90000,       // 90 seconds - FASHN typically takes 40-50s
-            garmentDescription: outfit.originalPrompt || outfit.searchPrompt, // Use prompt for intelligent segmentation
-            context: 'try_on',    // Use JPEG for speed during try-on
-            source: 'ai-generated', // AI-generated outfits are flat-lay style
-            onProgress: (progress) => {
-              setTryOnProgress(progress);
+        if (hasSkirtOrShorts && hasTop) {
+          // Fallback: Dual try-on approach
+          console.log('🔧 [TRY-ON] Detection failed but prompt indicates multi-piece (skirt/shorts + top)');
+          console.log('🔧 [TRY-ON] Using fallback dual try-on: bottom first, then top');
+
+          try {
+            // Step 1: Apply as bottoms (skirt/shorts)
+            console.log('👖 [DUAL-TRYON] Step 1: Applying bottom (skirt/shorts)...');
+            const bottomResult = await directFashnService.tryOnClothing(
+              avatarData.imageUrl,
+              outfit.imageUrl,
+              {
+                category: 'bottoms',
+                timeout: 90000,
+                garmentDescription: `${promptLower.includes('skirt') ? 'skirt' : 'shorts'} from outfit`,
+                context: 'try_on',
+                source: 'ai-generated',
+                onProgress: (progress) => {
+                  setTryOnProgress(progress * 0.5); // First 50%
+                }
+              }
+            );
+
+            if (bottomResult.success && bottomResult.imageUrl) {
+              console.log('✅ [DUAL-TRYON] Step 1 completed: Bottom applied successfully');
+
+              // Step 2: Apply as tops over the result
+              console.log('👕 [DUAL-TRYON] Step 2: Applying top over bottom...');
+              const topResult = await directFashnService.tryOnClothing(
+                bottomResult.imageUrl, // Use result from bottom try-on as base
+                outfit.imageUrl,
+                {
+                  category: 'tops',
+                  timeout: 90000,
+                  garmentDescription: 'top from outfit',
+                  context: 'try_on',
+                  source: 'ai-generated',
+                  onProgress: (progress) => {
+                    setTryOnProgress(50 + (progress * 0.5)); // Second 50%
+                  }
+                }
+              );
+
+              if (topResult.success && topResult.imageUrl) {
+                console.log('✅ [DUAL-TRYON] Step 2 completed: Top applied successfully');
+                tryOnResult = topResult;
+              } else {
+                console.warn('⚠️ [DUAL-TRYON] Step 2 failed, using bottom-only result');
+                tryOnResult = bottomResult;
+              }
+            } else {
+              throw new Error('Dual try-on failed at bottom application');
             }
+          } catch (dualTryOnError) {
+            console.error('❌ [DUAL-TRYON] Dual try-on failed, falling back to standard single try-on:', dualTryOnError);
+            // Fall back to standard try-on
+            tryOnResult = await directFashnService.tryOnClothing(
+              avatarData.imageUrl,
+              outfit.imageUrl,
+              {
+                category: 'auto',
+                timeout: 90000,
+                garmentDescription: outfit.originalPrompt || outfit.searchPrompt,
+                context: 'try_on',
+                source: 'ai-generated',
+                onProgress: (progress) => {
+                  setTryOnProgress(progress);
+                }
+              }
+            );
           }
-        );
+        } else {
+          // Single cohesive outfit (dress, jumpsuit, etc.) - use standard try-on
+          console.log('👔 [TRY-ON] Single cohesive outfit detected (dress/jumpsuit), using standard try-on');
+
+          tryOnResult = await directFashnService.tryOnClothing(
+            avatarData.imageUrl,    // Your avatar
+            outfit.imageUrl,        // The generated clothing from Seedream
+            {
+              category: 'auto',     // Let FASHN auto-detect clothing category
+              timeout: 90000,       // 90 seconds - FASHN typically takes 40-50s
+              garmentDescription: outfit.originalPrompt || outfit.searchPrompt, // Use prompt for intelligent segmentation
+              context: 'try_on',    // Use JPEG for speed during try-on
+              source: 'ai-generated', // AI-generated outfits are flat-lay style
+              onProgress: (progress) => {
+                setTryOnProgress(progress);
+              }
+            }
+          );
+        }
       }
 
       if (tryOnResult?.success && tryOnResult?.imageUrl) {
