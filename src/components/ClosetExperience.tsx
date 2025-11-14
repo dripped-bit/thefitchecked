@@ -20,10 +20,12 @@ import CategorySelector from './CategorySelector';
 import MultiItemSplitter from './MultiItemSplitter';
 import ShareModal from './ShareModal';
 import CameraCapture from './CameraCapture';
+import MultiItemConfirmationModal from './MultiItemConfirmationModal';
 import ClosetService, { ClothingCategory } from '../services/closetService';
 import seamlessTryOnService from '../services/seamlessTryOnService';
 import backgroundRemovalService from '../services/backgroundRemovalService';
 import multiItemDetectionService, { DetectedItem, MultiItemDetectionResult } from '../services/multiItemDetectionService';
+import smartClosetUploadService, { DetectedItem as SmartDetectedItem } from '../services/smartClosetUploadService';
 import weatherService from '../services/weatherService';
 import stylePreferencesService from '../services/stylePreferencesService';
 
@@ -229,6 +231,10 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   const [multiItemDetectionResult, setMultiItemDetectionResult] = useState<MultiItemDetectionResult | null>(null);
   const [pendingMultiItems, setPendingMultiItems] = useState<DetectedItem[]>([]);
   const [currentMultiItemIndex, setCurrentMultiItemIndex] = useState(0);
+
+  // Smart upload multi-item confirmation state
+  const [showMultiItemConfirmation, setShowMultiItemConfirmation] = useState(false);
+  const [detectedSmartItems, setDetectedSmartItems] = useState<SmartDetectedItem[]>([]);
 
   // Share state
   const [showShareModal, setShowShareModal] = useState(false);
@@ -504,7 +510,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
   const handleFileUpload = async (file: File) => {
     try {
-      console.log('📁 [CLOSET] Starting file upload and processing...');
+      console.log('📁 [CLOSET] Starting smart upload pipeline...');
 
       // Initialize progress tracking
       setUploadProgress({
@@ -514,99 +520,58 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
         fileName: file.name
       });
 
-      // Small delay to show initial stage
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Convert file to data URL
+      const imageUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
 
-      // Update to processing stage
-      setUploadProgress(prev => ({
-        ...prev,
-        stage: 'processing',
-        message: 'Preparing image for AI processing...'
-      }));
-
-      // Process the clothing upload with background removal and categorization
-      const result = await backgroundRemovalService.processClothingUpload(file);
-
-      if (result.success) {
-        // Show background removal stage if successful and enabled
-        const backgroundRemoved = autoRemoveBackground && result.metadata?.backgroundRemoved;
-        if (backgroundRemoved) {
+      // Use smart upload service with progress callback
+      const result = await smartClosetUploadService.processUpload(
+        imageUrl,
+        (message) => {
           setUploadProgress(prev => ({
             ...prev,
-            stage: 'removing-background',
-            message: '🎨 AI is removing the background...'
+            stage: 'processing',
+            message
           }));
-          await new Promise(resolve => setTimeout(resolve, 1000));
         }
+      );
 
-        // Show categorization stage
-        setUploadProgress(prev => ({
-          ...prev,
-          stage: 'categorizing',
-          message: '🤖 Processing complete! Select a category...'
-        }));
-        await new Promise(resolve => setTimeout(resolve, 500));
+      if (result.success) {
+        console.log(`✅ [SMART-UPLOAD] Success! ${result.itemsAdded} item(s) detected`);
 
-        // Determine which image to use based on settings
-        const finalImageUrl = autoRemoveBackground && result.processedImageUrl
-          ? result.processedImageUrl
-          : result.imageUrl!;
-
-        const originalImageUrl = (autoRemoveBackground && keepOriginal && backgroundRemoved && result.imageUrl)
-          ? result.imageUrl
-          : undefined;
-
-        // NEW: Check for multiple items in the image
-        setUploadProgress(prev => ({
-          ...prev,
-          stage: 'processing',
-          message: '🔍 Detecting multiple items...'
-        }));
-
-        const detectionResult = await multiItemDetectionService.detectMultipleItems(finalImageUrl);
-
-        if (detectionResult.hasMultipleItems && detectionResult.items.length > 1) {
-          console.log(`🎯 [MULTI-ITEM] Detected ${detectionResult.items.length} items!`);
-
-          // Store detection result and show splitter
-          setMultiItemDetectionResult(detectionResult);
-          setUploadProgress({ isUploading: false, stage: 'complete', message: '' });
-          setShowMultiItemSplitter(true);
-          return; // Exit - will continue after user confirms split
-        }
-
-        console.log('✅ [MULTI-ITEM] Single item detected, proceeding normally');
-
-        // Prepare item data (without category yet)
-        const itemData = {
-          id: Date.now().toString(),
-          name: result.metadata?.originalName || file.name.replace(/\.[^/.]+$/, ""),
-          imageUrl: finalImageUrl,
-          originalImageUrl: originalImageUrl, // Store original if keeping both versions
-          color: result.metadata?.color,
-          brand: result.metadata?.brand,
-          sustainability: result.metadata?.sustainability || 'regular',
-          dateAdded: new Date().toISOString(),
-          timesWorn: 0,
-          season: result.metadata?.season || 'all'
-        };
-
-        // Store pending item and show category selector
-        setPendingItem({
-          imageUrl: finalImageUrl,
-          itemData,
-          metadata: {
-            backgroundRemoved: backgroundRemoved,
-            confidence: result.metadata?.confidence,
-            suggestedCategory: result.category,
-            subcategory: result.metadata?.type, // AI-detected subcategory
-            color: result.metadata?.color // AI-detected color
-          }
-        });
-
-        // Clear upload progress and show category selector
+        // Clear upload progress
         setUploadProgress({ isUploading: false, stage: 'complete', message: '' });
-        setShowCategorySelector(true);
+
+        // Handle multiple items - show confirmation modal
+        if (result.itemsAdded > 1) {
+          console.log(`📦 [SMART-UPLOAD] Multiple items detected, showing confirmation`);
+          setDetectedSmartItems(result.items);
+          setShowMultiItemConfirmation(true);
+          return;
+        }
+
+        // Single item - save directly to closet
+        const item = result.items[0];
+        console.log('🎯 [SMART-UPLOAD] Single item, saving to closet:', item.name);
+        
+        await ClosetService.saveClothingItem(
+          item.imageUrl,
+          item.category as ClothingCategory,
+          item.name,
+          `AI-detected (${Math.round(item.confidence * 100)}% confidence)`
+        );
+
+        // Reload items
+        const updatedCloset = ClosetService.getUserCloset();
+        const allItems: ClothingItem[] = [];
+        Object.values(updatedCloset).forEach(items => allItems.push(...items));
+        setClothingItems(allItems);
+
+        console.log('✅ [SMART-UPLOAD] Item saved successfully');
 
       } else {
         console.error('❌ [CLOSET] Upload failed:', result.error);
@@ -830,6 +795,59 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
     console.log('❌ [CLOSET] Item upload cancelled');
     setShowCategorySelector(false);
     setPendingItem(null);
+  };
+
+  // Smart upload multi-item confirmation handlers
+  const handleSmartMultiItemSaveAll = async (items: SmartDetectedItem[]) => {
+    console.log('💾 [SMART-UPLOAD] Saving all items:', items.length);
+    
+    for (const item of items) {
+      await ClosetService.saveClothingItem(
+        item.imageUrl,
+        item.category as ClothingCategory,
+        item.name,
+        `AI-detected (${Math.round(item.confidence * 100)}% confidence)`
+      );
+    }
+
+    // Reload items
+    const updatedCloset = ClosetService.getUserCloset();
+    const allItems: ClothingItem[] = [];
+    Object.values(updatedCloset).forEach(items => allItems.push(...items));
+    setClothingItems(allItems);
+
+    setShowMultiItemConfirmation(false);
+    setDetectedSmartItems([]);
+    console.log('✅ [SMART-UPLOAD] All items saved successfully');
+  };
+
+  const handleSmartMultiItemSaveSelected = async (items: SmartDetectedItem[]) => {
+    console.log('💾 [SMART-UPLOAD] Saving selected items:', items.length);
+    
+    for (const item of items) {
+      await ClosetService.saveClothingItem(
+        item.imageUrl,
+        item.category as ClothingCategory,
+        item.name,
+        `AI-detected (${Math.round(item.confidence * 100)}% confidence)`
+      );
+    }
+
+    // Reload items
+    const updatedCloset = ClosetService.getUserCloset();
+    const allItems: ClothingItem[] = [];
+    Object.values(updatedCloset).forEach(items => allItems.push(...items));
+    setClothingItems(allItems);
+
+    setShowMultiItemConfirmation(false);
+    setDetectedSmartItems([]);
+    console.log('✅ [SMART-UPLOAD] Selected items saved successfully');
+  };
+
+  const handleSmartMultiItemCancel = () => {
+    console.log('❌ [SMART-UPLOAD] Multi-item confirmation cancelled');
+    setShowMultiItemConfirmation(false);
+    setDetectedSmartItems([]);
   };
 
   const handleToggleFavorite = (item: ClothingItem) => {
@@ -2032,6 +2050,17 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
             color: pendingItem.metadata?.color,
             confidence: pendingItem.metadata?.confidence
           }}
+        />
+      )}
+
+      {/* Smart Upload Multi-Item Confirmation Modal */}
+      {showMultiItemConfirmation && detectedSmartItems.length > 0 && (
+        <MultiItemConfirmationModal
+          isOpen={showMultiItemConfirmation}
+          items={detectedSmartItems}
+          onSaveAll={handleSmartMultiItemSaveAll}
+          onSaveSelected={handleSmartMultiItemSaveSelected}
+          onCancel={handleSmartMultiItemCancel}
         />
       )}
 
