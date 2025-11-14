@@ -80,11 +80,11 @@ export const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
         willChange: 'auto', // Prevents browser optimization issues
       }}
     >
-      {/* Date Number - Top Right - Small (12px) */}
+      {/* Date Number - Top Right - Small (10px) */}
       <div
-        className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full font-bold"
+        className="absolute top-2 right-2 z-10 w-5 h-5 flex items-center justify-center rounded-full font-bold"
         style={{
-          fontSize: '12px', // Small, unobtrusive number
+          fontSize: '10px', // Small, unobtrusive number
           backgroundColor: isToday ? '#000' : 'transparent',
           color: isToday ? '#fff' : isCurrentMonth ? '#000' : '#999',
         }}

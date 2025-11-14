@@ -187,11 +187,11 @@ export const FloatingTabBar: React.FC<FloatingTabBarProps> = ({
                         'relative flex items-center justify-center',
                         'transition-all duration-200 ease-out',
                         // Icon size (20% smaller)
-                        'w-5 h-5',
+                        'w-4 h-4',
                         // Color based on active state - pink for active
                         isActive
-                          ? 'text-pink-500'
-                          : 'text-gray-600'
+                          ? 'text-pink-500 opacity-100'
+                          : 'text-gray-600 opacity-60'
                       )}
                     >
                       {tab.icon}
