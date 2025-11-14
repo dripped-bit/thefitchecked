@@ -10,6 +10,9 @@ import {
   Luggage,
   ChevronRight
 } from 'lucide-react';
+import { IonIcon } from '@ionic/react';
+import { sparkles } from 'ionicons/icons';
+import AIDesignShopModal from '../components/AIDesignShopModal';
 
 interface StyleHubProps {
   onBack: () => void;
@@ -25,6 +28,7 @@ export default function StyleHub({
   onNavigateToWishlist 
 }: StyleHubProps) {
   const [mounted, setMounted] = useState(false);
+  const [showAIShop, setShowAIShop] = useState(false);
 
   useEffect(() => {
     // Small delay to ensure animations trigger
@@ -115,10 +119,26 @@ export default function StyleHub({
               <span>Wishlist</span>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
+            
+            {/* AI Design & Shop */}
+            <button
+              onClick={() => setShowAIShop(true)}
+              className="ios-plain-list-item"
+            >
+              <IonIcon icon={sparkles} className="w-6 h-6 text-purple-500" />
+              <span>AI Design & Shop</span>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
           </div>
         </div>
         
       </div>
+
+      {/* AI Design Shop Modal */}
+      <AIDesignShopModal
+        isOpen={showAIShop}
+        onClose={() => setShowAIShop(false)}
+      />
     </div>
   );
 }
