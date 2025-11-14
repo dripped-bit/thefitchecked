@@ -28,7 +28,7 @@ export default function StyleHub({
   onNavigateToWishlist 
 }: StyleHubProps) {
   const [mounted, setMounted] = useState(false);
-  const [showAIShop, setShowAIShop] = useState(false);
+  const [showAIDesign, setShowAIDesign] = useState(false);
 
   useEffect(() => {
     // Small delay to ensure animations trigger
@@ -122,7 +122,7 @@ export default function StyleHub({
             
             {/* AI Design & Shop */}
             <button
-              onClick={() => setShowAIShop(true)}
+              onClick={() => setShowAIDesign(true)}
               className="ios-plain-list-item"
             >
               <IonIcon icon={sparkles} className="w-6 h-6 text-purple-500" />
@@ -136,8 +136,8 @@ export default function StyleHub({
 
       {/* AI Design Shop Modal */}
       <AIDesignShopModal
-        isOpen={showAIShop}
-        onClose={() => setShowAIShop(false)}
+        isOpen={showAIDesign}
+        onClose={() => setShowAIDesign(false)}
       />
     </div>
   );
