@@ -320,6 +320,54 @@
   background-color: var(--ios-fill);
 }
 
+/* iOS Plain List Style - Minimal, no background (like Apple's PlainListStyle) */
+.ios-plain-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.ios-plain-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.15);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.ios-plain-list-item:last-child {
+  border-bottom: none;
+}
+
+.ios-plain-list-item:active {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(0.98);
+}
+
+.ios-plain-list-item span {
+  flex: 1;
+  font-size: var(--ios-font-headline);
+  font-weight: var(--ios-font-weight-regular);
+  color: var(--ios-label);
+}
+
+.ios-plain-list-item svg:first-child {
+  flex-shrink: 0;
+}
+
+.ios-plain-list-item svg:last-child {
+  flex-shrink: 0;
+  opacity: 0.3;
+}
+
 /* iOS-style Input */
 .ios-input {
   width: 100%;
