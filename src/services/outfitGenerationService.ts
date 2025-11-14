@@ -25,6 +25,16 @@ export interface OutfitSuggestion {
     min: number;
     max: number;
   };
+  previewImage?: string;
+  validationResult?: {
+    isValid: boolean;
+    confidence: number;
+    score: number;
+    issues: string[];
+    detectedItems: any[];
+    expectedItems: string[];
+    recommendations: string[];
+  };
 }
 
 export interface StyleProfile {
@@ -1172,6 +1182,38 @@ class OutfitGenerationService {
       }
 
       console.log('✅ [CUSTOM-OUTFIT] Preview image generated successfully');
+
+      // Validate generated image if strict enforcement was used
+      if (enhancedPromptResult?.strictEnforcement?.enabled && customOutfit.previewImage) {
+        console.log('🔍 [CUSTOM-OUTFIT] Validating generated outfit against specifications...');
+
+        const { generatedOutfitValidationService } = await import('./generatedOutfitValidationService');
+        const validation = await generatedOutfitValidationService.validateGeneratedOutfit(
+          customOutfit.previewImage,
+          enhancedPromptResult.strictEnforcement.mandatorySpecs
+        );
+
+        console.log('📊 [CUSTOM-OUTFIT] Validation result:', {
+          isValid: validation.isValid,
+          score: validation.score,
+          issues: validation.issues
+        });
+
+        // Store validation result for UI display
+        (customOutfit as any).validationResult = validation;
+
+        // Warn if validation failed but don't block
+        if (!validation.isValid) {
+          console.warn('⚠️ [CUSTOM-OUTFIT] Generated outfit does not match specifications:', validation.issues);
+          console.log('💡 [CUSTOM-OUTFIT] Recommendations:', validation.recommendations);
+
+          // Add validation warning to description
+          customOutfit.description += ` ⚠️ Note: Generated outfit may not match all specifications.`;
+        } else {
+          console.log('✅ [CUSTOM-OUTFIT] Generated outfit validated successfully');
+        }
+      }
+
     } catch (error) {
       console.error('❌ [CUSTOM-OUTFIT] Preview image generation failed:', error);
       // Fallback to placeholder

@@ -39,13 +39,11 @@ import smartCalendarService, {
   OutfitItem
 } from '../services/smartCalendarService';
 import PackingListGenerator from './PackingListGenerator';
-import WoreThisTodayTracker from './WoreThisTodayTracker';
 import AddEventModal from './AddEventModal';
 import EditEventModal from './EditEventModal';
 import MonthlyCalendarGrid from './MonthlyCalendarGrid';
 import EnhancedMonthlyCalendarGrid from './EnhancedMonthlyCalendarGrid';
 import OutfitSuggestionModal from './OutfitSuggestionModal';
-import WeeklyOutfitQueue from './WeeklyOutfitQueue';
 import { calendarConnectionManager } from '../services/calendar/calendarConnectionManager';
 import { GoogleCalendarConnection } from './calendar/GoogleCalendarConnection';
 import { AppleCalendarConnection } from './calendar/AppleCalendarConnection';
@@ -59,7 +57,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   onBack,
   clothingItems = []
 }) => {
-  const [currentView, setCurrentView] = useState<'calendar' | 'morning' | 'queue' | 'settings' | 'packing'>('calendar');
+  const [currentView, setCurrentView] = useState<'calendar' | 'morning' | 'settings' | 'packing'>('calendar');
   const [isConnected, setIsConnected] = useState(false); // Any calendar connected
   const [googleConnected, setGoogleConnected] = useState(false); // Google calendar connection state
   const [googleEmail, setGoogleEmail] = useState<string | null>(null); // Google calendar email
@@ -67,17 +65,29 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   const [appleEmail, setAppleEmail] = useState<string | null>(null); // Apple calendar email
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [morningOptions, setMorningOptions] = useState<MorningOptions | null>(null);
-  const [outfitQueue, setOutfitQueue] = useState<OutfitPlan[]>([]);
   const [repeatWarnings, setRepeatWarnings] = useState<RepeatWarning[]>([]);
   const [isLoading, setIsLoading] = useState(true); // Start as true to show loading state immediately
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [showOutfitPlanner, setShowOutfitPlanner] = useState(false);
-  const [showWoreThisToday, setShowWoreThisToday] = useState(false);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [showDateDetails, setShowDateDetails] = useState(false);
   const [showOutfitSuggestions, setShowOutfitSuggestions] = useState(false);
   const [showEditEventModal, setShowEditEventModal] = useState(false);
+
+  // Check for initial view from StyleHub navigation
+  useEffect(() => {
+    const initialView = sessionStorage.getItem('calendar_initial_view');
+    if (initialView && ['morning', 'packing'].includes(initialView)) {
+      setCurrentView(initialView as 'morning' | 'packing');
+      sessionStorage.removeItem('calendar_initial_view');
+      
+      // If morning mode, trigger generation
+      if (initialView === 'morning') {
+        generateMorningOptions();
+      }
+    }
+  }, []);
 
   useEffect(() => {
     initializeDashboard();
@@ -125,9 +135,6 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
       if (anyConnected) {
         const events = await smartCalendarService.fetchUpcomingEvents();
         setUpcomingEvents(events);
-
-        const queue = smartCalendarService.getOutfitQueue();
-        setOutfitQueue(queue);
       }
     } catch (error) {
       console.error('Failed to initialize dashboard:', error);
@@ -250,42 +257,6 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
   const renderCalendarView = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {/* 2x2 Grid Tab Layout */}
-      <div style={{ padding: '16px' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '10px'
-          }}
-        >
-          <SegmentButton
-            title="Outfit Queue"
-            icon={<PenLine size={24} />}
-            isSelected={currentView === 'queue'}
-            onClick={() => setCurrentView('queue')}
-          />
-          <SegmentButton
-            title="Packing List"
-            icon={<Luggage size={24} />}
-            isSelected={currentView === 'packing'}
-            onClick={() => setCurrentView('packing')}
-          />
-          <SegmentButton
-            title="Morning Mode"
-            icon={<Sunrise size={24} />}
-            isSelected={currentView === 'morning'}
-            onClick={generateMorningOptions}
-          />
-          <SegmentButton
-            title="Wore This"
-            icon={<User size={24} />}
-            isSelected={showWoreThisToday}
-            onClick={() => setShowWoreThisToday(!showWoreThisToday)}
-          />
-        </div>
-      </div>
-
       {/* Enhanced Monthly Calendar Grid with Outfit Scheduling */}
       <EnhancedMonthlyCalendarGrid />
     </div>
@@ -293,7 +264,8 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
   const renderMorningMode = () => (
     <div className="space-y-6">
-      <div className="text-center">
+      {/* Header */}
+      <div className="text-center mb-4">
         <h2 className="ios-title-1 mb-2">Good Morning! ☀️</h2>
         <p className="ios-body text-ios-label-secondary">Here are your personalized outfit options for today</p>
       </div>
@@ -393,31 +365,8 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
           </div>
         </div>
       )}
-
-      <div className="flex justify-center">
-        <button
-          onClick={() => setCurrentView('calendar')}
-          className="text-gray-600 hover:text-gray-800 transition-colors"
-        >
-          ← Back to Calendar
-        </button>
-      </div>
     </div>
   );
-
-  const renderOutfitQueue = () => (
-    <WeeklyOutfitQueue
-      onBack={() => setCurrentView('calendar')}
-      clothingItems={clothingItems}
-      events={upcomingEvents}
-      onPlanOutfit={(date, event) => {
-        setSelectedDate(date);
-        setSelectedEvent(event || null);
-        setShowOutfitSuggestions(true);
-      }}
-    />
-  );
-
   const handleGoogleCalendarSync = async (events: CalendarEvent[]) => {
     // Save synced events to local state and Supabase
     setUpcomingEvents(prevEvents => {
@@ -549,7 +498,6 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
 
             {!isLoading && currentView === 'calendar' && renderCalendarView()}
             {!isLoading && currentView === 'morning' && renderMorningMode()}
-            {!isLoading && currentView === 'queue' && renderOutfitQueue()}
             {!isLoading && currentView === 'settings' && renderSettings()}
             {!isLoading && currentView === 'packing' && (
               <PackingListGenerator
@@ -560,19 +508,6 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Wore This Today Modal */}
-      {showWoreThisToday && (
-        <WoreThisTodayTracker
-          onClose={() => setShowWoreThisToday(false)}
-          clothingItems={clothingItems}
-          todaysEvents={upcomingEvents.filter(e => {
-            const today = new Date();
-            const eventDate = new Date(e.startTime);
-            return eventDate.toDateString() === today.toDateString();
-          })}
-        />
-      )}
 
       {/* Add Event Modal */}
       <AddEventModal

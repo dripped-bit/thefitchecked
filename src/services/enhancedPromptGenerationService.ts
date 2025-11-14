@@ -5,6 +5,7 @@
  */
 
 import { WeatherData } from './weatherService';
+import strictPromptEnforcementService from './strictPromptEnforcementService';
 
 export interface EnhancedPromptResult {
   mainPrompt: string;
@@ -16,6 +17,11 @@ export interface EnhancedPromptResult {
   colors: string[];
   materials: string[];
   unwanted_items: string[];
+  strictEnforcement?: {
+    enabled: boolean;
+    mandatorySpecs: any;
+    forbiddenItems: string[];
+  };
 }
 
 export interface PromptGenerationRequest {
@@ -36,11 +42,15 @@ class EnhancedPromptGenerationService {
   private promptCache = new Map<string, { result: EnhancedPromptResult; timestamp: number }>();
 
   /**
-   * Generate enhanced prompts using Claude API
+   * Generate enhanced prompts using Claude API with strict enforcement
    */
-  async generateEnhancedPrompt(request: PromptGenerationRequest): Promise<EnhancedPromptResult> {
+  async generateEnhancedPrompt(
+    request: PromptGenerationRequest,
+    useStrictEnforcement: boolean = true
+  ): Promise<EnhancedPromptResult> {
     console.log('🧠 [ENHANCED-PROMPT] Starting Claude-enhanced prompt generation');
     console.log('📝 [ENHANCED-PROMPT] Request:', request);
+    console.log('🔒 [ENHANCED-PROMPT] Strict enforcement:', useStrictEnforcement);
 
     // Check cache first
     const cacheKey = this.createCacheKey(request);
@@ -48,6 +58,45 @@ class EnhancedPromptGenerationService {
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
       console.log('📋 [ENHANCED-PROMPT] Using cached result');
       return cached.result;
+    }
+
+    // If strict enforcement is enabled, use it first
+    if (useStrictEnforcement) {
+      try {
+        console.log('🔒 [ENHANCED-PROMPT] Applying strict enforcement...');
+        const enforcement = await strictPromptEnforcementService.enforceSpecifications(
+          request.userRequest,
+          request.style || 'casual'
+        );
+
+        // Build enhanced result with strict enforcement
+        const result: EnhancedPromptResult = {
+          mainPrompt: enforcement.positivePrompt,
+          negativePrompt: enforcement.negativePrompt,
+          style: request.style || 'casual',
+          confidence: enforcement.confidence,
+          reasoning: enforcement.reasoning,
+          clothing_items: this.extractItemsFromSpecs(enforcement.mandatorySpecs),
+          colors: this.extractColorsFromSpecs(enforcement.mandatorySpecs),
+          materials: [],
+          unwanted_items: enforcement.forbiddenItems,
+          strictEnforcement: {
+            enabled: true,
+            mandatorySpecs: enforcement.mandatorySpecs,
+            forbiddenItems: enforcement.forbiddenItems
+          }
+        };
+
+        // Cache the result
+        this.promptCache.set(cacheKey, { result, timestamp: Date.now() });
+
+        console.log('✅ [ENHANCED-PROMPT] Strict enforcement applied successfully');
+        return result;
+
+      } catch (error) {
+        console.warn('⚠️ [ENHANCED-PROMPT] Strict enforcement failed, falling back to standard generation:', error);
+        // Continue with standard generation below
+      }
     }
 
     try {
@@ -396,6 +445,47 @@ Format:
   clearCache(): void {
     this.promptCache.clear();
     console.log('🧹 [ENHANCED-PROMPT] Cache cleared');
+  }
+
+  /**
+   * Extract clothing items from mandatory specs
+   */
+  private extractItemsFromSpecs(specs: any): string[] {
+    const items: string[] = [];
+
+    if (specs.top) {
+      items.push(specs.top.type);
+    }
+    if (specs.bottom) {
+      items.push(specs.bottom.type);
+    }
+    if (specs.dress) {
+      items.push(specs.dress.type);
+    }
+    if (specs.shoes) {
+      items.push(specs.shoes.type);
+    }
+
+    return items;
+  }
+
+  /**
+   * Extract colors from mandatory specs
+   */
+  private extractColorsFromSpecs(specs: any): string[] {
+    const colors: string[] = [];
+
+    if (specs.top?.color) {
+      colors.push(specs.top.color);
+    }
+    if (specs.bottom?.color) {
+      colors.push(specs.bottom.color);
+    }
+    if (specs.dress?.color) {
+      colors.push(specs.dress.color);
+    }
+
+    return [...new Set(colors)]; // Remove duplicates
   }
 }
 

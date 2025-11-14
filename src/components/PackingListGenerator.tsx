@@ -529,32 +529,37 @@ const PackingListGenerator: React.FC<PackingListGeneratorProps> = ({
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
+        {/* Header with SF Symbol Back Button */}
+        <div className="relative text-center mb-6">
+          {onBack && (
             <button
-              onClick={() => setSelectedEvent(null)}
-              className="text-gray-600 hover:text-gray-800"
+              onClick={onBack}
+              className="absolute top-0 left-0 w-10 h-10 flex items-center justify-center text-gray-700 active:text-gray-900 active:scale-95 transition-all rounded-full"
+              aria-label="Go back"
             >
-              ← Back to Events
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="w-6 h-6" aria-hidden="true">
+                <path d="M20 12H4M4 12L10 6M4 12L10 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">{selectedEvent.title}</h1>
-              <div className="flex items-center space-x-4 text-gray-600">
-                <div className="flex items-center space-x-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>{selectedEvent.startTime.toLocaleDateString()} - {selectedEvent.endTime.toLocaleDateString()}</span>
-                </div>
-                {selectedEvent.location && (
-                  <div className="flex items-center space-x-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>{selectedEvent.location}</span>
-                  </div>
-                )}
-              </div>
+          )}
+          
+          <h2 className="text-2xl font-bold text-gray-900">{selectedEvent.title}</h2>
+          <div className="flex items-center justify-center space-x-4 text-gray-600 mt-2">
+            <div className="flex items-center space-x-1">
+              <Calendar className="w-4 h-4" />
+              <span>{selectedEvent.startTime.toLocaleDateString()} - {selectedEvent.endTime.toLocaleDateString()}</span>
             </div>
+            {selectedEvent.location && (
+              <div className="flex items-center space-x-1">
+                <MapPin className="w-4 h-4" />
+                <span>{selectedEvent.location}</span>
+              </div>
+            )}
           </div>
+        </div>
 
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end mb-6">
           <div className="flex items-center space-x-3">
             <button
               onClick={exportPackingList}

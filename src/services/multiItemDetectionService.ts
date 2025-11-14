@@ -17,6 +17,14 @@ export interface DetectedItem {
   };
   croppedImageUrl?: string;
   confidence: number;
+  validationResult?: {
+    isValid: boolean;
+    confidence: number;
+    detectedItem: string;
+    expectedItem: string;
+    issues: string[];
+    suggestions: string[];
+  };
 }
 
 export interface MultiItemDetectionResult {
@@ -65,10 +73,59 @@ class MultiItemDetectionService {
 
       console.log(`✅ [MULTI-ITEM-V2] Successfully detected and cropped ${itemsWithCrops.length} items:`, itemsWithCrops.map(i => `${i.name} (${i.category})`));
 
+      // NEW: Validate each cropped image to ensure it contains the expected item
+      console.log('🔍 [MULTI-ITEM-V2] Validating cropped images...');
+      const { cropValidationService } = await import('./cropValidationService');
+      
+      const validatedItems = await Promise.all(
+        itemsWithCrops.map(async (item) => {
+          const validation = await cropValidationService.validateCroppedItem(
+            item.croppedImageUrl!,
+            item.name,
+            item.category
+          );
+
+          if (!validation.isValid) {
+            console.warn(`⚠️ [CROP-VALIDATE] Item "${item.name}" failed validation:`, {
+              expected: item.name,
+              detected: validation.detectedItem,
+              issues: validation.issues,
+              suggestions: validation.suggestions
+            });
+          }
+
+          return {
+            ...item,
+            validationResult: validation
+          };
+        })
+      );
+
+      // Filter out items that failed validation with low confidence
+      const validItems = validatedItems.filter(item => {
+        if (!item.validationResult.isValid && item.validationResult.confidence < 0.3) {
+          console.warn(`❌ [MULTI-ITEM-V2] Excluding "${item.name}" - validation confidence too low (${item.validationResult.confidence})`);
+          return false;
+        }
+        return true;
+      });
+
+      if (validItems.length === 0) {
+        console.warn('⚠️ [MULTI-ITEM-V2] All items failed validation - falling back to original image');
+        return {
+          hasMultipleItems: false,
+          itemCount: 1,
+          items: [],
+          originalImageUrl: imageUrl
+        };
+      }
+
+      console.log(`✅ [MULTI-ITEM-V2] ${validItems.length}/${itemsWithCrops.length} items passed validation`);
+
       return {
         hasMultipleItems: true,
-        itemCount: itemsWithCrops.length,
-        items: itemsWithCrops,
+        itemCount: validItems.length,
+        items: validItems,
         originalImageUrl: imageUrl
       };
 
@@ -274,8 +331,14 @@ Return ONLY the JSON object, no additional text.`
 
           console.log('✂️ [CROP] Applying bounds with 10% padding:', {
             original: { x: boundingBox.x, y: boundingBox.y, w: boundingBox.width, h: boundingBox.height },
-            pixels: { x: sourceX, y: sourceY, w: sourceWidth, h: sourceHeight }
+            pixels: { x: sourceX, y: sourceY, w: sourceWidth, h: sourceHeight },
+            imageSize: { width: img.width, height: img.height }
           });
+
+          // Visual debugging: Draw bounding box overlay for inspection
+          if (process.env.NODE_ENV === 'development') {
+            this.debugDrawBoundingBox(img, sourceX, sourceY, sourceWidth, sourceHeight);
+          }
 
           // Set canvas size to cropped dimensions
           canvas.width = sourceWidth;
@@ -354,6 +417,55 @@ Return ONLY the JSON object, no additional text.`
       console.error('❌ Image to base64 conversion failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Visual debugging: Draw bounding box overlay for inspection
+   * Creates a visual representation of the crop area for debugging
+   */
+  private debugDrawBoundingBox(
+    img: HTMLImageElement,
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ): void {
+    const debugCanvas = document.createElement('canvas');
+    debugCanvas.width = img.width;
+    debugCanvas.height = img.height;
+    const ctx = debugCanvas.getContext('2d');
+
+    if (!ctx) return;
+
+    // Draw original image
+    ctx.drawImage(img, 0, 0);
+
+    // Draw bounding box overlay
+    ctx.strokeStyle = '#00FF00'; // Green
+    ctx.lineWidth = 4;
+    ctx.strokeRect(x, y, width, height);
+
+    // Add crosshairs at center
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    ctx.strokeStyle = '#FF0000'; // Red
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 20, centerY);
+    ctx.lineTo(centerX + 20, centerY);
+    ctx.moveTo(centerX, centerY - 20);
+    ctx.lineTo(centerX, centerY + 20);
+    ctx.stroke();
+
+    // Log the debug image
+    const debugUrl = debugCanvas.toDataURL('image/png');
+    console.log('🎨 [DEBUG-CROP] Bounding box visualization (green box = crop area):');
+    console.log('%c ', `
+      padding: 100px 200px;
+      background: url(${debugUrl}) no-repeat center;
+      background-size: contain;
+      font-size: 0;
+    `);
   }
 
   /**

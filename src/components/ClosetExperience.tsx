@@ -13,8 +13,8 @@ import '../styles/VisualClosetAdapter.css';
 import ClosetDoors from './ClosetDoors';
 import OutfitCreator from './OutfitCreator';
 import ClosetPage from './ClosetPage';
-import SmartCalendarDashboard from './SmartCalendarDashboard';
-import PackingListGenerator from './PackingListGenerator';
+// import SmartCalendarDashboard from './SmartCalendarDashboard'; // Removed - moved to StyleHub
+// import PackingListGenerator from './PackingListGenerator'; // Removed - moved to StyleHub
 import WoreThisTodayTracker from './WoreThisTodayTracker';
 import CategorySelector from './CategorySelector';
 import MultiItemSplitter from './MultiItemSplitter';
@@ -151,7 +151,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   initialView = 'doors'
 }) => {
   // Main state
-  const [currentView, setCurrentView] = useState<'doors' | 'interior' | 'outfit-creator' | 'try-on' | 'smart-calendar'>(initialView);
+  const [currentView, setCurrentView] = useState<'doors' | 'interior' | 'outfit-creator' | 'try-on'>(initialView);
   const [doorsOpen, setDoorsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all' | 'favorites'>('all');
   const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
@@ -267,18 +267,19 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   const dateFileInputRef = useRef<HTMLInputElement>(null);
 
   // Check for stored view parameter from URL (e.g., from calendar OAuth redirect)
-  useEffect(() => {
-    const storedView = sessionStorage.getItem('closet_view');
-    if (storedView) {
-      console.log('📍 [CLOSET] Found stored view from URL:', storedView);
-      if (storedView === 'smart-calendar') {
-        setCurrentView('smart-calendar');
-        console.log('📅 [CLOSET] Setting view to smart-calendar from URL parameter');
-      }
-      // Clear the stored view after using it
-      sessionStorage.removeItem('closet_view');
-    }
-  }, []);
+  // Removed - smart-calendar no longer in closet
+  // useEffect(() => {
+  //   const storedView = sessionStorage.getItem('closet_view');
+  //   if (storedView) {
+  //     console.log('📍 [CLOSET] Found stored view from URL:', storedView);
+  //     if (storedView === 'smart-calendar') {
+  //       setCurrentView('smart-calendar');
+  //       console.log('📅 [CLOSET] Setting view to smart-calendar from URL parameter');
+  //     }
+  //     // Clear the stored view after using it
+  //     sessionStorage.removeItem('closet_view');
+  //   }
+  // }, []);
 
   // Debug currentView changes
   useEffect(() => {
@@ -1273,13 +1274,7 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
             WebkitBackdropFilter: 'blur(20px) saturate(180%)'
           }}
         >
-          <button
-            onClick={onBack}
-            className="flex items-center space-x-2 text-amber-800 hover:text-amber-900 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back to Home</span>
-          </button>
+          {/* Back button removed - use tab bar to navigate */}
 
           <div className="text-center">
             <h1 className="text-3xl font-bold text-amber-900 mb-2">Your Personal Closet</h1>
@@ -1637,12 +1632,13 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
             </div>
           )}
 
-          {currentView === 'smart-calendar' && (
+          {/* Removed - smart-calendar moved to StyleHub access */}
+          {/* {currentView === 'smart-calendar' && (
             <SmartCalendarDashboard
               onBack={() => setCurrentView('interior')}
               clothingItems={clothingItems}
             />
-          )}
+          )} */}
 
 
           {currentView === 'interior' && (

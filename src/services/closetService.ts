@@ -18,6 +18,33 @@ export interface ClothingItem {
   status?: 'processing' | 'categorized' | 'uncategorized'; // Added for async categorization tracking
   categorizationMethod?: 'ai' | 'heuristic' | 'default'; // Track how item was categorized
   confidence?: number; // Categorization confidence score
+  
+  // NEW FIELDS - Enhanced Categorization
+  clothingType?: string; // Detailed subcategory (e.g., "button-down shirt")
+  brand?: string; // Brand name (e.g., "Ralph Lauren")
+  brandConfidence?: number; // 0-1 confidence in brand detection
+  estimatedPrice?: {
+    min: number;
+    max: number;
+    currency: string;
+    confidence: number;
+  };
+  attributes?: {
+    color: string;
+    secondaryColors?: string[];
+    material?: string;
+    style: string;
+    fit?: string;
+    pattern?: string;
+    season: string[];
+    occasion: string[];
+  };
+  processingMetadata?: {
+    hadBackground: boolean; // Was background removed?
+    extractedFromPerson: boolean; // Was garment extracted from person?
+    wasMultiItem: boolean; // Was this part of multi-item upload?
+    birefnetModel?: string; // Which BiRefNet model used
+  };
 }
 
 export type ClothingCategory = 'shirts' | 'pants' | 'skirts' | 'dresses' | 'shoes' | 'accessories' | 'outerwear' | 'tops' | 'jackets' | 'sweaters' | 'other';

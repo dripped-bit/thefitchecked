@@ -30,6 +30,7 @@ import affiliateLinkService from '../services/affiliateLinkService';
 import SavedPromptsModal from './SavedPromptsModal';
 import SavedAvatarsTab from './SavedAvatarsTab';
 import UserSettingsModal from './UserSettingsModal';
+import WoreThisTodayTracker from './WoreThisTodayTracker';
 import { CURRENT_PERFECT_PROMPT } from '../config/bestavatargenerated.js';
 import stylePreferencesService from '../services/stylePreferencesService';
 import avatarManagementService from '../services/avatarManagementService';
@@ -192,6 +193,9 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
 
   // Saved prompts modal state
   const [showPromptsModal, setShowPromptsModal] = useState(false);
+
+  // Wore This modal state
+  const [showWoreThisModal, setShowWoreThisModal] = useState(false);
 
   // Refs
   const avatarRef = useRef<HTMLDivElement>(null);
@@ -825,16 +829,16 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
               Saved Avatars
             </button>
 
-            {/* Tab 2: Upload Outfit (MIDDLE) */}
+            {/* Tab 2: Wore This (MIDDLE) */}
             <button
-              onClick={() => setShowUploadModal(true)}
+              onClick={() => setShowWoreThisModal(true)}
               className={`flex-1 py-2.5 px-4 rounded-full text-sm font-medium transition-all ${
-                showUploadModal
+                showWoreThisModal
                   ? 'bg-white text-pink-600 shadow-sm'
-                  : 'text-white/90'
+                  : 'text-white/90 hover:bg-white/10'
               }`}
             >
-              Upload Outfit
+              Wore This
             </button>
 
             {/* Tab 3: Edit Style */}
@@ -1599,6 +1603,15 @@ const AvatarHomepage: React.FC<AvatarHomepageProps> = ({
           quality: CURRENT_PERFECT_PROMPT.quality
         }}
       />
+
+      {/* Wore This Today Modal */}
+      {showWoreThisModal && (
+        <WoreThisTodayTracker
+          onClose={() => setShowWoreThisModal(false)}
+          clothingItems={[]} // Can pass closet items if needed
+          todaysEvents={[]} // Can integrate with calendar if needed
+        />
+      )}
       </div>
       </div>
     </>

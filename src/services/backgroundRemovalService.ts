@@ -101,19 +101,19 @@ class BackgroundRemovalService {
   }
 
   /**
-   * Primary method: fal.ai imageutils/rembg
-   * Fast and efficient background removal optimized for clothing items
-   * Docs: https://fal.ai/models/fal-ai/imageutils/rembg
+   * Primary method: fal.ai BiRefNet v2
+   * Superior background removal using state-of-the-art BiRefNet model
+   * Docs: https://fal.ai/models/fal-ai/birefnet
    */
   private async removeBackgroundFalAI(imageUrl: string, signal?: AbortSignal): Promise<BackgroundRemovalResult> {
-    console.log('🎨 [FAL-AI-REMBG] Starting background removal...');
-    console.log('🌍 [FAL-AI-REMBG] Environment:', this.IS_DEV ? 'DEVELOPMENT' : 'PRODUCTION');
-    console.log('🔗 [FAL-AI-REMBG] API Base:', this.API_BASE);
-    console.log('📸 [FAL-AI-REMBG] Image URL type:', imageUrl.substring(0, 50) + '...');
+    console.log('🎨 [BIREFNET-V2] Starting background removal with BiRefNet v2...');
+    console.log('🌍 [BIREFNET-V2] Environment:', this.IS_DEV ? 'DEVELOPMENT' : 'PRODUCTION');
+    console.log('🔗 [BIREFNET-V2] API Base:', this.API_BASE);
+    console.log('📸 [BIREFNET-V2] Image URL type:', imageUrl.substring(0, 50) + '...');
 
     // Validate image URL format
     if (!imageUrl.startsWith('data:image') && !imageUrl.startsWith('http')) {
-      console.error('❌ [FAL-AI-REMBG] Invalid image URL format. Expected data URL or HTTP URL');
+      console.error('❌ [BIREFNET-V2] Invalid image URL format. Expected data URL or HTTP URL');
       throw new Error(`Invalid image URL format: ${imageUrl.substring(0, 30)}...`);
     }
 
@@ -125,77 +125,85 @@ class BackgroundRemovalService {
     // In production, add Authorization header for direct fal.ai API calls
     if (!this.IS_DEV && this.FAL_KEY) {
       headers['Authorization'] = `Key ${this.FAL_KEY}`;
-      console.log('🔑 [FAL-AI-REMBG] Using direct API with authorization');
+      console.log('🔑 [BIREFNET-V2] Using direct API with authorization');
     } else if (this.IS_DEV) {
-      console.log('🔧 [FAL-AI-REMBG] Using dev proxy');
+      console.log('🔧 [BIREFNET-V2] Using dev proxy');
     }
 
-    const response = await fetch(`${this.API_BASE}/fal-ai/imageutils/rembg`, {
+    // Use BiRefNet v2 with "General Use (Light)" model for clothing
+    const response = await fetch(`${this.API_BASE}/fal-ai/birefnet/v2`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
         image_url: imageUrl,
-        sync_mode: false,
-        crop_to_bbox: false
+        model: "General Use (Light)",
+        operating_resolution: "2048x2048",
+        output_format: "png",
+        refine_foreground: true,
+        sync_mode: false
       }),
       signal // Add abort signal support
     });
 
-    console.log('🌐 [FAL-AI-REMBG] Response status:', response.status);
-    console.log('🌐 [FAL-AI-REMBG] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
+    console.log('🌐 [BIREFNET-V2] Response status:', response.status);
+    console.log('🌐 [BIREFNET-V2] Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ [FAL-AI-REMBG] Error response:', errorText);
-      throw new Error(`fal.ai rembg failed: ${response.status} - ${errorText}`);
+      console.error('❌ [BIREFNET-V2] Error response:', errorText);
+      throw new Error(`BiRefNet v2 failed: ${response.status} - ${errorText}`);
     }
 
     // Parse JSON response with error handling
     let result;
     try {
       const responseText = await response.text();
-      console.log('📄 [FAL-AI-REMBG] Raw response text (first 500 chars):', responseText.substring(0, 500));
+      console.log('📄 [BIREFNET-V2] Raw response text (first 500 chars):', responseText.substring(0, 500));
       result = JSON.parse(responseText);
-      console.log('🎨 [FAL-AI-REMBG] Parsed JSON result:', JSON.stringify(result).substring(0, 500));
+      console.log('🎨 [BIREFNET-V2] Parsed JSON result:', JSON.stringify(result).substring(0, 500));
     } catch (parseError) {
-      console.error('❌ [FAL-AI-REMBG] JSON parse error:', parseError);
-      throw new Error(`Failed to parse fal.ai response: ${parseError}`);
+      console.error('❌ [BIREFNET-V2] JSON parse error:', parseError);
+      throw new Error(`Failed to parse BiRefNet response: ${parseError}`);
     }
 
-    // Parse rembg response format
+    // Parse BiRefNet v2 response format
     // Expected formats:
     // 1. { data: { image: { url: string } } }
     // 2. { image: { url: string } }
-    // 3. Direct string URL
+    // 3. { image: "url_string" }
     let cleanImageUrl = null;
 
-    console.log('🔍 [FAL-AI-REMBG] Checking result.data?.image?.url:', result?.data?.image?.url);
-    console.log('🔍 [FAL-AI-REMBG] Checking result.image?.url:', result?.image?.url);
-    console.log('🔍 [FAL-AI-REMBG] Result type:', typeof result);
-    console.log('🔍 [FAL-AI-REMBG] Result keys:', Object.keys(result || {}));
+    console.log('🔍 [BIREFNET-V2] Checking result.data?.image?.url:', result?.data?.image?.url);
+    console.log('🔍 [BIREFNET-V2] Checking result.image?.url:', result?.image?.url);
+    console.log('🔍 [BIREFNET-V2] Checking result.image:', result?.image);
+    console.log('🔍 [BIREFNET-V2] Result type:', typeof result);
+    console.log('🔍 [BIREFNET-V2] Result keys:', Object.keys(result || {}));
 
     if (result?.data?.image?.url) {
       cleanImageUrl = result.data.image.url;
-      console.log('✅ [FAL-AI-REMBG] Found image URL in result.data.image.url');
+      console.log('✅ [BIREFNET-V2] Found image URL in result.data.image.url');
     } else if (result?.image?.url) {
       cleanImageUrl = result.image.url;
-      console.log('✅ [FAL-AI-REMBG] Found image URL in result.image.url');
+      console.log('✅ [BIREFNET-V2] Found image URL in result.image.url');
+    } else if (typeof result?.image === 'string') {
+      cleanImageUrl = result.image;
+      console.log('✅ [BIREFNET-V2] Found image URL as string in result.image');
     } else if (typeof result === 'string') {
       cleanImageUrl = result;
-      console.log('✅ [FAL-AI-REMBG] Result is direct string URL');
+      console.log('✅ [BIREFNET-V2] Result is direct string URL');
     }
 
     if (cleanImageUrl) {
-      console.log('✅ [FAL-AI-REMBG] Background removed successfully');
-      console.log('📸 [FAL-AI-REMBG] Output URL:', cleanImageUrl.substring(0, 60) + '...');
+      console.log('✅ [BIREFNET-V2] Background removed successfully using BiRefNet v2');
+      console.log('📸 [BIREFNET-V2] Output URL:', cleanImageUrl.substring(0, 60) + '...');
       return {
         success: true,
         imageUrl: cleanImageUrl
       };
     }
 
-    console.error('❌ [FAL-AI-REMBG] No image URL in response. Full result:', JSON.stringify(result));
-    throw new Error('No processed image URL found in fal.ai rembg result');
+    console.error('❌ [BIREFNET-V2] No image URL in response. Full result:', JSON.stringify(result));
+    throw new Error('No processed image URL found in BiRefNet v2 result');
   }
 
   /**

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw, Home, Shirt, Calendar, Sparkles, User, LogOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw, Home, Shirt, Calendar, Sparkles, User, LogOut, Compass } from 'lucide-react';
 import { App as KonstaApp } from 'konsta/react';
 import useDevMode from './hooks/useDevMode';
 import { FloatingTabBar, Tab } from './components/ui/FloatingTabBar';
@@ -18,6 +18,8 @@ import AvatarHomepage from './components/AvatarHomepageRestored';
 import UserOnboardingPopup from './components/UserOnboardingPopup';
 import ClosetExperience from './components/ClosetExperience';
 import ProfileScreen from './components/ProfileScreen';
+import StyleHub from './pages/StyleHub';
+import Wishlist from './pages/Wishlist';
 import SettingsScreen from './pages/SettingsScreen';
 import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
@@ -59,7 +61,7 @@ import clearCacheUtil from './utils/clearCache';
 // import './utils/directApiTest';
 // import './utils/keyChecker';
 
-type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest' | 'profile' | 'settings';
+type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest' | 'profile' | 'stylehub' | 'settings' | 'wishlist';
 
 interface AppData {
   capturedPhotos: CapturedPhoto[];
@@ -355,12 +357,12 @@ function App() {
   }, [currentScreen]);
 
   // iOS Tab Bar Configuration with 3-Pill Layout
-  // Pill 1: Home (solo) | Pill 2: Closet + Calendar | Pill 3: Profile (solo)
+  // Pill 1: Home (solo) | Pill 2: Closet + Calendar | Pill 3: StyleHub (solo)
   const tabs: Tab[] = [
     { id: 'home', label: 'Home', icon: <Home className="w-6 h-6" />, route: 'avatarHomepage', group: 0 },
     { id: 'closet', label: 'Closet', icon: <Shirt className="w-6 h-6" />, route: 'closet', group: 1 },
     { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-6 h-6" />, route: 'smartCalendar', group: 1 },
-    { id: 'profile', label: 'Profile', icon: <User className="w-6 h-6" />, route: 'profile', group: 2 },
+    { id: 'stylehub', label: 'StyleHub', icon: <Compass className="w-6 h-6" />, route: 'stylehub', group: 2 },
   ];
   const [activeTab, setActiveTab] = useState('home');
   const [appData, setAppData] = useState<AppData>({
@@ -1064,7 +1066,17 @@ function App() {
       case 'smartCalendar':
         return (
           <SmartCalendarDashboard
-            onBack={() => setCurrentScreen('avatarHomepage')}
+            onBack={() => {
+              // Check if we came from StyleHub
+              const cameFromStyleHub = sessionStorage.getItem('navigated_from_stylehub');
+              if (cameFromStyleHub === 'true') {
+                sessionStorage.removeItem('navigated_from_stylehub');
+                setCurrentScreen('stylehub');
+                setActiveTab('stylehub');
+              } else {
+                setCurrentScreen('avatarHomepage');
+              }
+            }}
           />
         );
 
@@ -1081,6 +1093,35 @@ function App() {
               setCurrentScreen('welcome');
               setActiveTab('home');
             }}
+          />
+        );
+
+      case 'stylehub':
+        return (
+          <StyleHub
+            onBack={() => setCurrentScreen('avatarHomepage')}
+            onNavigateToMorningMode={() => {
+              sessionStorage.setItem('calendar_initial_view', 'morning');
+              sessionStorage.setItem('navigated_from_stylehub', 'true');
+              setCurrentScreen('smartCalendar');
+              setActiveTab('calendar');
+            }}
+            onNavigateToPackingList={() => {
+              sessionStorage.setItem('calendar_initial_view', 'packing');
+              sessionStorage.setItem('navigated_from_stylehub', 'true');
+              setCurrentScreen('smartCalendar');
+              setActiveTab('calendar');
+            }}
+            onNavigateToWishlist={() => {
+              setCurrentScreen('wishlist');
+            }}
+          />
+        );
+
+      case 'wishlist':
+        return (
+          <Wishlist
+            onBack={() => setCurrentScreen('stylehub')}
           />
         );
 
