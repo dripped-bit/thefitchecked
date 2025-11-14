@@ -1116,7 +1116,9 @@ function App() {
               setActiveTab('calendar');
             }}
             onNavigateToWishlist={() => {
+              sessionStorage.setItem('navigated_from_stylehub', 'true');
               setCurrentScreen('wishlist');
+              setActiveTab('stylehub'); // Keep StyleHub tab active
             }}
           />
         );
@@ -1124,7 +1126,10 @@ function App() {
       case 'wishlist':
         return (
           <Wishlist
-            onBack={() => setCurrentScreen('stylehub')}
+            onBack={() => {
+              setCurrentScreen('stylehub');
+              setActiveTab('stylehub');
+            }}
           />
         );
 
