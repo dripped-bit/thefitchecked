@@ -10,8 +10,6 @@ import {
   Luggage,
   ChevronRight
 } from 'lucide-react';
-import { IonIcon, IonButton } from '@ionic/react';
-import { sparkles } from 'ionicons/icons';
 import AIDesignShopModal from '../components/AIDesignShopModal';
 
 interface StyleHubProps {
@@ -125,22 +123,15 @@ export default function StyleHub({
       </div>
 
       {/* Floating AI Design Button - Bottom Right */}
-      <IonButton
+      <button
         onClick={() => setShowAIDesign(true)}
-        style={{
-          position: 'fixed',
-          bottom: '80px', // Above tab bar
-          right: '20px',
-          borderRadius: '50%',
-          width: '60px',
-          height: '60px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-          zIndex: 1000,
-        }}
-        color="primary"
+        className="ai-design-fab"
+        aria-label="AI Design & Shop"
       >
-        <IonIcon icon={sparkles} style={{ fontSize: '28px' }} />
-      </IonButton>
+        <svg className="sparkle-icon" viewBox="0 0 512 512" fill="currentColor">
+          <path d="M208 512a24.84 24.84 0 0 1-23.34-16l-39.84-103.6a16.06 16.06 0 0 0-9.19-9.19L32 343.34a25 25 0 0 1 0-46.68l103.6-39.84a16.06 16.06 0 0 0 9.19-9.19L184.66 144a25 25 0 0 1 46.68 0l39.84 103.6a16.06 16.06 0 0 0 9.19 9.19l103.6 39.84a25 25 0 0 1 0 46.68l-103.6 39.84a16.06 16.06 0 0 0-9.19 9.19l-39.84 103.6A24.84 24.84 0 0 1 208 512zm66.85-254.84h.3zm-134 0h.3zM448 256a16 16 0 0 1-14.93-10.26l-22.84-59.37a8 8 0 0 0-4.6-4.6l-59.37-22.84a16 16 0 0 1 0-29.86l59.37-22.84a8 8 0 0 0 4.6-4.6l22.84-59.37a16 16 0 0 1 29.86 0l22.84 59.37a8 8 0 0 0 4.6 4.6l59.37 22.84a16 16 0 0 1 0 29.86l-59.37 22.84a8 8 0 0 0-4.6 4.6l-22.84 59.37A16 16 0 0 1 448 256z"/>
+        </svg>
+      </button>
 
       {/* AI Design Shop Modal */}
       <AIDesignShopModal
