@@ -271,22 +271,27 @@ class CompleteFashnTryOnService {
             // Try multiple possible response formats
             let imageUrl: string | null = null;
             
-            // Format 1: result.images[0]
-            if (result.result?.images?.[0]) {
-              imageUrl = result.result.images[0];
-              console.log('✅ [FASHN] Found image in result.images[0]');
+            // Format 1: result.output[0] (current FASHN API format - check this FIRST!)
+            if (result.output?.[0]) {
+              imageUrl = result.output[0];
+              console.log('✅ [FASHN] Found image in result.output[0] (current API format)');
             }
-            // Format 2: result.image (singular)
+            // Format 2: result.images[0]
+            else if (result.result?.images?.[0]) {
+              imageUrl = result.result.images[0];
+              console.log('✅ [FASHN] Found image in result.result.images[0]');
+            }
+            // Format 3: result.image (singular)
             else if (result.result?.image) {
               imageUrl = result.result.image;
-              console.log('✅ [FASHN] Found image in result.image');
+              console.log('✅ [FASHN] Found image in result.result.image');
             }
-            // Format 3: result.output[0]
+            // Format 4: result.result.output[0] (legacy nested format)
             else if (result.result?.output?.[0]) {
               imageUrl = result.result.output[0];
-              console.log('✅ [FASHN] Found image in result.output[0]');
+              console.log('✅ [FASHN] Found image in result.result.output[0]');
             }
-            // Format 4: result.data.images[0]
+            // Format 5: result.data.images[0]
             else if (result.result?.data?.images?.[0]) {
               imageUrl = result.result.data.images[0];
               console.log('✅ [FASHN] Found image in result.data.images[0]');
