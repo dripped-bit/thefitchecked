@@ -469,7 +469,7 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   console.log('✅ [SMART-CALENDAR] Calendar connected, showing dashboard');
 
   return (
-    <div className="min-h-screen bg-ios-bg">
+    <div className="min-h-screen bg-ios-bg pb-32">
       <div>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">

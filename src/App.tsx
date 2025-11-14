@@ -21,6 +21,7 @@ import ProfileScreen from './components/ProfileScreen';
 import StyleHub from './pages/StyleHub';
 import Wishlist from './pages/WishlistNative';
 import SettingsScreen from './pages/SettingsScreen';
+import MorningMode from './pages/MorningMode';
 import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
 import MyOutfitsPage from './pages/MyOutfitsPageAdvanced';
@@ -61,7 +62,7 @@ import clearCacheUtil from './utils/clearCache';
 // import './utils/directApiTest';
 // import './utils/keyChecker';
 
-type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest' | 'profile' | 'stylehub' | 'settings' | 'wishlist';
+type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest' | 'profile' | 'stylehub' | 'settings' | 'wishlist' | 'morningMode';
 
 interface AppData {
   capturedPhotos: CapturedPhoto[];
@@ -1104,10 +1105,8 @@ function App() {
               setActiveTab('home');
             }}
             onNavigateToMorningMode={() => {
-              sessionStorage.setItem('calendar_initial_view', 'morning');
-              sessionStorage.setItem('navigated_from_stylehub', 'true');
-              setCurrentScreen('smartCalendar');
-              setActiveTab('calendar');
+              setCurrentScreen('morningMode');
+              setActiveTab('stylehub'); // Keep StyleHub tab active
             }}
             onNavigateToPackingList={() => {
               sessionStorage.setItem('calendar_initial_view', 'packing');
@@ -1126,6 +1125,16 @@ function App() {
       case 'wishlist':
         return (
           <Wishlist
+            onBack={() => {
+              setCurrentScreen('stylehub');
+              setActiveTab('stylehub');
+            }}
+          />
+        );
+
+      case 'morningMode':
+        return (
+          <MorningMode
             onBack={() => {
               setCurrentScreen('stylehub');
               setActiveTab('stylehub');
