@@ -380,41 +380,46 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
   };
 
   const renderSettings = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full">
+      {/* Fixed header */}
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <h2 className="text-2xl font-bold text-gray-800">Calendar Settings</h2>
         <button
           onClick={() => setCurrentView('calendar')}
-          className="text-gray-600 hover:text-gray-800"
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          aria-label="Back to calendar"
         >
-          ← Back
+          <ChevronLeft className="w-6 h-6 text-gray-700" />
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-6">Calendar Connections</h3>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto space-y-6 pb-8" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-6">Calendar Connections</h3>
 
-        <div className="flex flex-col sm:flex-row gap-4">
-          <GoogleCalendarConnection
-            isConnected={googleConnected}
-            calendarEmail={googleEmail}
-            onConnectionChange={handleConnectionChange}
-          />
-          <AppleCalendarConnection
-            isConnected={appleConnected}
-            calendarEmail={appleEmail}
-            onConnectionChange={handleConnectionChange}
-          />
-        </div>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <GoogleCalendarConnection
+              isConnected={googleConnected}
+              calendarEmail={googleEmail}
+              onConnectionChange={handleConnectionChange}
+            />
+            <AppleCalendarConnection
+              isConnected={appleConnected}
+              calendarEmail={appleEmail}
+              onConnectionChange={handleConnectionChange}
+            />
+          </div>
 
-        <div className="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
-          <h5 className="font-medium text-purple-800 mb-2">About Calendar Sync</h5>
-          <ul className="text-sm text-purple-700 space-y-1">
-            <li>• Events are synced automatically when you visit the calendar</li>
-            <li>• Only upcoming events (next 60 days) are imported</li>
-            <li>• Events are categorized automatically for outfit suggestions</li>
-            <li>• Your calendar data stays private and secure</li>
-          </ul>
+          <div className="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <h5 className="font-medium text-purple-800 mb-2">About Calendar Sync</h5>
+            <ul className="text-sm text-purple-700 space-y-1">
+              <li>• Events are synced automatically when you visit the calendar</li>
+              <li>• Only upcoming events (next 60 days) are imported</li>
+              <li>• Events are categorized automatically for outfit suggestions</li>
+              <li>• Your calendar data stays private and secure</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -467,16 +472,8 @@ const SmartCalendarDashboard: React.FC<SmartCalendarDashboardProps> = ({
       <div>
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-4">
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="text-ios-label-secondary hover:text-ios-label"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            )}
-          </div>
+          {/* Spacer - no back button in calendar view */}
+          <div className="flex-1"></div>
 
           <button
             onClick={() => setCurrentView('settings')}

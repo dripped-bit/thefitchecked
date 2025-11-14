@@ -231,35 +231,44 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
     const startingDayOfWeek = firstDay.getDay();
     const daysInMonth = lastDay.getDate();
 
-    const days: Array<{ date: Date; isCurrentMonth: boolean }> = [];
+    const days: Array<{ date: Date | null; isCurrentMonth: boolean; isEmpty: boolean }> = [];
 
-    const prevMonthLastDay = new Date(year, month, 0).getDate();
-    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+    // Add empty cells before first day of month
+    for (let i = 0; i < startingDayOfWeek; i++) {
       days.push({
-        date: new Date(year, month - 1, prevMonthLastDay - i),
+        date: null,
         isCurrentMonth: false,
+        isEmpty: true,
       });
     }
 
+    // Add actual month days
     for (let i = 1; i <= daysInMonth; i++) {
       days.push({
         date: new Date(year, month, i),
         isCurrentMonth: true,
+        isEmpty: false,
       });
     }
 
-    const remainingDays = 42 - days.length;
-    for (let i = 1; i <= remainingDays; i++) {
-      days.push({
-        date: new Date(year, month + 1, i),
-        isCurrentMonth: false,
-      });
+    // Fill remaining cells in last row to complete it
+    const cellsInLastRow = days.length % 7;
+    if (cellsInLastRow > 0) {
+      const emptyCellsNeeded = 7 - cellsInLastRow;
+      for (let i = 0; i < emptyCellsNeeded; i++) {
+        days.push({
+          date: null,
+          isCurrentMonth: false,
+          isEmpty: true,
+        });
+      }
     }
 
-    return days;
+    const rowsNeeded = Math.ceil(days.length / 7);
+    return { days, rowsNeeded };
   };
 
-  const calendarDays = generateCalendarDays();
+  const { days: calendarDays, rowsNeeded } = generateCalendarDays();
   const today = new Date();
   const monthName = currentDate.toLocaleDateString('en-US', {
     month: 'long',
@@ -339,7 +348,7 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
           <div
             className="grid grid-cols-7"
             style={{
-              gridAutoRows: `${cellHeight}px`,
+              gridTemplateRows: `repeat(${rowsNeeded}, ${cellHeight}px)`,
               transform: 'none',
               willChange: 'auto',
               width: '100%',
@@ -348,6 +357,19 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
             }}
           >
             {calendarDays.map((day, index) => {
+              if (day.isEmpty || !day.date) {
+                return (
+                  <div
+                    key={index}
+                    className="border border-gray-200"
+                    style={{
+                      backgroundColor: '#F5F5F0',
+                      height: `${cellHeight}px`,
+                    }}
+                  />
+                );
+              }
+
               const dateKey = day.date.toISOString().split('T')[0];
               const isToday =
                 day.date.toDateString() === today.toDateString();
