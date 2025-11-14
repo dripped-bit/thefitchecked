@@ -3,6 +3,7 @@ import { Browser } from '@capacitor/browser';
 import { supabase } from '../services/supabaseClient';
 import CustomModal from './CustomModal';
 import serpApiService, { ProductSearchResult } from '../services/serpApiService';
+import AvatarClothingAnalysisService, { AvatarClothingAnalysis } from '../services/avatarClothingAnalysisService';
 
 interface ShoppingResult {
   title: string;
@@ -28,6 +29,7 @@ const AIDesignShopModal: React.FC<AIDesignShopModalProps> = ({ isOpen, onClose }
   const [currentStep, setCurrentStep] = useState<'design' | 'results' | 'wishlist'>('design');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [clothingAnalysis, setClothingAnalysis] = useState<AvatarClothingAnalysis | null>(null);
 
   // FAL AI Image Generation
   const generateDesign = async () => {
@@ -72,7 +74,7 @@ const AIDesignShopModal: React.FC<AIDesignShopModalProps> = ({ isOpen, onClose }
     }
   };
 
-  // Shopping Search using Service Layer
+  // Shopping Search with Claude Vision Analysis (like Avatar Homepage)
   const searchForProduct = async () => {
     if (!generatedImage) return;
 
@@ -80,9 +82,44 @@ const AIDesignShopModal: React.FC<AIDesignShopModalProps> = ({ isOpen, onClose }
     try {
       console.log('🔍 Starting product search for:', designPrompt);
 
-      // Search using service layer (goes through /api/serp proxy)
+      // Step 1: Analyze generated image with Claude Vision for detailed attributes
+      let enhancedQuery = designPrompt;
+      let analysis = clothingAnalysis;
+
+      if (!analysis && generatedImage) {
+        try {
+          console.log('👔 Analyzing image with Claude Vision for better search...');
+          analysis = await AvatarClothingAnalysisService.analyzeAvatarClothing(generatedImage);
+          setClothingAnalysis(analysis);
+          console.log('✨ Claude Vision analysis completed:', analysis);
+
+          // Step 2: Enhance search query with color/style from analysis
+          if (analysis.items.length > 0) {
+            const primaryItem = analysis.items[0];
+            
+            // Add color if not already in prompt
+            if (primaryItem.color && !designPrompt.toLowerCase().includes(primaryItem.color.toLowerCase())) {
+              enhancedQuery = `${primaryItem.color} ${designPrompt}`;
+              console.log('🎨 Enhanced with color:', primaryItem.color);
+            }
+
+            // Add material if available and not in prompt
+            if (primaryItem.material && !designPrompt.toLowerCase().includes(primaryItem.material.toLowerCase())) {
+              enhancedQuery = `${enhancedQuery} ${primaryItem.material}`;
+              console.log('✨ Enhanced with material:', primaryItem.material);
+            }
+
+            console.log('🎯 Enhanced search query:', enhancedQuery);
+          }
+        } catch (analysisError) {
+          console.log('⚠️ Claude Vision analysis skipped, using original prompt:', analysisError);
+          // Continue with original prompt if analysis fails
+        }
+      }
+
+      // Step 3: Search with enhanced query using service layer
       const productResults = await serpApiService.searchProducts(
-        designPrompt,
+        enhancedQuery,
         {
           maxResults: 12 // Get more results
         }
