@@ -76,7 +76,7 @@ export default function StyleHub({
             <img 
               src="/stylehub.png" 
               alt="Style Hub" 
-              className="mx-auto h-[1440px] w-auto"
+              className="mx-auto h-[480px] w-auto"
             />
           </div>
         </div>
