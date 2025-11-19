@@ -459,6 +459,34 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
     return { garmentType, color, fabric, length, fit };
   };
 
+  /**
+   * Check if user specified any patterns in their prompt
+   * If they did, we should NOT exclude those patterns in negative prompt
+   * If they didn't, we should exclude common unwanted patterns (like florals)
+   */
+  const hasPatternInPrompt = (input: string): boolean => {
+    const patterns = [
+      'floral', 'flower', 'flowers', 'flowery', 'botanical',
+      'striped', 'stripes', 'stripe',
+      'polka dot', 'polka-dot', 'dotted', 'dots',
+      'plaid', 'checkered', 'checked', 'gingham',
+      'leopard', 'animal print', 'zebra', 'cheetah',
+      'geometric', 'abstract', 'graphic',
+      'paisley', 'damask', 'brocade', 'embroidered', 'embroidery'
+    ];
+    
+    const lowerInput = input.toLowerCase();
+    const hasPattern = patterns.some(pattern => lowerInput.includes(pattern));
+    
+    if (hasPattern) {
+      console.log(`🌸 [PATTERN-CHECK] User specified pattern in: "${input}"`);
+    } else {
+      console.log(`🌸 [PATTERN-CHECK] No patterns mentioned in: "${input}"`);
+    }
+    
+    return hasPattern;
+  };
+
   const createPersonalizedPrompt = async (variationIndex: number): Promise<string> => {
     // PRESERVE user's exact input - NEVER modify this
     const userExactInput = occasion.originalInput || occasion.occasion;
@@ -512,16 +540,35 @@ const TripleOutfitGenerator: React.FC<TripleOutfitGeneratorProps> = ({
       ? `${garmentDetails.fit || ''} ${garmentDetails.length || ''}`.trim()
       : selectedStyle.silhouette;
 
-    // Build the new prompt format - USER REQUEST FIRST, then style interpretation
-    const prompt = `COMPLETE USER REQUEST (MANDATORY - NON-NEGOTIABLE): ${userExactInput}
+    // Log color priority for debugging
+    if (userHasColor) {
+      console.log(`🎨 [VARIATION ${variationIndex + 1}] Color specified by user: ${garmentDetails.color?.toUpperCase()}`);
+      console.log(`🎨 [PROMPT] Moving color to top priority`);
+      console.log(`📝 [PROMPT] COLOR LOCKED: ${garmentDetails.color?.toUpperCase()} (user specified)`);
+    }
 
-PRIMARY GARMENT TYPE: ${garmentDetails.garmentType.toUpperCase()}
+    // Build the new prompt format - COLOR FIRST if specified, then USER REQUEST
+    const colorSection = userHasColor 
+      ? `CRITICAL COLOR REQUIREMENT: ${garmentDetails.color!.toUpperCase()}
+This garment MUST be ${garmentDetails.color} - NO OTHER COLORS for the main piece.
+
+` : '';
+
+    const prompt = `${colorSection}PRIMARY GARMENT TYPE: ${garmentDetails.garmentType.toUpperCase()}
+
+COMPLETE USER REQUEST (MANDATORY - NON-NEGOTIABLE): ${userExactInput}
 
 ${userSpecifiedMandatory.length > 0 ? `
 MANDATORY USER SPECIFICATIONS (MUST BE EXACTLY AS SPECIFIED):
 ${userSpecifiedMandatory.map(spec => `  ✓ ${spec}`).join('\n')}
 
 THESE SPECIFICATIONS ARE ABSOLUTE AND MUST APPEAR IN ALL 3 VARIATIONS.
+` : ''}
+
+${userHasColor ? `
+COLOR EMPHASIS: This MUST be ${garmentDetails.color!.toUpperCase()} - This is MANDATORY.
+All style variations must maintain this EXACT color for the primary garment.
+NO OTHER COLORS for the main ${garmentDetails.garmentType}.
 ` : ''}
 
 ${isCompleteGarment ? `CRITICAL: This is a COMPLETE ${garmentDetails.garmentType.toUpperCase()} - ONE SINGLE full-length piece from top to bottom.
@@ -914,6 +961,19 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
         const selectedStyle = styleInterpretations[styleIndex];
         const styleExclusions = selectedStyle.negativeExclusions ? `, ${selectedStyle.negativeExclusions}` : '';
 
+        // Check if user specified any patterns - if NOT, exclude common unwanted patterns
+        const userWantsPatterns = hasPatternInPrompt(userInput);
+        const patternExclusions = userWantsPatterns
+          ? '' // User wants patterns - don't exclude them
+          : ', floral pattern, flower print, floral design, flowery, botanical print, rose pattern, daisy pattern, tulip pattern, lily pattern, cherry blossom, flower embroidery, floral applique, floral embellishment, flowered, blooming, petal pattern, flower motif, botanical motif, floral detail, flower detail';
+
+        if (patternExclusions) {
+          console.log(`➕ [NEGATIVE-PROMPT] Adding floral exclusions - user didn't specify patterns`);
+          console.log(`📝 [NEGATIVE-PROMPT] Will exclude: floral, flower, botanical patterns`);
+        } else {
+          console.log(`✓ [NEGATIVE-PROMPT] User wants patterns - allowing them`);
+        }
+
         // Add guidance_scale variation to increase diversity between outfits
         // Different guidance values create different levels of prompt adherence
         const guidanceScales = [7.5, 9.0, 10.5]; // Variation 1: moderate, Variation 2: high, Variation 3: very high
@@ -929,7 +989,7 @@ Be VERY STRICT - if there's ANY indication this might be children's clothing, ma
           },
           body: JSON.stringify({
             prompt,
-            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, separate items, isolated clothing, individual pieces laid out separately, disconnected garments, spread out items, separated clothing pieces, items not touching, far apart clothing, clothing items with gaps between them, non-cohesive layout, disjointed outfit, fragmented composition${partialGarmentExclusions}${styleExclusions}, shoes, footwear, boots, sneakers, heels, sandals, slippers, pumps, wedges, flats, loafers, oxfords, mules, espadrilles, bags, purse, handbag, shoulder bag, clutch, tote, backpack, crossbody, satchel, wallet, pouch, scarves, scarf, shawl, wrap, pashmina, bandana, jewelry, necklace, bracelet, earrings, rings, watch, chain, pendant, anklet, accessories, accessory, belt, hat, cap, beanie, fedora, beret, visor, headband, hair accessories, sunglasses, glasses, eyewear, gloves, mittens`,
+            negative_prompt: `${getChildrensExclusionTerms()}, children, kids, child, youth, junior, toddler, baby, infant, boy, girl, ages 0-16, age 2T-16, youth sizes, junior sizing, kid sizes, text, labels, tags, size labels, "XS", "S", "M", "L", "XL", "XXL", size chart, sizing guide, price tags, clothing tags, printed text, written text, typography, letters, words, size indicators, multiple outfits, 2 dresses, 2 outfits, outfit comparison, variations, side by side, outfit options, outfit choices, multiple options, two outfits, several outfits, duplicate outfits, separate items, isolated clothing, individual pieces laid out separately, disconnected garments, spread out items, separated clothing pieces, items not touching, far apart clothing, clothing items with gaps between them, non-cohesive layout, disjointed outfit, fragmented composition${partialGarmentExclusions}${styleExclusions}${patternExclusions}, shoes, footwear, boots, sneakers, heels, sandals, slippers, pumps, wedges, flats, loafers, oxfords, mules, espadrilles, bags, purse, handbag, shoulder bag, clutch, tote, backpack, crossbody, satchel, wallet, pouch, scarves, scarf, shawl, wrap, pashmina, bandana, jewelry, necklace, bracelet, earrings, rings, watch, chain, pendant, anklet, accessories, accessory, belt, hat, cap, beanie, fedora, beret, visor, headband, hair accessories, sunglasses, glasses, eyewear, gloves, mittens`,
             image_size: { height: 1536, width: 1536 },
             num_images: 1,
             enable_safety_checker: true,

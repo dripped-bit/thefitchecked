@@ -216,9 +216,12 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
   // Add to wishlist function (same as AIDesignShopModal)
   const handleAddToWishlist = async (): Promise<boolean> => {
     try {
+      console.log('💾 [WISHLIST] Attempting to save product...');
+      
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
       if (userError || !userData.user) {
+        console.error('❌ [WISHLIST] User not authenticated:', userError);
         setToastMessage('Please sign in to add to wishlist');
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);
@@ -229,6 +232,7 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
       const productToSave = collectedShoppingLinks[0];
       
       if (!productToSave) {
+        console.error('❌ [WISHLIST] No product to save');
         setToastMessage('No product selected');
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);
@@ -238,26 +242,33 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
       const wishlistItem = {
         user_id: userData.user.id,
         name: productToSave.title || 'Product',
-        brand: productToSave.source || 'Unknown',
+        brand: productToSave.source || productToSave.store || 'Unknown',
         price: productToSave.price || 'N/A',
         currency: 'USD',
-        store_url: productToSave.url,
-        image_url: productToSave.image || productToSave.thumbnail,
-        ai_design_prompt: `Occasion: ${parsedOccasion?.occasion || 'Unknown'}`, 
-        status: 'pending'
+        url: productToSave.url, // ✅ Correct field name
+        image: productToSave.imageUrl || productToSave.image || productToSave.thumbnail, // ✅ Correct field name
+        retailer: productToSave.store || 'Unknown', // ✅ Add retailer field
+        notes: `Found via Occasion Planner for ${parsedOccasion?.occasion || 'event'}`, // ✅ Add notes instead of status
+        is_purchased: false // ✅ Add is_purchased field
       };
 
-      const { error } = await supabase
-        .from('wishlist')
-        .insert([wishlistItem]);
+      console.log('💾 [WISHLIST] Saving item:', wishlistItem);
+
+      const { data, error } = await supabase
+        .from('wishlist_items') // ✅ Correct table name!
+        .insert([wishlistItem])
+        .select();
 
       if (error) {
-        console.error('❌ [WISHLIST] Error:', error);
+        console.error('❌ [WISHLIST] Database error:', error);
+        console.error('❌ [WISHLIST] Error details:', JSON.stringify(error, null, 2));
         setToastMessage('Failed to add to wishlist');
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);
         return false;
       }
+
+      console.log('✅ [WISHLIST] Saved successfully:', data);
 
       console.log('✅ [WISHLIST] Added to wishlist:', productToSave.title);
       setToastMessage('Added to wishlist! ❤️');
