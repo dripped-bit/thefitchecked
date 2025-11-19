@@ -84,22 +84,20 @@ const PriceComparisonModal: React.FC<PriceComparisonModalProps> = ({
   };
 
   console.log('🎨 [PRICE-MODAL] Rendering modal with isOpen:', isOpen);
-  
-  if (!isOpen) {
-    console.log('⏸️ [PRICE-MODAL] Modal not open, skipping render');
-    return null;
-  }
 
   return (
     <IonModal 
-      isOpen={true}
+      isOpen={isOpen}
       onDidDismiss={onClose}
       backdropDismiss={true}
       showBackdrop={true}
+      breakpoints={[0, 1]}
+      initialBreakpoint={1}
       style={{
         '--background': 'white',
         '--width': '100%',
-        '--height': '100%',
+        '--height': '90%',
+        '--border-radius': '16px 16px 0 0',
       } as any}
     >
       <IonHeader>
