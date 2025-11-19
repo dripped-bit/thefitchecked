@@ -95,6 +95,46 @@ export const FORMALITY_LEVELS = [
   { value: 5, label: 'Formal', description: 'Black tie, gala, wedding' },
 ] as const;
 
+// Checklist categories for LIST page
+export const CHECKLIST_CATEGORIES = {
+  clothing: 'CLOTHING',
+  toiletries: 'TOILETRIES',
+  documents: 'DOCUMENTS',
+  electronics: 'ELECTRONICS',
+} as const;
+
+// Fixed checklist items by category
+export const FIXED_CHECKLIST_ITEMS = {
+  toiletries: [
+    'Deodorant',
+    'Shampoo and Conditioner',
+    'Sunscreen',
+    'Toothbrush',
+  ],
+  documents: [
+    'ID/Passport',
+    'Travel Tickets / Confirmations',
+  ],
+  electronics: [
+    'Camera',
+    'Laptop',
+    'iPad',
+    'Phone Charger',
+  ],
+} as const;
+
+// Clothing checklist items (dynamic counts from PLAN page)
+export const CLOTHING_CHECKLIST_ITEMS = [
+  'sleepwear',
+  'socks',
+  'underwear',
+  'tops',
+  'bottoms',
+  'shoes',
+  'outerwear',
+  'other',
+] as const;
+
 // Type exports
 export type TripType = keyof typeof TRIP_TYPES;
 export type ActivityType = keyof typeof ACTIVITY_ICONS;
@@ -103,3 +143,4 @@ export type AccommodationType = keyof typeof ACCOMMODATION_TYPES;
 export type PackingCategory = keyof typeof PACKING_CATEGORIES;
 export type TripStatus = keyof typeof TRIP_STATUS;
 export type FormalityLevel = 1 | 2 | 3 | 4 | 5;
+export type ChecklistCategory = keyof typeof CHECKLIST_CATEGORIES;

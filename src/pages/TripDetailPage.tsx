@@ -4,7 +4,7 @@ import { useTrip, useTripStats, useDeleteTrip, useTripDuration } from '../hooks/
 import { TRIP_TYPES, TRIP_STATUS, ACCOMMODATION_TYPES } from '../constants/tripTypes';
 import { TripOverviewTab } from '../components/trips/TripOverviewTab';
 import { TripPlanTab } from '../components/trips/TripPlanTab';
-import { TripPackingListTab } from '../components/trips/TripPackingListTab';
+import { TripListTab } from '../components/trips/TripListTab';
 import { TripShoppingPanel } from '../components/trips/TripShoppingPanel';
 import { TripRecommendationsBadge } from '../components/trips/TripRecommendationsBadge';
 
@@ -14,7 +14,7 @@ interface TripDetailPageProps {
   onEdit?: () => void;
 }
 
-type Tab = 'overview' | 'plan' | 'packing-list';
+type Tab = 'overview' | 'plan' | 'list';
 
 export function TripDetailPage({ tripId, onBack, onEdit }: TripDetailPageProps) {
   const { data: trip, isLoading } = useTrip(tripId);
@@ -169,19 +169,14 @@ export function TripDetailPage({ tripId, onBack, onEdit }: TripDetailPageProps) 
               )}
             </button>
             <button
-              onClick={() => setActiveTab('packing-list')}
+              onClick={() => setActiveTab('list')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeTab === 'packing-list'
+                activeTab === 'list'
                   ? 'bg-purple-600 text-white'
                   : 'bg-white text-gray-600 hover:bg-gray-100'
               }`}
             >
-              Packing List
-              {stats && stats.totalPackingItems > 0 && (
-                <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                  {Math.round(stats.packingProgress)}%
-                </span>
-              )}
+              LIST
             </button>
           </div>
         </div>
@@ -189,32 +184,11 @@ export function TripDetailPage({ tripId, onBack, onEdit }: TripDetailPageProps) 
 
       {/* Tab Content */}
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Shopping Panel - ONLY on packing-list tab */}
-        {activeTab === 'packing-list' && (
-          <>
-            <div className="mb-6">
-              <button
-                onClick={() => setShowShopping(!showShopping)}
-                className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:shadow-lg font-medium flex items-center justify-center gap-2 transition-all"
-              >
-                🛍️ Shop for Trip
-                {showShopping && <span className="text-sm opacity-90">(Hide)</span>}
-              </button>
-            </div>
-
-            {showShopping && (
-              <div className="mb-8">
-                <TripShoppingPanel tripId={tripId} />
-              </div>
-            )}
-          </>
-        )}
-
         {activeTab === 'overview' && (
           <TripOverviewTab trip={trip} stats={stats} daysUntil={daysUntil} duration={duration} />
         )}
         {activeTab === 'plan' && <TripPlanTab trip={trip} />}
-        {activeTab === 'packing-list' && <TripPackingListTab trip={trip} stats={stats} />}
+        {activeTab === 'list' && <TripListTab trip={trip} />}
       </div>
 
       {/* Delete Confirmation Modal */}

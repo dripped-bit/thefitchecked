@@ -1,69 +1,66 @@
-import type { PackingCategory } from '../../constants/tripTypes';
-
-export interface ChecklistItem {
-  name: string;
-  category: PackingCategory;
-  quantity: number;
-  isEssential: boolean;
-  checked: boolean;
-}
+import { CheckCircle, Circle } from 'lucide-react';
+import type { ChecklistItem } from '../../hooks/useTrips';
 
 interface ChecklistSectionProps {
   title: string;
-  emoji: string;
+  icon?: React.ReactNode;
   items: ChecklistItem[];
-  onToggle: (index: number) => void;
-  onQuantityChange: (index: number, quantity: number) => void;
+  onToggle: (itemId: string, currentlyChecked: boolean) => void;
 }
 
-export function ChecklistSection({ 
-  title, 
-  emoji, 
-  items, 
-  onToggle, 
-  onQuantityChange 
-}: ChecklistSectionProps) {
+export function ChecklistSection({ title, icon, items, onToggle }: ChecklistSectionProps) {
+  if (items.length === 0) return null;
+
+  const checkedCount = items.filter(item => item.is_checked).length;
+
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-      <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4">
-        <h3 className="text-lg font-bold flex items-center gap-2">
-          <span className="text-2xl">{emoji}</span>
-          {title}
-        </h3>
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      {/* Section Header */}
+      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {icon}
+            <h4 className="font-bold text-gray-900 text-lg">{title}</h4>
+          </div>
+          <span className="text-sm text-gray-600">
+            {checkedCount}/{items.length} checked
+          </span>
+        </div>
       </div>
-      
+
+      {/* Checklist Items */}
       <div className="divide-y divide-gray-100">
-        {items.map((item, index) => (
-          <div key={index} className="p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors">
-            <input
-              type="checkbox"
-              checked={item.checked}
-              onChange={() => onToggle(index)}
-              className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 cursor-pointer"
-            />
-            <div className="flex-1">
-              <span className={item.checked ? 'text-gray-900 font-medium' : 'text-gray-400'}>
-                {item.name}
-              </span>
-              {item.isEssential && (
-                <span className="ml-2 text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded">
-                  Essential
-                </span>
+        {items.map(item => (
+          <div
+            key={item.id}
+            className={`px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+              item.is_checked ? 'bg-green-50/30' : ''
+            }`}
+          >
+            <button
+              onClick={() => onToggle(item.id, item.is_checked)}
+              className="flex-shrink-0"
+              aria-label={item.is_checked ? 'Uncheck item' : 'Check item'}
+            >
+              {item.is_checked ? (
+                <CheckCircle className="w-6 h-6 text-green-600 fill-green-600" />
+              ) : (
+                <Circle className="w-6 h-6 text-gray-400 hover:text-gray-600" />
               )}
-            </div>
-            {item.quantity > 1 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">×</span>
-                <input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(e) => onQuantityChange(index, parseInt(e.target.value) || 1)}
-                  className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  disabled={!item.checked}
-                />
+            </button>
+
+            <div className="flex-1 min-w-0">
+              <div
+                className={`font-medium ${
+                  item.is_checked ? 'text-gray-500 line-through' : 'text-gray-900'
+                }`}
+              >
+                {item.item_name}
+                {item.item_count > 1 && (
+                  <span className="text-gray-500 ml-2">({item.item_count})</span>
+                )}
               </div>
-            )}
+            </div>
           </div>
         ))}
       </div>

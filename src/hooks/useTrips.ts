@@ -75,6 +75,17 @@ export interface TripDayClothes {
   created_at: string;
 }
 
+export interface ChecklistItem {
+  id: string;
+  trip_id: string;
+  item_name: string;
+  category: string;
+  item_count: number;
+  is_checked: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface TripInput {
   user_id: string;
   name: string;
@@ -129,6 +140,7 @@ export const tripKeys = {
   packingList: (tripId: string) => [...tripKeys.detail(tripId), 'packing'] as const,
   stats: (tripId: string) => [...tripKeys.detail(tripId), 'stats'] as const,
   dayClothes: (tripId: string, date: string) => ['trip-day-clothes', tripId, date] as const,
+  checklist: (tripId: string) => [...tripKeys.detail(tripId), 'checklist'] as const,
 };
 
 // ============================================
@@ -791,6 +803,102 @@ export function useDeleteDayClothes() {
   });
 }
 
+// ============================================
+// CHECKLIST HOOKS
+// ============================================
+
+/**
+ * Fetch checklist items for a trip
+ */
+export function useTripChecklist(tripId: string) {
+  return useQuery({
+    queryKey: tripKeys.checklist(tripId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('trip_checklist')
+        .select('*')
+        .eq('trip_id', tripId)
+        .order('category', { ascending: true })
+        .order('item_name', { ascending: true });
+
+      if (error) throw error;
+      return data as ChecklistItem[];
+    },
+    enabled: !!tripId,
+  });
+}
+
+/**
+ * Toggle checklist item checked state
+ */
+export function useToggleChecklistItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ itemId, isChecked }: { itemId: string; isChecked: boolean }) => {
+      const { error } = await supabase
+        .from('trip_checklist')
+        .update({ is_checked: isChecked })
+        .eq('id', itemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+    },
+  });
+}
+
+/**
+ * Initialize checklist for a trip
+ */
+export function useInitializeChecklist() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ tripId, items }: { tripId: string; items: Array<{ item_name: string; category: string; item_count?: number }> }) => {
+      const checklistItems = items.map(item => ({
+        trip_id: tripId,
+        item_name: item.item_name,
+        category: item.category,
+        item_count: item.item_count || 1,
+        is_checked: false,
+      }));
+
+      const { error } = await supabase
+        .from('trip_checklist')
+        .insert(checklistItems);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.checklist(variables.tripId) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.trip(variables.tripId) });
+    },
+  });
+}
+
+/**
+ * Delete checklist item
+ */
+export function useDeleteChecklistItem() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (itemId: string) => {
+      const { error } = await supabase
+        .from('trip_checklist')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+    },
+  });
+}
+
 export default {
   useTrips,
   useTrip,
@@ -815,4 +923,8 @@ export default {
   useManualDayClothes,
   useAddDayClothes,
   useDeleteDayClothes,
+  useTripChecklist,
+  useToggleChecklistItem,
+  useInitializeChecklist,
+  useDeleteChecklistItem,
 };
