@@ -39,7 +39,7 @@ const AllItemsView: React.FC<AllItemsViewProps> = ({ onBack, onEdit }) => {
   const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [showDeleteToast, setShowDeleteToast] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'favorites' | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showSubcategoryPicker, setShowSubcategoryPicker] = useState(false);
@@ -82,8 +82,12 @@ const AllItemsView: React.FC<AllItemsViewProps> = ({ onBack, onEdit }) => {
   const displayedItems = useMemo(() => {
     let filtered = filteredItems;
 
+    // Filter by favorites
+    if (selectedCategory === 'favorites') {
+      filtered = filtered.filter(item => item.favorite);
+    }
     // Filter by category
-    if (selectedCategory) {
+    else if (selectedCategory) {
       filtered = filtered.filter(item => item.category === selectedCategory);
     }
 
@@ -94,6 +98,11 @@ const AllItemsView: React.FC<AllItemsViewProps> = ({ onBack, onEdit }) => {
 
     return filtered;
   }, [filteredItems, selectedCategory, selectedSubcategory]);
+  
+  // Get favorites count
+  const favoritesCount = useMemo(() => {
+    return items.filter(item => item.favorite).length;
+  }, [items]);
 
   const handleItemClick = (item: ClothingItem) => {
     setSelectedItem(item);
@@ -328,7 +337,9 @@ const AllItemsView: React.FC<AllItemsViewProps> = ({ onBack, onEdit }) => {
             }}
           >
             <span style={{ color: selectedCategory ? '#000' : '#999' }}>
-              {selectedCategory 
+              {selectedCategory === 'favorites'
+                ? '❤️ Favorites'
+                : selectedCategory 
                 ? CATEGORY_LABELS[selectedCategory].title 
                 : 'All Categories'}
             </span>
@@ -337,20 +348,20 @@ const AllItemsView: React.FC<AllItemsViewProps> = ({ onBack, onEdit }) => {
 
           {/* Subcategory Picker Button */}
           <button
-            onClick={() => selectedCategory && setShowSubcategoryPicker(true)}
-            disabled={!selectedCategory}
+            onClick={() => selectedCategory && selectedCategory !== 'favorites' && setShowSubcategoryPicker(true)}
+            disabled={!selectedCategory || selectedCategory === 'favorites'}
             style={{
               flex: 1,
               padding: '12px',
-              background: selectedCategory ? 'white' : '#f5f5f5',
+              background: (selectedCategory && selectedCategory !== 'favorites') ? 'white' : '#f5f5f5',
               border: '1px solid #ddd',
               borderRadius: '12px',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              cursor: selectedCategory ? 'pointer' : 'not-allowed',
+              cursor: (selectedCategory && selectedCategory !== 'favorites') ? 'pointer' : 'not-allowed',
               fontSize: '15px',
-              opacity: selectedCategory ? 1 : 0.5
+              opacity: (selectedCategory && selectedCategory !== 'favorites') ? 1 : 0.5
             }}
           >
             <span style={{ color: selectedSubcategory ? '#000' : '#999' }}>
@@ -590,6 +601,57 @@ const AllItemsView: React.FC<AllItemsViewProps> = ({ onBack, onEdit }) => {
                   </div>
                 </div>
                 {selectedCategory === null && (
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: '#FF1493',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '16px'
+                  }}>
+                    ✓
+                  </div>
+                )}
+              </button>
+
+              {/* Favorites Option */}
+              <button
+                onClick={() => {
+                  setSelectedCategory('favorites');
+                  setSelectedSubcategory(null);
+                  setShowCategoryPicker(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '16px 20px',
+                  background: selectedCategory === 'favorites' 
+                    ? 'rgba(255, 105, 180, 0.1)' 
+                    : 'white',
+                  border: 'none',
+                  borderBottom: '1px solid #f0f0f0',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  fontSize: '16px'
+                }}
+              >
+                <span style={{ fontSize: '24px' }}>❤️</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ 
+                    fontWeight: selectedCategory === 'favorites' ? '600' : '400' 
+                  }}>
+                    Favorites
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#666' }}>
+                    {favoritesCount} {favoritesCount === 1 ? 'item' : 'items'}
+                  </div>
+                </div>
+                {selectedCategory === 'favorites' && (
                   <div style={{
                     width: '24px',
                     height: '24px',
