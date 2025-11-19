@@ -29,7 +29,6 @@ import MoveToClosetModal from '../components/wishlist/MoveToClosetModal';
 import AvailabilityBadge from '../components/wishlist/AvailabilityBadge';
 import availabilityCheckerService from '../services/availabilityCheckerService';
 import birthdayWishlistService from '../services/birthdayWishlistService';
-import { fashionCategories } from '../config/fashionCategories';
 
 interface WishlistItem {
   id: string;
@@ -61,16 +60,25 @@ interface WishlistProps {
   onBack: () => void;
 }
 
+const CATEGORY_LABELS: Record<string, { label: string; icon: string }> = {
+  'All Items': { label: 'All Items', icon: '📋' },
+  'tops': { label: 'Tops', icon: '👕' },
+  'bottoms': { label: 'Bottoms', icon: '👖' },
+  'dresses': { label: 'Dresses', icon: '👗' },
+  'activewear': { label: 'Activewear', icon: '🏃' },
+  'outerwear': { label: 'Outerwear', icon: '🧥' },
+  'shoes': { label: 'Shoes', icon: '👠' },
+  'accessories': { label: 'Accessories', icon: '👜' }
+};
+
 const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const [allWishlistItems, setAllWishlistItems] = useState<WishlistItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Category filter states
+  // Category filter state
   const [selectedCategory, setSelectedCategory] = useState<string>('All Items');
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('All');
-  const [availableSubcategories, setAvailableSubcategories] = useState<string[]>(['All']);
 
   // New feature states
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -88,7 +96,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
 
   useEffect(() => {
     filterItems();
-  }, [selectedCategory, selectedSubcategory, allWishlistItems, showBirthdayMode]);
+  }, [selectedCategory, allWishlistItems, showBirthdayMode]);
 
   const fetchWishlist = async () => {
     try {
@@ -161,39 +169,19 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     }
   };
 
-  // Filter items based on selected category and subcategory
+  // Filter items based on category and birthday mode
   const filterItems = () => {
     let filtered = [...allWishlistItems];
 
-    // Apply birthday mode filtering FIRST
     if (showBirthdayMode) {
       filtered = filtered.filter(item => item.is_birthday_item);
     }
 
-    // Filter by category
     if (selectedCategory !== 'All Items') {
-      filtered = filtered.filter(item => {
-        // Show items that match the category OR items without a category (user can categorize later)
-        return item.category === selectedCategory || !item.category;
-      });
-    }
-
-    // Filter by subcategory
-    if (selectedSubcategory !== 'All' && !selectedSubcategory.startsWith('All ')) {
-      filtered = filtered.filter(item => {
-        return item.subcategory === selectedSubcategory || !item.subcategory;
-      });
+      filtered = filtered.filter(item => item.category === selectedCategory);
     }
 
     setFilteredItems(filtered);
-  };
-
-  // Update subcategories when category changes
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-    const subcats = fashionCategories[category as keyof typeof fashionCategories] || ['All'];
-    setAvailableSubcategories(subcats);
-    setSelectedSubcategory(subcats[0]);
   };
 
   const deleteItem = async (id: string) => {
@@ -454,7 +442,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
           </div>
         )}
 
-        {/* Category Filter Section - Apple Style */}
+        {/* Category Filter - Single Dropdown */}
         <div style={{ 
           backgroundColor: 'var(--ion-background-color)',
           padding: '16px',
@@ -462,96 +450,33 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
         }}>
-          <IonText>
-            <h3 style={{ 
-              margin: '0 0 16px 0', 
-              fontSize: '17px', 
-              fontWeight: '600',
-              letterSpacing: '-0.43px',
-            }}>
-              Filter by Category
-            </h3>
-          </IonText>
-
-          {/* Main Category Picker */}
-          <div style={{ marginBottom: '12px' }}>
-            <IonLabel style={{ 
-              fontSize: '13px', 
-              color: 'var(--ion-color-medium)',
-              display: 'block',
-              marginBottom: '6px',
-              fontWeight: '400',
-            }}>
-              Category
-            </IonLabel>
-            <IonSelect
-              value={selectedCategory}
-              onIonChange={(e) => handleCategoryChange(e.detail.value)}
-              interface="action-sheet"
-              style={{
-                width: '100%',
-                '--padding-start': '16px',
-                '--padding-end': '16px',
-                '--background': 'rgba(120, 120, 128, 0.12)',
-                '--border-radius': '10px',
-                '--placeholder-color': 'rgba(60, 60, 67, 0.6)',
-                minHeight: '44px',
-              }}
-            >
-              {Object.keys(fashionCategories).map((category) => (
-                <IonSelectOption key={category} value={category}>
-                  {category}
-                </IonSelectOption>
-              ))}
-            </IonSelect>
-          </div>
-
-          {/* Subcategory Picker */}
-          <div>
-            <IonLabel style={{ 
-              fontSize: '13px', 
-              color: 'var(--ion-color-medium)',
-              display: 'block',
-              marginBottom: '6px',
-              fontWeight: '400',
-            }}>
-              Subcategory
-            </IonLabel>
-            <IonSelect
-              value={selectedSubcategory}
-              onIonChange={(e) => setSelectedSubcategory(e.detail.value)}
-              interface="action-sheet"
-              style={{
-                width: '100%',
-                '--padding-start': '16px',
-                '--padding-end': '16px',
-                '--background': 'rgba(120, 120, 128, 0.12)',
-                '--border-radius': '10px',
-                '--placeholder-color': 'rgba(60, 60, 67, 0.6)',
-                minHeight: '44px',
-              }}
-            >
-              {availableSubcategories.map((subcategory) => (
-                <IonSelectOption key={subcategory} value={subcategory}>
-                  {subcategory}
-                </IonSelectOption>
-              ))}
-            </IonSelect>
-          </div>
-
-          {/* Results count */}
-          <IonText 
-            color="medium" 
-            style={{ 
-              fontSize: '13px', 
-              marginTop: '12px', 
-              display: 'block',
-              fontWeight: '400',
+          <IonSelect
+            value={selectedCategory}
+            onIonChange={(e) => setSelectedCategory(e.detail.value)}
+            interface="action-sheet"
+            style={{
+              width: '100%',
+              '--padding-start': '16px',
+              '--padding-end': '16px',
+              '--background': 'rgba(120, 120, 128, 0.12)',
+              '--border-radius': '10px',
+              minHeight: '44px',
             }}
           >
+            <IonSelectOption value="All Items">
+              📋 All Items
+            </IonSelectOption>
+            {Object.entries(CATEGORY_LABELS)
+              .filter(([key]) => key !== 'All Items')
+              .map(([key, { icon, label }]) => (
+                <IonSelectOption key={key} value={key}>
+                  {icon} {label}
+                </IonSelectOption>
+              ))}
+          </IonSelect>
+
+          <IonText color="medium" style={{ fontSize: '13px', marginTop: '8px', display: 'block' }}>
             {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
           </IonText>
         </div>
@@ -754,7 +679,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                         </div>
                       )}
 
-                      {/* Action Buttons */}
+                      {/* Action Buttons - 20% Bigger */}
                       <div style={{ 
                         marginTop: '16px', 
                         display: 'flex', 
@@ -768,13 +693,13 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                             flex: 1,
                             minWidth: '120px',
                             '--border-radius': '10px',
-                            '--padding-top': '12px',
-                            '--padding-bottom': '12px',
+                            '--padding-top': '14px',
+                            '--padding-bottom': '14px',
                             fontWeight: '600',
-                            fontSize: '15px',
+                            fontSize: '18px',
                           }}
                         >
-                          <IonIcon icon={openOutline} slot="start" />
+                          <IonIcon icon={openOutline} slot="start" style={{ transform: 'scale(1.2)' }} />
                           Shop
                         </IonButton>
 
@@ -785,9 +710,12 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                             onClick={() => handleMarkPurchased(item)}
                             style={{
                               '--border-radius': '10px',
+                              '--padding-top': '10px',
+                              '--padding-bottom': '10px',
+                              fontSize: '15px',
                             }}
                           >
-                            <IonIcon icon={checkmarkCircle} slot="start" />
+                            <IonIcon icon={checkmarkCircle} slot="start" style={{ transform: 'scale(1.2)' }} />
                             Purchased
                           </IonButton>
                         )}
@@ -801,9 +729,12 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                           }}
                           style={{
                             '--border-radius': '10px',
+                            '--padding-top': '10px',
+                            '--padding-bottom': '10px',
+                            fontSize: '15px',
                           }}
                         >
-                          <IonIcon icon={pricetagsOutline} />
+                          <IonIcon icon={pricetagsOutline} style={{ transform: 'scale(1.2)' }} />
                         </IonButton>
 
                         <IonButton
@@ -813,9 +744,12 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                           onClick={() => deleteItem(item.id)}
                           style={{
                             '--border-radius': '10px',
+                            '--padding-top': '10px',
+                            '--padding-bottom': '10px',
+                            fontSize: '15px',
                           }}
                         >
-                          <IonIcon icon={trash} />
+                          <IonIcon icon={trash} style={{ transform: 'scale(1.2)' }} />
                         </IonButton>
                       </div>
                     </IonCardContent>

@@ -50,7 +50,8 @@ const WishlistActionBar: React.FC<WishlistActionBarProps> = ({
         padding: '12px 16px',
         display: 'flex',
         gap: '8px',
-        flexWrap: 'wrap',
+        flexWrap: 'nowrap',
+        overflowX: 'auto',
       }}
     >
       <IonButton
@@ -61,8 +62,8 @@ const WishlistActionBar: React.FC<WishlistActionBarProps> = ({
         style={{
           '--background': 'var(--ion-color-primary)',
           '--border-radius': '10px',
-          flex: '1 1 calc(50% - 4px)',
-          minWidth: '120px',
+          flex: '1',
+          minWidth: '80px',
         }}
       >
         <IonIcon icon={cart} slot="start" />
@@ -78,8 +79,8 @@ const WishlistActionBar: React.FC<WishlistActionBarProps> = ({
         onClick={onComparePrice}
         style={{
           '--border-radius': '10px',
-          flex: '1 1 calc(50% - 4px)',
-          minWidth: '120px',
+          flex: '1',
+          minWidth: '80px',
         }}
       >
         <IonIcon icon={pricetagsOutline} slot="start" />
@@ -92,8 +93,8 @@ const WishlistActionBar: React.FC<WishlistActionBarProps> = ({
         onClick={onShareList}
         style={{
           '--border-radius': '10px',
-          flex: '1 1 calc(50% - 4px)',
-          minWidth: '120px',
+          flex: '1',
+          minWidth: '80px',
         }}
       >
         <IonIcon icon={shareSocial} slot="start" />
@@ -107,8 +108,8 @@ const WishlistActionBar: React.FC<WishlistActionBarProps> = ({
         onClick={onBirthdayMode}
         style={{
           '--border-radius': '10px',
-          flex: '1 1 calc(50% - 4px)',
-          minWidth: '120px',
+          flex: '1',
+          minWidth: '80px',
         }}
       >
         <IonIcon icon={giftOutline} slot="start" />
