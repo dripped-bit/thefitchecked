@@ -1,34 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import {
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
-  IonCardTitle,
-  IonImg,
   IonGrid,
   IonRow,
   IonCol,
-  IonButton,
   IonIcon,
   IonText,
   IonSpinner,
-  IonBadge,
-  IonSelect,
-  IonSelectOption,
-  IonLabel,
-  IonCheckbox,
   IonToast,
 } from '@ionic/react';
-import { trash, openOutline, sparkles, checkmarkCircle, giftOutline, pricetagsOutline, warningOutline } from 'ionicons/icons';
+import { warningOutline, giftOutline, cart, trash } from 'ionicons/icons';
 import { Browser } from '@capacitor/browser';
 import { Share } from '@capacitor/share';
 import { supabase } from '../services/supabaseClient';
-import WishlistActionBar from '../components/wishlist/WishlistActionBar';
 import PriceComparisonModal from '../components/wishlist/PriceComparisonModal';
 import MoveToClosetModal from '../components/wishlist/MoveToClosetModal';
-import AvailabilityBadge from '../components/wishlist/AvailabilityBadge';
-import availabilityCheckerService from '../services/availabilityCheckerService';
-import birthdayWishlistService from '../services/birthdayWishlistService';
 import claudeComparisonService from '../services/claudeComparisonService';
 import serpApiPriceSearchService from '../services/serpApiPriceSearchService';
 
@@ -81,9 +66,12 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   
   // Category filter state
   const [selectedCategory, setSelectedCategory] = useState<string>('All Items');
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
 
-  // New feature states
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  // Tab bar state
+  const [activeMainTab, setActiveMainTab] = useState<'compare' | 'buy' | 'share' | 'birthday'>('compare');
+
+  // Feature states
   const [showBirthdayMode, setShowBirthdayMode] = useState(false);
   const [showPriceComparison, setShowPriceComparison] = useState(false);
   const [selectedItemForComparison, setSelectedItemForComparison] = useState<any>(null);
@@ -91,7 +79,6 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const [selectedItemForMove, setSelectedItemForMove] = useState<any>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [compareMode, setCompareMode] = useState(false);
   const [comparingItem, setComparingItem] = useState(false);
 
   useEffect(() => {
@@ -211,32 +198,9 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     }
   };
 
-  // New feature handlers
-  const toggleItemSelection = (itemId: string) => {
-    setSelectedItems(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId);
-      } else {
-        newSet.add(itemId);
-      }
-      return newSet;
-    });
-  };
-
-  const handleComparePrice = () => {
-    if (selectedItems.size === 0) {
-      setToastMessage('Select items to compare prices');
-      setShowToast(true);
-      return;
-    }
-    
-    const firstSelectedId = Array.from(selectedItems)[0];
-    const item = allWishlistItems.find(i => i.id === firstSelectedId);
-    
-    if (item) {
-      handleAIComparison(item);
-    }
+  // Feature handlers
+  const handleComparePrice = (item: WishlistItem) => {
+    handleAIComparison(item);
   };
 
   const handleAIComparison = async (item: WishlistItem) => {
@@ -278,13 +242,9 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
 
   const handleShareList = async () => {
     try {
-      const itemsToShare = selectedItems.size > 0
-        ? allWishlistItems.filter(i => selectedItems.has(i.id))
-        : allWishlistItems;
-
-      const shareText = itemsToShare
-        .map(item => `${item.name} - ${item.price}\\n${item.url}`)
-        .join('\\n\\n');
+      const shareText = filteredItems
+        .map(item => `${item.name} - ${item.price}\n${item.url}`)
+        .join('\n\n');
 
       await Share.share({
         title: 'My Wishlist',
@@ -297,10 +257,65 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   };
 
   const handleBirthdayMode = () => {
+    setActiveMainTab('birthday');
     setShowBirthdayMode(!showBirthdayMode);
     if (!showBirthdayMode) {
-      // Filter to show only birthday items
       setSelectedCategory('All Items');
+    }
+  };
+
+  const markAsBirthdayItem = async (itemId: string) => {
+    try {
+      const { error } = await supabase
+        .from('wishlist_items')
+        .update({ is_birthday_item: true })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      setToastMessage('Added to birthday wishlist!');
+      setShowToast(true);
+      fetchWishlist();
+    } catch (error) {
+      console.error('Error marking as birthday item:', error);
+      setToastMessage('Failed to add to birthday list');
+      setShowToast(true);
+    }
+  };
+
+  const handleBuyAndSave = async (item: WishlistItem) => {
+    try {
+      await Browser.open({ url: item.url });
+      
+      setToastMessage('Saving to closet after purchase...');
+      setShowToast(true);
+      
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      
+      await supabase.from('clothing_items').insert({
+        user_id: userData.user.id,
+        name: item.name,
+        category: item.category || 'tops',
+        image_url: item.image,
+        brand: item.brand,
+        price: item.price ? parseFloat(item.price.replace(/[^0-9.]/g, '')) : null,
+        notes: `Purchased from ${item.retailer}`,
+        purchase_date: new Date().toISOString(),
+        favorite: false,
+        times_worn: 0,
+        tags: ['wishlist_purchase', item.retailer || 'wishlist']
+      });
+      
+      await supabase.from('wishlist_items').delete().eq('id', item.id);
+      
+      setToastMessage('Saved to closet!');
+      setShowToast(true);
+      fetchWishlist();
+    } catch (error: any) {
+      console.error('Buy and save error:', error);
+      setToastMessage('Error: ' + error.message);
+      setShowToast(true);
     }
   };
 
@@ -368,38 +383,33 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     setShowToast(true);
   };
 
-  console.log('🚀 [WISHLIST] Main render function executing');
-  
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: '#f2f2f7',
+      background: '#ffffff',
       display: 'flex',
       flexDirection: 'column'
     }}>
-      {console.log('📄 [WISHLIST] Main div rendering')}
-      
-      {/* Header */}
+      {/* Header - Centered Minimal */}
       <div style={{
-        position: 'sticky',
-        top: '64px',
-        zIndex: 10,
-        background: '#fff',
-        borderBottom: '1px solid rgba(0,0,0,0.1)',
         display: 'flex',
         alignItems: 'center',
-        padding: '16px',
-        minHeight: '60px'
+        justifyContent: 'center',
+        padding: '12px 16px',
+        position: 'relative',
+        borderBottom: '1px solid rgba(0,0,0,0.1)',
       }}>
         <button
           onClick={onBack}
           style={{
+            position: 'absolute',
+            left: '16px',
             background: 'none',
             border: 'none',
             fontSize: '24px',
             cursor: 'pointer',
             padding: '8px',
-            marginRight: '12px'
+            color: '#007AFF'
           }}
         >
           ←
@@ -413,12 +423,8 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       <div style={{ 
         flex: 1, 
         overflowY: 'auto',
-        padding: '16px',
-        paddingTop: '80px',
         paddingBottom: '100px'
       }}>
-        {console.log('🎨 [WISHLIST] Rendering - loading:', loading, 'error:', error, 'items:', allWishlistItems.length)}
-        
         {loading ? (
           <div style={{
             display: 'flex',
@@ -505,343 +511,326 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
           </div>
         ) : (
           <>
-            {console.log('✅ [WISHLIST] Rendering content section with', allWishlistItems.length, 'items')}
-            {console.log('✅ [WISHLIST] filteredItems:', filteredItems.length)}
-            
-            {/* Action Bar */}
-            <WishlistActionBar
-              selectedItems={selectedItems}
-              onComparePrice={handleComparePrice}
-              onShareList={handleShareList}
-              onBirthdayMode={handleBirthdayMode}
-              allItems={allWishlistItems}
+            {/* Tab Bar - Apple Style */}
+            <div style={{
+              display: 'flex',
+              gap: '4px',
+              padding: '16px',
+              paddingBottom: '8px',
+            }}>
+              <button
+                onClick={() => {
+                  setActiveMainTab('compare');
+                  setToastMessage('Select an item to compare prices');
+                  setShowToast(true);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: activeMainTab === 'compare' ? '#007AFF' : '#f2f2f7',
+                  color: activeMainTab === 'compare' ? 'white' : '#000',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  fontSize: '15px',
+                  cursor: 'pointer',
+                }}
+              >
+                Compare
+              </button>
+              <button
+                onClick={() => {
+                  setActiveMainTab('buy');
+                  setToastMessage('Click 🛒 on any item to purchase');
+                  setShowToast(true);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: activeMainTab === 'buy' ? '#007AFF' : '#f2f2f7',
+                  color: activeMainTab === 'buy' ? 'white' : '#000',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  fontSize: '15px',
+                  cursor: 'pointer',
+                }}
+              >
+                Buy
+              </button>
+              <button
+                onClick={() => {
+                  setActiveMainTab('share');
+                  handleShareList();
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: activeMainTab === 'share' ? '#007AFF' : '#f2f2f7',
+                  color: activeMainTab === 'share' ? 'white' : '#000',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  fontSize: '15px',
+                  cursor: 'pointer',
+                }}
+              >
+                Share
+              </button>
+              <button
+                onClick={handleBirthdayMode}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  background: showBirthdayMode ? '#007AFF' : '#f2f2f7',
+                  color: showBirthdayMode ? 'white' : '#000',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  fontSize: '15px',
+                  cursor: 'pointer',
+                }}
+              >
+                Birthday
+              </button>
+            </div>
+
+            {/* Apple Pull-Down Button for Categories */}
+            <div style={{ padding: '0 16px 16px', position: 'relative' }}>
+              <button
+                onClick={() => setShowCategoryMenu(!showCategoryMenu)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: '#f2f2f7',
+                  border: 'none',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontWeight: '600',
+                  fontSize: '15px',
+                  cursor: 'pointer',
+                }}
+              >
+                <span>
+                  {CATEGORY_LABELS[selectedCategory]?.icon} {CATEGORY_LABELS[selectedCategory]?.label} ({filteredItems.length})
+                </span>
+                <span style={{ fontSize: '12px', color: '#86868b' }}>▼</span>
+              </button>
+              
+              {showCategoryMenu && (
+                <div style={{
+                  position: 'absolute',
+                  background: 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                  marginTop: '8px',
+                  width: 'calc(100% - 32px)',
+                  overflow: 'hidden',
+                  zIndex: 1000,
+                }}>
+                  {Object.entries(CATEGORY_LABELS).map(([key, { icon, label }]) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        setSelectedCategory(key);
+                        setShowCategoryMenu(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px',
+                        background: selectedCategory === key ? '#f2f2f7' : 'white',
+                        border: 'none',
+                        borderBottom: '1px solid #f2f2f7',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '15px',
+                      }}
+                    >
+                      {icon} {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Wishlist Items Grid - 2 Column Portrait */}
+            {filteredItems.length === 0 ? (
+              <div className="ion-padding ion-text-center" style={{ marginTop: '50%' }}>
+                <IonText color="medium">
+                  <h2 style={{ fontWeight: '600', fontSize: '22px' }}>No items found</h2>
+                  <p style={{ fontSize: '17px' }}>
+                    {allWishlistItems.length === 0 
+                      ? 'Your wishlist is empty. Start adding items!'
+                      : 'Try adjusting your filters'}
+                  </p>
+                </IonText>
+              </div>
+            ) : (
+              <IonGrid style={{ padding: '16px' }}>
+                <IonRow>
+                  {filteredItems.map((item) => (
+                    <IonCol size="6" key={item.id}>
+                      <div style={{
+                        background: 'white',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                      }}>
+                        {/* Image with overlay buttons - Portrait Aspect Ratio */}
+                        <div style={{ position: 'relative', aspectRatio: '3/4' }}>
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            style={{ 
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              backgroundColor: 'rgba(120, 120, 128, 0.12)',
+                            }}
+                          />
+                          
+                          {/* Top-right overlay buttons */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '8px',
+                            right: '8px',
+                            display: 'flex',
+                            gap: '6px',
+                          }}>
+                            {/* Shop Button */}
+                            <button
+                              onClick={() => {
+                                if (activeMainTab === 'buy') {
+                                  handleBuyAndSave(item);
+                                } else {
+                                  openProductLink(item.url);
+                                }
+                              }}
+                              style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                background: 'rgba(255,255,255,0.95)',
+                                border: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                fontSize: '18px',
+                              }}
+                            >
+                              🛒
+                            </button>
+                            
+                            {/* Gift Icon - Add to Birthday */}
+                            <button
+                              onClick={() => {
+                                markAsBirthdayItem(item.id);
+                                setShowBirthdayMode(true);
+                              }}
+                              style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                background: 'rgba(255,255,255,0.95)',
+                                border: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                fontSize: '18px',
+                              }}
+                            >
+                              🎁
+                            </button>
+                            
+                            {/* Trash Button */}
+                            <button
+                              onClick={() => deleteItem(item.id)}
+                              style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                background: 'rgba(255,255,255,0.95)',
+                                border: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                fontSize: '18px',
+                              }}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+
+                        
+                        {/* Product Info - Simplified */}
+                        <div style={{ padding: '12px' }}>
+                          <h3 style={{
+                            margin: '0 0 6px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: '#000',
+                            lineHeight: '1.3',
+                          }}>
+                            {item.name.length > 50 ? `${item.name.substring(0, 50)}...` : item.name}
+                          </h3>
+                          <p style={{
+                            margin: '0 0 4px',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            color: '#007AFF',
+                          }}>
+                            {item.price}
+                          </p>
+                          {item.retailer && (
+                            <p style={{
+                              margin: 0,
+                              fontSize: '12px',
+                              color: '#86868b',
+                            }}>
+                              from {item.retailer}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </IonCol>
+                  ))}
+                </IonRow>
+              </IonGrid>
+            )}
+
+            {/* Modals */}
+            <PriceComparisonModal
+              isOpen={showPriceComparison}
+              onClose={() => setShowPriceComparison(false)}
+              item={selectedItemForComparison}
             />
 
-        {/* Category Filter - Single Dropdown */}
-        <div style={{ 
-          backgroundColor: 'var(--ion-background-color)',
-          padding: '16px',
-          borderBottom: '0.5px solid rgba(60, 60, 67, 0.29)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-        }}>
-          <IonSelect
-            value={selectedCategory}
-            onIonChange={(e) => setSelectedCategory(e.detail.value)}
-            interface="action-sheet"
-            style={{
-              width: '100%',
-              '--padding-start': '16px',
-              '--padding-end': '16px',
-              '--background': 'rgba(120, 120, 128, 0.12)',
-              '--border-radius': '10px',
-              minHeight: '44px',
-            }}
-          >
-            <IonSelectOption value="All Items">
-              📋 All Items ({allWishlistItems.length} items)
-            </IonSelectOption>
-            {Object.entries(CATEGORY_LABELS)
-              .filter(([key]) => key !== 'All Items')
-              .map(([key, { icon, label }]) => (
-                <IonSelectOption key={key} value={key}>
-                  {icon} {label}
-                </IonSelectOption>
-              ))}
-          </IonSelect>
+            <MoveToClosetModal
+              isOpen={showMoveToCloset}
+              onClose={() => setShowMoveToCloset(false)}
+              item={selectedItemForMove}
+              onSuccess={() => {
+                fetchWishlist();
+                setSelectedItemForMove(null);
+              }}
+            />
 
-          <IonText color="medium" style={{ fontSize: '13px', marginTop: '8px', display: 'block' }}>
-            {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
-          </IonText>
-        </div>
-
-        {/* Wishlist Items Grid */}
-        {filteredItems.length === 0 ? (
-          <div className="ion-padding ion-text-center" style={{ marginTop: '50%' }}>
-            <IonText color="medium">
-              <h2 style={{ fontWeight: '600', fontSize: '22px' }}>No items found</h2>
-              <p style={{ fontSize: '17px' }}>
-                {allWishlistItems.length === 0 
-                  ? 'Your wishlist is empty. Start adding items!'
-                  : 'Try adjusting your filters'}
-              </p>
-            </IonText>
-          </div>
-        ) : (
-          <IonGrid style={{ padding: '16px' }}>
-            <IonRow>
-              {filteredItems.map((item) => (
-                <IonCol size="12" sizeMd="6" sizeLg="4" key={item.id}>
-                  <IonCard style={{ 
-                    margin: 0,
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  }}>
-                    <div style={{ position: 'relative' }}>
-                      <IonImg
-                        src={item.image}
-                        alt={item.name}
-                        style={{ 
-                          height: '250px', 
-                          objectFit: 'cover',
-                          backgroundColor: 'rgba(120, 120, 128, 0.12)',
-                        }}
-                      />
-                      
-                      {/* Selection Checkbox */}
-                      <IonCheckbox
-                        checked={selectedItems.has(item.id)}
-                        onIonChange={() => toggleItemSelection(item.id)}
-                        style={{
-                          position: 'absolute',
-                          top: '10px',
-                          left: '10px',
-                          '--size': '24px',
-                          '--background': 'white',
-                          '--border-radius': '6px',
-                        }}
-                      />
-
-                      {/* AI Badge */}
-                      {item.ai_generated && (
-                        <IonBadge
-                          color="secondary"
-                          style={{
-                            position: 'absolute',
-                            top: '10px',
-                            right: '10px',
-                            padding: '6px 10px',
-                            borderRadius: '8px',
-                            fontWeight: '600',
-                            fontSize: '12px',
-                          }}
-                        >
-                          <IonIcon 
-                            icon={sparkles} 
-                            style={{ marginRight: '4px', fontSize: '14px', verticalAlign: 'middle' }} 
-                          />
-                          AI Design
-                        </IonBadge>
-                      )}
-
-                      {/* Birthday Badge */}
-                      {item.is_birthday_item && (
-                        <IonBadge
-                          color="secondary"
-                          style={{
-                            position: 'absolute',
-                            top: item.ai_generated ? '48px' : '10px',
-                            right: '10px',
-                            padding: '6px 10px',
-                            borderRadius: '8px',
-                            fontWeight: '600',
-                            fontSize: '12px',
-                          }}
-                        >
-                          <IonIcon icon={giftOutline} style={{ marginRight: '4px', fontSize: '14px', verticalAlign: 'middle' }} />
-                          Birthday
-                        </IonBadge>
-                      )}
-
-                      {/* Purchased Badge */}
-                      {item.is_purchased && (
-                        <IonBadge
-                          color="success"
-                          style={{
-                            position: 'absolute',
-                            bottom: '10px',
-                            left: '10px',
-                            padding: '6px 10px',
-                            borderRadius: '8px',
-                            fontWeight: '600',
-                            fontSize: '12px',
-                          }}
-                        >
-                          <IonIcon icon={checkmarkCircle} style={{ marginRight: '4px', fontSize: '14px', verticalAlign: 'middle' }} />
-                          Purchased
-                        </IonBadge>
-                      )}
-                    </div>
-
-                    <IonCardHeader>
-                      <IonCardTitle style={{ 
-                        fontSize: '16px', 
-                        fontWeight: '600',
-                        letterSpacing: '-0.32px',
-                        lineHeight: '1.3',
-                      }}>
-                        {item.name.length > 60
-                          ? `${item.name.substring(0, 60)}...`
-                          : item.name}
-                      </IonCardTitle>
-                    </IonCardHeader>
-
-                    <IonCardContent>
-                      <IonText color="primary">
-                        <strong style={{ fontSize: '18px', fontWeight: '600' }}>
-                          {item.price}
-                        </strong>
-                      </IonText>
-                      
-                      {item.retailer && (
-                        <IonText 
-                          color="medium" 
-                          style={{ 
-                            display: 'block', 
-                            fontSize: '13px', 
-                            marginTop: '4px',
-                          }}
-                        >
-                          from {item.retailer}
-                        </IonText>
-                      )}
-
-                      {/* Category badges */}
-                      {(item.category || item.subcategory) && (
-                        <div style={{ marginTop: '8px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                          {item.category && (
-                            <IonBadge 
-                              color="light" 
-                              style={{ 
-                                fontSize: '11px',
-                                padding: '4px 8px',
-                                fontWeight: '500',
-                              }}
-                            >
-                              {item.category}
-                            </IonBadge>
-                          )}
-                          {item.subcategory && (
-                            <IonBadge 
-                              color="light" 
-                              style={{ 
-                                fontSize: '11px',
-                                padding: '4px 8px',
-                                fontWeight: '500',
-                              }}
-                            >
-                              {item.subcategory}
-                            </IonBadge>
-                          )}
-                        </div>
-                      )}
-
-                      {/* AI design prompt */}
-                      {item.ai_generated && item.design_prompt && (
-                        <IonText 
-                          color="medium" 
-                          style={{ 
-                            display: 'block', 
-                            fontSize: '12px', 
-                            marginTop: '8px', 
-                            fontStyle: 'italic',
-                            lineHeight: '1.4',
-                          }}
-                        >
-                          "{item.design_prompt.substring(0, 80)}{item.design_prompt.length > 80 ? '...' : ''}"
-                        </IonText>
-                      )}
-
-                      {/* Availability Badge */}
-                      {item.availability_status && (
-                        <div style={{ marginTop: '8px' }}>
-                          <AvailabilityBadge
-                            status={item.availability_status}
-                            onClick={() => handleCheckAvailability(item)}
-                          />
-                        </div>
-                      )}
-
-                      {/* Action Buttons - 3 Buttons, 20% Bigger */}
-                      <div style={{ 
-                        marginTop: '16px', 
-                        display: 'flex', 
-                        gap: '8px',
-                        flexWrap: 'wrap',
-                      }}>
-                        <IonButton
-                          expand="block"
-                          onClick={() => openProductLink(item.url)}
-                          style={{ 
-                            flex: 1,
-                            minWidth: '120px',
-                            '--border-radius': '10px',
-                            '--padding-top': '14px',
-                            '--padding-bottom': '14px',
-                            fontWeight: '600',
-                            fontSize: '18px',
-                          }}
-                        >
-                          <IonIcon icon={openOutline} slot="start" style={{ transform: 'scale(1.2)' }} />
-                          Shop
-                        </IonButton>
-
-                        {!item.is_purchased && (
-                          <IonButton
-                            fill="outline"
-                            size="small"
-                            onClick={() => handleMarkPurchased(item)}
-                            style={{
-                              '--border-radius': '10px',
-                              '--padding-top': '10px',
-                              '--padding-bottom': '10px',
-                              fontSize: '15px',
-                            }}
-                          >
-                            <IonIcon icon={checkmarkCircle} slot="start" style={{ transform: 'scale(1.2)' }} />
-                            Purchased
-                          </IonButton>
-                        )}
-
-                        <IonButton
-                          fill="outline"
-                          color="danger"
-                          size="small"
-                          onClick={() => deleteItem(item.id)}
-                          style={{
-                            '--border-radius': '10px',
-                            '--padding-top': '10px',
-                            '--padding-bottom': '10px',
-                            fontSize: '15px',
-                          }}
-                        >
-                          <IonIcon icon={trash} style={{ transform: 'scale(1.2)' }} />
-                        </IonButton>
-                      </div>
-                    </IonCardContent>
-                  </IonCard>
-                </IonCol>
-              ))}
-            </IonRow>
-          </IonGrid>
-        )}
-
-        {/* Modals */}
-        <PriceComparisonModal
-          isOpen={showPriceComparison}
-          onClose={() => setShowPriceComparison(false)}
-          item={selectedItemForComparison}
-        />
-
-        <MoveToClosetModal
-          isOpen={showMoveToCloset}
-          onClose={() => setShowMoveToCloset(false)}
-          item={selectedItemForMove}
-          onSuccess={() => {
-            fetchWishlist();
-            setSelectedItemForMove(null);
-          }}
-        />
-
-        <IonToast
-          isOpen={showToast}
-          onDidDismiss={() => setShowToast(false)}
-          message={toastMessage}
-          duration={2000}
-          position="top"
-        />
+            <IonToast
+              isOpen={showToast}
+              onDidDismiss={() => setShowToast(false)}
+              message={toastMessage}
+              duration={2000}
+              position="top"
+            />
           </>
         )}
       </div>
