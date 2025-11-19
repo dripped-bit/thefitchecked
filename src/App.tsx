@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw, H
 import { App as KonstaApp } from 'konsta/react';
 import useDevMode from './hooks/useDevMode';
 import { FloatingTabBar, Tab } from './components/ui/FloatingTabBar';
+import FloatingStylistButton from './components/FloatingStylistButton';
+import FashionStylistChat from './components/FashionStylistChat';
 // Force Apple Design System CSS to be included in build
 import './styles/apple-design.css';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -340,6 +342,9 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome'); // DEBUG: Back to normal flow with debug logging enabled
   const [isDevelopment] = useState(import.meta.env.MODE === 'development');
   const [showDevPanel, setShowDevPanel] = useState(true);
+  
+  // Fashion Stylist Chat state
+  const [showStylistChat, setShowStylistChat] = useState(false);
   const [isCreatingNewAvatar, setIsCreatingNewAvatar] = useState(false);
   const [isDevPanelCollapsed, setIsDevPanelCollapsed] = useState(false);
   const [useDefaultMeasurements, setUseDefaultMeasurements] = useState(false);
@@ -1661,6 +1666,20 @@ function App() {
             onTabChange={handleTabChange}
             groupingStyle="paired"
             hapticFeedback={true}
+          />
+        )}
+
+        {/* Fashion Stylist - Floating Button (appears on all screens when logged in) */}
+        {!authLoading && authUser && !isAuthCallback && !shareId && (
+          <FloatingStylistButton
+            onClick={() => setShowStylistChat(true)}
+          />
+        )}
+
+        {/* Fashion Stylist Chat Modal */}
+        {showStylistChat && (
+          <FashionStylistChat
+            onClose={() => setShowStylistChat(false)}
           />
         )}
 
