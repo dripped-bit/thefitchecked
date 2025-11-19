@@ -21,10 +21,19 @@ import {
   IonSelect,
   IonSelectOption,
   IonLabel,
+  IonCheckbox,
+  IonToast,
 } from '@ionic/react';
-import { trash, openOutline, sparkles } from 'ionicons/icons';
+import { trash, openOutline, sparkles, checkmarkCircle, giftOutline, pricetagsOutline } from 'ionicons/icons';
 import { Browser } from '@capacitor/browser';
+import { Share } from '@capacitor/share';
 import { supabase } from '../services/supabaseClient';
+import WishlistActionBar from '../components/wishlist/WishlistActionBar';
+import PriceComparisonModal from '../components/wishlist/PriceComparisonModal';
+import MoveToClosetModal from '../components/wishlist/MoveToClosetModal';
+import AvailabilityBadge from '../components/wishlist/AvailabilityBadge';
+import availabilityCheckerService from '../services/availabilityCheckerService';
+import birthdayWishlistService from '../services/birthdayWishlistService';
 
 // Fashion categories with subcategories
 const fashionCategories = {
@@ -132,6 +141,7 @@ interface WishlistItem {
   price: string;
   currency?: string;
   image: string;
+  image_url?: string;
   url: string;
   retailer: string;
   notes?: string;
@@ -142,6 +152,10 @@ interface WishlistItem {
   ai_generated?: boolean;
   design_prompt?: string;
   ai_generated_image?: string;
+  is_birthday_item?: boolean;
+  is_purchased?: boolean;
+  availability_status?: 'in_stock' | 'low_stock' | 'out_of_stock' | 'restocking';
+  availability_checked_at?: string;
   created_at: string;
 }
 
@@ -155,13 +169,23 @@ const Wishlist: React.FC = () => {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('All');
   const [availableSubcategories, setAvailableSubcategories] = useState<string[]>(['All']);
 
+  // New feature states
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [showBirthdayMode, setShowBirthdayMode] = useState(false);
+  const [showPriceComparison, setShowPriceComparison] = useState(false);
+  const [selectedItemForComparison, setSelectedItemForComparison] = useState<any>(null);
+  const [showMoveToCloset, setShowMoveToCloset] = useState(false);
+  const [selectedItemForMove, setSelectedItemForMove] = useState<any>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
   useEffect(() => {
     fetchWishlist();
   }, []);
 
   useEffect(() => {
     filterItems();
-  }, [selectedCategory, selectedSubcategory, allWishlistItems]);
+  }, [selectedCategory, selectedSubcategory, allWishlistItems, showBirthdayMode]);
 
   const fetchWishlist = async () => {
     try {
@@ -193,6 +217,11 @@ const Wishlist: React.FC = () => {
   // Filter items based on selected category and subcategory
   const filterItems = () => {
     let filtered = [...allWishlistItems];
+
+    // Apply birthday mode filtering FIRST
+    if (showBirthdayMode) {
+      filtered = filtered.filter(item => item.is_birthday_item);
+    }
 
     // Filter by category
     if (selectedCategory !== 'All Items') {
@@ -243,6 +272,78 @@ const Wishlist: React.FC = () => {
     }
   };
 
+  // New feature handlers
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleComparePrice = () => {
+    if (selectedItems.size === 0) return;
+    const firstSelectedId = Array.from(selectedItems)[0];
+    const item = allWishlistItems.find(i => i.id === firstSelectedId);
+    if (item) {
+      setSelectedItemForComparison(item);
+      setShowPriceComparison(true);
+    }
+  };
+
+  const handleShareList = async () => {
+    try {
+      const itemsToShare = selectedItems.size > 0
+        ? allWishlistItems.filter(i => selectedItems.has(i.id))
+        : allWishlistItems;
+
+      const shareText = itemsToShare
+        .map(item => `${item.name} - ${item.price}\\n${item.url}`)
+        .join('\\n\\n');
+
+      await Share.share({
+        title: 'My Wishlist',
+        text: shareText,
+        dialogTitle: 'Share Wishlist'
+      });
+    } catch (error) {
+      console.error('Share error:', error);
+    }
+  };
+
+  const handleBirthdayMode = () => {
+    setShowBirthdayMode(!showBirthdayMode);
+    if (!showBirthdayMode) {
+      // Filter to show only birthday items
+      setSelectedCategory('All Items');
+    }
+  };
+
+  const handleMarkPurchased = (item: WishlistItem) => {
+    setSelectedItemForMove(item);
+    setShowMoveToCloset(true);
+  };
+
+  const handleCheckAvailability = async (item: WishlistItem) => {
+    setToastMessage('Checking availability...');
+    setShowToast(true);
+
+    const result = await availabilityCheckerService.checkAvailability(item.url, item.name);
+    
+    if (result.success) {
+      // Refresh wishlist to show updated status
+      fetchWishlist();
+      setToastMessage(`Status: ${result.details || result.status}`);
+    } else {
+      setToastMessage('Could not check availability');
+    }
+    setShowToast(true);
+  };
+
   if (loading) {
     return (
       <IonPage>
@@ -267,6 +368,32 @@ const Wishlist: React.FC = () => {
       </IonHeader>
 
       <IonContent>
+        {/* Action Bar */}
+        <WishlistActionBar
+          selectedItems={selectedItems}
+          onComparePrice={handleComparePrice}
+          onShareList={handleShareList}
+          onBirthdayMode={handleBirthdayMode}
+          allItems={allWishlistItems}
+        />
+
+        {/* Birthday Mode Banner */}
+        {showBirthdayMode && (
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #FF6B9D 0%, #C44569 100%)',
+              padding: '12px 16px',
+              color: 'white',
+              textAlign: 'center',
+              fontSize: '14px',
+              fontWeight: '600',
+            }}
+          >
+            <IonIcon icon={giftOutline} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+            Birthday Mode Active
+          </div>
+        )}
+
         {/* Category Filter Section - Apple Style */}
         <div style={{ 
           backgroundColor: 'var(--ion-background-color)',
@@ -403,6 +530,20 @@ const Wishlist: React.FC = () => {
                         }}
                       />
                       
+                      {/* Selection Checkbox */}
+                      <IonCheckbox
+                        checked={selectedItems.has(item.id)}
+                        onIonChange={() => toggleItemSelection(item.id)}
+                        style={{
+                          position: 'absolute',
+                          top: '10px',
+                          left: '10px',
+                          '--size': '24px',
+                          '--background': 'white',
+                          '--border-radius': '6px',
+                        }}
+                      />
+
                       {/* AI Badge */}
                       {item.ai_generated && (
                         <IonBadge
@@ -422,6 +563,44 @@ const Wishlist: React.FC = () => {
                             style={{ marginRight: '4px', fontSize: '14px', verticalAlign: 'middle' }} 
                           />
                           AI Design
+                        </IonBadge>
+                      )}
+
+                      {/* Birthday Badge */}
+                      {item.is_birthday_item && (
+                        <IonBadge
+                          color="secondary"
+                          style={{
+                            position: 'absolute',
+                            top: item.ai_generated ? '48px' : '10px',
+                            right: '10px',
+                            padding: '6px 10px',
+                            borderRadius: '8px',
+                            fontWeight: '600',
+                            fontSize: '12px',
+                          }}
+                        >
+                          <IonIcon icon={giftOutline} style={{ marginRight: '4px', fontSize: '14px', verticalAlign: 'middle' }} />
+                          Birthday
+                        </IonBadge>
+                      )}
+
+                      {/* Purchased Badge */}
+                      {item.is_purchased && (
+                        <IonBadge
+                          color="success"
+                          style={{
+                            position: 'absolute',
+                            bottom: '10px',
+                            left: '10px',
+                            padding: '6px 10px',
+                            borderRadius: '8px',
+                            fontWeight: '600',
+                            fontSize: '12px',
+                          }}
+                        >
+                          <IonIcon icon={checkmarkCircle} style={{ marginRight: '4px', fontSize: '14px', verticalAlign: 'middle' }} />
+                          Purchased
                         </IonBadge>
                       )}
                     </div>
@@ -505,16 +684,29 @@ const Wishlist: React.FC = () => {
                         </IonText>
                       )}
 
+                      {/* Availability Badge */}
+                      {item.availability_status && (
+                        <div style={{ marginTop: '8px' }}>
+                          <AvailabilityBadge
+                            status={item.availability_status}
+                            onClick={() => handleCheckAvailability(item)}
+                          />
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
                       <div style={{ 
                         marginTop: '16px', 
                         display: 'flex', 
                         gap: '8px',
+                        flexWrap: 'wrap',
                       }}>
                         <IonButton
                           expand="block"
                           onClick={() => openProductLink(item.url)}
                           style={{ 
                             flex: 1,
+                            minWidth: '120px',
                             '--border-radius': '10px',
                             '--padding-top': '12px',
                             '--padding-bottom': '12px',
@@ -525,14 +717,42 @@ const Wishlist: React.FC = () => {
                           <IonIcon icon={openOutline} slot="start" />
                           Shop
                         </IonButton>
+
+                        {!item.is_purchased && (
+                          <IonButton
+                            fill="outline"
+                            size="small"
+                            onClick={() => handleMarkPurchased(item)}
+                            style={{
+                              '--border-radius': '10px',
+                            }}
+                          >
+                            <IonIcon icon={checkmarkCircle} slot="start" />
+                            Purchased
+                          </IonButton>
+                        )}
+
+                        <IonButton
+                          fill="outline"
+                          size="small"
+                          onClick={() => {
+                            setSelectedItemForComparison(item);
+                            setShowPriceComparison(true);
+                          }}
+                          style={{
+                            '--border-radius': '10px',
+                          }}
+                        >
+                          <IonIcon icon={pricetagsOutline} />
+                        </IonButton>
+
                         <IonButton
                           fill="outline"
                           color="danger"
+                          size="small"
                           onClick={() => deleteItem(item.id)}
                           style={{
                             '--border-radius': '10px',
-                            '--padding-start': '16px',
-                            '--padding-end': '16px',
                           }}
                         >
                           <IonIcon icon={trash} />
@@ -545,6 +765,31 @@ const Wishlist: React.FC = () => {
             </IonRow>
           </IonGrid>
         )}
+
+        {/* Modals */}
+        <PriceComparisonModal
+          isOpen={showPriceComparison}
+          onClose={() => setShowPriceComparison(false)}
+          item={selectedItemForComparison}
+        />
+
+        <MoveToClosetModal
+          isOpen={showMoveToCloset}
+          onClose={() => setShowMoveToCloset(false)}
+          item={selectedItemForMove}
+          onSuccess={() => {
+            fetchWishlist();
+            setSelectedItemForMove(null);
+          }}
+        />
+
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+          position="top"
+        />
       </IonContent>
     </IonPage>
   );
