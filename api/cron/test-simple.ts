@@ -1,0 +1,14 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+) {
+  console.log('✅ Simple test handler working');
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Test endpoint working',
+    timestamp: new Date().toISOString()
+  });
+}

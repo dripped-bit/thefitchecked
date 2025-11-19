@@ -4,7 +4,7 @@
  * Automatically checks wishlist item prices every 6 hours using Claude AI
  * Detects price drops, updates database, and generates alerts
  * 
- * Schedule: 0 */6 * * * (every 6 hours)
+ * Schedule: 0 star-slash-6 star star star (every 6 hours)
  * Max Duration: 300 seconds (5 minutes)
  */
 
