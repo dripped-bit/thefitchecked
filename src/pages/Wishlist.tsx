@@ -13,6 +13,7 @@ import { Browser } from '@capacitor/browser';
 import { Share } from '@capacitor/share';
 import { supabase } from '../services/supabaseClient';
 import PriceComparisonModal from '../components/wishlist/PriceComparisonModal';
+import DealsModal from '../components/wishlist/DealsModal';
 import MoveToClosetModal from '../components/wishlist/MoveToClosetModal';
 import claudeComparisonService from '../services/claudeComparisonService';
 import serpApiPriceSearchService from '../services/serpApiPriceSearchService';
@@ -1113,8 +1114,19 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
             )}
 
             {/* Modals */}
+            <DealsModal
+              isOpen={showPriceComparison && selectedItemForComparison?.aiResults}
+              onClose={() => {
+                console.log('🔴 [WISHLIST] Closing deals modal');
+                setShowPriceComparison(false);
+              }}
+              originalItem={selectedItemForComparison?.original}
+              exactMatches={selectedItemForComparison?.aiResults?.exactMatches || []}
+              similarItems={selectedItemForComparison?.aiResults?.similarItems || []}
+            />
+            
             <PriceComparisonModal
-              isOpen={showPriceComparison}
+              isOpen={showPriceComparison && !selectedItemForComparison?.aiResults}
               onClose={() => {
                 console.log('🔴 [WISHLIST] Closing price comparison modal');
                 setShowPriceComparison(false);
