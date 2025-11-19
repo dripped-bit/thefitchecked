@@ -19,7 +19,7 @@ import UserOnboardingPopup from './components/UserOnboardingPopup';
 import ClosetExperience from './components/ClosetExperience';
 import ProfileScreen from './components/ProfileScreen';
 import StyleHub from './pages/StyleHub';
-import Wishlist from './pages/WishlistNative';
+import Wishlist from './pages/Wishlist';
 import ClosetAnalytics from './pages/ClosetAnalytics';
 import SettingsScreen from './pages/SettingsScreen';
 import MorningMode from './pages/MorningMode';

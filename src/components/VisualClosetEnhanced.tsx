@@ -1006,11 +1006,42 @@ const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreT
         </div>
       )}
       
-      {/* All Items Button */}
+      {/* Quick Actions - Wore This and All Items */}
       <div style={{
         padding: '16px',
-        paddingBottom: '8px'
+        paddingBottom: '8px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
       }}>
+        {/* Wore This Button - Prominent at top */}
+        {onShowWoreThis && (
+          <button
+            onClick={onShowWoreThis}
+            style={{
+              width: '100%',
+              padding: '16px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              borderRadius: '16px',
+              fontSize: '18px',
+              fontWeight: '600',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Camera size={24} />
+            <span>Wore This Today</span>
+          </button>
+        )}
+
+        {/* All Items Button */}
         <button
           onClick={() => setShowAllItemsView(true)}
           style={{
@@ -1171,40 +1202,7 @@ const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreT
         />
       </div>
 
-      {/* Wore This Today Button */}
-      {onShowWoreThis && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          padding: '1rem 0 2rem',
-          margin: '0 1rem'
-        }}>
-          <button
-            onClick={onShowWoreThis}
-            style={{
-              background: 'linear-gradient(135deg, #FF6B9D 0%, #C44569 100%)',
-              padding: '16px 32px',
-              borderRadius: '16px',
-              fontSize: '18px',
-              fontWeight: '600',
-              color: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              boxShadow: '0 4px 12px rgba(255, 105, 180, 0.3)',
-              transition: 'all 0.2s ease',
-              border: 'none',
-              width: '100%',
-              maxWidth: '300px'
-            }}
-          >
-            <Camera size={24} />
-            <span>Wore This</span>
-          </button>
-        </div>
-      )}
+
 
       {/* Action Sheet Modal */}
       {showActionSheet && selectedItemData && (

@@ -1,0 +1,103 @@
+/**
+ * Fashion Categories Configuration
+ * Shared category definitions for wishlist and closet
+ */
+
+export const fashionCategories = {
+  'All Items': ['All'],
+  'Tops': [
+    'All Tops',
+    'T-Shirts & Tanks',
+    'Blouses & Shirts',
+    'Sweaters & Cardigans',
+    'Hoodies & Sweatshirts',
+    'Crop Tops',
+    'Bodysuits',
+  ],
+  'Bottoms': [
+    'All Bottoms',
+    'Jeans & Denim',
+    'Pants & Trousers',
+    'Shorts',
+    'Skirts',
+    'Leggings & Tights',
+  ],
+  'Dresses & Jumpsuits': [
+    'All Dresses',
+    'Casual Dresses',
+    'Formal Dresses',
+    'Maxi Dresses',
+    'Mini Dresses',
+    'Jumpsuits',
+    'Rompers',
+  ],
+  'Outerwear': [
+    'All Outerwear',
+    'Jackets',
+    'Coats',
+    'Blazers',
+    'Vests',
+    'Leather Jackets',
+    'Trench Coats',
+  ],
+  'Shoes': [
+    'All Shoes',
+    'Sneakers',
+    'Boots',
+    'Heels',
+    'Flats',
+    'Sandals',
+    'Loafers',
+    'Slippers',
+  ],
+  'Bags': [
+    'All Bags',
+    'Handbags',
+    'Crossbody Bags',
+    'Backpacks',
+    'Clutches',
+    'Tote Bags',
+    'Belt Bags',
+    'Duffel Bags',
+  ],
+  'Accessories': [
+    'All Accessories',
+    'Necklaces',
+    'Earrings',
+    'Bracelets',
+    'Rings',
+    'Belts',
+    'Scarves',
+    'Hats & Caps',
+    'Sunglasses',
+    'Hair Accessories',
+    'Watches',
+  ],
+  'Activewear': [
+    'All Activewear',
+    'Sports Bras',
+    'Workout Leggings',
+    'Athletic Shorts',
+    'Performance Tops',
+    'Athletic Sneakers',
+    'Yoga Wear',
+  ],
+  'Swimwear': [
+    'All Swimwear',
+    'Bikinis',
+    'One-Pieces',
+    'Swim Trunks',
+    'Cover-Ups',
+    'Rash Guards',
+  ],
+  'Intimates & Sleepwear': [
+    'All Intimates',
+    'Bras',
+    'Underwear',
+    'Pajamas',
+    'Loungewear',
+    'Robes',
+  ],
+};
+
+export type FashionCategoryKey = keyof typeof fashionCategories;
