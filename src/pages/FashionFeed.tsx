@@ -6,6 +6,9 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Settings, Camera } from 'lucide-react';
 import { useCloset } from '../hooks/useCloset';
+import ColorStorySection from '../components/fashionfeed/ColorStorySection';
+import ClosetHeroesSection from '../components/fashionfeed/ClosetHeroesSection';
+import WeeklyChallengeSection from '../components/fashionfeed/WeeklyChallengeSection';
 import '../styles/scrapbook.css';
 
 interface FashionFeedProps {
@@ -151,9 +154,38 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
           )}
         </div>
 
-        {/* Coming Soon Sections */}
+        {/* Color Story Section */}
         <div 
-          className={`speech-bubble transition-all duration-700 delay-300 ${
+          className={`transition-all duration-700 delay-300 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <ColorStorySection items={items} />
+        </div>
+
+        {/* Closet Heroes Section */}
+        <div 
+          className={`transition-all duration-700 delay-400 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <ClosetHeroesSection items={items} />
+        </div>
+
+        {/* Weekly Challenge Section */}
+        <div 
+          className={`transition-all duration-700 delay-500 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <WeeklyChallengeSection items={items} />
+        </div>
+
+        {/* Coming Soon Sections */}
+        <div className="dots-divider">• • •</div>
+
+        <div 
+          className={`speech-bubble transition-all duration-700 delay-600 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}
         >
@@ -161,16 +193,13 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
             "More amazing features coming soon! 🎨✨"
           </p>
           <div className="mt-4 text-center text-sm text-gray-600">
-            <p>• AI Color Story Analysis</p>
             <p>• Style Steal Inspiration</p>
-            <p>• Closet Heroes Report</p>
-            <p>• Weekly Style Challenges</p>
+            <p>• AI Spotted Trends</p>
             <p>• Your Outfit Timeline</p>
+            <p>• Before/After Comparisons</p>
+            <p>• Shopping Board</p>
           </div>
         </div>
-
-        {/* Placeholder for future sections */}
-        <div className="dots-divider">• • •</div>
 
         <div className="text-center py-12">
           <div className="inline-block">
@@ -178,7 +207,7 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
               STAY TUNED!
             </div>
             <p className="handwritten text-lg mt-4 text-gray-600">
-              We're building something special for you ✨
+              More magic on the way ✨
             </p>
           </div>
         </div>
