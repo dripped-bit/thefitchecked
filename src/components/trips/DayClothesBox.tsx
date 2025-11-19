@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Edit2, X, Package } from 'lucide-react';
+import { Edit2, X, Package, Loader2, Check } from 'lucide-react';
 import { 
   useTripActivities, 
   useAllTripOutfits, 
   useManualDayClothes, 
-  useDeleteDayClothes 
+  useDeleteDayClothes,
+  useTripPackingList 
 } from '../../hooks/useTrips';
 import { useCloset, type ClothingItem } from '../../hooks/useCloset';
 
@@ -44,19 +45,30 @@ const CATEGORY_LABELS: Record<string, string> = {
 export function DayClothesBox({ tripId, date }: DayClothesBoxProps) {
   const [editMode, setEditMode] = useState(false);
   
-  const { data: activities = [] } = useTripActivities(tripId);
-  const { data: allOutfits = [] } = useAllTripOutfits(tripId);
-  const { data: manualClothes = [] } = useManualDayClothes(tripId, date);
-  const { items: closetItems } = useCloset();
+  const { data: activities = [], isLoading: activitiesLoading } = useTripActivities(tripId);
+  const { data: allOutfits = [], isLoading: outfitsLoading } = useAllTripOutfits(tripId);
+  const { data: manualClothes = [], isLoading: manualClothesLoading } = useManualDayClothes(tripId, date);
+  const { data: packingList = [] } = useTripPackingList(tripId);
+  const { items: closetItems, isLoading: closetLoading } = useCloset();
   const deleteDayClothes = useDeleteDayClothes();
+
+  // Create set of packed item IDs
+  const packedItemIds = useMemo(() => {
+    return new Set(
+      packingList
+        .filter(item => item.is_packed && item.clothing_item_id)
+        .map(item => item.clothing_item_id!)
+    );
+  }, [packingList]);
 
   // Aggregate all clothes for this day
   const clothesByCategory = useMemo(() => {
-    console.log('📦 [CLOTHES-BOX] Aggregating clothes for', date);
-    
-    // 1. Get activities for this date
-    const dayActivities = activities.filter(a => a.date === date);
-    console.log('📦 [CLOTHES-BOX] Found', dayActivities.length, 'activities');
+    try {
+      console.log('📦 [CLOTHES-BOX] Aggregating clothes for', date);
+      
+      // 1. Get activities for this date
+      const dayActivities = activities.filter(a => a.date === date);
+      console.log('📦 [CLOTHES-BOX] Found', dayActivities.length, 'activities');
 
     // 2. Get clothing item IDs from activity outfits
     const activityItemsMap = new Map<string, { activityTitle: string }>();
@@ -105,19 +117,23 @@ export function DayClothesBox({ tripId, date }: DayClothesBoxProps) {
       }
     });
 
-    console.log('📦 [CLOTHES-BOX] Total unique:', uniqueItems.size);
+      console.log('📦 [CLOTHES-BOX] Total unique:', uniqueItems.size);
 
-    // 5. Group by category
-    const grouped: Record<string, ClothingItemWithSource[]> = {};
-    uniqueItems.forEach((clothingInfo) => {
-      const category = clothingInfo.item.category;
-      if (!grouped[category]) {
-        grouped[category] = [];
-      }
-      grouped[category].push(clothingInfo);
-    });
+      // 5. Group by category
+      const grouped: Record<string, ClothingItemWithSource[]> = {};
+      uniqueItems.forEach((clothingInfo) => {
+        const category = clothingInfo.item.category;
+        if (!grouped[category]) {
+          grouped[category] = [];
+        }
+        grouped[category].push(clothingInfo);
+      });
 
-    return grouped;
+      return grouped;
+    } catch (error) {
+      console.error('❌ [CLOTHES-BOX] Error aggregating clothes:', error);
+      return {};
+    }
   }, [activities, allOutfits, manualClothes, closetItems, date]);
 
   const totalItems = useMemo(() => {
@@ -140,9 +156,33 @@ export function DayClothesBox({ tripId, date }: DayClothesBoxProps) {
     }
   };
 
-  // Don't show if no clothes
+  // Loading state
+  if (activitiesLoading || outfitsLoading || manualClothesLoading || closetLoading) {
+    return (
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="bg-white rounded-lg border-2 border-purple-200 p-6 text-center">
+          <Loader2 className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-2" />
+          <p className="text-sm text-gray-600">Loading clothes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state - show helpful message
   if (totalItems === 0) {
-    return null;
+    return (
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="bg-white rounded-lg border-2 border-dashed border-gray-300 p-6 text-center">
+          <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-600 font-medium mb-2">
+            No clothes planned for this day yet
+          </p>
+          <p className="text-sm text-gray-500">
+            Add activities with outfits or manually add clothes to see them here
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -187,13 +227,16 @@ export function DayClothesBox({ tripId, date }: DayClothesBoxProps) {
                     const isManuallyAdded = manualClothes.some(
                       c => c.clothing_item_id === item.id
                     );
+                    
+                    // Check if item is packed
+                    const isPacked = packedItemIds.has(item.id);
 
                     return (
                       <div
                         key={item.id}
                         className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                       >
-                        <div className="flex items-center gap-3 flex-1">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
                           <img
                             src={item.thumbnail_url || item.image_url}
                             alt={item.name}
@@ -216,16 +259,26 @@ export function DayClothesBox({ tripId, date }: DayClothesBoxProps) {
                           </div>
                         </div>
                         
-                        {editMode && isManuallyAdded && (
-                          <button
-                            onClick={() => handleRemoveManualItem(item.id)}
-                            disabled={deleteDayClothes.isPending}
-                            className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded transition-colors flex-shrink-0 disabled:opacity-50"
-                            title="Remove item"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {isPacked && (
+                            <span className="text-green-600 text-xs font-medium flex items-center gap-1 px-2 py-1 bg-green-50 rounded">
+                              <Check className="w-3 h-3" />
+                              Packed
+                            </span>
+                          )}
+                          
+                          {editMode && isManuallyAdded && (
+                            <button
+                              onClick={() => handleRemoveManualItem(item.id)}
+                              disabled={deleteDayClothes.isPending}
+                              className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                              title="Remove item"
+                              aria-label="Remove item"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

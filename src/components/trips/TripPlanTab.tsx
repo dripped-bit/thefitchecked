@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Minus, Clock, MapPin, Star, Trash2, Sparkles, ChevronDown, ChevronRight } from 'lucide-react';
-import { useTripActivities, useTripDaysArray, useDeleteActivity, useTripOutfit } from '../../hooks/useTrips';
+import { useTripActivities, useTripDaysArray, useDeleteActivity, useTripOutfit, useAllTripOutfits, useManualDayClothes } from '../../hooks/useTrips';
 import { PlanActivityModal } from './PlanActivityModal';
 import { TripOutfitPlanningModal } from './TripOutfitPlanningModal';
 import { AddClothesModal } from './AddClothesModal';
@@ -15,6 +15,7 @@ interface TripPlanTabProps {
 
 export function TripPlanTab({ trip }: TripPlanTabProps) {
   const { data: activities = [] } = useTripActivities(trip.id);
+  const { data: allOutfits = [] } = useAllTripOutfits(trip.id);
   const deleteActivity = useDeleteActivity();
   const tripDays = useTripDaysArray(trip.start_date, trip.end_date);
   
@@ -33,6 +34,26 @@ export function TripPlanTab({ trip }: TripPlanTabProps) {
   // NEW: Add clothes modal state
   const [showAddClothesModal, setShowAddClothesModal] = useState(false);
   const [addClothesDate, setAddClothesDate] = useState<string | null>(null);
+
+  // Calculate existing items for a specific date (to prevent duplicates)
+  const getExistingItemsForDate = useMemo(() => {
+    return (dateStr: string): string[] => {
+      // 1. Get activities for this date
+      const dayActivities = activities.filter(a => a.date === dateStr);
+      
+      // 2. Get outfit items from activities
+      const itemIds = new Set<string>();
+      dayActivities.forEach(activity => {
+        const outfit = allOutfits.find(o => o.activity_id === activity.id);
+        if (outfit?.clothing_item_ids) {
+          outfit.clothing_item_ids.forEach(id => itemIds.add(id));
+        }
+      });
+      
+      console.log('🔍 [EXISTING-ITEMS] Found', itemIds.size, 'items from activities for', dateStr);
+      return Array.from(itemIds);
+    };
+  }, [activities, allOutfits]);
 
   const handleAddActivity = (date: string, timeSlot: TimeSlot) => {
     setSelectedDate(date);
@@ -237,8 +258,9 @@ export function TripPlanTab({ trip }: TripPlanTabProps) {
                       <button
                         onClick={() => handleAddClothes(dateStr)}
                         className="w-full px-4 py-3 border-2 border-dashed border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors flex items-center justify-center gap-2 font-medium"
+                        aria-label="Add clothes for this day"
                       >
-                        <Plus className="w-5 h-5" />
+                        <Plus className="w-5 h-5" aria-hidden="true" />
                         <span>👕 Add Clothes for This Day</span>
                       </button>
                     </div>
@@ -319,7 +341,7 @@ export function TripPlanTab({ trip }: TripPlanTabProps) {
           }}
           tripId={trip.id}
           date={addClothesDate}
-          existingItemIds={[]} // TODO: Calculate existing items
+          existingItemIds={getExistingItemsForDate(addClothesDate)}
         />
       )}
     </div>

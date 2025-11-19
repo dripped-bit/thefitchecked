@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { useAddDayClothes } from '../../hooks/useTrips';
 import { SequentialCategorySelector } from './SequentialCategorySelector';
 import { useCloset, type ClothingItem } from '../../hooks/useCloset';
@@ -19,7 +19,7 @@ export function AddClothesModal({
   date,
   existingItemIds,
 }: AddClothesModalProps) {
-  const { items: closetItems } = useCloset();
+  const { items: closetItems, isLoading: closetLoading } = useCloset();
   const addDayClothes = useAddDayClothes();
   const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
 
@@ -27,6 +27,20 @@ export function AddClothesModal({
   const availableItems = closetItems.filter(
     item => !existingItemIds.includes(item.id)
   );
+
+  // Loading state
+  if (!isOpen) return null;
+
+  if (closetLoading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl p-8 text-center">
+          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading your closet...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSave = async () => {
     if (selectedItems.length === 0) {
@@ -61,8 +75,6 @@ export function AddClothesModal({
     });
   };
 
-  if (!isOpen) return null;
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -78,6 +90,7 @@ export function AddClothesModal({
             <button
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Close modal"
             >
               <X className="w-6 h-6" />
             </button>
