@@ -25,13 +25,22 @@ const SavedWeatherPicksModal: React.FC<SavedWeatherPicksModalProps> = ({
   onClose,
   userId
 }) => {
-  const { data: savedOutfits, isLoading } = useSavedOutfits(userId);
+  const { data: savedOutfits, isLoading, error: queryError } = useSavedOutfits(userId);
   const queryClient = useQueryClient();
+  
+  // Debug logging
+  console.log('🔍 [SavedWeatherPicksModal] isOpen:', isOpen);
+  console.log('🔍 [SavedWeatherPicksModal] userId:', userId);
+  console.log('🔍 [SavedWeatherPicksModal] isLoading:', isLoading);
+  console.log('🔍 [SavedWeatherPicksModal] queryError:', queryError);
+  console.log('🔍 [SavedWeatherPicksModal] savedOutfits:', savedOutfits);
   
   // Filter for weather picks only
   const weatherPickOutfits = savedOutfits?.filter(
     outfit => outfit.tags?.includes('weather_picks')
   ) || [];
+  
+  console.log('🔍 [SavedWeatherPicksModal] weatherPickOutfits:', weatherPickOutfits);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
@@ -75,6 +84,8 @@ const SavedWeatherPicksModal: React.FC<SavedWeatherPicksModalProps> = ({
 
   if (!isOpen) return null;
 
+  console.log('✅ [SavedWeatherPicksModal] Rendering modal!');
+
   return (
     <>
       {/* Backdrop */}
@@ -87,7 +98,9 @@ const SavedWeatherPicksModal: React.FC<SavedWeatherPicksModalProps> = ({
       />
 
       {/* Modal */}
-      <div className="fixed inset-x-0 bottom-0 z-50 max-h-[90vh] bg-white rounded-t-3xl shadow-2xl overflow-hidden">
+      <div className="fixed inset-x-0 bottom-0 z-50 max-h-[90vh] bg-white rounded-t-3xl shadow-2xl overflow-hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
@@ -115,6 +128,26 @@ const SavedWeatherPicksModal: React.FC<SavedWeatherPicksModalProps> = ({
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full" />
+              <p className="text-sm text-gray-500 mt-4">Loading saved outfits...</p>
+            </div>
+          ) : queryError ? (
+            <div className="flex flex-col items-center justify-center py-12 px-6">
+              <X className="w-16 h-16 text-red-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Error Loading Outfits
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-4">
+                {queryError instanceof Error ? queryError.message : 'Something went wrong'}
+              </p>
+              <button
+                onClick={() => {
+                  haptics.light();
+                  queryClient.invalidateQueries({ queryKey: ['savedOutfits'] });
+                }}
+                className="px-4 py-2 bg-amber-500 text-white rounded-lg font-medium"
+              >
+                Try Again
+              </button>
             </div>
           ) : weatherPickOutfits.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6">
