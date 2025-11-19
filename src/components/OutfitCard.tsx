@@ -3,18 +3,34 @@
  * Displays a single outfit suggestion with items, weather info, and AI reasoning
  */
 
-import React from 'react';
-import { Cloud, Sun, CloudRain, Snowflake, Wind, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Cloud, Sun, CloudRain, Snowflake, Wind, Sparkles, Heart } from 'lucide-react';
 import { OutfitSuggestion } from '../services/claudeOutfitService';
 import { WeatherData } from '../services/weatherService';
+import haptics from '../utils/haptics';
 
 interface OutfitCardProps {
   outfit: OutfitSuggestion;
   weather: WeatherData;
   onWearThis: () => void;
+  onSave?: (outfit: OutfitSuggestion) => void;
+  isSaved?: boolean;
 }
 
-const OutfitCard: React.FC<OutfitCardProps> = ({ outfit, weather, onWearThis }) => {
+const OutfitCard: React.FC<OutfitCardProps> = ({ outfit, weather, onWearThis, onSave, isSaved = false }) => {
+  const [isAnimatingSave, setIsAnimatingSave] = useState(false);
+
+  const handleSave = () => {
+    if (onSave) {
+      haptics.doubleTap(); // Double tap for "like" feeling
+      setIsAnimatingSave(true);
+      onSave(outfit);
+      
+      // Reset animation after 500ms
+      setTimeout(() => setIsAnimatingSave(false), 500);
+    }
+  };
+
   // Get weather icon based on condition
   const getWeatherIcon = () => {
     const condition = weather.weatherDescription.toLowerCase();
@@ -36,7 +52,23 @@ const OutfitCard: React.FC<OutfitCardProps> = ({ outfit, weather, onWearThis }) 
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
       {/* Outfit Items Grid */}
       <div className="p-6">
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-2 gap-4 mb-4 relative">
+          {/* Save Button Overlay */}
+          {onSave && (
+            <button
+              onClick={handleSave}
+              className="absolute top-2 right-2 z-10 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:scale-110 transition-all active:scale-95"
+              style={{
+                animation: isAnimatingSave ? 'pulse 0.5s ease-in-out' : 'none'
+              }}
+            >
+              <Heart
+                className={`w-5 h-5 transition-all ${
+                  isSaved ? 'text-red-500 fill-current' : 'text-gray-400'
+                }`}
+              />
+            </button>
+          )}
           {outfit.outfitItems.slice(0, 4).map((item, index) => (
             <div key={item.id} className="relative group">
               <div className="aspect-square rounded-xl overflow-hidden bg-gray-100">

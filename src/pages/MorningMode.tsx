@@ -4,12 +4,18 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Sun, AlertCircle, Shirt, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Sun, AlertCircle, Shirt, RefreshCw, Heart, Bookmark } from 'lucide-react';
 import weatherService, { WeatherData } from '../services/weatherService';
 import { useCloset } from '../hooks/useCloset';
 import claudeOutfitService, { OutfitSuggestion } from '../services/claudeOutfitService';
 import contextAwareOccasionService, { OccasionContext } from '../services/contextAwareOccasionService';
 import OutfitCard from '../components/OutfitCard';
+import PullToRefresh from '../components/PullToRefresh';
+import SavedWeatherPicksModal from '../components/SavedWeatherPicksModal';
+import { useWeatherPicksCache } from '../hooks/useWeatherPicksCache';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../services/supabaseClient';
+import haptics from '../utils/haptics';
 
 interface MorningModeProps {
   onBack: () => void;
@@ -18,6 +24,7 @@ interface MorningModeProps {
 const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
   // Use Supabase closet instead of localStorage
   const { items: supabaseItems, loading: closetLoading } = useCloset();
+  const queryClient = useQueryClient();
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +32,21 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
   const [outfitSuggestions, setOutfitSuggestions] = useState<OutfitSuggestion[]>([]);
   const [closetItems, setClosetItems] = useState<any[]>([]);
   const [occasionContext, setOccasionContext] = useState<OccasionContext | null>(null);
+  const [savedOutfitIds, setSavedOutfitIds] = useState<Set<string>>(new Set());
+  const [showSavedModal, setShowSavedModal] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Cache hook
+  const { cache, isLoadingCache, hasCache, cacheAge, saveToCache } = useWeatherPicksCache();
+
+  // Get current user ID
+  const [userId, setUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setUserId(data.user.id);
+    });
+  }, []);
 
   // Helper function for dynamic greeting
   const getGreeting = () => {
@@ -33,6 +55,62 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
     if (hour < 18) return 'Good Afternoon! ☀️';
     return 'Good Evening! 🌙';
   };
+
+  // Save outfit mutation
+  const saveOutfitMutation = useMutation({
+    mutationFn: async (outfit: OutfitSuggestion) => {
+      if (!userId) throw new Error('Not authenticated');
+
+      // Auto-generate name
+      const name = `${Math.round(weather?.temperature || 0)}°F ${occasionContext?.occasion || 'Daily'} • ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+
+      const { data, error } = await supabase
+        .from('saved_outfits')
+        .insert({
+          user_id: userId,
+          name,
+          occasion: occasionContext?.occasion || 'casual_daily',
+          weather: weather ? [weather.weatherDescription] : [],
+          top_id: outfit.outfitItems.find(i => /top|shirt|blouse/i.test(i.category))?.id,
+          bottom_id: outfit.outfitItems.find(i => /bottom|pant|skirt|jean/i.test(i.category))?.id,
+          shoes_id: outfit.outfitItems.find(i => /shoe/i.test(i.category))?.id,
+          outerwear_id: outfit.outfitItems.find(i => /outer|jacket|coat/i.test(i.category))?.id,
+          tags: ['weather_picks'],
+          notes: outfit.reasoning
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['savedOutfits'] });
+      setSavedOutfitIds(prev => new Set(prev).add(data.id));
+      setToastMessage('Outfit saved!');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      haptics.success();
+    },
+    onError: (error) => {
+      console.error('Failed to save outfit:', error);
+      setToastMessage('Failed to save outfit');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      haptics.error();
+    }
+  });
+
+  // Load cached suggestions first, then fetch fresh
+  useEffect(() => {
+    if (!isLoadingCache && hasCache && cache) {
+      console.log(`📦 [CACHE] Loading cached suggestions (${cacheAge} min old)`);
+      setWeather(cache.weather);
+      setOutfitSuggestions(cache.suggestions);
+      setOccasionContext(cache.occasionContext);
+      setLoading(false);
+    }
+  }, [isLoadingCache, hasCache, cache, cacheAge]);
 
   useEffect(() => {
     // Load when closet is ready
@@ -148,9 +226,16 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
       
       setOutfitSuggestions(suggestions);
 
+      // Save to cache
+      saveToCache(weatherData, suggestions, occasionCtx);
+
+      // Success haptic
+      haptics.success();
+
     } catch (err) {
       console.error('❌ [MORNING-MODE] Error:', err);
       setError('general');
+      haptics.error();
     } finally {
       setLoading(false);
     }
@@ -294,10 +379,16 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="px-4 py-6">
-        {/* Greeting & Weather */}
-        <div className="mb-6">
+      {/* Content with Pull-to-Refresh */}
+      <PullToRefresh
+        onRefresh={async () => {
+          await loadMorningMode();
+        }}
+        disabled={loading}
+      >
+        <div className="px-4 py-6">
+          {/* Greeting & Weather */}
+          <div className="mb-6">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
             {getGreeting()}
           </h2>
@@ -334,11 +425,27 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
           </div>
         )}
 
-        {/* Refresh Button */}
-        <div className="mb-6 flex justify-center">
+        {/* Action Buttons */}
+        <div className="mb-6 flex justify-center gap-3">
+          {/* Saved Outfits Button */}
+          {userId && (
+            <button
+              onClick={() => {
+                haptics.light();
+                setShowSavedModal(true);
+              }}
+              className="px-6 py-3 bg-white border-2 border-amber-400 text-amber-600 font-semibold rounded-full shadow-lg hover:bg-amber-50 transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
+            >
+              <Bookmark className="w-5 h-5" />
+              <span>Saved</span>
+            </button>
+          )}
+
+          {/* Refresh Button */}
           <button
             onClick={() => {
               console.log('🔄 [MORNING-MODE] Refresh button clicked');
+              haptics.medium(); // Haptic feedback on refresh
               loadMorningMode();
             }}
             disabled={loading}
@@ -350,6 +457,15 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
           </button>
         </div>
 
+        {/* Cache Indicator */}
+        {hasCache && cacheAge !== null && cacheAge < 60 && (
+          <div className="mb-4 text-center">
+            <p className="text-xs text-gray-500">
+              💾 Showing cached suggestions ({cacheAge} min old)
+            </p>
+          </div>
+        )}
+
         {/* Outfit Cards */}
         {outfitSuggestions.length > 0 ? (
           <>
@@ -360,6 +476,8 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
                   outfit={outfit}
                   weather={weather!}
                   onWearThis={() => handleWearOutfit(outfit)}
+                  onSave={(outfit) => saveOutfitMutation.mutate(outfit)}
+                  isSaved={savedOutfitIds.has(outfit.id)}
                 />
               ))}
             </div>
@@ -388,13 +506,33 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
           </div>
         )}
 
-        {/* Closet Info */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500">
-            Based on {closetItems.length} items in your closet
-          </p>
+          {/* Closet Info */}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-500">
+              Based on {closetItems.length} items in your closet
+            </p>
+          </div>
         </div>
-      </div>
+      </PullToRefresh>
+
+      {/* Saved Weather Picks Modal */}
+      {userId && (
+        <SavedWeatherPicksModal
+          isOpen={showSavedModal}
+          onClose={() => setShowSavedModal(false)}
+          userId={userId}
+        />
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl animate-bounce">
+          <div className="flex items-center gap-2">
+            <Heart className="w-4 h-4" fill="currentColor" />
+            <span className="font-medium">{toastMessage}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
