@@ -82,6 +82,32 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
     loadClosetItems();
   }, []);
 
+  // Prevent body scroll when modal is open and preserve scroll position
+  useEffect(() => {
+    // Save current scroll position
+    const scrollY = window.scrollY;
+    const scrollX = window.scrollX;
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = `-${scrollX}px`;
+    document.body.style.width = '100%';
+    
+    // Cleanup: restore scroll when modal closes
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.width = '';
+      
+      // Restore scroll position
+      window.scrollTo(scrollX, scrollY);
+    };
+  }, []);
+
   const loadTodaysData = async () => {
     try {
       // Get today's weather
@@ -877,14 +903,6 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
           <div className={`w-2 h-2 rounded-full ${currentStep === 'rate' ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
           <div className={`w-2 h-2 rounded-full ${currentStep === 'complete' ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
         </div>
-
-        {/* Close Button - TOP RIGHT (keep existing) */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-        >
-          <X className="w-6 h-6" />
-        </button>
 
         {/* Content */}
         {currentStep === 'photo' && renderPhotoUpload()}
