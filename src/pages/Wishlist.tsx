@@ -23,8 +23,10 @@ import {
   IonLabel,
   IonCheckbox,
   IonToast,
+  IonButtons,
+  IonButton,
 } from '@ionic/react';
-import { trash, openOutline, sparkles, checkmarkCircle, giftOutline, pricetagsOutline } from 'ionicons/icons';
+import { trash, openOutline, sparkles, checkmarkCircle, giftOutline, pricetagsOutline, chevronBackOutline } from 'ionicons/icons';
 import { Browser } from '@capacitor/browser';
 import { Share } from '@capacitor/share';
 import { supabase } from '../services/supabaseClient';
@@ -62,7 +64,11 @@ interface WishlistItem {
   created_at: string;
 }
 
-const Wishlist: React.FC = () => {
+interface WishlistProps {
+  onBack: () => void;
+}
+
+const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const [allWishlistItems, setAllWishlistItems] = useState<WishlistItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -266,6 +272,11 @@ const Wishlist: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={onBack}>
+              <IonIcon icon={chevronBackOutline} />
+            </IonButton>
+          </IonButtons>
           <IonTitle>Wishlist</IonTitle>
         </IonToolbar>
       </IonHeader>

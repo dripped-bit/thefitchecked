@@ -860,7 +860,16 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
+        {/* Close Button - TOP LEFT */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 left-4 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors z-10"
+          aria-label="Close"
+        >
+          <X className="w-5 h-5 text-gray-700" />
+        </button>
+
         {/* Progress Indicator */}
         <div className="flex items-center justify-center space-x-2 mb-6">
           <div className={`w-2 h-2 rounded-full ${currentStep === 'photo' ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
@@ -869,7 +878,7 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
           <div className={`w-2 h-2 rounded-full ${currentStep === 'complete' ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
         </div>
 
-        {/* Close Button */}
+        {/* Close Button - TOP RIGHT (keep existing) */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
