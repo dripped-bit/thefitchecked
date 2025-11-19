@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import { ChevronLeft, ChevronRight, Search, RefreshCw, Plus, SlidersHorizontal } from 'lucide-react';
 import CalendarDayCell from './CalendarDayCell';
 import CalendarStatsPanel from './CalendarStatsPanel';
@@ -131,9 +132,19 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
           : [{
               id: `${event.id}-default`,
               name: event.title || 'Outfit',
-              image_url: '',
+              image_url: event.outfit_image_url || '', // Use saved outfit image!
               category: 'outfit'
             }];
+
+        // Debug shopping links with images
+        if (event.shopping_links && event.shopping_links.length > 0) {
+          console.log('🛍️ [CALENDAR-GRID] Event shopping_links from DB:', event.shopping_links);
+          event.shopping_links.forEach((link: any, idx: number) => {
+            console.log(`  Link ${idx}: image=${link.image?.substring(0, 50)}, imageUrl=${link.imageUrl?.substring(0, 50)}`);
+          });
+        } else if (event.outfit_image_url) {
+          console.log('👔 [CALENDAR-GRID] Using outfit_image_url:', event.outfit_image_url.substring(0, 80));
+        }
 
         outfitsMap[dateKey] = {
           id: event.id,

@@ -15,7 +15,41 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		BA33D38DBF4840F3A1AB6D5F /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43DD32BDEA26E84B77E4CA6A /* Pods_App.framework */; };
+		F0458A4D2EC7E27900B0647A /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0458A4C2EC7E27900B0647A /* SafariWebExtensionHandler.swift */; };
+		F0458A502EC7E27900B0647A /* _locales in Resources */ = {isa = PBXBuildFile; fileRef = F0458A4F2EC7E27900B0647A /* _locales */; };
+		F0458A522EC7E27900B0647A /* images in Resources */ = {isa = PBXBuildFile; fileRef = F0458A512EC7E27900B0647A /* images */; };
+		F0458A542EC7E27900B0647A /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = F0458A532EC7E27900B0647A /* manifest.json */; };
+		F0458A562EC7E27900B0647A /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = F0458A552EC7E27900B0647A /* background.js */; };
+		F0458A582EC7E27900B0647A /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = F0458A572EC7E27900B0647A /* content.js */; };
+		F0458A5A2EC7E27900B0647A /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = F0458A592EC7E27900B0647A /* popup.html */; };
+		F0458A5C2EC7E27900B0647A /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = F0458A5B2EC7E27900B0647A /* popup.css */; };
+		F0458A5E2EC7E27900B0647A /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = F0458A5D2EC7E27900B0647A /* popup.js */; };
+		F0458A622EC7E27900B0647A /* TheFitCheckedExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F0458A4A2EC7E27900B0647A /* TheFitCheckedExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F0458A602EC7E27900B0647A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F0458A492EC7E27900B0647A;
+			remoteInfo = TheFitCheckedExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F0458A632EC7E27900B0647A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F0458A622EC7E27900B0647A /* TheFitCheckedExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -30,6 +64,17 @@
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		B0D3459A2D1FF173B303BE2C /* Pods-App.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.release.xcconfig"; path = "Target Support Files/Pods-App/Pods-App.release.xcconfig"; sourceTree = "<group>"; };
 		B2D3BACF454CB2E9F8CC3406 /* Pods-App.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-App.debug.xcconfig"; path = "Target Support Files/Pods-App/Pods-App.debug.xcconfig"; sourceTree = "<group>"; };
+		F0458A4A2EC7E27900B0647A /* TheFitCheckedExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TheFitCheckedExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F0458A4C2EC7E27900B0647A /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		F0458A4F2EC7E27900B0647A /* _locales */ = {isa = PBXFileReference; lastKnownFileType = folder; path = _locales; sourceTree = "<group>"; };
+		F0458A512EC7E27900B0647A /* images */ = {isa = PBXFileReference; lastKnownFileType = folder; path = images; sourceTree = "<group>"; };
+		F0458A532EC7E27900B0647A /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
+		F0458A552EC7E27900B0647A /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = background.js; sourceTree = "<group>"; };
+		F0458A572EC7E27900B0647A /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = content.js; sourceTree = "<group>"; };
+		F0458A592EC7E27900B0647A /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = popup.html; sourceTree = "<group>"; };
+		F0458A5B2EC7E27900B0647A /* popup.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = popup.css; sourceTree = "<group>"; };
+		F0458A5D2EC7E27900B0647A /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = popup.js; sourceTree = "<group>"; };
+		F0458A5F2EC7E27900B0647A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -38,6 +83,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				BA33D38DBF4840F3A1AB6D5F /* Pods_App.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F0458A472EC7E27900B0647A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -57,6 +109,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3061FED79650016851F /* App */,
+				F0458A4B2EC7E27900B0647A /* TheFitCheckedExtension */,
 				504EC3051FED79650016851F /* Products */,
 				14B14393BB1B4EC8E90CCDEE /* Pods */,
 				8D8BC1E618BE7B50D1BE0808 /* Frameworks */,
@@ -67,6 +120,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				F0458A4A2EC7E27900B0647A /* TheFitCheckedExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -94,6 +148,31 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		F0458A4B2EC7E27900B0647A /* TheFitCheckedExtension */ = {
+			isa = PBXGroup;
+			children = (
+				F0458A4C2EC7E27900B0647A /* SafariWebExtensionHandler.swift */,
+				F0458A5F2EC7E27900B0647A /* Info.plist */,
+				F0458A4E2EC7E27900B0647A /* Resources */,
+			);
+			path = TheFitCheckedExtension;
+			sourceTree = "<group>";
+		};
+		F0458A4E2EC7E27900B0647A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				F0458A4F2EC7E27900B0647A /* _locales */,
+				F0458A512EC7E27900B0647A /* images */,
+				F0458A532EC7E27900B0647A /* manifest.json */,
+				F0458A552EC7E27900B0647A /* background.js */,
+				F0458A572EC7E27900B0647A /* content.js */,
+				F0458A592EC7E27900B0647A /* popup.html */,
+				F0458A5B2EC7E27900B0647A /* popup.css */,
+				F0458A5D2EC7E27900B0647A /* popup.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -106,15 +185,34 @@
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
 				29EE1EED028E752B38A400CE /* [CP] Embed Pods Frameworks */,
+				F0458A632EC7E27900B0647A /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F0458A612EC7E27900B0647A /* PBXTargetDependency */,
 			);
 			name = App;
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		F0458A492EC7E27900B0647A /* TheFitCheckedExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F0458A662EC7E27900B0647A /* Build configuration list for PBXNativeTarget "TheFitCheckedExtension" */;
+			buildPhases = (
+				F0458A462EC7E27900B0647A /* Sources */,
+				F0458A472EC7E27900B0647A /* Frameworks */,
+				F0458A482EC7E27900B0647A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TheFitCheckedExtension;
+			productName = TheFitCheckedExtension;
+			productReference = F0458A4A2EC7E27900B0647A /* TheFitCheckedExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -123,13 +221,16 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastSwiftUpdateCheck = 0920;
+				LastSwiftUpdateCheck = 1520;
 				LastUpgradeCheck = 1520;
 				TargetAttributes = {
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
 						ProvisioningStyle = Automatic;
+					};
+					F0458A492EC7E27900B0647A = {
+						CreatedOnToolsVersion = 15.2;
 					};
 				};
 			};
@@ -147,6 +248,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				F0458A492EC7E27900B0647A /* TheFitCheckedExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -162,6 +264,21 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F0458A482EC7E27900B0647A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F0458A562EC7E27900B0647A /* background.js in Resources */,
+				F0458A5C2EC7E27900B0647A /* popup.css in Resources */,
+				F0458A5A2EC7E27900B0647A /* popup.html in Resources */,
+				F0458A522EC7E27900B0647A /* images in Resources */,
+				F0458A542EC7E27900B0647A /* manifest.json in Resources */,
+				F0458A502EC7E27900B0647A /* _locales in Resources */,
+				F0458A582EC7E27900B0647A /* content.js in Resources */,
+				F0458A5E2EC7E27900B0647A /* popup.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -217,7 +334,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F0458A462EC7E27900B0647A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F0458A4D2EC7E27900B0647A /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F0458A612EC7E27900B0647A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F0458A492EC7E27900B0647A /* TheFitCheckedExtension */;
+			targetProxy = F0458A602EC7E27900B0647A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -291,7 +424,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.4;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -346,7 +479,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -359,6 +492,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = B2D3BACF454CB2E9F8CC3406 /* Pods-App.debug.xcconfig */;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -383,6 +517,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = B0D3459A2D1FF173B303BE2C /* Pods-App.release.xcconfig */;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -397,6 +532,82 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.thefitchecked.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F0458A642EC7E27900B0647A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8Z8F29UKBS;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TheFitCheckedExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TheFitCheckedExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thefitchecked.app.TheFitCheckedExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F0458A652EC7E27900B0647A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8Z8F29UKBS;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TheFitCheckedExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TheFitCheckedExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thefitchecked.app.TheFitCheckedExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -419,6 +630,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F0458A662EC7E27900B0647A /* Build configuration list for PBXNativeTarget "TheFitCheckedExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0458A642EC7E27900B0647A /* Debug */,
+				F0458A652EC7E27900B0647A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

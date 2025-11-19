@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import { Heart, Plus, Search, ChevronDown, ChevronUp, Trash2, Edit2, Share2, Loader2, CheckCircle, X } from 'lucide-react';
 import { useCloset, ClothingCategory } from '../hooks/useCloset';
 import '../styles/VisualClosetAdapter.css';
@@ -282,7 +283,7 @@ export const VisualClosetAdapter: React.FC<VisualClosetAdapterProps> = ({
                         >
                           <div className="item-image-container">
                             <img
-                              src={item.thumbnail_url || item.image_url}
+                              src={getSmartImageUrl('wardrobe', item.thumbnail_url || item.image_url, 'thumbnail')}
                               alt={item.name}
                               className="item-image"
                               onError={(e) => {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import { Browser } from '@capacitor/browser';
 import { supabase } from '../services/supabaseClient';
 import CustomModal from './CustomModal';

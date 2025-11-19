@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import { Search, Filter, Grid, List, Star, Clock, TrendingUp, Calendar } from 'lucide-react';
 
 interface SearchFilters {

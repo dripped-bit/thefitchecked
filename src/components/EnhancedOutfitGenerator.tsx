@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import {
   Calendar,
   MapPin,

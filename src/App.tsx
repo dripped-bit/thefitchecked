@@ -20,8 +20,11 @@ import ClosetExperience from './components/ClosetExperience';
 import ProfileScreen from './components/ProfileScreen';
 import StyleHub from './pages/StyleHub';
 import Wishlist from './pages/WishlistNative';
+import ClosetAnalytics from './pages/ClosetAnalytics';
 import SettingsScreen from './pages/SettingsScreen';
 import MorningMode from './pages/MorningMode';
+import { TripsList } from './pages/TripsList';
+import { TripDetailPage } from './pages/TripDetailPage';
 import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
 import MyOutfitsPage from './pages/MyOutfitsPageAdvanced';
@@ -62,7 +65,7 @@ import clearCacheUtil from './utils/clearCache';
 // import './utils/directApiTest';
 // import './utils/keyChecker';
 
-type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest' | 'profile' | 'stylehub' | 'settings' | 'wishlist' | 'morningMode';
+type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest' | 'profile' | 'stylehub' | 'settings' | 'wishlist' | 'morningMode' | 'analytics' | 'tripsList' | 'tripDetail';
 
 interface AppData {
   capturedPhotos: CapturedPhoto[];
@@ -337,6 +340,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('welcome'); // DEBUG: Back to normal flow with debug logging enabled
   const [isDevelopment] = useState(import.meta.env.MODE === 'development');
   const [showDevPanel, setShowDevPanel] = useState(true);
+  const [isCreatingNewAvatar, setIsCreatingNewAvatar] = useState(false);
   const [isDevPanelCollapsed, setIsDevPanelCollapsed] = useState(false);
   const [useDefaultMeasurements, setUseDefaultMeasurements] = useState(false);
   const [isEditingStyleProfile, setIsEditingStyleProfile] = useState(false);
@@ -349,6 +353,7 @@ function App() {
   const [showDoorTransition, setShowDoorTransition] = useState(false);
   const [showExitDoorTransition, setShowExitDoorTransition] = useState(false);
   const [pendingScreen, setPendingScreen] = useState<Screen | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
 
   // Reset edit mode flag when navigating away from style profile
   React.useEffect(() => {
@@ -747,8 +752,17 @@ function App() {
       }
     }
 
-    // Navigate to try-on page (page 4)
-    setCurrentScreen('appFace');
+    // Check if we're creating a new avatar (not first-time setup)
+    if (isCreatingNewAvatar) {
+      // Skip onboarding, go directly to homepage
+      console.log('🏠 [APP] New avatar created, returning to homepage');
+      setIsCreatingNewAvatar(false); // Reset flag
+      setCurrentScreen('avatarHomepage');
+    } else {
+      // First-time setup: continue with full onboarding flow
+      console.log('📋 [APP] First-time setup, continuing to outfit try-on');
+      setCurrentScreen('appFace');
+    }
   };
 
   // Handle navigation from AppFace (page 4) - go directly to style profile
@@ -955,7 +969,12 @@ function App() {
         return (
           <AvatarGeneration
             onNext={handleAvatarGeneration}
-            onBack={() => setCurrentScreen('photoCapture')}
+            onBack={() => {
+              if (isCreatingNewAvatar) {
+                setIsCreatingNewAvatar(false); // Reset if they go back
+              }
+              setCurrentScreen('photoCapture');
+            }}
             uploadedPhoto={appData.uploadedPhoto}
             measurements={appData.measurements}
           />
@@ -1021,6 +1040,10 @@ function App() {
               onNavigateToMyOutfits={() => setCurrentScreen('myOutfits')}
               onNavigateToMyCreations={() => setCurrentScreen('myCreations')}
               onNavigateToSettings={() => setCurrentScreen('settings')}
+              onNavigateToPhotoCapture={() => {
+                setIsCreatingNewAvatar(true); // Flag that we're creating a new avatar
+                setCurrentScreen('photoCapture');
+              }}
               onResetAvatar={handleResetAvatar}
               onAvatarUpdate={handleAvatarUpdate}
               avatarData={appData.avatarData}
@@ -1114,9 +1137,19 @@ function App() {
               setCurrentScreen('smartCalendar');
               setActiveTab('calendar');
             }}
+            onNavigateToTripsList={() => {
+              sessionStorage.setItem('navigated_from_stylehub', 'true');
+              setCurrentScreen('tripsList');
+              setActiveTab('stylehub');
+            }}
             onNavigateToWishlist={() => {
               sessionStorage.setItem('navigated_from_stylehub', 'true');
               setCurrentScreen('wishlist');
+              setActiveTab('stylehub'); // Keep StyleHub tab active
+            }}
+            onNavigateToAnalytics={() => {
+              sessionStorage.setItem('navigated_from_stylehub', 'true');
+              setCurrentScreen('analytics');
               setActiveTab('stylehub'); // Keep StyleHub tab active
             }}
           />
@@ -1132,12 +1165,63 @@ function App() {
           />
         );
 
+      case 'analytics':
+        return (
+          <ClosetAnalytics
+            onBack={() => {
+              setCurrentScreen('stylehub');
+              setActiveTab('stylehub');
+            }}
+          />
+        );
+
       case 'morningMode':
         return (
           <MorningMode
             onBack={() => {
               setCurrentScreen('stylehub');
               setActiveTab('stylehub');
+            }}
+          />
+        );
+
+      case 'tripsList':
+        return (
+          <TripsList
+            onBack={() => {
+              setCurrentScreen('stylehub');
+              setActiveTab('stylehub');
+            }}
+            onSelectTrip={(tripId) => {
+              console.log('✈️ Selected trip:', tripId);
+              setSelectedTripId(tripId);
+              setCurrentScreen('tripDetail');
+            }}
+          />
+        );
+
+      case 'tripDetail':
+        return selectedTripId ? (
+          <TripDetailPage
+            tripId={selectedTripId}
+            onBack={() => {
+              setSelectedTripId(null);
+              setCurrentScreen('tripsList');
+            }}
+            onEdit={() => {
+              // TODO: Add edit functionality in future
+              console.log('Edit trip:', selectedTripId);
+            }}
+          />
+        ) : (
+          <TripsList
+            onBack={() => {
+              setCurrentScreen('stylehub');
+              setActiveTab('stylehub');
+            }}
+            onSelectTrip={(tripId) => {
+              setSelectedTripId(tripId);
+              setCurrentScreen('tripDetail');
             }}
           />
         );

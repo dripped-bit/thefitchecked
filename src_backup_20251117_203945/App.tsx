@@ -1,0 +1,1625 @@
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw, Home, Shirt, Calendar, Sparkles, User, LogOut, Compass } from 'lucide-react';
+import { App as KonstaApp } from 'konsta/react';
+import useDevMode from './hooks/useDevMode';
+import { FloatingTabBar, Tab } from './components/ui/FloatingTabBar';
+// Force Apple Design System CSS to be included in build
+import './styles/apple-design.css';
+import WelcomeScreen from './components/WelcomeScreen';
+import LoadingScreen from './components/LoadingScreen';
+import PhotoCaptureFlow from './components/PhotoCaptureFlow';
+import AvatarGeneration from './components/AvatarGeneration';
+import AvatarMeasurementsPage from './components/AvatarMeasurementsPage';
+import AppFacePage from './components/AppFacePage';
+import Page4Component from './components/Page4Component';
+import StyleProfileStreamlined from './components/StyleProfileStreamlined';
+import AvatarHomepage from './components/AvatarHomepageRestored';
+// import SeedreamTest from './components/SeedreamTest'; // DISABLED - test component not needed (fal.ai still active)
+import UserOnboardingPopup from './components/UserOnboardingPopup';
+import ClosetExperience from './components/ClosetExperience';
+import ProfileScreen from './components/ProfileScreen';
+import StyleHub from './pages/StyleHub';
+import Wishlist from './pages/WishlistNative';
+import ClosetAnalytics from './pages/ClosetAnalytics';
+import SettingsScreen from './pages/SettingsScreen';
+import MorningMode from './pages/MorningMode';
+import DoorTransition from './components/DoorTransition';
+import ApiTestPage from './pages/ApiTestPage';
+import MyOutfitsPage from './pages/MyOutfitsPageAdvanced';
+import MyCreationsPage from './pages/MyCreationsPage';
+import SmartCalendarDashboard from './components/SmartCalendarDashboard';
+import GlobalDemoModeToggle from './components/GlobalDemoModeToggle';
+import SharedOutfit from './components/SharedOutfit';
+import AuthModal from './components/AuthModal';
+import UserMenu from './components/UserMenu';
+import AuthCallback from './components/AuthCallback';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import { AppleDesignTest } from './components/AppleDesignTest';
+import { CapturedPhoto, AvatarData } from './types/photo';
+import { UserData, OnboardingFormData } from './types/user';
+import UserService from './services/userService';
+import authService, { AuthUser } from './services/authService';
+import avatarManagementService from './services/avatarManagementService';
+import avatarStorageService from './services/avatarStorageService';
+import weatherService from './services/weatherService';
+import reminderNotificationService from './services/reminderNotificationService';
+import outfitGenerationService from './services/outfitGenerationService';
+import localStorageMigrationService from './services/localStorageMigrationService';
+import reminderMonitorService from './services/reminderMonitorService';
+import { pushNotificationService } from './services/pushNotificationService';
+import { outfitReminderService } from './services/outfitReminderService';
+import appLifecycle from './utils/appLifecycle';
+import iOSAuth from './utils/iOSAuth';
+import statusBar from './utils/statusBar';
+
+// Import debug utilities for console access
+import './utils/testApiConnection';
+import './utils/testCgiPrompts';
+import './utils/testFashnCredits';
+import './utils/testSupabaseStorage';
+import clearCacheUtil from './utils/clearCache';
+// import './utils/debugApis';
+// import './utils/directApiTest';
+// import './utils/keyChecker';
+
+type Screen = 'loading' | 'welcome' | 'photoCapture' | 'avatarGeneration' | 'measurements' | 'appFace' | 'styleProfile' | 'avatarHomepage' | 'closet' | 'apiTest' | 'myOutfits' | 'myCreations' | 'smartCalendar' | 'appleTest' | 'profile' | 'stylehub' | 'settings' | 'wishlist' | 'morningMode' | 'analytics';
+
+interface AppData {
+  capturedPhotos: CapturedPhoto[];
+  uploadedPhoto?: string;
+  generatedAvatar?: any;
+  measurements: any;
+  avatarData: AvatarData;
+}
+
+function App() {
+  console.log('TheFitChecked App - Full Avatar Generation Workflow');
+
+  // Authentication state
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [isOAuthInProgress, setIsOAuthInProgress] = useState(false);
+
+  // Check for share URL parameter and auth callback
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [isAuthCallback, setIsAuthCallback] = useState(false);
+
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shareParam = urlParams.get('share');
+    const pathname = window.location.pathname;
+
+    // Check for special routes
+    if (pathname === '/auth/callback') {
+      console.log('🔐 [AUTH] Auth callback route detected');
+      setIsAuthCallback(true);
+      return;
+    }
+
+    // Check for legal pages
+    if (pathname === '/privacy' || pathname === '/terms') {
+      console.log('📄 [ROUTE] Legal page route detected:', pathname);
+      return;
+    }
+
+    // Check for closet route with view parameter
+    if (pathname === '/closet' || pathname === '/closet/') {
+      const view = urlParams.get('view');
+      console.log('🏠 [ROUTE] Closet route detected with view:', view);
+
+      // Set screen to closet
+      setCurrentScreen('closet');
+
+      // Store view parameter for ClosetExperience component to use
+      if (view) {
+        sessionStorage.setItem('closet_view', view);
+        console.log('📍 [APP] Stored closet view in sessionStorage:', view);
+      }
+      return;
+    }
+
+    // Check for Apple Design Test route
+    if (pathname === '/apple-test' || pathname === '/apple-test/') {
+      console.log('🍎 [ROUTE] Apple Design Test route detected');
+      setCurrentScreen('appleTest');
+      return;
+    }
+
+    if (shareParam) {
+      console.log('🔗 [SHARE] Share link detected:', shareParam);
+      setShareId(shareParam);
+    }
+  }, []);
+
+  // Check for OAuth in progress flag from sessionStorage
+  React.useEffect(() => {
+    const oauthFlag = sessionStorage.getItem('oauth_in_progress');
+    if (oauthFlag === 'true') {
+      console.log('🔄 [APP] OAuth callback detected - preventing homepage redirect');
+      setIsOAuthInProgress(true);
+      sessionStorage.removeItem('oauth_in_progress');
+
+      // Clear the flag after auth has time to resolve
+      setTimeout(() => {
+        console.log('✅ [APP] OAuth processing complete');
+        setIsOAuthInProgress(false);
+      }, 3000);
+    }
+  }, []);
+
+  // Initialize app with sequential pattern: auth → avatar storage → navigation
+  React.useEffect(() => {
+    const initializeApp = async () => {
+      const startTime = Date.now();
+
+      try {
+        // Step 1: Wait for auth to be fully resolved (blocks until SIGNED_IN/INITIAL_SESSION/SIGNED_OUT)
+        console.log('🚀 [APP] Starting sequential app initialization...');
+        const user = await authService.waitForAuth();
+        setAuthUser(user);
+        console.log('✅ [APP] Auth resolved:', user ? `Logged in as ${user.email}` : 'Not logged in');
+
+        // Step 2: Now initialize avatar storage (auth is guaranteed to be ready)
+        console.log('🎭 [APP] Initializing avatar storage with Supabase sync...');
+        await avatarManagementService.initializeAvatarStorage();
+        console.log('✅ [APP] Avatar storage initialized and synced');
+
+        // Step 3: Initialize StatusBar with overlay mode for safe areas
+        console.log('📱 [APP] Initializing StatusBar for safe areas...');
+        await statusBar.initialize();
+        await statusBar.setOverlaysWebView(true); // Enable content under status bar
+        console.log('✅ [APP] StatusBar initialized with overlay mode');
+
+        // Step 3.5: Initialize Push Notifications
+        console.log('🔔 [APP] Requesting notification permissions...');
+        const notificationGranted = await pushNotificationService.requestPermission();
+        if (notificationGranted) {
+          pushNotificationService.setupNotificationHandler();
+          console.log('✅ [APP] Push notifications enabled');
+        } else {
+          console.log('ℹ️ [APP] Push notifications not available (using fallback)');
+        }
+
+        // Step 2.5: Migration - Auto-set default avatar for existing users
+        const library = avatarStorageService.getAvatarLibrary();
+        if (library.savedAvatars.length > 0 && !library.savedAvatars.some(a => a.isDefault)) {
+          // No default set - auto-set current or most recent as default
+          const avatarToSetDefault = library.currentAvatarId
+            ? library.savedAvatars.find(a => a.id === library.currentAvatarId)
+            : library.savedAvatars.sort((a, b) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              )[0];
+
+          if (avatarToSetDefault) {
+            avatarStorageService.setDefaultAvatar(avatarToSetDefault.id);
+            console.log('🔧 [MIGRATION] Auto-set default avatar for existing user:', avatarToSetDefault.name);
+          }
+        }
+
+        // Step 3: Ensure minimum loading time of 9 seconds to show MP4 animation
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, 9000 - elapsedTime);
+
+        setTimeout(() => {
+          setAuthLoading(false);
+          console.log('✅ [APP] App initialization complete');
+        }, remainingTime);
+      } catch (error) {
+        console.error('❌ [APP] Initialization error:', error);
+        // Still allow app to load on error
+        setAuthLoading(false);
+      }
+    };
+
+    initializeApp();
+
+    // Still listen for subsequent auth changes
+    const subscription = authService.onAuthStateChange((user) => {
+      setAuthUser(user);
+      console.log('🔔 [AUTH] Auth state changed:', user ? `${user.email}` : 'Logged out');
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Run localStorage → IndexedDB migration on app startup
+  React.useEffect(() => {
+    const runMigration = async () => {
+      console.log('🔄 [APP] Checking for localStorage migration...');
+      const result = await localStorageMigrationService.migrate({ clearLocalStorage: false });
+
+      if (result.success && result.migratedKeys.length > 0) {
+        console.log(`✅ [APP] Migrated ${result.migratedKeys.length} items to IndexedDB`);
+      }
+    };
+
+    runMigration();
+  }, []);
+
+  // Note: Avatar storage initialization now happens in main initializeApp() above
+  // after auth is resolved, preventing race conditions
+
+  // Initialize reminder notification service
+  React.useEffect(() => {
+    console.log('🔔 [APP] Initializing reminder notification service...');
+    reminderNotificationService.initialize();
+    console.log('✅ [APP] Reminder service initialized');
+
+    // Initialize outfit reminder service (for occasion reminders)
+    console.log('👔 [APP] Initializing outfit reminder service...');
+    outfitReminderService.initialize().then(() => {
+      console.log('✅ [APP] Outfit reminder service initialized');
+    }).catch((error) => {
+      console.error('❌ [APP] Failed to initialize outfit reminder service:', error);
+    });
+
+    // Cleanup on unmount
+    return () => {
+      reminderNotificationService.stop();
+    };
+  }, []);
+
+  // Initialize iOS app lifecycle and deep link handling for OAuth
+  React.useEffect(() => {
+    console.log('📱 [APP] Initializing iOS app lifecycle...');
+    appLifecycle.initialize();
+
+    // Listen for deep links (OAuth callbacks)
+    const unsubscribe = appLifecycle.onDeepLink(async (url, params) => {
+      console.log('🔗 [APP] Deep link received:', url);
+
+      // Check if this is an OAuth callback
+      if (url.includes('oauth/callback')) {
+        console.log('🔐 [APP] OAuth callback deep link detected');
+
+        // Handle OAuth callback
+        const result = await iOSAuth.handleOAuthCallback(url);
+
+        if (result.success) {
+          console.log('✅ [APP] OAuth callback handled successfully');
+          // Refresh auth user state
+          const user = await authService.getCurrentUser();
+          setAuthUser(user);
+        } else {
+          console.error('❌ [APP] OAuth callback failed:', result.error);
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Add error handling
+  React.useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('🚨 Global JavaScript Error:', event.error);
+      console.error('🚨 Error details:', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      });
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+
+  // Setup global cache clearing functions for console access
+  React.useEffect(() => {
+    // Add global functions to window for easy console access
+    (window as any).clearAppCache = clearCacheUtil.clearAppCacheWithConfirmation;
+    (window as any).clearAppCacheForce = clearCacheUtil.clearAppCache;
+    (window as any).getCacheStats = clearCacheUtil.getCacheStats;
+    (window as any).logCacheStats = clearCacheUtil.logCacheStats;
+
+    console.log('🧹 [CACHE-UTIL] Global cache functions available:');
+    console.log('  • clearAppCache() - Clear all cache with confirmation');
+    console.log('  • clearAppCacheForce() - Clear all cache without confirmation');
+    console.log('  • getCacheStats() - Get cache statistics');
+    console.log('  • logCacheStats() - Log detailed cache statistics');
+
+    return () => {
+      // Cleanup on unmount (though App rarely unmounts)
+      delete (window as any).clearAppCache;
+      delete (window as any).clearAppCacheForce;
+      delete (window as any).getCacheStats;
+      delete (window as any).logCacheStats;
+    };
+  }, []);
+
+  const [currentScreen, setCurrentScreen] = useState<Screen>('welcome'); // DEBUG: Back to normal flow with debug logging enabled
+  const [isDevelopment] = useState(import.meta.env.MODE === 'development');
+  const [showDevPanel, setShowDevPanel] = useState(true);
+  const [isCreatingNewAvatar, setIsCreatingNewAvatar] = useState(false);
+  const [isDevPanelCollapsed, setIsDevPanelCollapsed] = useState(false);
+  const [useDefaultMeasurements, setUseDefaultMeasurements] = useState(false);
+  const [isEditingStyleProfile, setIsEditingStyleProfile] = useState(false);
+  const [useAutoFillStyleProfile, setUseAutoFillStyleProfile] = useState(false);
+  const [useAutoFillUserData, setUseAutoFillUserData] = useState(false);
+  const [useAutoFillClothingPrompts, setUseAutoFillClothingPrompts] = useState(false);
+  const [useAutoFillOutfitNames, setUseAutoFillOutfitNames] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [showOnboardingPopup, setShowOnboardingPopup] = useState(false);
+  const [showDoorTransition, setShowDoorTransition] = useState(false);
+  const [showExitDoorTransition, setShowExitDoorTransition] = useState(false);
+  const [pendingScreen, setPendingScreen] = useState<Screen | null>(null);
+
+  // Reset edit mode flag when navigating away from style profile
+  React.useEffect(() => {
+    if (currentScreen !== 'styleProfile') {
+      setIsEditingStyleProfile(false);
+    }
+  }, [currentScreen]);
+
+  // iOS Tab Bar Configuration with 3-Pill Layout
+  // Pill 1: Home (solo) | Pill 2: Closet + Calendar | Pill 3: StyleHub (solo)
+  const tabs: Tab[] = [
+    { id: 'home', label: 'Home', icon: <Home className="w-6 h-6" />, route: 'avatarHomepage', group: 0 },
+    { id: 'closet', label: 'Closet', icon: <Shirt className="w-6 h-6" />, route: 'closet', group: 1 },
+    { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-6 h-6" />, route: 'smartCalendar', group: 1 },
+    { id: 'stylehub', label: 'StyleHub', icon: <Compass className="w-6 h-6" />, route: 'stylehub', group: 2 },
+  ];
+  const [activeTab, setActiveTab] = useState('home');
+  const [appData, setAppData] = useState<AppData>({
+    capturedPhotos: [],
+    uploadedPhoto: undefined,
+    generatedAvatar: undefined,
+    measurements: {},
+    avatarData: {
+      // No default imageUrl - will show empty state until generation
+      qualityScore: 0, // Default to 0 until actual generation
+      metadata: {
+        // Empty metadata structure - will be populated after generation
+        style: 'realistic',
+        quality: 'pending'
+      }
+    }
+  });
+
+  // Initialize dev mode functionality
+  const {
+    emitMeasurements,
+    emitUserOnboarding,
+    emitStyleProfile,
+    emitClothingPrompt,
+    emitOutfitName,
+    emitClearAll
+  } = useDevMode();
+
+  // Debug log to see current state
+  console.log('App rendering, currentScreen:', currentScreen);
+  console.log('App data status:', {
+    photosCount: appData.capturedPhotos.length,
+    hasMeasurements: !!appData.measurements,
+    avatarDataReady: !!appData.avatarData
+  });
+
+  // Hotkey to toggle dev panel (Ctrl+Shift+D)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Ctrl+Shift+D (or Cmd+Shift+D on Mac)
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'd') {
+        event.preventDefault();
+        setShowDevPanel(prev => {
+          // If hiding panel, reset collapsed state
+          if (prev) {
+            setIsDevPanelCollapsed(false);
+            return false;
+          } else {
+            // If showing panel, show it expanded
+            setIsDevPanelCollapsed(false);
+            return true;
+          }
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Load user data on app initialization
+  useEffect(() => {
+    const loadedUserData = UserService.getUserData();
+    setUserData(loadedUserData);
+  }, []);
+
+  // Load saved avatar and determine initial screen on app initialization
+  useEffect(() => {
+    const checkAndLoadSavedAvatar = () => {
+      // Wait for auth to complete before checking saved state
+      if (authLoading) {
+        console.log('⏳ [APP] Waiting for auth to complete before checking saved avatars...');
+        return;
+      }
+
+      // CRITICAL: Prevent homepage redirect during OAuth callback
+      if (isOAuthInProgress) {
+        console.log('⏳ [APP] OAuth in progress - delaying avatar check to prevent redirect');
+        return;
+      }
+
+      console.log('🔍 [APP] Checking for saved avatars on initialization...');
+
+      // Check if we already have an avatar in current session
+      if (appData.generatedAvatar) {
+        console.log('✅ [APP] Avatar already loaded in current session');
+        return;
+      }
+
+      // PRIORITY CHECK: If user has completed full flow, always go to Avatar Homepage
+      const hasCompletedFlow = UserService.hasCompletedFlow();
+      const bestAvatar = avatarManagementService.getBestAvatar(); // Use best available avatar (default > current > most recent)
+
+      // iOS Fix: If avatar exists, assume flow was completed
+      // (localStorage may be cleared on iOS, but avatar data persists)
+      const hasCompletedFlowOrAvatar = hasCompletedFlow || (bestAvatar !== null);
+
+      if (hasCompletedFlowOrAvatar && bestAvatar) {
+        console.log('🎯 [APP] User has completed full flow - navigating to Avatar Homepage');
+        console.log('🎭 [APP] Loading avatar:', bestAvatar.name);
+
+        // Set to loading screen
+        setCurrentScreen('loading');
+
+        // Convert saved avatar to app data format
+        const restoredAvatarData = {
+          imageUrl: bestAvatar.imageUrl,
+          animatedVideoUrl: bestAvatar.animatedVideoUrl,
+          metadata: {
+            demoMode: bestAvatar.metadata.source === 'demo',
+            quality: bestAvatar.metadata.quality,
+            source: bestAvatar.metadata.source
+          }
+        };
+
+        // Update app state with restored avatar
+        setAppData(prev => ({
+          ...prev,
+          generatedAvatar: restoredAvatarData,
+          avatarData: {
+            imageUrl: bestAvatar.imageUrl,
+            qualityScore: bestAvatar.metadata.quality === 'high' ? 90 :
+                         bestAvatar.metadata.quality === 'medium' ? 70 : 50,
+            metadata: {
+              style: 'realistic',
+              quality: bestAvatar.metadata.quality
+            }
+          }
+        }));
+
+        // Load avatar into management service
+        avatarManagementService.loadAvatarFromLibrary(bestAvatar.id);
+
+        // Note: Navigation to 'avatarHomepage' is now handled by LoadingScreen's onLoadingComplete callback
+        console.log('✅ [APP] Best avatar restored for completed user, waiting for loading screen...');
+        return;
+      }
+
+      // FALLBACK: Check old logic for partial completion
+      const hasOnboarding = UserService.hasShownOnboarding();
+      const hasCompletedStyleProfile = localStorage.getItem('styleProfile') !== null;
+
+      if (bestAvatar && hasOnboarding && hasCompletedStyleProfile) {
+        console.log('🎭 [APP] Found best avatar, completed onboarding, and style profile - showing loading screen');
+        console.log('🎭 [APP] Loading avatar:', bestAvatar.name);
+
+        // Set to loading screen
+        setCurrentScreen('loading');
+
+        // Convert saved avatar to app data format
+        const restoredAvatarData = {
+          imageUrl: bestAvatar.imageUrl,
+          animatedVideoUrl: bestAvatar.animatedVideoUrl,
+          metadata: {
+            demoMode: bestAvatar.metadata.source === 'demo',
+            quality: bestAvatar.metadata.quality,
+            source: bestAvatar.metadata.source
+          }
+        };
+
+        // Update app state with restored avatar
+        setAppData(prev => ({
+          ...prev,
+          generatedAvatar: restoredAvatarData,
+          avatarData: {
+            imageUrl: bestAvatar.imageUrl,
+            qualityScore: bestAvatar.metadata.quality === 'high' ? 90 :
+                         bestAvatar.metadata.quality === 'medium' ? 70 : 50,
+            metadata: {
+              style: 'realistic',
+              quality: bestAvatar.metadata.quality
+            }
+          }
+        }));
+
+        // Load avatar into management service
+        avatarManagementService.loadAvatarFromLibrary(bestAvatar.id);
+
+        // Note: Navigation to 'avatarHomepage' is now handled by LoadingScreen's onLoadingComplete callback
+        console.log('✅ [APP] Best avatar restored successfully, waiting for loading screen...');
+      } else if (bestAvatar && !hasOnboarding) {
+        // Has avatar but hasn't completed onboarding yet
+        console.log('🎭 [APP] Found best avatar but onboarding not complete - loading avatar only');
+
+        const restoredAvatarData = {
+          imageUrl: bestAvatar.imageUrl,
+          animatedVideoUrl: bestAvatar.animatedVideoUrl,
+          metadata: {
+            demoMode: bestAvatar.metadata.source === 'demo',
+            quality: bestAvatar.metadata.quality,
+            source: bestAvatar.metadata.source
+          }
+        };
+
+        setAppData(prev => ({
+          ...prev,
+          generatedAvatar: restoredAvatarData,
+          avatarData: {
+            imageUrl: bestAvatar.imageUrl,
+            qualityScore: bestAvatar.metadata.quality === 'high' ? 90 :
+                         bestAvatar.metadata.quality === 'medium' ? 70 : 50,
+            metadata: {
+              style: 'realistic',
+              quality: bestAvatar.metadata.quality
+            }
+          }
+        }));
+
+        avatarManagementService.loadAvatarFromLibrary(bestAvatar.id);
+      } else {
+        // No avatar or no onboarding - start at welcome screen
+        console.log('📭 [APP] No saved avatar or incomplete setup - starting at welcome screen');
+        const savedAvatars = avatarManagementService.getSavedAvatars();
+        if (savedAvatars.length > 0) {
+          console.log(`📚 [APP] Found ${savedAvatars.length} saved avatar(s), but none set as best/default`);
+        }
+      }
+    };
+
+    checkAndLoadSavedAvatar();
+  }, [authLoading, authUser, isOAuthInProgress]); // Re-run when auth state or OAuth status changes
+
+  // Helper functions for style profile auto-fill
+  const getSavedStyleProfile = () => {
+    try {
+      const saved = localStorage.getItem('styleProfile');
+      return saved ? JSON.parse(saved) : null;
+    } catch (error) {
+      console.error('Error loading saved style profile:', error);
+      return null;
+    }
+  };
+
+  const getStyleProfileInfo = () => {
+    const saved = getSavedStyleProfile();
+    if (!saved) return null;
+
+    // Calculate completion percentage
+    let totalFields = 0;
+    let filledFields = 0;
+
+    // Count arrays
+    Object.entries(saved).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        totalFields++;
+        if (value.length > 0) filledFields++;
+      } else if (typeof value === 'object' && value !== null) {
+        Object.values(value).forEach(subValue => {
+          totalFields++;
+          if (Array.isArray(subValue) ? subValue.length > 0 : subValue !== null && subValue !== '') {
+            filledFields++;
+          }
+        });
+      }
+    });
+
+    const completionPercentage = Math.round((filledFields / totalFields) * 100);
+    const imageCount = Object.values(saved.uploads || {}).filter(img => img !== null).length;
+
+    return {
+      completionPercentage,
+      imageCount,
+      hasData: filledFields > 0
+    };
+  };
+
+  // Handle navigation to avatarHomepage with onboarding check
+  const navigateToAvatarHomepage = () => {
+    // Check if we should show onboarding popup
+    if (!UserService.hasShownOnboarding()) {
+      setShowOnboardingPopup(true);
+    }
+    setCurrentScreen('avatarHomepage');
+  };
+
+  // Handle onboarding completion
+  const handleOnboardingComplete = async (formData: OnboardingFormData) => {
+    try {
+      const newUserData = await UserService.saveUserData(formData);
+      setUserData(newUserData);
+      setShowOnboardingPopup(false);
+      console.log('Onboarding completed for:', newUserData.firstName);
+      if (newUserData.timezone) {
+        console.log('✅ Timezone saved:', newUserData.timezone);
+      }
+    } catch (error) {
+      console.error('Failed to save user data:', error);
+      // Could show an error message to user here
+    }
+  };
+
+  // Handle onboarding skip
+  const handleOnboardingSkip = () => {
+    UserService.markOnboardingShown();
+    setShowOnboardingPopup(false);
+    console.log('Onboarding skipped');
+  };
+
+  const screens: Screen[] = ['loading', 'welcome', 'photoCapture', 'avatarGeneration', 'appFace', 'styleProfile', 'avatarHomepage', 'closet', 'apiTest'];
+  const screenLabels = {
+    loading: 'L',
+    welcome: '1',
+    photoCapture: '2',
+    avatarGeneration: '3', // This is the measurements page
+    measurements: 'M', // Legacy/alternative measurements page
+    appFace: '4',
+    styleProfile: '5',
+    avatarHomepage: '6',
+    closet: 'C',
+    apiTest: 'T'
+  };
+
+  const navigateToScreen = (screen: Screen) => {
+    setCurrentScreen(screen);
+  };
+
+  const navigatePrevious = () => {
+    const currentIndex = screens.indexOf(currentScreen);
+    if (currentIndex > 0) {
+      setCurrentScreen(screens[currentIndex - 1]);
+    }
+  };
+
+  const navigateNext = () => {
+    const currentIndex = screens.indexOf(currentScreen);
+    if (currentIndex < screens.length - 1) {
+      setCurrentScreen(screens[currentIndex + 1]);
+    }
+  };
+
+  // Handle photo capture completion
+  const handlePhotosCapture = (photos: CapturedPhoto[]) => {
+    console.log('Photos received in App:', photos);
+    const uploadedPhoto = photos[0]?.dataUrl; // Get first photo as uploaded photo
+    setAppData(prev => ({ ...prev, capturedPhotos: photos, uploadedPhoto }));
+    // Go to avatar generation page (which is the measurements page)
+    setCurrentScreen('avatarGeneration');
+  };
+
+  // Handle avatar generation completion
+  const handleAvatarGeneration = (data: { avatarData: any; measurements: any }) => {
+    console.log('Avatar and measurements received in App:', data);
+
+    // Update app state
+    setAppData(prev => ({
+      ...prev,
+      generatedAvatar: data.avatarData,
+      measurements: data.measurements,
+      // Also update avatarData so it shows on the homepage
+      avatarData: data.avatarData ? {
+        imageUrl: data.avatarData.imageUrl || data.avatarData,
+        qualityScore: data.avatarData.qualityScore || 85,
+        metadata: {
+          style: 'realistic',
+          quality: 'high',
+          ...(data.avatarData.metadata || {})
+        }
+      } : null
+    }));
+
+    // Auto-save avatar to library (first avatar is set as default)
+    if (data.avatarData?.imageUrl) {
+      try {
+        const isFirstAvatar = !avatarManagementService.hasStoredAvatars();
+        const avatarName = isFirstAvatar ? 'My Avatar' : `Avatar ${new Date().toLocaleDateString()}`;
+
+        const savedAvatar = avatarManagementService.saveAvatarToLibrary(
+          data.avatarData.imageUrl,
+          avatarName,
+          isFirstAvatar // Set as default if first avatar
+        );
+
+        if (savedAvatar) {
+          console.log(`💾 [APP] Avatar auto-saved to library: ${savedAvatar.name}${isFirstAvatar ? ' (set as default)' : ''}`);
+        }
+
+        // Initialize avatar management session
+        avatarManagementService.initializeAvatar(data.avatarData.imageUrl, false);
+      } catch (error) {
+        console.error('❌ [APP] Failed to auto-save avatar:', error);
+      }
+    }
+
+    // Check if we're creating a new avatar (not first-time setup)
+    if (isCreatingNewAvatar) {
+      // Skip onboarding, go directly to homepage
+      console.log('🏠 [APP] New avatar created, returning to homepage');
+      setIsCreatingNewAvatar(false); // Reset flag
+      setCurrentScreen('avatarHomepage');
+    } else {
+      // First-time setup: continue with full onboarding flow
+      console.log('📋 [APP] First-time setup, continuing to outfit try-on');
+      setCurrentScreen('appFace');
+    }
+  };
+
+  // Handle navigation from AppFace (page 4) - go directly to style profile
+  const handleAppFaceNext = () => {
+    // Avatar already auto-saved, proceed to style profile
+    setCurrentScreen('styleProfile');
+  };
+
+  // Handle avatar update when outfit is applied
+  const handleAvatarUpdate = (updatedAvatarData: any) => {
+    console.log('Avatar updated with outfit:', updatedAvatarData);
+    setAppData(prev => ({
+      ...prev,
+      // Update both generatedAvatar and avatarData to ensure consistency
+      generatedAvatar: updatedAvatarData,
+      avatarData: {
+        imageUrl: updatedAvatarData.imageUrl,
+        qualityScore: prev.avatarData?.qualityScore || 85,
+        withOutfit: updatedAvatarData.withOutfit || false,
+        outfitDetails: updatedAvatarData.outfitDetails,
+        metadata: {
+          ...(prev.avatarData?.metadata || {}),
+          lastUpdate: new Date().toISOString()
+        }
+      }
+    }));
+  };
+
+  // Handle avatar reset - navigate back to photo capture and clear avatar data
+  const handleResetAvatar = () => {
+    console.log('Resetting avatar - returning to photo capture flow');
+
+    // Store the fact that we're coming from reset
+    const existingPhoto = appData.uploadedPhoto;
+
+    // Option 1: If user has existing photo, ask if they want to keep it
+    if (existingPhoto && window.confirm('Do you want to keep your existing photo and just update measurements?')) {
+      console.log('📸 Keeping existing photo, going directly to avatar generation');
+
+      // Clear only avatar data but keep photo
+      setAppData(prev => ({
+        ...prev,
+        generatedAvatar: undefined,
+        measurements: null,
+        avatarData: {
+          qualityScore: 0,
+          metadata: {
+            style: 'realistic',
+            quality: 'pending'
+          }
+        }
+      }));
+
+      // Go directly to measurements with existing photo
+      setCurrentScreen('appFace');
+      return;
+    }
+
+    // Option 2: Full reset - clear everything
+    setAppData(prev => ({
+      ...prev,
+      capturedPhotos: [], // Clear photos to force new capture
+      uploadedPhoto: undefined,
+      generatedAvatar: undefined,
+      measurements: null,
+      avatarData: {
+        qualityScore: 0,
+        metadata: {
+          style: 'realistic',
+          quality: 'pending'
+        }
+      }
+    }));
+
+    // Navigate back to photo capture (page 2)
+    setCurrentScreen('photoCapture');
+  };
+
+  // Handle navigation to closet with door transition
+  const handleNavigateToCloset = () => {
+    setShowDoorTransition(true);
+    setPendingScreen('closet');
+  };
+
+  // Handle navigation from closet with door closing transition
+  const handleNavigateFromCloset = () => {
+    setShowExitDoorTransition(true);
+  };
+
+  // Handle door transition completion
+  const handleDoorTransitionComplete = () => {
+    setShowDoorTransition(false);
+    if (pendingScreen) {
+      setCurrentScreen(pendingScreen);
+      setPendingScreen(null);
+    }
+  };
+
+  // Handle exit door transition completion
+  const handleExitDoorTransitionComplete = () => {
+    setShowExitDoorTransition(false);
+    setCurrentScreen('avatarHomepage'); // Direct to page 6
+  };
+
+  // Handle tab bar changes
+  const handleTabChange = async (tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab && tab.route) {
+      if (tabId === 'closet') {
+        // Use door transition for closet
+        handleNavigateToCloset();
+        setActiveTab(tabId);
+      } else {
+        setCurrentScreen(tab.route as Screen);
+        setActiveTab(tabId);
+      }
+    }
+  };
+
+  // Sync active tab with current screen
+  useEffect(() => {
+    const tabForScreen = tabs.find(t => t.route === currentScreen);
+    if (tabForScreen) {
+      setActiveTab(tabForScreen.id);
+    }
+  }, [currentScreen]);
+
+  const renderScreen = () => {
+    console.log('🔍 RENDER DEBUG - Current screen:', currentScreen);
+    console.log('🔍 RENDER DEBUG - App data:', {
+      hasGeneratedAvatar: !!appData.generatedAvatar,
+      hasMeasurements: !!appData.measurements,
+      hasAvatarData: !!appData.avatarData?.imageUrl,
+      hasUploadedPhoto: !!appData.uploadedPhoto
+    });
+
+    switch (currentScreen) {
+      case 'loading':
+        return (
+          <LoadingScreen
+            isLoading={true}
+            message="Loading your wardrobe..."
+            onLoadingComplete={() => {
+              console.log('✅ [APP] Loading screen complete, navigating to Avatar Homepage');
+              setCurrentScreen('avatarHomepage');
+            }}
+            autoCompleteAfter={4500}
+          />
+        );
+
+      case 'welcome':
+        return (
+          <WelcomeScreen
+            onNext={() => setCurrentScreen('photoCapture')}
+            onLoadSavedAvatar={(avatarId: string) => {
+              // Load saved avatar and go to homepage
+              const library = avatarStorageService.getAvatarLibrary();
+              const savedAvatar = library.savedAvatars.find(a => a.id === avatarId);
+
+              if (savedAvatar) {
+                // Load into management service
+                avatarManagementService.loadAvatarFromLibrary(avatarId);
+
+                // Update App state with avatar data
+                setAppData(prev => ({
+                  ...prev,
+                  generatedAvatar: {
+                    imageUrl: savedAvatar.imageUrl,
+                    animatedVideoUrl: savedAvatar.animatedVideoUrl,
+                    metadata: savedAvatar.metadata
+                  },
+                  avatarData: {
+                    imageUrl: savedAvatar.imageUrl,
+                    qualityScore: savedAvatar.metadata.quality === 'high' ? 90 : 70,
+                    metadata: savedAvatar.metadata
+                  }
+                }));
+
+                console.log('🎭 [APP] Loaded saved avatar from welcome screen');
+                console.log('✅ [APP-STATE] Updated generatedAvatar in app state');
+
+                // Navigate to homepage (not appFace)
+                setCurrentScreen('avatarHomepage');
+                console.log('🏠 [APP] Navigating to Avatar Homepage');
+              }
+            }}
+          />
+        );
+
+      case 'photoCapture':
+        return <PhotoCaptureFlow onNext={handlePhotosCapture} />;
+
+
+      case 'measurements':
+        return (
+          <AvatarMeasurementsPage
+            uploadedPhoto={appData.uploadedPhoto}
+            avatarData={appData.avatarData}
+            onNext={handleAvatarGeneration}
+            onBack={() => setCurrentScreen('photoCapture')}
+          />
+        );
+      case 'avatarGeneration':
+        return (
+          <AvatarGeneration
+            onNext={handleAvatarGeneration}
+            onBack={() => {
+              if (isCreatingNewAvatar) {
+                setIsCreatingNewAvatar(false); // Reset if they go back
+              }
+              setCurrentScreen('photoCapture');
+            }}
+            uploadedPhoto={appData.uploadedPhoto}
+            measurements={appData.measurements}
+          />
+        );
+
+      case 'appFace':
+        console.log('🔍 RENDER DEBUG - Attempting to render AppFacePage');
+        console.log('🔍 RENDER DEBUG - generatedAvatar:', appData.generatedAvatar);
+        try {
+          return (
+            <AppFacePage
+              onNext={handleAppFaceNext}
+              onBack={() => setCurrentScreen('avatarGeneration')}
+              generatedAvatar={appData.generatedAvatar}
+              onAvatarUpdate={handleAvatarUpdate}
+            />
+          );
+        } catch (error) {
+          console.error('❌ RENDER ERROR - AppFacePage failed:', error);
+          return <div>AppFacePage Error: {error.message}</div>;
+        }
+
+      case 'styleProfile':
+        console.log('🔍 RENDER DEBUG - Attempting to render StyleProfileStreamlined');
+        console.log('🔍 RENDER DEBUG - avatarData:', appData.avatarData);
+        console.log('🔍 RENDER DEBUG - measurements:', appData.measurements);
+        console.log('🔍 RENDER DEBUG - isEditMode:', isEditingStyleProfile);
+        try {
+          return (
+            <StyleProfileStreamlined
+              onNext={navigateToAvatarHomepage}
+              onBack={() => setCurrentScreen('appFace')}
+              avatarData={appData.avatarData}
+              measurements={appData.measurements}
+              autoFillData={useAutoFillStyleProfile ? getSavedStyleProfile() : null}
+              isEditMode={isEditingStyleProfile}
+              onSaveAndExit={() => {
+                setIsEditingStyleProfile(false);
+                setCurrentScreen('avatarHomepage');
+              }}
+            />
+          );
+        } catch (error) {
+          console.error('❌ RENDER ERROR - StyleProfileStreamlined failed:', error);
+          return <div>StyleProfileStreamlined Error: {error.message}</div>;
+        }
+
+      case 'avatarHomepage':
+        console.log('🔍 RENDER DEBUG - Attempting to render AvatarHomepage');
+        console.log('🔍 RENDER DEBUG - avatarData:', appData.avatarData);
+        console.log('🔍 RENDER DEBUG - userData:', userData);
+        try {
+          return (
+            <AvatarHomepage
+              onBack={() => setCurrentScreen('styleProfile')}
+              onNavigateToOutfitChange={() => setCurrentScreen('appFace')}
+              onNavigateToMeasurements={() => setCurrentScreen('appFace')}
+              onNavigateToStyleProfile={() => {
+                setIsEditingStyleProfile(true);
+                setCurrentScreen('styleProfile');
+              }}
+              onNavigateToCloset={handleNavigateToCloset}
+              onNavigateToMyOutfits={() => setCurrentScreen('myOutfits')}
+              onNavigateToMyCreations={() => setCurrentScreen('myCreations')}
+              onNavigateToSettings={() => setCurrentScreen('settings')}
+              onNavigateToPhotoCapture={() => {
+                setIsCreatingNewAvatar(true); // Flag that we're creating a new avatar
+                setCurrentScreen('photoCapture');
+              }}
+              onResetAvatar={handleResetAvatar}
+              onAvatarUpdate={handleAvatarUpdate}
+              avatarData={appData.avatarData}
+              userData={userData}
+              styleProfile={(() => {
+                try {
+                  return JSON.parse(localStorage.getItem('styleProfile') || '{}');
+                } catch {
+                  return {};
+                }
+              })()}
+            />
+          );
+        } catch (error) {
+          console.error('❌ RENDER ERROR - AvatarHomepage failed:', error);
+          return <div>AvatarHomepage Error: {error.message}</div>;
+        }
+
+      // Seedream test case removed - component disabled
+
+      case 'closet':
+        return (
+          <ClosetExperience
+            onBack={handleNavigateFromCloset}
+            avatarData={appData.avatarData}
+            initialView="interior"
+          />
+        );
+
+      case 'myOutfits':
+        return (
+          <MyOutfitsPage
+            onBack={() => setCurrentScreen('avatarHomepage')}
+          />
+        );
+
+      case 'myCreations':
+        return (
+          <MyCreationsPage
+            onBack={() => setCurrentScreen('avatarHomepage')}
+          />
+        );
+
+      case 'smartCalendar':
+        return (
+          <SmartCalendarDashboard
+            onBack={() => {
+              // Check if we came from StyleHub
+              const cameFromStyleHub = sessionStorage.getItem('navigated_from_stylehub');
+              if (cameFromStyleHub === 'true') {
+                sessionStorage.removeItem('navigated_from_stylehub');
+                setCurrentScreen('stylehub');
+                setActiveTab('stylehub');
+              } else {
+                setCurrentScreen('avatarHomepage');
+              }
+            }}
+          />
+        );
+
+      case 'profile':
+        return (
+          <ProfileScreen
+            onNavigateToStyleProfile={() => {
+              setIsEditingStyleProfile(true);
+              setCurrentScreen('styleProfile');
+            }}
+            onSignOut={async () => {
+              await authService.signOut();
+              setAuthUser(null);
+              setCurrentScreen('welcome');
+              setActiveTab('home');
+            }}
+          />
+        );
+
+      case 'stylehub':
+        return (
+          <StyleHub
+            onBack={() => {
+              setCurrentScreen('avatarHomepage');
+              setActiveTab('home');
+            }}
+            onNavigateToMorningMode={() => {
+              setCurrentScreen('morningMode');
+              setActiveTab('stylehub'); // Keep StyleHub tab active
+            }}
+            onNavigateToPackingList={() => {
+              sessionStorage.setItem('calendar_initial_view', 'packing');
+              sessionStorage.setItem('navigated_from_stylehub', 'true');
+              setCurrentScreen('smartCalendar');
+              setActiveTab('calendar');
+            }}
+            onNavigateToWishlist={() => {
+              sessionStorage.setItem('navigated_from_stylehub', 'true');
+              setCurrentScreen('wishlist');
+              setActiveTab('stylehub'); // Keep StyleHub tab active
+            }}
+            onNavigateToAnalytics={() => {
+              sessionStorage.setItem('navigated_from_stylehub', 'true');
+              setCurrentScreen('analytics');
+              setActiveTab('stylehub'); // Keep StyleHub tab active
+            }}
+          />
+        );
+
+      case 'wishlist':
+        return (
+          <Wishlist
+            onBack={() => {
+              setCurrentScreen('stylehub');
+              setActiveTab('stylehub');
+            }}
+          />
+        );
+
+      case 'analytics':
+        return (
+          <ClosetAnalytics
+            onBack={() => {
+              setCurrentScreen('stylehub');
+              setActiveTab('stylehub');
+            }}
+          />
+        );
+
+      case 'morningMode':
+        return (
+          <MorningMode
+            onBack={() => {
+              setCurrentScreen('stylehub');
+              setActiveTab('stylehub');
+            }}
+          />
+        );
+
+      case 'settings':
+        return (
+          <SettingsScreen
+            onNavigateToStyleProfile={() => {
+              setIsEditingStyleProfile(true);
+              setCurrentScreen('styleProfile');
+            }}
+            onSignOut={async () => {
+              await authService.signOut();
+              setAuthUser(null);
+              setCurrentScreen('welcome');
+              setActiveTab('home');
+            }}
+            onBack={() => setCurrentScreen('avatarHomepage')}
+          />
+        );
+
+      case 'apiTest':
+        return <ApiTestPage />;
+
+      case 'appleTest':
+        return <AppleDesignTest />;
+
+      default:
+        return <WelcomeScreen onNext={() => setCurrentScreen('photoCapture')} />;
+    }
+  };
+
+  // Handle auth callback route
+  // Handle legal pages
+  if (window.location.pathname === '/privacy') {
+    return <PrivacyPolicy onBack={() => window.location.href = '/'} />;
+  }
+
+  if (window.location.pathname === '/terms') {
+    return <TermsOfService onBack={() => window.location.href = '/'} />;
+  }
+
+  if (isAuthCallback) {
+    return (
+      <AuthCallback
+        onSuccess={() => {
+          console.log('✅ [AUTH] Auth callback complete');
+          // Let AuthCallback handle its own redirect
+          setIsAuthCallback(false);
+        }}
+      />
+    );
+  }
+
+  // Show loading screen while checking auth (except for share links)
+  if (authLoading && !shareId) {
+    return (
+      <LoadingScreen
+        isLoading={true}
+        onLoadingComplete={() => {
+          // Auth should complete naturally via useEffect, but provide fallback
+          console.log('⚠️ [APP] Auth loading screen timeout - forcing auth complete');
+          setAuthLoading(false);
+        }}
+        autoCompleteAfter={5000} // 5 seconds max for auth check
+      />
+    );
+  }
+
+  // Auth Gate - Require login for all users (except share links)
+  if (!authLoading && !authUser && !shareId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+        <AuthModal
+          isOpen={true}
+          onClose={() => {}} // Can't close - login required
+          onSuccess={(user) => {
+            setAuthUser(user);
+            console.log('✅ [AUTH] User authenticated and granted access:', user.email);
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <KonstaApp theme="ios" safeAreas className="min-h-screen relative">
+      {/* User Menu - Top Right */}
+      {!shareId && currentScreen !== 'loading' && !authLoading && authUser && (
+        <div className="fixed top-4 right-4 z-50">
+          <UserMenu
+            user={authUser}
+            onLoginClick={() => setShowAuthModal(true)}
+            onLogout={() => {
+              setAuthUser(null);
+              setCurrentScreen('welcome');
+              console.log('🔓 [AUTH] User logged out, redirecting to login');
+            }}
+            onNavigateToCloset={handleNavigateToCloset}
+          />
+        </div>
+      )}
+
+      {/* Authentication Modal (for password changes, etc) */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={(user) => {
+          setAuthUser(user);
+          console.log('✅ [AUTH] User authenticated:', user.email);
+        }}
+      />
+
+      {/* If share link detected, show SharedOutfit */}
+      {shareId ? (
+        <SharedOutfit
+          shareId={shareId}
+          onCreateOwn={() => {
+            setShareId(null);
+            setCurrentScreen('welcome');
+            // Clear URL param
+            window.history.replaceState({}, '', window.location.pathname);
+          }}
+        />
+      ) : (
+        <>
+          {/* Content */}
+          <div className="relative z-10">
+            {renderScreen()}
+
+        {/* Development Navigation Panel */}
+        {isDevelopment && showDevPanel && !isDevPanelCollapsed && (
+          <div className="fixed bottom-4 right-4 bg-black/80 backdrop-blur-md text-white rounded-xl p-3 shadow-2xl z-50 border border-white/20 transition-all duration-300">
+            <div className="text-xs text-gray-300 mb-2 text-center flex items-center justify-between">
+              <span>DEV PANEL</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-400 text-[10px]">Ctrl+Shift+D</span>
+                <button
+                  onClick={() => setIsDevPanelCollapsed(true)}
+                  className="text-gray-400 hover:text-white transition-colors duration-200 hover:scale-110"
+                  title="Collapse panel"
+                >
+                  <ChevronUp className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
+            {/* Step Indicators */}
+            <div className="flex space-x-1 mb-3">
+              {screens.map((screen) => (
+                <button
+                  key={screen}
+                  onClick={() => navigateToScreen(screen)}
+                  className={`w-8 h-8 rounded-full text-xs font-bold transition-all duration-200 ${
+                    currentScreen === screen
+                      ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/50'
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500 hover:scale-110'
+                  }`}
+                >
+                  {screenLabels[screen]}
+                </button>
+              ))}
+            </div>
+
+            {/* Navigation Buttons */}
+            <div className="flex space-x-2">
+              <button
+                onClick={navigatePrevious}
+                disabled={currentScreen === screens[0]}
+                className="flex items-center space-x-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105"
+              >
+                <ChevronLeft className="w-3 h-3" />
+                <span>Prev</span>
+              </button>
+
+              <button
+                onClick={navigateNext}
+                disabled={currentScreen === screens[screens.length - 1]}
+                className="flex items-center space-x-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Current Screen Label */}
+            <div className="text-xs text-gray-400 mt-2 text-center capitalize">
+              {currentScreen === 'loading' ? 'Loading...' :
+               currentScreen === 'avatarGeneration' ? 'Measurements & Avatar Generation' :
+               currentScreen === 'measurements' ? 'Alternative Measurements Page' :
+               currentScreen === 'styleProfile' ? 'Style Personalization' :
+               currentScreen === 'appFace' ? 'Try On Outfits' :
+               currentScreen === 'avatarHomepage' ? 'Avatar Dashboard' :
+               currentScreen === 'closet' ? 'My Closet' :
+               currentScreen === 'apiTest' ? 'API Connection Test' :
+               currentScreen === 'appleTest' ? '🍎 Apple Design Test' :
+               currentScreen.replace(/([A-Z])/g, ' $1').trim()}
+            </div>
+
+            {/* Debug Data Status */}
+            <div className="mt-3 pt-3 border-t border-gray-600 text-xs">
+              <div className="text-gray-400 mb-1">Data Status:</div>
+              <div className={`${appData.capturedPhotos.length > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                Photos: {appData.capturedPhotos.length}/3
+              </div>
+              <div className={`${appData.measurements ? 'text-green-400' : 'text-red-400'}`}>
+                Measurements: {appData.measurements ? 'Ready' : 'Missing'}
+              </div>
+              {appData.capturedPhotos.length > 0 && (
+                <div className="text-gray-300 mt-1">
+                  Views: {appData.capturedPhotos.map(p => p.view).join(', ')}
+                </div>
+              )}
+            </div>
+
+            {/* Auto-Fill Controls */}
+            <div className="mt-3 pt-3 border-t border-gray-600 space-y-3">
+              {/* Measurements Auto-Fill */}
+              <div>
+                <label className="flex items-center space-x-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useDefaultMeasurements}
+                    onChange={(e) => {
+                      setUseDefaultMeasurements(e.target.checked);
+                      if (e.target.checked) {
+                        emitMeasurements();
+                      }
+                    }}
+                    className="w-3 h-3 text-amber-600 bg-gray-700 border-gray-600 rounded focus:ring-amber-600 focus:ring-1"
+                  />
+                  <span className="text-gray-300">Auto-fill measurements</span>
+                  {useDefaultMeasurements && (
+                    <span className="text-green-400 text-[10px]">✓</span>
+                  )}
+                </label>
+                <div className="text-gray-500 text-[10px] mt-1">
+                  4'11", 35", 23", 24", 24", 25"
+                </div>
+              </div>
+
+              {/* User Onboarding Auto-Fill */}
+              <div>
+                <label className="flex items-center space-x-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useAutoFillUserData}
+                    onChange={(e) => {
+                      setUseAutoFillUserData(e.target.checked);
+                      if (e.target.checked) {
+                        emitUserOnboarding();
+                      }
+                    }}
+                    className="w-3 h-3 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 focus:ring-1"
+                  />
+                  <span className="text-gray-300">Auto-fill user data</span>
+                  {useAutoFillUserData && (
+                    <span className="text-blue-400 text-[10px]">✓</span>
+                  )}
+                </label>
+                <div className="text-gray-500 text-[10px] mt-1">
+                  Name: Alex, DOB: 1995-06-15
+                </div>
+              </div>
+
+              {/* Clothing Prompts Auto-Fill */}
+              <div>
+                <label className="flex items-center space-x-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useAutoFillClothingPrompts}
+                    onChange={(e) => {
+                      setUseAutoFillClothingPrompts(e.target.checked);
+                      if (e.target.checked) {
+                        emitClothingPrompt();
+                      }
+                    }}
+                    className="w-3 h-3 text-purple-600 bg-gray-700 border-gray-600 rounded focus:ring-purple-600 focus:ring-1"
+                  />
+                  <span className="text-gray-300">Auto-fill clothing prompts</span>
+                  {useAutoFillClothingPrompts && (
+                    <span className="text-purple-400 text-[10px]">✓</span>
+                  )}
+                </label>
+                <div className="text-gray-500 text-[10px] mt-1">
+                  Random style-based prompts
+                </div>
+              </div>
+
+              {/* Outfit Names Auto-Fill */}
+              <div>
+                <label className="flex items-center space-x-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useAutoFillOutfitNames}
+                    onChange={(e) => {
+                      setUseAutoFillOutfitNames(e.target.checked);
+                      if (e.target.checked) {
+                        emitOutfitName();
+                      }
+                    }}
+                    className="w-3 h-3 text-pink-600 bg-gray-700 border-gray-600 rounded focus:ring-pink-600 focus:ring-1"
+                  />
+                  <span className="text-gray-300">Auto-fill outfit names</span>
+                  {useAutoFillOutfitNames && (
+                    <span className="text-pink-400 text-[10px]">✓</span>
+                  )}
+                </label>
+                <div className="text-gray-500 text-[10px] mt-1">
+                  Creative outfit names
+                </div>
+              </div>
+            </div>
+
+            {/* Utility Controls */}
+            <div className="mt-3 pt-3 border-t border-gray-600">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => {
+                    emitClearAll();
+                    setUseDefaultMeasurements(false);
+                    setUseAutoFillUserData(false);
+                    setUseAutoFillClothingPrompts(false);
+                    setUseAutoFillOutfitNames(false);
+                    setUseAutoFillStyleProfile(false);
+                  }}
+                  className="flex items-center space-x-1 px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs font-medium transition-all duration-200 hover:scale-105"
+                  title="Clear all demo data"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Clear All</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    emitMeasurements();
+                    emitUserOnboarding();
+                    emitClothingPrompt();
+                    emitOutfitName();
+                    if (getSavedStyleProfile()) {
+                      emitStyleProfile();
+                    }
+                  }}
+                  className="flex items-center space-x-1 px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs font-medium transition-all duration-200 hover:scale-105"
+                  title="Fill all forms with demo data"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Fill All</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Auto-Fill Style Profile Control */}
+            {(() => {
+              const styleInfo = getStyleProfileInfo();
+              return styleInfo && styleInfo.hasData ? (
+                <div className="mt-3 pt-3 border-t border-gray-600">
+                  <label className="flex items-center space-x-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useAutoFillStyleProfile}
+                      onChange={(e) => setUseAutoFillStyleProfile(e.target.checked)}
+                      className="w-3 h-3 text-green-600 bg-gray-700 border-gray-600 rounded focus:ring-green-600 focus:ring-1"
+                    />
+                    <span className="text-gray-300">Auto-fill style profile</span>
+                    {useAutoFillStyleProfile && (
+                      <span className="text-green-400 text-[10px]">✓</span>
+                    )}
+                  </label>
+                  <div className="text-gray-500 text-[10px] mt-1">
+                    {styleInfo.completionPercentage}% complete, {styleInfo.imageCount} images
+                  </div>
+                </div>
+              ) : null;
+            })()}
+          </div>
+        )}
+
+        {/* Collapsed Dev Panel */}
+        {isDevelopment && showDevPanel && isDevPanelCollapsed && (
+          <div className="fixed bottom-4 right-4 bg-black/80 backdrop-blur-md text-white rounded-xl p-3 shadow-2xl z-50 border border-white/20 transition-all duration-300">
+            <div className="text-xs text-gray-300 text-center flex items-center justify-between">
+              <span>DEV PANEL</span>
+              <button
+                onClick={() => setIsDevPanelCollapsed(false)}
+                className="text-gray-400 hover:text-white transition-colors duration-200 hover:scale-110"
+                title="Expand panel"
+              >
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Hidden Dev Panel Indicator */}
+        {isDevelopment && !showDevPanel && (
+          <div
+            className="fixed bottom-4 right-4 bg-black/60 backdrop-blur-md text-white rounded-lg px-3 py-2 shadow-lg z-40 border border-white/20 cursor-pointer hover:bg-black/80 transition-all duration-200 hover:scale-105"
+            onClick={() => {
+              setShowDevPanel(true);
+              setIsDevPanelCollapsed(false);
+            }}
+            title="Click to open dev panel"
+          >
+            <div className="text-xs text-gray-300 text-center">
+              Press <span className="text-white font-mono">Ctrl+Shift+D</span> for dev panel
+            </div>
+          </div>
+        )}
+
+        {/* User Onboarding Popup */}
+        <UserOnboardingPopup
+          isOpen={showOnboardingPopup}
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingSkip}
+        />
+
+        {/* Door Transition Animation */}
+        <DoorTransition
+          isVisible={showDoorTransition}
+          direction="opening"
+          onComplete={handleDoorTransitionComplete}
+        />
+
+        {/* Exit Door Transition Animation */}
+        <DoorTransition
+          isVisible={showExitDoorTransition}
+          direction="closing"
+          onComplete={handleExitDoorTransitionComplete}
+        />
+
+        {/* Floating Tab Bar - Show on main app screens with paired grouping */}
+        {['avatarHomepage', 'closet', 'myOutfits', 'myCreations', 'smartCalendar', 'profile', 'settings'].includes(currentScreen) && !authLoading && authUser && (
+          <FloatingTabBar
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            groupingStyle="paired"
+            hapticFeedback={true}
+          />
+        )}
+
+      </div>
+      </>
+    )}
+    </KonstaApp>
+  );
+}
+
+export default App;

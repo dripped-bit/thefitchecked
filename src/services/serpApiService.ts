@@ -691,8 +691,161 @@ Be VERY STRICT - if there's ANY indication this is for children/youth/teens (age
 
     return primaryResults;
   }
+
+  /**
+   * Search for travel-specific clothing items based on destination and weather
+   */
+  async searchForTripItems(
+    tripContext: {
+      destination: string;
+      tripType: string;
+      weatherTemp?: number;
+      weatherCondition?: string;
+    },
+    category: string
+  ): Promise<ProductSearchResult[]> {
+    const { destination, tripType, weatherTemp, weatherCondition } = tripContext;
+
+    // Build context-aware query
+    let query = category;
+
+    // Add weather context
+    if (weatherTemp && weatherTemp < 50) {
+      query = `warm ${query}`;
+    } else if (weatherTemp && weatherTemp > 80) {
+      query = `lightweight ${query}`;
+    }
+
+    // Add trip type context
+    const tripTypeModifiers: Record<string, string> = {
+      'vacation': 'casual',
+      'business': 'professional',
+      'weekend': 'casual',
+      'adventure': 'outdoor',
+      'event': 'dressy',
+      'multi-destination': 'versatile'
+    };
+
+    const modifier = tripTypeModifiers[tripType] || 'travel';
+    query = `${modifier} ${query}`;
+
+    // Add destination context if beach/tropical
+    if (destination.toLowerCase().includes('beach') || 
+        destination.toLowerCase().includes('hawaii') ||
+        destination.toLowerCase().includes('caribbean')) {
+      query = `${query} beachwear resort`;
+    }
+
+    console.log(`🧳 [TRIP-SEARCH] Searching for: "${query}" (${tripType} trip to ${destination})`);
+
+    return this.searchProducts(query, { maxResults: 15 });
+  }
+
+  /**
+   * Get shopping suggestions for missing outfit items
+   */
+  async getTripShoppingSuggestions(
+    missingItems: Array<{ category: string; count: number }>,
+    tripContext: {
+      destination: string;
+      tripType: string;
+      weatherTemp?: number;
+      weatherCondition?: string;
+    }
+  ): Promise<Record<string, ProductSearchResult[]>> {
+    const suggestions: Record<string, ProductSearchResult[]> = {};
+
+    console.log(`🛍️ [TRIP-SUGGESTIONS] Getting suggestions for ${missingItems.length} categories`);
+
+    // Search for each missing category in parallel
+    const searchPromises = missingItems.map(async ({ category, count }) => {
+      const results = await this.searchForTripItems(tripContext, category);
+      return { category, results };
+    });
+
+    const searchResults = await Promise.all(searchPromises);
+
+    // Organize results by category
+    searchResults.forEach(({ category, results }) => {
+      suggestions[category] = results;
+    });
+
+    return suggestions;
+  }
+
+  /**
+   * Search for complete outfit sets for trips
+   */
+  async searchTripOutfitSets(
+    tripContext: {
+      destination: string;
+      tripType: string;
+      occasion?: string;
+    }
+  ): Promise<ProductSearchResult[]> {
+    const { destination, tripType, occasion } = tripContext;
+
+    // Build outfit set query
+    let query = `${tripType} outfit set`;
+
+    if (occasion) {
+      query = `${occasion} ${query}`;
+    }
+
+    // Add destination context
+    if (destination.toLowerCase().includes('beach')) {
+      query = `${query} resort beachwear`;
+    } else if (destination.toLowerCase().includes('ski')) {
+      query = `${query} winter sports`;
+    }
+
+    console.log(`👗 [OUTFIT-SETS] Searching for: "${query}"`);
+
+    return this.searchProducts(query, { maxResults: 12 });
+  }
+
+  /**
+   * General Google Shopping search (wrapper for backward compatibility)
+   */
+  async searchGoogleShopping(query: string): Promise<ProductSearchResult[]> {
+    console.log(`🔍 [GOOGLE-SHOPPING] General search: "${query}"`);
+    return this.searchProducts(query, { maxResults: 20 });
+  }
 }
 
 // Export singleton instance
 export const serpApiService = new SerpApiService();
+
+// Export standalone functions for convenience
+export const getTripShoppingSuggestions = (
+  missingItems: Array<{ category: string; count: number }>,
+  tripContext: {
+    destination: string;
+    tripType: string;
+    weatherTemp?: number;
+    weatherCondition?: string;
+  }
+) => serpApiService.getTripShoppingSuggestions(missingItems, tripContext);
+
+export const searchForTripItems = (
+  tripContext: {
+    destination: string;
+    tripType: string;
+    weatherTemp?: number;
+    weatherCondition?: string;
+  },
+  category: string
+) => serpApiService.searchForTripItems(tripContext, category);
+
+export const searchTripOutfitSets = (
+  tripContext: {
+    destination: string;
+    tripType: string;
+    occasion?: string;
+  }
+) => serpApiService.searchTripOutfitSets(tripContext);
+
+export const searchGoogleShopping = (query: string) =>
+  serpApiService.searchGoogleShopping(query);
+
 export default serpApiService;

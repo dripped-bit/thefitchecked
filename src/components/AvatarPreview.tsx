@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import { ArrowLeft, ArrowRight, Edit3, Palette, RotateCcw, User, Sparkles } from 'lucide-react';
 
 // Confetti Component

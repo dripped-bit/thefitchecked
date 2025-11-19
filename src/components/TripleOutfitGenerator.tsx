@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import {
   Sparkles,
   Heart,
@@ -641,7 +642,7 @@ Flat-lay product photography style, clean white background, professional lightin
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-3-haiku-20240307',
+          model: 'claude-haiku-4-5',
           max_tokens: 150, // Reduced to prevent over-description
           messages: [
             {

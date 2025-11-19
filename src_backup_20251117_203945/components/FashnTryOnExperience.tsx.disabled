@@ -1,0 +1,555 @@
+import React, { useState, useEffect } from 'react';
+import {
+  ArrowLeft,
+  Upload,
+  Zap,
+  Sparkles,
+  ShoppingBag,
+  Image,
+  Star,
+  Heart,
+  Share2,
+  Download,
+  CheckCircle,
+  AlertCircle,
+  Search,
+  Settings
+} from 'lucide-react';
+import ClothingUploadComponent from './ClothingUploadComponent';
+import AdvancedOutfitSearch from './AdvancedOutfitSearch';
+import SmartClothingGenerator from './SmartClothingGenerator';
+import { FashnResponse, FashnApiService } from '../services/fashnApiService';
+
+interface FashnTryOnExperienceProps {
+  onBack: () => void;
+  avatarData?: any;
+  initialView?: 'upload' | 'gallery';
+  initialTab?: 'basic' | 'smart' | 'advanced';
+}
+
+interface SavedTryOn {
+  id: string;
+  clothingImageUrl: string;
+  tryOnResults: FashnResponse[];
+  timestamp: number;
+  name: string;
+  rating?: number;
+}
+
+const FashnTryOnExperience: React.FC<FashnTryOnExperienceProps> = ({
+  onBack,
+  avatarData,
+  initialView = 'upload',
+  initialTab = 'basic'
+}) => {
+  const [currentView, setCurrentView] = useState<'upload' | 'gallery' | 'result'>(initialView);
+  const [activeTab, setActiveTab] = useState<'basic' | 'smart' | 'advanced'>(initialTab);
+  const [savedTryOns, setSavedTryOns] = useState<SavedTryOn[]>([]);
+  const [currentResults, setCurrentResults] = useState<FashnResponse[]>([]);
+  const [selectedTryOn, setSelectedTryOn] = useState<SavedTryOn | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load saved try-ons from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('fashn-tryons');
+    if (saved) {
+      try {
+        setSavedTryOns(JSON.parse(saved));
+      } catch (error) {
+        console.error('Failed to load saved try-ons:', error);
+      }
+    }
+  }, []);
+
+  // Save try-ons to localStorage
+  const saveTryOnsToStorage = (tryOns: SavedTryOn[]) => {
+    try {
+      localStorage.setItem('fashn-tryons', JSON.stringify(tryOns));
+    } catch (error) {
+      console.error('Failed to save try-ons:', error);
+    }
+  };
+
+  // Handle try-on from search results
+  const handleTryOn = async (item: any) => {
+    if (!avatarData?.imageUrl) {
+      setError('Please create an avatar first');
+      return;
+    }
+
+    try {
+      setError(null);
+      const fashnService = new FashnApiService();
+      const result = await fashnService.virtualTryOn(
+        avatarData.imageUrl,
+        item.imageUrl,
+        {
+          category: 'auto',
+          mode: 'quality'
+        }
+      );
+      handleTryOnComplete(result, item.imageUrl);
+      setActiveTab('basic'); // Switch to basic tab to show results
+    } catch (error) {
+      console.error('Try-on failed:', error);
+      setError('Failed to try on this item. Please try again.');
+    }
+  };
+
+  // Handle try-on completion
+  const handleTryOnComplete = (result: FashnResponse, clothingImage?: string) => {
+    console.log('🎉 Try-on completed:', result);
+    setCurrentResults([result]);
+    setError(null);
+    setCurrentView('result');
+
+    // Auto-save the result
+    if (clothingImage) {
+      const newTryOn: SavedTryOn = {
+        id: Date.now().toString(),
+        clothingImageUrl: clothingImage,
+        tryOnResults: [result],
+        timestamp: Date.now(),
+        name: `Try-on ${savedTryOns.length + 1}`,
+        rating: 0
+      };
+
+      const updatedTryOns = [newTryOn, ...savedTryOns.slice(0, 19)]; // Keep only last 20
+      setSavedTryOns(updatedTryOns);
+      saveTryOnsToStorage(updatedTryOns);
+    }
+  };
+
+  // Handle errors
+  const handleError = (errorMessage: string) => {
+    console.error('❌ FASHN error:', errorMessage);
+    setError(errorMessage);
+    setTimeout(() => setError(null), 5000);
+  };
+
+  // Rate a try-on
+  const rateTryOn = (tryOnId: string, rating: number) => {
+    const updatedTryOns = savedTryOns.map(tryOn =>
+      tryOn.id === tryOnId ? { ...tryOn, rating } : tryOn
+    );
+    setSavedTryOns(updatedTryOns);
+    saveTryOnsToStorage(updatedTryOns);
+  };
+
+  // Delete a try-on
+  const deleteTryOn = (tryOnId: string) => {
+    const updatedTryOns = savedTryOns.filter(tryOn => tryOn.id !== tryOnId);
+    setSavedTryOns(updatedTryOns);
+    saveTryOnsToStorage(updatedTryOns);
+  };
+
+  // Share try-on result
+  const shareTryOn = async (result: FashnResponse) => {
+    if (navigator.share) {
+      try {
+        const imageUrl = result.url || result.images?.[0]?.url;
+        if (imageUrl) {
+          await navigator.share({
+            title: 'Check out my virtual try-on!',
+            text: 'I just tried on this outfit virtually with FASHN AI!',
+            url: imageUrl
+          });
+        }
+      } catch (error) {
+        console.error('Failed to share:', error);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      const imageUrl = result.url || result.images?.[0]?.url;
+      if (imageUrl) {
+        navigator.clipboard.writeText(imageUrl);
+        alert('Try-on URL copied to clipboard!');
+      }
+    }
+  };
+
+  const tabs = [
+    { id: 'basic', name: 'Basic Upload', icon: Upload, description: 'Simple clothing upload & try-on' },
+    { id: 'smart', name: 'Smart Generator', icon: Sparkles, description: 'AI-powered outfit generation' },
+    { id: 'advanced', name: 'Advanced Search', icon: Search, description: 'Complete outfit search & filters' }
+  ];
+
+  const renderTabNavigation = () => (
+    <div className="tab-navigation bg-white border-b border-gray-200 sticky top-0 z-40">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex space-x-0">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as 'basic' | 'smart' | 'advanced')}
+                className={`relative flex-1 py-3 px-2 sm:py-4 sm:px-6 text-center border-b-2 transition-all duration-200 ${
+                  isActive
+                    ? 'border-blue-500 text-blue-600 bg-blue-50'
+                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex flex-col items-center space-y-1">
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
+                  <span className="font-medium text-xs sm:text-sm">{tab.name}</span>
+                  <span className="text-xs text-gray-500 hidden md:block">{tab.description}</span>
+                </div>
+
+                {/* Active tab indicator */}
+                {isActive && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-t-full" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBasicUploadTab = () => (
+    <div className="basic-upload-tab">
+      <div className="main-content max-w-4xl mx-auto p-6">
+        <ClothingUploadComponent
+          avatarImage={avatarData?.imageUrl}
+          onTryOnComplete={handleTryOnComplete}
+          onError={handleError}
+          className="mb-8"
+        />
+
+        {/* Advanced Button - Enhanced */}
+        <div className="text-center mb-8">
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border border-purple-200 mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">🚀 Want More Clothing Options?</h3>
+            <p className="text-gray-600 mb-4">Access advanced outfit search, filters, and AI-powered clothing generation</p>
+            <button
+              onClick={() => setActiveTab('advanced')}
+              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 font-medium text-lg"
+            >
+              <Settings className="w-6 h-6 mr-3" />
+              Advanced Clothing Generator
+              <ArrowLeft className="w-5 h-5 ml-3 rotate-180" />
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="quick-actions grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+          <div className="action-card bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border border-purple-100">
+            <Sparkles className="w-8 h-8 text-purple-600 mb-3" />
+            <h3 className="font-semibold text-gray-800 mb-2">AI-Powered</h3>
+            <p className="text-sm text-gray-600">
+              Advanced AI technology for realistic virtual try-ons
+            </p>
+          </div>
+
+          <div className="action-card bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-100">
+            <Zap className="w-8 h-8 text-green-600 mb-3" />
+            <h3 className="font-semibold text-gray-800 mb-2">Instant Results</h3>
+            <p className="text-sm text-gray-600">
+              Get your try-on results in seconds, not minutes
+            </p>
+          </div>
+
+          <div className="action-card bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-100">
+            <Heart className="w-8 h-8 text-amber-600 mb-3" />
+            <h3 className="font-semibold text-gray-800 mb-2">Save Favorites</h3>
+            <p className="text-sm text-gray-600">
+              Keep track of outfits you love for future reference
+            </p>
+          </div>
+        </div>
+
+        {/* View Gallery Button */}
+        {savedTryOns.length > 0 && (
+          <div className="text-center mt-8">
+            <button
+              onClick={() => setCurrentView('gallery')}
+              className="inline-flex items-center px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors"
+            >
+              <Image className="w-4 h-4 mr-2" />
+              View Try-On Gallery ({savedTryOns.length})
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderSmartGeneratorTab = () => (
+    <div className="smart-generator-tab">
+      <SmartClothingGenerator
+        avatarImage={avatarData?.imageUrl}
+        onTryOnComplete={handleTryOnComplete}
+        onError={handleError}
+        onAdvanced={() => setActiveTab('advanced')}
+        avatarData={avatarData}
+        className="p-6"
+      />
+    </div>
+  );
+
+  const renderAdvancedSearchTab = () => (
+    <div className="advanced-search-tab">
+      <AdvancedOutfitSearch onTryOn={handleTryOn} />
+    </div>
+  );
+
+  const renderTabContent = () => {
+    if (currentView === 'gallery') return renderGalleryView();
+    if (currentView === 'result') return renderResultView();
+
+    // Main tab view
+    return (
+      <div className="tab-content">
+        {activeTab === 'basic' && renderBasicUploadTab()}
+        {activeTab === 'smart' && renderSmartGeneratorTab()}
+        {activeTab === 'advanced' && renderAdvancedSearchTab()}
+      </div>
+    );
+  };
+
+  const renderUploadView = () => (
+    <div className="upload-view">
+      <div className="header mb-6">
+        <button
+          onClick={onBack}
+          className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          Back to Closet
+        </button>
+
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            Smart Clothing Experience
+          </h1>
+          <p className="text-gray-600">
+            Upload, generate, or search for the perfect outfit for your avatar
+          </p>
+        </div>
+      </div>
+
+      {renderTabNavigation()}
+      {renderTabContent()}
+    </div>
+  );
+
+  const renderGalleryView = () => (
+    <div className="gallery-view">
+      <div className="header mb-6">
+        <button
+          onClick={() => setCurrentView('upload')}
+          className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+        >
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          Back to Try-On
+        </button>
+
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            Your Try-On Gallery
+          </h1>
+          <p className="text-gray-600">
+            Browse and manage your virtual try-on history
+          </p>
+        </div>
+      </div>
+
+      {savedTryOns.length === 0 ? (
+        <div className="empty-gallery text-center py-12">
+          <ShoppingBag className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-800 mb-2">No Try-Ons Yet</h3>
+          <p className="text-gray-600 mb-6">
+            Start uploading clothing items to build your virtual wardrobe!
+          </p>
+          <button
+            onClick={() => setCurrentView('upload')}
+            className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+          >
+            Upload First Item
+          </button>
+        </div>
+      ) : (
+        <div className="gallery-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {savedTryOns.map((tryOn) => {
+            const result = tryOn.tryOnResults[0];
+            const imageUrl = result?.url || result?.images?.[0]?.url;
+
+            return (
+              <div key={tryOn.id} className="try-on-card bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-200">
+                {imageUrl && (
+                  <div
+                    className="image-container h-48 bg-gray-100 cursor-pointer"
+                    onClick={() => {
+                      setSelectedTryOn(tryOn);
+                      setCurrentView('result');
+                    }}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt={tryOn.name}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+                )}
+
+                <div className="card-content p-4">
+                  <h3 className="font-medium text-gray-800 mb-2">{tryOn.name}</h3>
+                  <p className="text-sm text-gray-500 mb-3">
+                    {new Date(tryOn.timestamp).toLocaleDateString()}
+                  </p>
+
+                  {/* Rating */}
+                  <div className="rating flex items-center mb-3">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`w-4 h-4 cursor-pointer ${
+                          star <= (tryOn.rating || 0)
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
+                        }`}
+                        onClick={() => rateTryOn(tryOn.id, star)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="actions flex space-x-2">
+                    <button
+                      onClick={() => shareTryOn(result)}
+                      className="flex-1 flex items-center justify-center px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs rounded transition-colors"
+                    >
+                      <Share2 className="w-3 h-3 mr-1" />
+                      Share
+                    </button>
+                    <button
+                      onClick={() => deleteTryOn(tryOn.id)}
+                      className="flex items-center justify-center px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs rounded transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderResultView = () => {
+    const results = selectedTryOn?.tryOnResults || currentResults;
+
+    return (
+      <div className="result-view">
+        <div className="header mb-6">
+          <button
+            onClick={() => setCurrentView(selectedTryOn ? 'gallery' : 'upload')}
+            className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            {selectedTryOn ? 'Back to Gallery' : 'Back to Upload'}
+          </button>
+
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Your Virtual Try-On Result
+            </h1>
+            <p className="text-gray-600">
+              Looking great! What do you think?
+            </p>
+          </div>
+        </div>
+
+        <div className="result-content max-w-4xl mx-auto">
+          {results.map((result, index) => {
+            const imageUrl = result.url || result.images?.[0]?.url;
+            if (!imageUrl) return null;
+
+            return (
+              <div key={index} className="result-item bg-white rounded-xl overflow-hidden shadow-lg mb-6">
+                <div className="image-container">
+                  <img
+                    src={imageUrl}
+                    alt={`Try-on result ${index + 1}`}
+                    className="w-full max-w-md mx-auto rounded-lg"
+                  />
+                </div>
+
+                <div className="result-actions p-6">
+                  <div className="action-buttons flex flex-wrap gap-3 justify-center">
+                    <button
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = imageUrl;
+                        link.download = `fashn-tryon-${Date.now()}.png`;
+                        link.click();
+                      }}
+                      className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </button>
+
+                    <button
+                      onClick={() => shareTryOn(result)}
+                      className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share
+                    </button>
+
+                    <button
+                      onClick={() => setCurrentView('upload')}
+                      className="flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Try Another
+                    </button>
+                  </div>
+
+                  {result.processing_time && (
+                    <div className="processing-info text-center mt-4 text-sm text-gray-500">
+                      Generated in {result.processing_time.toFixed(1)} seconds
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="fashn-tryon-experience min-h-screen bg-gradient-to-br from-gray-50 to-stone-100 p-6">
+      {/* Error Display */}
+      {error && (
+        <div className="error-banner fixed top-4 right-4 z-50 bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg flex items-center shadow-lg">
+          <AlertCircle className="w-5 h-5 mr-2" />
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="ml-4 text-red-500 hover:text-red-700"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Main Content */}
+      {currentView === 'upload' && renderUploadView()}
+      {currentView === 'gallery' && renderGalleryView()}
+      {currentView === 'result' && renderResultView()}
+    </div>
+  );
+};
+
+export default FashnTryOnExperience;

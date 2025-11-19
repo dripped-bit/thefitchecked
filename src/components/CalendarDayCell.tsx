@@ -1,4 +1,5 @@
 import React from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import { ShoppingBag } from 'lucide-react';
 
 interface OutfitItem {

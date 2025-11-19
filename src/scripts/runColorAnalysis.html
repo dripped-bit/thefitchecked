@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Analysis Tool</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 32px;
+      color: #333;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card h3 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .button {
+      width: 100%;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .button.secondary {
+      background: #6c757d;
+    }
+
+    .progress {
+      margin-top: 20px;
+      padding: 20px;
+      background: #e3f2fd;
+      border-radius: 12px;
+      display: none;
+    }
+
+    .progress.active {
+      display: block;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progress-text {
+      font-size: 14px;
+      color: #1976d2;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .progress-detail {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .results {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f1f8e9;
+      border-radius: 12px;
+      display: none;
+    }
+
+    .results.active {
+      display: block;
+    }
+
+    .results h3 {
+      color: #2e7d32;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .stat {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      display: none;
+    }
+
+    .error.active {
+      display: block;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 Color Analysis Tool</h1>
+    <p class="subtitle">Analyze clothing images with Claude Vision AI</p>
+
+    <div class="card">
+      <h3>📋 What This Does</h3>
+      <p>
+        This tool uses Claude Vision API to analyze your clothing item photos and extract the dominant color.
+        It will update the color field in your database for better analytics.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>⚡ Features</h3>
+      <p>
+        ✅ Analyzes all items without colors<br>
+        ✅ Updates database automatically<br>
+        ✅ Shows real-time progress<br>
+        ✅ Skips items that already have colors<br>
+      </p>
+    </div>
+
+    <button id="startBtn" class="button" onclick="startAnalysis()">
+      Start Color Analysis
+    </button>
+
+    <button id="reanalyzeBtn" class="button secondary" onclick="startAnalysis(false)">
+      Re-analyze All Items
+    </button>
+
+    <div id="progress" class="progress">
+      <div class="progress-text" id="progressText">Initializing...</div>
+      <div class="progress-bar">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <div class="progress-detail" id="progressDetail">Preparing to analyze items...</div>
+    </div>
+
+    <div id="results" class="results">
+      <h3>✅ Analysis Complete!</h3>
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-value" id="totalStat">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="successStat">0</div>
+          <div class="stat-label">Successful</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="failedStat">0</div>
+          <div class="stat-label">Failed</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="skippedStat">0</div>
+          <div class="stat-label">Skipped</div>
+        </div>
+      </div>
+      <p style="margin-top: 20px; font-size: 14px; color: #666;">
+        🎉 Colors have been added to your closet items! Check your Closet Analytics to see the colorful charts.
+      </p>
+    </div>
+
+    <div id="error" class="error">
+      <strong>❌ Error:</strong> <span id="errorMessage"></span>
+    </div>
+  </div>
+
+  <script type="module">
+    import { batchAnalyzeAllItems } from '../services/claudeVisionColorService.ts';
+
+    let isRunning = false;
+
+    async function startAnalysis(skipExisting = true) {
+      if (isRunning) return;
+
+      isRunning = true;
+      const startBtn = document.getElementById('startBtn');
+      const reanalyzeBtn = document.getElementById('reanalyzeBtn');
+      const progress = document.getElementById('progress');
+      const results = document.getElementById('results');
+      const error = document.getElementById('error');
+
+      // Reset UI
+      progress.classList.add('active');
+      results.classList.remove('active');
+      error.classList.remove('active');
+      startBtn.disabled = true;
+      reanalyzeBtn.disabled = true;
+      startBtn.innerHTML = '<span class="spinner"></span> Analyzing...';
+
+      try {
+        const result = await batchAnalyzeAllItems(
+          skipExisting,
+          (current, total, itemName) => {
+            const percentage = (current / total) * 100;
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = 
+              `Analyzing ${current} of ${total} items (${Math.round(percentage)}%)`;
+            document.getElementById('progressDetail').textContent = 
+              `Current: ${itemName}`;
+          }
+        );
+
+        // Show results
+        progress.classList.remove('active');
+        results.classList.add('active');
+        document.getElementById('totalStat').textContent = result.total;
+        document.getElementById('successStat').textContent = result.successful;
+        document.getElementById('failedStat').textContent = result.failed;
+        document.getElementById('skippedStat').textContent = result.skipped;
+
+      } catch (err) {
+        progress.classList.remove('active');
+        error.classList.add('active');
+        document.getElementById('errorMessage').textContent = err.message;
+      } finally {
+        isRunning = false;
+        startBtn.disabled = false;
+        reanalyzeBtn.disabled = false;
+        startBtn.innerHTML = 'Start Color Analysis';
+      }
+    }
+
+    // Make function available globally
+    window.startAnalysis = startAnalysis;
+  </script>
+</body>
+</html>

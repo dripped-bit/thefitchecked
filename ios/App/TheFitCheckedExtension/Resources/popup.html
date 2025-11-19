@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 360px;
+      min-height: 400px;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+    
+    .container {
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 20px;
+    }
+    
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    .product-preview {
+      display: none;
+      margin-bottom: 20px;
+    }
+    
+    .product-preview.active {
+      display: block;
+    }
+    
+    .product-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      background: #f0f0f0;
+    }
+    
+    .product-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #1a1a1a;
+      line-height: 1.3;
+    }
+    
+    .product-price {
+      font-size: 20px;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 4px;
+    }
+    
+    .product-brand {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+    
+    .notes-section {
+      margin: 16px 0;
+    }
+    
+    .notes-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 60px;
+      transition: border-color 0.2s;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 12px;
+    }
+    
+    .button-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .button-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .button-primary:active {
+      transform: translateY(0);
+    }
+    
+    .button-secondary {
+      background: #f5f5f5;
+      color: #666;
+    }
+    
+    .status-message {
+      text-align: center;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .status-message.success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+    
+    .status-message.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: white;
+    }
+    
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .auth-prompt {
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .auth-prompt p {
+      margin-bottom: 16px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>TheFitChecked</h1>
+      <p>Save to Wishlist</p>
+    </div>
+    
+    <div class="card">
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>TESTING - CAN YOU SEE THIS?</p>  <!-- Change this text -->
+        </div>
+      
+      <div id="auth-prompt" class="auth-prompt" style="display: none;">
+        <p>Please sign in to TheFitChecked to save items</p>
+        <button class="button button-primary" id="open-app-btn">Open App</button>
+      </div>
+      
+      <div id="product-form" style="display: none;">
+        <div class="product-preview" id="product-preview">
+          <img id="product-image" class="product-image" alt="Product">
+          <div class="product-brand" id="product-brand"></div>
+          <div class="product-title" id="product-title"></div>
+          <div class="product-price" id="product-price"></div>
+        </div>
+        
+        <div class="notes-section">
+          <label class="notes-label" for="notes">Add a note (optional)</label>
+          <textarea id="notes" placeholder="Why do you love this item?"></textarea>
+        </div>
+        
+        <button class="button button-primary" id="save-btn">
+          💝 Add to Wishlist
+        </button>
+        
+        <button class="button button-secondary" id="manual-edit-btn" style="display: none;">
+          ✏️ Edit Details
+        </button>
+        
+        <div id="status-message" class="status-message"></div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+      alert('HTML loaded!');
+  <script src="popup.js"></script>
+</body>
+</html>

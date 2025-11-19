@@ -16,7 +16,11 @@ import {
   Zap,
   TrendingUp,
   Award,
-  Target
+  Target,
+  Loader,
+  AlertCircle,
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import smartCalendarService, {
   CalendarEvent,
@@ -25,6 +29,10 @@ import smartCalendarService, {
   WeatherData
 } from '../services/smartCalendarService';
 import outfitHistoryService from '../services/outfitHistoryService';
+import { supabase } from '../services/supabaseClient';
+import authService from '../services/authService';
+import ClosetService from '../services/closetService';
+import outfitScanService, { ScannedItem, MatchResult } from '../services/outfitScanService';
 
 interface WoreThisTodayTrackerProps {
   onClose?: () => void;
@@ -44,10 +52,10 @@ interface TodaysOutfit {
 
 const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
   onClose,
-  clothingItems = [],
-  todaysEvents = []
+  clothingItems: propClothingItems = [],
+  todaysEvents: propTodaysEvents = []
 }) => {
-  const [currentStep, setCurrentStep] = useState<'select' | 'rate' | 'complete'>('select');
+  const [currentStep, setCurrentStep] = useState<'photo' | 'select' | 'rate' | 'complete'>('photo');
   const [selectedItems, setSelectedItems] = useState<OutfitItem[]>([]);
   const [todaysOutfit, setTodaysOutfit] = useState<TodaysOutfit>({ items: [] });
   const [todaysWeather, setTodaysWeather] = useState<WeatherData | null>(null);
@@ -55,9 +63,23 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
   const [outfitPhoto, setOutfitPhoto] = useState<string>('');
   const [showQuickCapture, setShowQuickCapture] = useState(false);
   const [recentHistory, setRecentHistory] = useState<OutfitHistory[]>([]);
+  
+  // NEW: Load closet items from Supabase
+  const [clothingItems, setClothingItems] = useState<OutfitItem[]>(propClothingItems);
+  const [todaysEvents, setTodaysEvents] = useState<CalendarEvent[]>(propTodaysEvents);
+  const [isLoadingItems, setIsLoadingItems] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // NEW: Photo upload and AI scanning state
+  const [uploadedPhoto, setUploadedPhoto] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResults, setScanResults] = useState<MatchResult[]>([]);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   useEffect(() => {
     loadTodaysData();
+    loadClosetItems();
   }, []);
 
   const loadTodaysData = async () => {
@@ -76,6 +98,81 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
       })));
     } catch (error) {
       console.error('Failed to load today\'s data:', error);
+    }
+  };
+
+  // NEW: Load closet items from Supabase
+  const loadClosetItems = async () => {
+    try {
+      setIsLoadingItems(true);
+      setLoadError(null);
+      
+      const user = await authService.getCurrentUser();
+      if (!user) {
+        console.warn('⚠️ [WORE-THIS] No authenticated user');
+        setLoadError('Please sign in to view your closet');
+        setIsLoadingItems(false);
+        return;
+      }
+
+      console.log('📦 [WORE-THIS] Loading closet items for user:', user.id);
+      
+      // Get from Supabase (source of truth)
+      const { data, error } = await supabase
+        .from('clothing_items')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error('❌ [WORE-THIS] Supabase error:', error);
+        throw error;
+      }
+      
+      console.log(`✅ [WORE-THIS] Loaded ${data?.length || 0} closet items from Supabase`);
+      
+      // Convert Supabase items to OutfitItem format
+      const outfitItems: OutfitItem[] = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.image_url || item.thumbnail_url || '',
+        category: item.category || 'other',
+        formalityLevel: 5, // Default to medium formality
+        lastWorn: item.last_worn ? new Date(item.last_worn) : undefined
+      }));
+      
+      setClothingItems(outfitItems);
+      
+      // Also sync to localStorage for offline access
+      if (data && data.length > 0) {
+        console.log('💾 [WORE-THIS] Syncing to localStorage cache');
+        // Note: ClosetService uses localStorage, we could optionally sync here
+      }
+    } catch (error) {
+      console.error('❌ [WORE-THIS] Failed to load closet:', error);
+      setLoadError(error instanceof Error ? error.message : 'Failed to load closet items');
+      
+      // Fallback to localStorage
+      console.log('🔄 [WORE-THIS] Falling back to localStorage');
+      try {
+        const localItems = ClosetService.getAllClothingItems();
+        console.log(`📂 [WORE-THIS] Loaded ${localItems.length} items from localStorage`);
+        
+        const outfitItems: OutfitItem[] = localItems.map(item => ({
+          id: item.id.toString(),
+          name: item.name,
+          imageUrl: item.imageUrl,
+          category: item.category,
+          formalityLevel: 5,
+          lastWorn: undefined
+        }));
+        
+        setClothingItems(outfitItems);
+      } catch (localError) {
+        console.error('❌ [WORE-THIS] localStorage fallback also failed:', localError);
+      }
+    } finally {
+      setIsLoadingItems(false);
     }
   };
 
@@ -115,14 +212,15 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
   const completeTracking = async () => {
     // Save to Supabase via outfit history service
     const historyRecord = {
-      worn_date: new Date(),
+      worn_date: selectedDate,
       outfit_items: todaysOutfit.items,
       event_id: selectedEvent?.id,
       event_type: selectedEvent?.eventType,
       weather_data: todaysOutfit.weather,
       user_rating: todaysOutfit.rating,
       mood: todaysOutfit.mood,
-      notes: todaysOutfit.notes
+      notes: todaysOutfit.notes,
+      photo_url: uploadedPhoto || undefined
     };
 
     await outfitHistoryService.saveOutfitHistory(historyRecord);
@@ -133,7 +231,109 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
       selectedEvent?.id
     );
 
+    // Increment times_worn for each item
+    try {
+      const user = await authService.getCurrentUser();
+      if (user) {
+        const itemIds = todaysOutfit.items.map(item => item.id);
+        await supabase.rpc('increment_multiple_times_worn', { item_ids: itemIds });
+        console.log(`✅ [WORE-THIS] Incremented wear count for ${itemIds.length} items`);
+      }
+    } catch (error) {
+      console.error('❌ [WORE-THIS] Failed to increment wear counts:', error);
+    }
+
     setCurrentStep('complete');
+  };
+
+  // NEW: Handle photo upload
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setUploadedPhoto(dataUrl);
+      console.log('📸 [WORE-THIS] Photo uploaded');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // NEW: Scan uploaded outfit photo with AI
+  const handleScanOutfit = async () => {
+    if (!uploadedPhoto) {
+      setScanError('Please upload a photo first');
+      return;
+    }
+
+    try {
+      setIsScanning(true);
+      setScanError(null);
+      console.log('🔍 [WORE-THIS] Starting AI scan...');
+
+      // Step 1: Scan photo to detect items
+      const scanResult = await outfitScanService.scanOutfitPhoto(uploadedPhoto);
+      
+      if (!scanResult.success || scanResult.items.length === 0) {
+        throw new Error(scanResult.error || 'No items detected in photo');
+      }
+
+      console.log(`✅ [WORE-THIS] Detected ${scanResult.items.length} items`);
+
+      // Step 2: Match detected items to closet
+      const closetItemsForMatching = clothingItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.imageUrl,
+        category: item.category,
+        description: '',
+        attributes: {
+          color: '', // Could extract from item if available
+          style: '',
+          season: [] as string[],
+          occasion: [] as string[]
+        }
+      })) as any[];
+
+      const matchResults = await outfitScanService.matchItemsToCloset(
+        scanResult.items,
+        closetItemsForMatching
+      );
+
+      console.log(`✅ [WORE-THIS] Matched ${matchResults.filter(m => m.closetMatch).length}/${matchResults.length} items`);
+      
+      setScanResults(matchResults);
+
+      // Auto-select matched items
+      const matchedItems = matchResults
+        .filter(result => result.closetMatch)
+        .map(result => result.closetMatch!)
+        .map(item => ({
+          id: item.id.toString(),
+          name: item.name,
+          imageUrl: item.imageUrl,
+          category: item.category,
+          formalityLevel: 5,
+          lastWorn: undefined
+        })) as OutfitItem[];
+
+      setSelectedItems(matchedItems);
+
+      // Move to selection step to review/add missing items
+      setCurrentStep('select');
+
+    } catch (error) {
+      console.error('❌ [WORE-THIS] Scan failed:', error);
+      setScanError(error instanceof Error ? error.message : 'Failed to scan outfit');
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  // NEW: Skip photo and go directly to manual selection
+  const skipPhotoUpload = () => {
+    setCurrentStep('select');
   };
 
   const getOutfitInsights = () => {
@@ -183,6 +383,128 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
       default: return '👔';
     }
   };
+
+  // NEW: Render photo upload step
+  const renderPhotoUpload = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <Camera className="w-16 h-16 text-purple-600 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Take a Photo of Your Outfit</h2>
+        <p className="text-gray-600">Upload a photo and let AI identify what you're wearing</p>
+      </div>
+
+      {/* Date Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          <Calendar className="w-4 h-4 inline mr-1" />
+          When did you wear this?
+        </label>
+        <input
+          type="date"
+          value={selectedDate.toISOString().split('T')[0]}
+          onChange={(e) => setSelectedDate(new Date(e.target.value))}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+        />
+      </div>
+
+      {/* Photo Upload */}
+      <div className="space-y-3">
+        {uploadedPhoto ? (
+          <div className="relative">
+            <img
+              src={uploadedPhoto}
+              alt="Uploaded outfit"
+              className="w-full max-h-96 object-contain rounded-lg border-2 border-gray-200"
+            />
+            <button
+              onClick={() => setUploadedPhoto('')}
+              className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors">
+            <Camera className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600 mb-4">Upload a photo of your outfit</p>
+            <label className="cursor-pointer">
+              <span className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors inline-block">
+                Choose Photo
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Error Display */}
+      {scanError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-700 font-medium">Scan Failed</p>
+              <p className="text-sm text-red-600 mt-1">{scanError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scan Results Preview */}
+      {scanResults.length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-green-700 font-medium">
+                Found {scanResults.filter(r => r.closetMatch).length} matching items!
+              </p>
+              <p className="text-sm text-green-600 mt-1">
+                {scanResults.filter(r => !r.closetMatch).length > 0 && 
+                  `${scanResults.filter(r => !r.closetMatch).length} items not in your closet`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="space-y-3">
+        {uploadedPhoto && (
+          <button
+            onClick={handleScanOutfit}
+            disabled={isScanning}
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          >
+            {isScanning ? (
+              <>
+                <Loader className="w-5 h-5 animate-spin" />
+                <span>Scanning Outfit...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" />
+                <span>Scan Outfit with AI</span>
+              </>
+            )}
+          </button>
+        )}
+        
+        <button
+          onClick={skipPhotoUpload}
+          className="w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          Skip Photo - Select Manually
+        </button>
+      </div>
+    </div>
+  );
 
   const renderItemSelection = () => (
     <div className="space-y-6">
@@ -268,7 +590,26 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
       {/* Outfit Items Selection */}
       <div>
         <h3 className="font-medium text-gray-800 mb-3">Select your outfit items</h3>
-        {clothingItems.length === 0 ? (
+        {isLoadingItems ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg">
+            <Loader className="w-8 h-8 animate-spin text-purple-600 mx-auto mb-3" />
+            <p className="text-gray-600 font-medium">Loading your closet...</p>
+            <p className="text-sm text-gray-500 mt-1">Fetching items from your wardrobe</p>
+          </div>
+        ) : loadError ? (
+          <div className="text-center py-8 bg-red-50 border border-red-200 rounded-lg">
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
+            <p className="text-red-700 font-medium mb-2">Failed to load closet</p>
+            <p className="text-sm text-red-600 mb-4">{loadError}</p>
+            <button
+              onClick={loadClosetItems}
+              className="inline-flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Retry</span>
+            </button>
+          </div>
+        ) : clothingItems.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <p className="text-gray-500 mb-4">No clothing items found in your closet</p>
             <button
@@ -522,6 +863,7 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
       <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Progress Indicator */}
         <div className="flex items-center justify-center space-x-2 mb-6">
+          <div className={`w-2 h-2 rounded-full ${currentStep === 'photo' ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
           <div className={`w-2 h-2 rounded-full ${currentStep === 'select' ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
           <div className={`w-2 h-2 rounded-full ${currentStep === 'rate' ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
           <div className={`w-2 h-2 rounded-full ${currentStep === 'complete' ? 'bg-purple-600' : 'bg-gray-300'}`}></div>
@@ -536,6 +878,7 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
         </button>
 
         {/* Content */}
+        {currentStep === 'photo' && renderPhotoUpload()}
         {currentStep === 'select' && renderItemSelection()}
         {currentStep === 'rate' && renderRating()}
         {currentStep === 'complete' && renderComplete()}

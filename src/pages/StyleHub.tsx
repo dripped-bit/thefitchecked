@@ -8,6 +8,7 @@ import {
   Sun, 
   Heart, 
   Luggage,
+  DollarSign,
   ChevronRight
 } from 'lucide-react';
 import AIDesignShopModal from '../components/AIDesignShopModal';
@@ -16,14 +17,18 @@ interface StyleHubProps {
   onBack: () => void;
   onNavigateToMorningMode?: () => void;
   onNavigateToPackingList?: () => void;
+  onNavigateToTripsList?: () => void;
   onNavigateToWishlist?: () => void;
+  onNavigateToAnalytics?: () => void;
 }
 
 export default function StyleHub({ 
   onBack, 
   onNavigateToMorningMode, 
   onNavigateToPackingList, 
-  onNavigateToWishlist 
+  onNavigateToTripsList,
+  onNavigateToWishlist,
+  onNavigateToAnalytics
 }: StyleHubProps) {
   const [mounted, setMounted] = useState(false);
   const [showAIDesign, setShowAIDesign] = useState(false);
@@ -40,7 +45,7 @@ export default function StyleHub({
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-100 to-blue-50 pb-40 overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
-        <div className="mt-12 mb-8 relative">
+        <div className="mt-6 mb-3 relative">
           {/* Back Button - Top Left */}
           <button
             onClick={onBack}
@@ -69,14 +74,14 @@ export default function StyleHub({
           
           {/* StyleHub Image Header */}
           <div 
-            className={`text-center pt-2 transition-all duration-700 ${
+            className={`text-center transition-all duration-700 ${
               mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
             }`}
           >
             <img 
               src="/stylehub.png" 
               alt="Style Hub" 
-              className="mx-auto h-[480px] w-auto"
+              className="mx-auto h-[320px] w-auto"
             />
           </div>
         </div>
@@ -88,23 +93,23 @@ export default function StyleHub({
           }`}
         >
           <div className="ios-plain-list">
-            {/* Morning Mode */}
+            {/* Weather Picks */}
             <button
               onClick={onNavigateToMorningMode}
               className="ios-plain-list-item"
             >
               <Sun className="w-6 h-6 text-orange-500" />
-              <span>Morning Mode</span>
+              <span>Weather Picks</span>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
             
-            {/* Packing List */}
+            {/* Trip Planner (NEW - replaces old Packing List) */}
             <button
-              onClick={onNavigateToPackingList}
+              onClick={onNavigateToTripsList || onNavigateToPackingList}
               className="ios-plain-list-item"
             >
               <Luggage className="w-6 h-6 text-blue-500" />
-              <span>Packing List</span>
+              <span>Trip Planner</span>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
             
@@ -117,21 +122,35 @@ export default function StyleHub({
               <span>Wishlist</span>
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
+            
+            {/* Closet Analytics */}
+            <button
+              onClick={onNavigateToAnalytics}
+              className="ios-plain-list-item"
+            >
+              <DollarSign className="w-6 h-6 text-green-500" />
+              <span>Closet Analytics</span>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
           </div>
+        </div>
+
+        {/* Design and Shop - Compact Oval Button */}
+        <div 
+          className={`flex justify-center px-4 py-6 transition-all duration-700 delay-300 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <button
+            onClick={() => setShowAIDesign(true)}
+            className="px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-base font-semibold rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 active:scale-95"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            Design and Shop
+          </button>
         </div>
         
       </div>
-
-      {/* Floating AI Design Button - Bottom Right */}
-      <button
-        onClick={() => setShowAIDesign(true)}
-        className="ai-design-fab"
-        aria-label="AI Design & Shop"
-      >
-        <svg className="sparkle-icon" viewBox="0 0 512 512" fill="currentColor">
-          <path d="M208 512a24.84 24.84 0 0 1-23.34-16l-39.84-103.6a16.06 16.06 0 0 0-9.19-9.19L32 343.34a25 25 0 0 1 0-46.68l103.6-39.84a16.06 16.06 0 0 0 9.19-9.19L184.66 144a25 25 0 0 1 46.68 0l39.84 103.6a16.06 16.06 0 0 0 9.19 9.19l103.6 39.84a25 25 0 0 1 0 46.68l-103.6 39.84a16.06 16.06 0 0 0-9.19 9.19l-39.84 103.6A24.84 24.84 0 0 1 208 512zm66.85-254.84h.3zm-134 0h.3zM448 256a16 16 0 0 1-14.93-10.26l-22.84-59.37a8 8 0 0 0-4.6-4.6l-59.37-22.84a16 16 0 0 1 0-29.86l59.37-22.84a8 8 0 0 0 4.6-4.6l22.84-59.37a16 16 0 0 1 29.86 0l22.84 59.37a8 8 0 0 0 4.6 4.6l59.37 22.84a16 16 0 0 1 0 29.86l-59.37 22.84a8 8 0 0 0-4.6 4.6l-22.84 59.37A16 16 0 0 1 448 256z"/>
-        </svg>
-      </button>
 
       {/* AI Design Shop Modal */}
       <AIDesignShopModal

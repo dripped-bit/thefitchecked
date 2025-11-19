@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import { ShoppingBag, ChevronRight, ChevronLeft, X } from 'lucide-react';
 import SmartOccasionInput, { ParsedOccasion, SmartSuggestion, BudgetRange } from './SmartOccasionInput';
 import TripleOutfitGenerator, { GeneratedOutfit } from './TripleOutfitGenerator';
@@ -39,6 +40,10 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
   // Save to calendar modal state
   const [showSaveToCalendarModal, setShowSaveToCalendarModal] = useState(false);
   const [collectedShoppingLinks, setCollectedShoppingLinks] = useState<ProductSearchResult[]>([]);
+
+  // Toast messages for wishlist
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
 
   // Budget selection state (default to middle tier)
   const budgetTiers = [
@@ -206,6 +211,67 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
   const handleProductsCollected = (products: ProductSearchResult[]) => {
     console.log('🛍️ [PLANNER] Collected shopping links:', products.length);
     setCollectedShoppingLinks(products);
+  };
+
+  // Add to wishlist function (same as AIDesignShopModal)
+  const handleAddToWishlist = async (): Promise<boolean> => {
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !userData.user) {
+        setToastMessage('Please sign in to add to wishlist');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+        return false;
+      }
+
+      // Get the first clicked product from collectedShoppingLinks
+      const productToSave = collectedShoppingLinks[0];
+      
+      if (!productToSave) {
+        setToastMessage('No product selected');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+        return false;
+      }
+
+      const wishlistItem = {
+        user_id: userData.user.id,
+        name: productToSave.title || 'Product',
+        brand: productToSave.source || 'Unknown',
+        price: productToSave.price || 'N/A',
+        currency: 'USD',
+        store_url: productToSave.url,
+        image_url: productToSave.image || productToSave.thumbnail,
+        ai_design_prompt: `Occasion: ${parsedOccasion?.occasion || 'Unknown'}`, 
+        status: 'pending'
+      };
+
+      const { error } = await supabase
+        .from('wishlist')
+        .insert([wishlistItem]);
+
+      if (error) {
+        console.error('❌ [WISHLIST] Error:', error);
+        setToastMessage('Failed to add to wishlist');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+        return false;
+      }
+
+      console.log('✅ [WISHLIST] Added to wishlist:', productToSave.title);
+      setToastMessage('Added to wishlist! ❤️');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return true;
+
+    } catch (error) {
+      console.error('❌ [WISHLIST] Exception:', error);
+      setToastMessage('Failed to add to wishlist');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return false;
+    }
   };
 
   const handleCalendarSaveComplete = (calendarEntry: any) => {
@@ -409,7 +475,28 @@ const SmartOccasionPlanner: React.FC<SmartOccasionPlannerProps> = ({
           occasion={parsedOccasion || undefined}
           onSave={handleCalendarSaveComplete}
           onClose={() => setShowSaveToCalendarModal(false)}
+          onAddToWishlist={handleAddToWishlist}
         />
+      )}
+
+      {/* Toast Messages */}
+      {showToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '120px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0, 0, 0, 0.8)',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '8px',
+          zIndex: 999999,
+          fontSize: '14px',
+          fontWeight: '500',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+        }}>
+          {toastMessage}
+        </div>
       )}
     </div>
   );

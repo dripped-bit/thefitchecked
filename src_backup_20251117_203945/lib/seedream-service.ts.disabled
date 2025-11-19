@@ -1,0 +1,122 @@
+import { falClient } from './fal-client';
+import type { VirtualTryOnParams, Seedream4Response, ProcessingState } from '../types/seedream';
+
+export class SeedreamService {
+  private static instance: SeedreamService;
+
+  public static getInstance(): SeedreamService {
+    if (!SeedreamService.instance) {
+      SeedreamService.instance = new SeedreamService();
+    }
+    return SeedreamService.instance;
+  }
+
+  // Main virtual try-on function using Seedream 4
+  async virtualTryOn(
+    params: VirtualTryOnParams,
+    onProgress?: (state: ProcessingState) => void
+  ): Promise<Seedream4Response> {
+    try {
+      // Step 1: Upload images with validation
+      onProgress?.({ isLoading: true, progress: 'Uploading person image...' });
+      const personImageUrl = await falClient.uploadFile(params.personImage);
+
+      if (!personImageUrl) {
+        throw new Error('Failed to upload person image: No URL returned');
+      }
+
+      console.log('Person image uploaded successfully:', personImageUrl);
+
+      onProgress?.({ isLoading: true, progress: 'Uploading garment image...' });
+      const garmentImageUrl = await falClient.uploadFile(params.garmentImage);
+
+      if (!garmentImageUrl) {
+        throw new Error('Failed to upload garment image: No URL returned');
+      }
+
+      console.log('Garment image uploaded successfully:', garmentImageUrl);
+
+      // Step 2: Generate prompt if not provided
+      const prompt = params.prompt || this.generateTryOnPrompt();
+
+      // Step 3: Run Seedream 4
+      onProgress?.({ isLoading: true, progress: 'Generating virtual try-on...' });
+
+      const result = await falClient.runSeedream4({
+        prompt,
+        imageUrls: [personImageUrl, garmentImageUrl],
+        numImages: params.numImages || 1,
+        seed: params.seed,
+      });
+
+      onProgress?.({ isLoading: false, progress: 'Complete!' });
+
+      return {
+        images: result.data.images || [],
+        seed: result.data.seed || 0,
+        requestId: result.requestId,
+      };
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      onProgress?.({
+        isLoading: false,
+        progress: 'Error occurred',
+        error: errorMessage
+      });
+      throw error;
+    }
+  }
+
+  // Generate a good prompt for virtual try-on
+  private generateTryOnPrompt(): string {
+    return "Put the person in the outfit from the second image. Make sure the clothing fits naturally and looks realistic. Maintain the person's pose and expression.";
+  }
+
+  // Preset prompts for different try-on scenarios
+  getPresetPrompts() {
+    return {
+      basic: "Put the person in the outfit from the second image. Make it look natural and realistic.",
+      formal: "Dress the person in the formal outfit from the second image. Make it look professional and well-fitted.",
+      casual: "Put the person in the casual clothing from the second image. Make it look comfortable and natural.",
+      party: "Dress the person in the party outfit from the second image. Make it look stylish and fashionable.",
+      vintage: "Put the person in the vintage clothing from the second image. Add a classic, timeless feel to the scene.",
+      modern: "Dress the person in the modern outfit from the second image. Make it look contemporary and trendy.",
+    };
+  }
+
+  // Validate images before upload
+  validateImages(personImage: File, garmentImage: File): { isValid: boolean; error?: string } {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!validTypes.includes(personImage.type)) {
+      return { isValid: false, error: 'Person image must be JPEG, PNG, or WebP' };
+    }
+
+    if (!validTypes.includes(garmentImage.type)) {
+      return { isValid: false, error: 'Garment image must be JPEG, PNG, or WebP' };
+    }
+
+    if (personImage.size > maxSize) {
+      return { isValid: false, error: 'Person image must be under 10MB' };
+    }
+
+    if (garmentImage.size > maxSize) {
+      return { isValid: false, error: 'Garment image must be under 10MB' };
+    }
+
+    return { isValid: true };
+  }
+
+  // Error handling helper
+  parseError(error: any): string {
+    if (error?.message) return error.message;
+    if (error?.detail) return error.detail;
+    if (typeof error === 'string') return error;
+    return 'An unexpected error occurred during virtual try-on';
+  }
+}
+
+// Export singleton instance
+export const seedreamService = SeedreamService.getInstance();

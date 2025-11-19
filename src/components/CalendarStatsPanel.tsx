@@ -1,4 +1,5 @@
 import React from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import { Star, TrendingUp } from 'lucide-react';
 
 interface MostWornItem {
@@ -47,7 +48,7 @@ export const CalendarStatsPanel: React.FC<CalendarStatsPanelProps> = ({
         >
           <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
             <img
-              src={mostWornItem.image_url}
+              src={getSmartImageUrl('wardrobe', mostWornItem.image_url, 'thumbnail')}
               alt={mostWornItem.name}
               className="w-full h-full object-cover"
             />

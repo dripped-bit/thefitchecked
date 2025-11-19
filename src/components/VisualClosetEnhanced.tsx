@@ -1,21 +1,30 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { getSmartImageUrl } from '../services/imageUtils';
 import {
   Heart,
   Plus,
   Search,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   Trash2,
   Edit2,
   Share2,
   X,
   Camera,
-  Upload
+  Upload,
+  Grid
 } from 'lucide-react';
 import { Camera as CapacitorCamera } from '@capacitor/camera';
 import { useCloset, ClothingCategory } from '../hooks/useCloset';
 import backgroundRemovalService from '../services/backgroundRemovalService';
+import smartClosetUploadService, { DetectedItem as SmartDetectedItem } from '../services/smartClosetUploadService';
+import MultiItemConfirmationModal from './MultiItemConfirmationModal';
+import { getSubcategoriesForCategory } from '../services/subcategoryMappingService';
+import { InteractiveCropTool, CropBox } from './InteractiveCropTool';
+import { PhotoTipsModal } from './PhotoTipsModal';
 import { LoadingScreen } from './LoadingScreen';
+import AllItemsView from './AllItemsView';
 import '../styles/VisualClosetAdapter.css';
 
 interface CategoryConfig {
@@ -49,18 +58,18 @@ const CATEGORIES: CategoryConfig[] = [
     description: 'Casual, formal, maxi, mini'
   },
   {
-    id: 'sweaters',
-    title: 'Sweaters & Cardigans',
-    icon: '🧥',
-    color: 'rgba(255, 228, 196, 0.2)',
-    description: 'Knits, hoodies, cardigans'
+    id: 'activewear',
+    title: 'Active Wear',
+    icon: '🏃',
+    color: 'rgba(135, 206, 250, 0.2)',
+    description: 'Athletic wear, gym clothes, sportswear'
   },
   {
     id: 'outerwear',
     title: 'Outerwear',
     icon: '🧥',
     color: 'rgba(169, 169, 169, 0.2)',
-    description: 'Jackets, coats, blazers'
+    description: 'Jackets, Sweaters, Blazers'
   },
   {
     id: 'shoes',
@@ -104,7 +113,8 @@ const VisualClosetEnhanced: React.FC = () => {
     name: '',
     brand: '',
     price: '',
-    description: ''
+    description: '',
+    subcategory: ''
   });
   const [selectedItemCategory, setSelectedItemCategory] = useState<ClothingCategory>('tops');
   const [showEditModal, setShowEditModal] = useState(false);
@@ -114,6 +124,34 @@ const VisualClosetEnhanced: React.FC = () => {
   const [showProcessingModal, setShowProcessingModal] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('Processing...');
   const [processingAbortController, setProcessingAbortController] = useState<AbortController | null>(null);
+
+  // Smart upload multi-item detection states
+  const [detectedSmartItems, setDetectedSmartItems] = useState<SmartDetectedItem[]>([]);
+  const [showSmartItemConfirmation, setShowSmartItemConfirmation] = useState(false);
+
+  // Manual cropping states
+  const [showCropTool, setShowCropTool] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+
+  // Photo tips modal state
+  const [showPhotoTips, setShowPhotoTips] = useState(false);
+
+  // All Items view state
+  const [showAllItemsView, setShowAllItemsView] = useState(false);
+
+  // Saving state to prevent duplicate saves
+  const [isSaving, setIsSaving] = useState(false);
+
+  // File input ref for bulk upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Bulk upload queue management
+  const [bulkUploadQueue, setBulkUploadQueue] = useState<{
+    multiItemImages: Array<{ base64: string; index: number; scenario: any }>;
+    singleItemImages: Array<{ base64: string; index: number; scenario: any }>;
+    currentMultiItemIndex: number;
+    allProcessedItems: SmartDetectedItem[];
+  } | null>(null);
 
   // Listen for Add Item button click from header
   useEffect(() => {
@@ -156,7 +194,28 @@ const VisualClosetEnhanced: React.FC = () => {
   };
 
   const handleAddItem = (category?: ClothingCategory) => {
+    const hasSeenPhotoTips = localStorage.getItem('hasSeenPhotoTips');
+    
     setSelectedCategory(category || 'tops');
+    
+    if (!hasSeenPhotoTips) {
+      // First time - show tips
+      setShowPhotoTips(true);
+    } else {
+      // Normal flow
+      setShowUploadModal(true);
+    }
+  };
+
+  // Handle photo tips modal actions
+  const handlePhotoTipsClose = () => {
+    setShowPhotoTips(false);
+    setShowUploadModal(true);
+  };
+
+  const handlePhotoTipsDontShowAgain = () => {
+    localStorage.setItem('hasSeenPhotoTips', 'true');
+    setShowPhotoTips(false);
     setShowUploadModal(true);
   };
 
@@ -245,12 +304,236 @@ const VisualClosetEnhanced: React.FC = () => {
     }
   };
 
+  // Helper function to convert File to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Handle bulk file selection from HTML input
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).slice(0, 5); // Limit to 5 images
+    
+    if (files.length === 0) return;
+
+    console.log(`🖼️ [GALLERY] Selected ${files.length} image(s)`);
+
+    // SPECIAL CASE: Single image - use standard flow with crop tool support
+    if (files.length === 1) {
+      const file = files[0];
+      const base64Image = await fileToBase64(file);
+      
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+      // Use single-image upload flow (has crop tool support)
+      await handleSingleImageUpload(base64Image);
+      return;
+    }
+
+    // BULK UPLOAD (2-5 images): Smart mixed-scenario processing
+    setShowUploadModal(false);
+    setShowProcessingModal(true);
+    setProcessingMessage('Analyzing images...');
+
+    try {
+      // Phase 1: Convert all to base64 and analyze scenarios
+      const imageAnalysis = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const base64Image = await fileToBase64(file);
+        
+        setProcessingMessage(`Analyzing image ${i + 1} of ${files.length}...`);
+        
+        // Detect scenario
+        const scenario = await smartClosetUploadService.detectScenario(base64Image);
+        
+        imageAnalysis.push({
+          base64: base64Image,
+          index: i + 1,
+          scenario
+        });
+      }
+
+      // Categorize images
+      const multiItemImages = imageAnalysis.filter(img => img.scenario.itemCount > 1);
+      const singleItemImages = imageAnalysis.filter(img => img.scenario.itemCount === 1);
+
+      console.log(`📊 [BULK] Analysis complete:`, {
+        total: files.length,
+        multiItem: multiItemImages.length,
+        singleItem: singleItemImages.length
+      });
+
+      // Initialize bulk upload queue
+      setBulkUploadQueue({
+        multiItemImages,
+        singleItemImages,
+        currentMultiItemIndex: 0,
+        allProcessedItems: []
+      });
+
+      // Phase 2: Start processing
+      if (multiItemImages.length > 0) {
+        // Show crop tool for first multi-item image
+        console.log(`✂️ [BULK] Starting cropping for image 1 of ${multiItemImages.length}`);
+        setProcessingMessage(`Image ${multiItemImages[0].index}: Multiple items detected - please crop`);
+        setShowProcessingModal(false);
+        setImageToCrop(multiItemImages[0].base64);
+        setShowCropTool(true);
+      } else {
+        // No multi-item images, process all automatically
+        await processSingleItemQueue(singleItemImages, []);
+      }
+
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+    } catch (error) {
+      console.error('❌ [BULK] Error during analysis:', error);
+      setShowProcessingModal(false);
+      alert('Failed to analyze images. Please try again.');
+    }
+  };
+
+  // Process remaining single-item images after cropping is complete
+  const processSingleItemQueue = async (
+    singleItemImages: Array<{ base64: string; index: number; scenario: any }>,
+    multiItemProcessedItems: SmartDetectedItem[]
+  ) => {
+    setShowProcessingModal(true);
+    setProcessingMessage('Processing remaining images...');
+
+    const allItems = [...multiItemProcessedItems];
+
+    // Process single-item images
+    for (let i = 0; i < singleItemImages.length; i++) {
+      const img = singleItemImages[i];
+      
+      setProcessingMessage(`Processing image ${img.index} (${i + 1}/${singleItemImages.length})...`);
+
+      try {
+        const uploadResult = await smartClosetUploadService.processUpload(
+          img.base64,
+          (message) => {
+            setProcessingMessage(`Image ${img.index}: ${message}`);
+          }
+        );
+
+        if (uploadResult.success && uploadResult.items.length > 0) {
+          console.log(`✅ [BULK] Image ${img.index}: Added ${uploadResult.items.length} item(s)`);
+          allItems.push(...uploadResult.items);
+        }
+      } catch (error) {
+        console.error(`❌ [BULK] Error processing image ${img.index}:`, error);
+      }
+    }
+
+    // Show all results
+    if (allItems.length > 0) {
+      console.log(`✅ [BULK-COMPLETE] Total items: ${allItems.length}`);
+      setDetectedSmartItems(allItems);
+      setShowSmartItemConfirmation(true);
+      setShowProcessingModal(false);
+    } else {
+      setShowProcessingModal(false);
+      alert('No items detected. Please try again.');
+    }
+
+    // Clear queue
+    setBulkUploadQueue(null);
+  };
+
+  // Handle single image upload with crop tool support
+  const handleSingleImageUpload = async (base64Image: string) => {
+    setShowUploadModal(false);
+    setShowProcessingModal(true);
+    setProcessingMessage('Analyzing photo...');
+
+    try {
+      // Detect scenario
+      const scenario = await smartClosetUploadService.detectScenario(base64Image);
+      console.log('🔍 [GALLERY] Scenario detected:', scenario);
+
+      // Show cropping tool for multiple items
+      if (scenario.itemCount > 1) {
+        console.log('✂️ [GALLERY] Multiple items detected, showing crop tool');
+        setShowProcessingModal(false);
+        setImageToCrop(base64Image);
+        setShowCropTool(true);
+        return;
+      }
+
+      // Single item - process automatically
+      console.log('🎨 [GALLERY] Single item detected, processing automatically');
+      
+      const result = await smartClosetUploadService.processUpload(
+        base64Image,
+        (message) => setProcessingMessage(message)
+      );
+
+      if (result.success) {
+        if (result.itemsAdded > 1) {
+          setDetectedSmartItems(result.items);
+          setShowSmartItemConfirmation(true);
+          setShowProcessingModal(false);
+        } else {
+          const item = result.items[0];
+          setCapturedImage(item.imageUrl);
+          setShowProcessingModal(false);
+          setShowDetailsModal(true);
+          setItemDetails({
+            name: item.name || `New ${selectedCategory} item`,
+            brand: '',
+            price: '',
+            description: ''
+          });
+        }
+      } else {
+        // Fallback to original
+        setCapturedImage(base64Image);
+        setShowProcessingModal(false);
+        setShowDetailsModal(true);
+        setItemDetails({
+          name: `New ${selectedCategory} item`,
+          brand: '',
+          price: '',
+          description: ''
+        });
+      }
+    } catch (error) {
+      console.error('❌ [GALLERY] Error:', error);
+      setCapturedImage(base64Image);
+      setShowProcessingModal(false);
+      setShowDetailsModal(true);
+      setItemDetails({
+        name: `New ${selectedCategory} item`,
+        brand: '',
+        price: '',
+        description: ''
+      });
+    }
+  };
+
   const handleGalleryUpload = async () => {
+    // Trigger hidden file input for bulk selection
+    fileInputRef.current?.click();
+    
+    /* OLD SINGLE IMAGE CODE - Keeping for camera fallback if needed
     try {
       const image = await CapacitorCamera.getPhoto({
         quality: 90,
         allowEditing: false,
-        resultType: 'base64', // Changed from 'uri' to 'base64' for API compatibility
+        resultType: 'base64',
         source: 'photos'
       });
 
@@ -262,49 +545,91 @@ const VisualClosetEnhanced: React.FC = () => {
         // Close upload modal and show processing modal
         setShowUploadModal(false);
         setShowProcessingModal(true);
-        setProcessingMessage('Removing background...');
-
-        // Create abort controller for cancellation support
-        const abortController = new AbortController();
-        setProcessingAbortController(abortController);
+        setProcessingMessage('Analyzing photo...');
 
         try {
-          // Process background removal BEFORE showing details form
-          const bgRemovalResult = await backgroundRemovalService.removeBackground(base64Image, abortController.signal);
+          // Step 1: Detect scenario
+          const scenario = await smartClosetUploadService.detectScenario(base64Image);
+          console.log('🔍 [GALLERY] Scenario detected:', scenario);
+
+          // Step 2: Show cropping tool ONLY for multiple items
+          if (scenario.itemCount > 1) {
+            console.log('✂️ [GALLERY] Multiple items detected, showing crop tool');
+            setShowProcessingModal(false);
+            setImageToCrop(base64Image);
+            setShowCropTool(true);
+            return;
+          }
+
+          // Step 3: Single item (flat-lay OR person-wearing) - process automatically
+          console.log('🎨 [GALLERY] Single item detected, processing automatically');
+          
+          // Create abort controller for cancellation support
+          const abortController = new AbortController();
+          setProcessingAbortController(abortController);
+
+          // Use smart upload pipeline
+          const result = await smartClosetUploadService.processUpload(
+            base64Image,
+            (message) => {
+              setProcessingMessage(message);
+            }
+          );
 
           // Check if operation was aborted
           if (abortController.signal.aborted) {
-            console.log('⚠️ [GALLERY] Background removal aborted by user');
+            console.log('⚠️ [GALLERY] Smart upload aborted by user');
             setShowProcessingModal(false);
             return;
           }
 
-          // Use processed image if successful, fallback to original if failed
-          const processedImageUrl = bgRemovalResult.success && bgRemovalResult.imageUrl
-            ? bgRemovalResult.imageUrl
-            : base64Image;
+          if (result.success) {
+            console.log(`✅ [SMART-UPLOAD] Success! ${result.itemsAdded} item(s) detected`);
 
-          if (bgRemovalResult.fallback) {
-            console.warn('⚠️ [GALLERY] Using original image (background removal failed)');
+            if (result.itemsAdded > 1) {
+              // Multiple items detected - show confirmation modal
+              console.log(`📦 [SMART-UPLOAD] Multiple items detected, showing confirmation`);
+              setDetectedSmartItems(result.items);
+              setShowSmartItemConfirmation(true);
+              setShowProcessingModal(false);
+              return;
+            }
+
+            // Single item - use processed image and show details modal
+            const item = result.items[0];
+            console.log('🖼️ [GALLERY] Setting captured image to:', item.imageUrl?.substring(0, 80));
+            setCapturedImage(item.imageUrl);
+            setShowProcessingModal(false);
+            setShowDetailsModal(true);
+
+            // Pre-fill name with AI-detected name
+            setItemDetails({
+              name: item.name || `New ${selectedCategory} item`,
+              brand: '',
+              price: '',
+              description: ''
+            });
+
           } else {
-            console.log('✅ [GALLERY] Background removed successfully');
+            // Smart upload failed - fallback to original image
+            console.error('❌ [SMART-UPLOAD] Failed:', result.error);
+            console.warn('⚠️ [GALLERY] Using original image (smart upload failed)');
+            
+            setCapturedImage(base64Image);
+            setShowProcessingModal(false);
+            setShowDetailsModal(true);
+
+            // Pre-fill name
+            setItemDetails({
+              name: `New ${selectedCategory} item`,
+              brand: '',
+              price: '',
+              description: ''
+            });
           }
 
-          // Store processed image and show details modal
-          setCapturedImage(processedImageUrl);
-          setShowProcessingModal(false);
-          setShowDetailsModal(true);
-
-          // Pre-fill name
-          setItemDetails({
-            name: `New ${selectedCategory} item`,
-            brand: '',
-            price: '',
-            description: ''
-          });
-
         } catch (processingError) {
-          console.error('❌ [GALLERY] Background removal error, using original image:', processingError);
+          console.error('❌ [GALLERY] Smart upload error, using original image:', processingError);
           // Auto-fallback: use original image if processing fails
           setCapturedImage(base64Image);
           setShowProcessingModal(false);
@@ -323,12 +648,15 @@ const VisualClosetEnhanced: React.FC = () => {
       console.error('❌ [GALLERY] Error:', error);
       setShowProcessingModal(false);
     }
+    */ // End of commented single image code
   };
 
   const handleSaveItem = async () => {
-    if (!capturedImage || !selectedCategory) return;
+    // Prevent multiple concurrent saves
+    if (isSaving || !capturedImage || !selectedCategory) return;
 
     try {
+      setIsSaving(true);
       console.log('💾 [CLOSET] Saving item to category:', selectedCategory);
       console.log('📸 [CLOSET] Image already processed (background removed earlier)');
 
@@ -337,6 +665,7 @@ const VisualClosetEnhanced: React.FC = () => {
       const newItem = await addItem({
         name: itemDetails.name || `New ${selectedCategory} item`,
         category: selectedCategory,
+        subcategory: itemDetails.subcategory || undefined,
         image_url: capturedImage, // Already processed image
         brand: itemDetails.brand || undefined,
         price: itemDetails.price ? parseFloat(itemDetails.price) : undefined,
@@ -349,11 +678,155 @@ const VisualClosetEnhanced: React.FC = () => {
         console.log('✅ [CLOSET] Item added to closet:', newItem);
         // Reset and close
         setCapturedImage(null);
-        setItemDetails({ name: '', brand: '', price: '', description: '' });
+        setItemDetails({ name: '', brand: '', price: '', description: '', subcategory: '' });
         setShowDetailsModal(false);
+      } else {
+        console.error('❌ [CLOSET] Failed to save item');
+        alert('Failed to save item. Please try again.');
       }
     } catch (error) {
       console.error('❌ [CLOSET] Error saving item:', error);
+      alert('An error occurred while saving. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle manual cropping completion
+  const handleCroppingComplete = async (crops: CropBox[]) => {
+    if (!imageToCrop || crops.length === 0) return;
+
+    console.log(`✂️ [CROP-COMPLETE] User defined ${crops.length} crop region(s)`);
+    
+    setShowCropTool(false);
+    setShowProcessingModal(true);
+    setProcessingMessage(`Processing ${crops.length} item(s)...`);
+
+    try {
+      // Process crops with manual cropping pipeline
+      const result = await smartClosetUploadService.uploadWithManualCropping(
+        imageToCrop,
+        crops,
+        (message, current, total) => {
+          if (current && total) {
+            setProcessingMessage(`${message} (${current}/${total})`);
+          } else {
+            setProcessingMessage(message);
+          }
+        }
+      );
+
+      if (!result.success || result.items.length === 0) {
+        throw new Error('Failed to process cropped items');
+      }
+
+      console.log(`✅ [CROP-COMPLETE] Successfully processed ${result.items.length} items`);
+
+      // CHECK: Are we in bulk upload queue mode?
+      if (bulkUploadQueue) {
+        console.log('🔄 [BULK-QUEUE] Continuing bulk upload queue');
+        
+        // Add processed items to queue
+        const updatedItems = [...bulkUploadQueue.allProcessedItems, ...result.items];
+        const nextIndex = bulkUploadQueue.currentMultiItemIndex + 1;
+
+        // Check if there are more multi-item images to crop
+        if (nextIndex < bulkUploadQueue.multiItemImages.length) {
+          const nextImage = bulkUploadQueue.multiItemImages[nextIndex];
+          
+          console.log(`✂️ [BULK-QUEUE] Moving to image ${nextIndex + 1} of ${bulkUploadQueue.multiItemImages.length}`);
+          
+          // Update queue
+          setBulkUploadQueue({
+            ...bulkUploadQueue,
+            currentMultiItemIndex: nextIndex,
+            allProcessedItems: updatedItems
+          });
+
+          // Show crop tool for next image
+          setProcessingMessage(`Image ${nextImage.index}: Multiple items detected - please crop`);
+          setShowProcessingModal(false);
+          setImageToCrop(nextImage.base64);
+          setShowCropTool(true);
+          return;
+        } else {
+          // All multi-item images cropped, process single-item images
+          console.log('✅ [BULK-QUEUE] All multi-item images cropped');
+          await processSingleItemQueue(bulkUploadQueue.singleItemImages, updatedItems);
+          return;
+        }
+      }
+
+      // NOT in bulk queue - standard single image cropping
+      if (result.items.length > 1) {
+        setDetectedSmartItems(result.items);
+        setShowSmartItemConfirmation(true);
+        setShowProcessingModal(false);
+      } else {
+        // Single item - show details modal
+        const item = result.items[0];
+        setCapturedImage(item.imageUrl);
+        setShowProcessingModal(false);
+        
+        // Set category from AI detection or fallback to 'tops'
+        const detectedCategory = item.category || 'tops';
+        setSelectedItemCategory(detectedCategory);
+        setSelectedCategory(detectedCategory);
+        
+        setShowDetailsModal(true);
+        setItemDetails({
+          name: item.name || 'New Item',
+          brand: '',
+          price: '',
+          description: ''
+        });
+      }
+    } catch (error) {
+      console.error('❌ [CROP-COMPLETE] Error processing crops:', error);
+      setShowProcessingModal(false);
+      alert('Failed to process items. Please try again.');
+    } finally {
+      setImageToCrop(null);
+    }
+  };
+
+  // Handle cropping cancellation
+  const handleCroppingCancel = () => {
+    console.log('❌ [CROP-CANCEL] User cancelled cropping');
+    setShowCropTool(false);
+    setImageToCrop(null);
+
+    // CHECK: Are we in bulk upload queue mode?
+    if (bulkUploadQueue) {
+      // User cancelled during bulk upload - skip this image and continue
+      const nextIndex = bulkUploadQueue.currentMultiItemIndex + 1;
+
+      if (nextIndex < bulkUploadQueue.multiItemImages.length) {
+        // Move to next multi-item image
+        const nextImage = bulkUploadQueue.multiItemImages[nextIndex];
+        
+        console.log(`⏭️ [BULK-QUEUE] Skipped image, moving to next: ${nextIndex + 1}/${bulkUploadQueue.multiItemImages.length}`);
+        
+        setBulkUploadQueue({
+          ...bulkUploadQueue,
+          currentMultiItemIndex: nextIndex
+        });
+
+        setShowProcessingModal(true);
+        setProcessingMessage(`Image ${nextImage.index}: Multiple items detected - please crop`);
+        setTimeout(() => {
+          setShowProcessingModal(false);
+          setImageToCrop(nextImage.base64);
+          setShowCropTool(true);
+        }, 100);
+      } else {
+        // No more multi-item images, process single-item queue
+        console.log('⏭️ [BULK-QUEUE] Skipped last multi-item, processing singles');
+        processSingleItemQueue(bulkUploadQueue.singleItemImages, bulkUploadQueue.allProcessedItems);
+      }
+    } else {
+      // Standard single-image cancel
+      setShowUploadModal(false);
     }
   };
 
@@ -382,7 +855,8 @@ const VisualClosetEnhanced: React.FC = () => {
         name: item.name,
         brand: item.brand || '',
         price: item.price || '',
-        description: item.description || ''
+        description: item.description || '',
+        subcategory: item.subcategory || ''
       });
       setSelectedItemCategory(item.category);
       setSelectedCategory(item.category);
@@ -398,6 +872,7 @@ const VisualClosetEnhanced: React.FC = () => {
       const success = await updateItem(editingItem.id, {
         name: itemDetails.name || editingItem.name,
         category: selectedCategory || editingItem.category,
+        subcategory: itemDetails.subcategory || undefined,
         brand: itemDetails.brand || undefined,
         price: itemDetails.price ? parseFloat(itemDetails.price) : undefined,
         notes: itemDetails.description || undefined
@@ -406,7 +881,7 @@ const VisualClosetEnhanced: React.FC = () => {
       if (success) {
         // Reset and close
         setEditingItem(null);
-        setItemDetails({ name: '', brand: '', price: '', description: '' });
+        setItemDetails({ name: '', brand: '', price: '', description: '', subcategory: '' });
         setShowEditModal(false);
       }
     } catch (error) {
@@ -442,8 +917,64 @@ const VisualClosetEnhanced: React.FC = () => {
     );
   }
 
+  // If All Items view is shown, render it instead
+  if (showAllItemsView) {
+    return (
+      <AllItemsView 
+        onBack={() => setShowAllItemsView(false)}
+        onEdit={(itemId) => {
+          const item = items.find(i => i.id === itemId);
+          if (item) {
+            setShowAllItemsView(false);
+            setEditingItem(item);
+            setItemDetails({
+              name: item.name,
+              brand: item.brand || '',
+              price: item.price?.toString() || '',
+              description: item.notes || '',
+              subcategory: item.subcategory || ''
+            });
+            setSelectedItemCategory(item.category);
+            setSelectedCategory(item.category);
+            setShowEditModal(true);
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="visual-closet-adapter">
+      {/* All Items Button */}
+      <div style={{
+        padding: '16px',
+        paddingBottom: '8px'
+      }}>
+        <button
+          onClick={() => setShowAllItemsView(true)}
+          style={{
+            width: '100%',
+            padding: '16px',
+            background: 'linear-gradient(135deg, #FFB6D9 0%, #FFC9E3 100%)',
+            border: 'none',
+            borderRadius: '16px',
+            fontSize: '18px',
+            fontWeight: '600',
+            color: 'white',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            boxShadow: '0 4px 12px rgba(255, 105, 180, 0.2)',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <Grid size={24} />
+          <span>All Items</span>
+        </button>
+      </div>
+
       {/* Closet Grid */}
       <div className="closet-grid">
         {categoryData.map((category) => {
@@ -516,7 +1047,7 @@ const VisualClosetEnhanced: React.FC = () => {
                         >
                           <div className="item-image-container">
                             <img
-                              src={item.thumbnail_url || item.image_url}
+                              src={getSmartImageUrl('wardrobe', item.thumbnail_url || item.image_url, 'thumbnail')}
                               alt={item.name}
                               className="item-image"
                             />
@@ -652,6 +1183,47 @@ const VisualClosetEnhanced: React.FC = () => {
           }}
           onClick={() => setShowUploadModal(false)}
         >
+          {/* Glass Morphism Floating Back Button - Top Left */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowUploadModal(false);
+            }}
+            style={{
+              position: 'fixed',
+              top: '16px',
+              left: '16px',
+              zIndex: 10001,
+              padding: '12px',
+              borderRadius: '50%',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.transform = 'scale(0.95)';
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <ChevronLeft 
+              size={24} 
+              color="white" 
+              style={{ filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))' }}
+            />
+          </button>
+
           <div
             style={{
               width: '100%',
@@ -708,7 +1280,10 @@ const VisualClosetEnhanced: React.FC = () => {
                 }}
               >
                 <Upload size={24} color="#FF69B4" />
-                <span>Choose from Gallery</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span>Choose from Gallery</span>
+                  <span style={{ fontSize: '12px', color: '#86868b', fontWeight: '400' }}>Select up to 5 images</span>
+                </div>
               </button>
               
               <button
@@ -766,9 +1341,45 @@ const VisualClosetEnhanced: React.FC = () => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '20px', textAlign: 'center' }}>
-              Add Item Details
-            </h3>
+            {/* Header with Back Button */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              marginBottom: '20px',
+              position: 'relative'
+            }}>
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setCapturedImage(null);
+                  setItemDetails({ name: '', brand: '', price: '', description: '', subcategory: '' });
+                }}
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: '#666',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                <ChevronLeft size={20} />
+                <span>Back</span>
+              </button>
+              <h3 style={{ 
+                fontSize: '22px', 
+                fontWeight: '600', 
+                textAlign: 'center',
+                flex: 1
+              }}>
+                Add Item Details
+              </h3>
+            </div>
 
             {/* Image Preview */}
             <div style={{ marginBottom: '20px', textAlign: 'center' }}>
@@ -829,6 +1440,7 @@ const VisualClosetEnhanced: React.FC = () => {
                   <option value="tops">👕 Tops & Blouses</option>
                   <option value="bottoms">👖 Bottoms</option>
                   <option value="dresses">👗 Dresses</option>
+                  <option value="activewear">🏃 Active Wear</option>
                   <option value="outerwear">🧥 Outerwear</option>
                   <option value="shoes">👟 Shoes</option>
                   <option value="accessories">👜 Accessories</option>
@@ -837,6 +1449,36 @@ const VisualClosetEnhanced: React.FC = () => {
                   Select where this item should be categorized
                 </p>
               </div>
+
+              {/* Subcategory Selector */}
+              {selectedItemCategory && (
+                <div>
+                  <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                    Subcategory (Optional)
+                  </label>
+                  <select
+                    value={itemDetails.subcategory || ''}
+                    onChange={(e) => setItemDetails({ ...itemDetails, subcategory: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">-- Select subcategory (optional) --</option>
+                    {getSubcategoriesForCategory(selectedItemCategory).map(subcat => (
+                      <option key={subcat} value={subcat}>{subcat}</option>
+                    ))}
+                  </select>
+                  <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                    Optional: Choose a more specific category
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
@@ -904,7 +1546,7 @@ const VisualClosetEnhanced: React.FC = () => {
                 onClick={() => {
                   setShowDetailsModal(false);
                   setCapturedImage(null);
-                  setItemDetails({ name: '', brand: '', price: '', description: '' });
+                  setItemDetails({ name: '', brand: '', price: '', description: '', subcategory: '' });
                 }}
                 style={{
                   flex: 1,
@@ -922,20 +1564,21 @@ const VisualClosetEnhanced: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveItem}
-                disabled={!itemDetails.name.trim()}
+                disabled={!itemDetails.name.trim() || isSaving}
                 style={{
                   flex: 1,
                   padding: '14px',
-                  background: itemDetails.name.trim() ? 'linear-gradient(135deg, #FF69B4 0%, #FF1493 100%)' : '#ccc',
+                  background: itemDetails.name.trim() && !isSaving ? 'linear-gradient(135deg, #FF69B4 0%, #FF1493 100%)' : '#ccc',
                   border: 'none',
                   borderRadius: '12px',
                   fontSize: '16px',
                   fontWeight: '600',
-                  cursor: itemDetails.name.trim() ? 'pointer' : 'not-allowed',
-                  color: 'white'
+                  cursor: itemDetails.name.trim() && !isSaving ? 'pointer' : 'not-allowed',
+                  color: 'white',
+                  opacity: isSaving ? 0.6 : 1
                 }}
               >
-                Save Item
+                {isSaving ? 'Saving...' : 'Save Item'}
               </button>
             </div>
           </div>
@@ -980,7 +1623,7 @@ const VisualClosetEnhanced: React.FC = () => {
           onClick={() => {
             setShowEditModal(false);
             setEditingItem(null);
-            setItemDetails({ name: '', brand: '', price: '', description: '' });
+            setItemDetails({ name: '', brand: '', price: '', description: '', subcategory: '' });
           }}
         >
           <div
@@ -1003,7 +1646,7 @@ const VisualClosetEnhanced: React.FC = () => {
             {/* Image Preview */}
             <div style={{ marginBottom: '20px', textAlign: 'center' }}>
               <img
-                src={editingItem.image_url}
+                src={getSmartImageUrl('wardrobe', editingItem.image_url, 'thumbnail')}
                 alt="Preview"
                 style={{
                   maxWidth: '200px',
@@ -1059,6 +1702,7 @@ const VisualClosetEnhanced: React.FC = () => {
                   <option value="tops">👕 Tops & Blouses</option>
                   <option value="bottoms">👖 Bottoms</option>
                   <option value="dresses">👗 Dresses</option>
+                  <option value="activewear">🏃 Active Wear</option>
                   <option value="outerwear">🧥 Outerwear</option>
                   <option value="shoes">👟 Shoes</option>
                   <option value="accessories">👜 Accessories</option>
@@ -1067,6 +1711,36 @@ const VisualClosetEnhanced: React.FC = () => {
                   Select where this item should be categorized
                 </p>
               </div>
+
+              {/* Subcategory Selector */}
+              {selectedItemCategory && (
+                <div>
+                  <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
+                    Subcategory (Optional)
+                  </label>
+                  <select
+                    value={itemDetails.subcategory || ''}
+                    onChange={(e) => setItemDetails({ ...itemDetails, subcategory: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      backgroundColor: 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">-- Select subcategory (optional) --</option>
+                    {getSubcategoriesForCategory(selectedItemCategory).map(subcat => (
+                      <option key={subcat} value={subcat}>{subcat}</option>
+                    ))}
+                  </select>
+                  <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                    Optional: Choose a more specific category
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', display: 'block', marginBottom: '8px' }}>
@@ -1134,7 +1808,7 @@ const VisualClosetEnhanced: React.FC = () => {
                 onClick={() => {
                   setShowEditModal(false);
                   setEditingItem(null);
-                  setItemDetails({ name: '', brand: '', price: '', description: '' });
+                  setItemDetails({ name: '', brand: '', price: '', description: '', subcategory: '' });
                 }}
                 style={{
                   flex: 1,
@@ -1170,6 +1844,76 @@ const VisualClosetEnhanced: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Hidden File Input for Bulk Upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+      />
+
+      {/* Photo Tips Modal */}
+      <PhotoTipsModal
+        isOpen={showPhotoTips}
+        onClose={handlePhotoTipsClose}
+        onDontShowAgain={handlePhotoTipsDontShowAgain}
+      />
+
+      {/* Interactive Crop Tool */}
+      {showCropTool && imageToCrop && (
+        <InteractiveCropTool
+          imageUrl={imageToCrop}
+          onComplete={handleCroppingComplete}
+          onCancel={handleCroppingCancel}
+          suggestedCrops={[]}
+        />
+      )}
+
+      {/* Smart Upload Multi-Item Confirmation Modal */}
+      {showSmartItemConfirmation && detectedSmartItems.length > 0 && (
+        <MultiItemConfirmationModal
+          isOpen={showSmartItemConfirmation}
+          items={detectedSmartItems}
+          onSaveAll={async (items) => {
+            console.log('💾 [SMART-UPLOAD] Saving all items:', items.length);
+            for (const item of items) {
+              await addItem({
+                name: item.name,
+                category: selectedCategory || 'tops',
+                image_url: item.imageUrl,
+                notes: `AI-detected (${Math.round(item.confidence * 100)}% confidence)`,
+                favorite: false
+              });
+            }
+            setShowSmartItemConfirmation(false);
+            setDetectedSmartItems([]);
+            console.log('✅ [SMART-UPLOAD] All items saved successfully');
+          }}
+          onSaveSelected={async (items) => {
+            console.log('💾 [SMART-UPLOAD] Saving selected items:', items.length);
+            for (const item of items) {
+              await addItem({
+                name: item.name,
+                category: selectedCategory || 'tops',
+                image_url: item.imageUrl,
+                notes: `AI-detected (${Math.round(item.confidence * 100)}% confidence)`,
+                favorite: false
+              });
+            }
+            setShowSmartItemConfirmation(false);
+            setDetectedSmartItems([]);
+            console.log('✅ [SMART-UPLOAD] Selected items saved successfully');
+          }}
+          onCancel={() => {
+            console.log('❌ [SMART-UPLOAD] Multi-item confirmation cancelled');
+            setShowSmartItemConfirmation(false);
+            setDetectedSmartItems([]);
+          }}
+        />
       )}
     </div>
   );
