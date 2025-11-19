@@ -99,6 +99,9 @@ export interface TripStats {
   totalPackingItems: number;
   packedItems: number;
   packingProgress: number;
+  hasToiletries?: boolean;
+  hasElectronics?: boolean;
+  hasDocuments?: boolean;
 }
 
 // ============================================
@@ -310,10 +313,10 @@ export function useTripStats(tripId: string) {
 
       if (outfitsError) throw outfitsError;
 
-      // Fetch packing list
+      // Fetch packing list with category info
       const { data: packingItems, error: packingError } = await supabase
         .from('trip_packing_list')
-        .select('is_packed')
+        .select('is_packed, category')
         .eq('trip_id', tripId);
 
       if (packingError) throw packingError;
@@ -321,12 +324,34 @@ export function useTripStats(tripId: string) {
       const totalPackingItems = packingItems?.length || 0;
       const packedItems = packingItems?.filter(item => item.is_packed).length || 0;
 
+      // Check if essential categories have packed items
+      const hasToiletries = packingItems?.some(item => 
+        item.category === 'toiletries' && item.is_packed
+      ) || false;
+      
+      const hasElectronics = packingItems?.some(item => 
+        item.category === 'electronics' && item.is_packed
+      ) || false;
+      
+      const hasDocuments = packingItems?.some(item => 
+        item.category === 'documents' && item.is_packed
+      ) || false;
+
+      console.log('📊 [TRIP-STATS] Category completion:', {
+        toiletries: hasToiletries ? '✅' : '❌',
+        electronics: hasElectronics ? '✅' : '❌',
+        documents: hasDocuments ? '✅' : '❌'
+      });
+
       return {
         totalActivities: activities?.length || 0,
         activitiesWithOutfits: outfits?.length || 0,
         totalPackingItems,
         packedItems,
         packingProgress: totalPackingItems > 0 ? (packedItems / totalPackingItems) * 100 : 0,
+        hasToiletries,
+        hasElectronics,
+        hasDocuments,
       } as TripStats;
     },
     enabled: !!tripId,

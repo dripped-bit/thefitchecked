@@ -1,4 +1,4 @@
-import { TrendingUp, CheckCircle2, Package, Calendar } from 'lucide-react';
+import { TrendingUp, Package, Calendar } from 'lucide-react';
 import type { Trip, TripStats } from '../../hooks/useTrips';
 import { TRIP_TYPES } from '../../constants/tripTypes';
 
@@ -11,6 +11,53 @@ interface TripOverviewTabProps {
 
 export function TripOverviewTab({ trip, stats, daysUntil, duration }: TripOverviewTabProps) {
   const tripType = TRIP_TYPES[trip.trip_type];
+
+  /**
+   * Calculate trip readiness based on:
+   * - Outfit combos for each day (50% weight)
+   * - Toiletries category checked (16.67% weight)
+   * - Electronics category checked (16.67% weight)
+   * - Documents category checked (16.67% weight)
+   */
+  const calculateTripReadiness = (): number => {
+    if (!stats) return 0;
+
+    let earnedPoints = 0;
+    const totalPoints = 100;
+
+    // 1. Outfit combos for each day (50% weight)
+    const outfitsNeeded = duration; // One outfit per day
+    const outfitsHave = stats.activitiesWithOutfits;
+    const outfitScore = Math.min(outfitsHave / outfitsNeeded, 1) * 50;
+    earnedPoints += outfitScore;
+
+    // 2. Toiletries checked off (16.67% weight)
+    if (stats.hasToiletries) {
+      earnedPoints += 16.67;
+    }
+
+    // 3. Electronics checked off (16.67% weight)
+    if (stats.hasElectronics) {
+      earnedPoints += 16.67;
+    }
+
+    // 4. Documents checked off (16.67% weight)
+    if (stats.hasDocuments) {
+      earnedPoints += 16.67;
+    }
+
+    const readinessPercent = Math.round((earnedPoints / totalPoints) * 100);
+
+    console.log('📊 [TRIP-READINESS] Calculating readiness...');
+    console.log('📊 [TRIP-READINESS] Duration:', duration, 'days');
+    console.log('📊 [TRIP-READINESS] Outfits:', outfitsHave, '/', outfitsNeeded, '=', Math.round(outfitScore), 'points');
+    console.log('📊 [TRIP-READINESS] Toiletries:', stats.hasToiletries ? '✅ 16.67 pts' : '❌ 0 pts');
+    console.log('📊 [TRIP-READINESS] Electronics:', stats.hasElectronics ? '✅ 16.67 pts' : '❌ 0 pts');
+    console.log('📊 [TRIP-READINESS] Documents:', stats.hasDocuments ? '✅ 16.67 pts' : '❌ 0 pts');
+    console.log('📊 [TRIP-READINESS] Final score:', readinessPercent, '%');
+
+    return readinessPercent;
+  };
 
   return (
     <div className="space-y-6">
@@ -29,7 +76,7 @@ export function TripOverviewTab({ trip, stats, daysUntil, duration }: TripOvervi
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Activities Stat */}
         <div className="bg-white rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
@@ -50,42 +97,29 @@ export function TripOverviewTab({ trip, stats, daysUntil, duration }: TripOvervi
           )}
         </div>
 
-        {/* Packing Stat */}
+        {/* Combined: Items Packed + Readiness */}
         <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <Package className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats?.packedItems || 0}/{stats?.totalPackingItems || 0}</p>
-              <p className="text-sm text-gray-600">Items Packed</p>
-            </div>
-          </div>
-          {stats && stats.totalPackingItems > 0 && (
-            <div className="mt-3">
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-green-600 h-2 rounded-full transition-all"
-                  style={{ width: `${stats.packingProgress}%` }}
-                />
+          <div className="flex items-center justify-between">
+            {/* Items Packed - Left Side */}
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-green-100 rounded-lg">
+                <Package className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{stats?.totalPackingItems || 0}</p>
+                <p className="text-sm text-gray-600">Items Packed</p>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Readiness Stat */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats?.totalActivities && stats.totalPackingItems
-                  ? Math.round(((stats.activitiesWithOutfits + stats.packedItems) / (stats.totalActivities + stats.totalPackingItems)) * 100)
-                  : 0}%
-              </p>
-              <p className="text-sm text-gray-600">Trip Readiness</p>
+            {/* Readiness - Right Side */}
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{calculateTripReadiness()}%</p>
+                <p className="text-sm text-gray-600">Trip Readiness</p>
+              </div>
             </div>
           </div>
         </div>
@@ -132,61 +166,6 @@ export function TripOverviewTab({ trip, stats, daysUntil, duration }: TripOvervi
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Next Steps</h3>
-        <div className="space-y-2">
-          {(!stats || stats.totalActivities === 0) && (
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-purple-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-gray-900">Plan Your Daily Activities</p>
-                <p className="text-sm text-gray-600">Go to the Daily Plan tab to add activities for each day</p>
-              </div>
-            </div>
-          )}
-          {stats && stats.totalActivities > 0 && stats.activitiesWithOutfits < stats.totalActivities && (
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-purple-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-gray-900">Plan Outfits for Activities</p>
-                <p className="text-sm text-gray-600">
-                  {stats.totalActivities - stats.activitiesWithOutfits} activities need outfits
-                </p>
-              </div>
-            </div>
-          )}
-          {(!stats || stats.totalPackingItems === 0) && (
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-purple-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-gray-900">Generate Packing List</p>
-                <p className="text-sm text-gray-600">Go to the Packing List tab to auto-generate items from your outfits</p>
-              </div>
-            </div>
-          )}
-          {stats && stats.totalPackingItems > 0 && stats.packedItems < stats.totalPackingItems && (
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-purple-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-gray-900">Pack Your Items</p>
-                <p className="text-sm text-gray-600">
-                  {stats.totalPackingItems - stats.packedItems} items left to pack
-                </p>
-              </div>
-            </div>
-          )}
-          {stats && stats.packedItems === stats.totalPackingItems && stats.totalPackingItems > 0 && (
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-gray-900">All Packed!</p>
-                <p className="text-sm text-gray-600">You're ready for your trip 🎉</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
