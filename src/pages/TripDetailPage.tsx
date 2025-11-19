@@ -3,7 +3,7 @@ import { ChevronLeft, Edit, Trash2, Calendar, MapPin, Users, Hotel } from 'lucid
 import { useTrip, useTripStats, useDeleteTrip, useTripDuration } from '../hooks/useTrips';
 import { TRIP_TYPES, TRIP_STATUS, ACCOMMODATION_TYPES } from '../constants/tripTypes';
 import { TripOverviewTab } from '../components/trips/TripOverviewTab';
-import { TripDailyPlanTab } from '../components/trips/TripDailyPlanTab';
+import { TripPlanTab } from '../components/trips/TripPlanTab';
 import { TripPackingListTab } from '../components/trips/TripPackingListTab';
 import { TripShoppingPanel } from '../components/trips/TripShoppingPanel';
 import { TripRecommendationsBadge } from '../components/trips/TripRecommendationsBadge';
@@ -14,7 +14,7 @@ interface TripDetailPageProps {
   onEdit?: () => void;
 }
 
-type Tab = 'overview' | 'daily-plan' | 'packing-list';
+type Tab = 'overview' | 'plan' | 'packing-list';
 
 export function TripDetailPage({ tripId, onBack, onEdit }: TripDetailPageProps) {
   const { data: trip, isLoading } = useTrip(tripId);
@@ -154,14 +154,14 @@ export function TripDetailPage({ tripId, onBack, onEdit }: TripDetailPageProps) 
               Overview
             </button>
             <button
-              onClick={() => setActiveTab('daily-plan')}
+              onClick={() => setActiveTab('plan')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                activeTab === 'daily-plan'
+                activeTab === 'plan'
                   ? 'bg-purple-600 text-white'
                   : 'bg-white text-gray-600 hover:bg-gray-100'
               }`}
             >
-              Daily Plan
+              Plan
               {stats && stats.totalActivities > 0 && (
                 <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
                   {stats.totalActivities}
@@ -213,7 +213,7 @@ export function TripDetailPage({ tripId, onBack, onEdit }: TripDetailPageProps) 
         {activeTab === 'overview' && (
           <TripOverviewTab trip={trip} stats={stats} daysUntil={daysUntil} duration={duration} />
         )}
-        {activeTab === 'daily-plan' && <TripDailyPlanTab trip={trip} />}
+        {activeTab === 'plan' && <TripPlanTab trip={trip} />}
         {activeTab === 'packing-list' && <TripPackingListTab trip={trip} stats={stats} />}
       </div>
 
