@@ -41,17 +41,18 @@ const WishlistActionBar: React.FC<WishlistActionBarProps> = ({
   return (
     <div
       style={{
-        position: 'sticky',
+        position: 'fixed',
         top: 0,
-        zIndex: 10,
-        background: 'rgba(255, 255, 255, 0.85)',
+        left: 0,
+        right: 0,
+        zIndex: 999,
+        background: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
         borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
         padding: '12px 16px',
         display: 'flex',
         gap: '8px',
         flexWrap: 'nowrap',
-        overflowX: 'auto',
       }}
     >
       <IonButton
@@ -64,6 +65,7 @@ const WishlistActionBar: React.FC<WishlistActionBarProps> = ({
           '--border-radius': '10px',
           flex: '1',
           minWidth: '80px',
+          height: '40px',
         }}
       >
         <IonIcon icon={cart} slot="start" />
@@ -81,6 +83,7 @@ const WishlistActionBar: React.FC<WishlistActionBarProps> = ({
           '--border-radius': '10px',
           flex: '1',
           minWidth: '80px',
+          height: '40px',
         }}
       >
         <IonIcon icon={pricetagsOutline} slot="start" />
@@ -95,6 +98,7 @@ const WishlistActionBar: React.FC<WishlistActionBarProps> = ({
           '--border-radius': '10px',
           flex: '1',
           minWidth: '80px',
+          height: '40px',
         }}
       >
         <IonIcon icon={shareSocial} slot="start" />
@@ -110,25 +114,12 @@ const WishlistActionBar: React.FC<WishlistActionBarProps> = ({
           '--border-radius': '10px',
           flex: '1',
           minWidth: '80px',
+          height: '40px',
         }}
       >
         <IonIcon icon={giftOutline} slot="start" />
         <span style={{ fontSize: '13px', fontWeight: '600' }}>Birthday</span>
       </IonButton>
-
-      {hasSelection && (
-        <IonText
-          color="medium"
-          style={{
-            fontSize: '12px',
-            width: '100%',
-            textAlign: 'center',
-            marginTop: '4px',
-          }}
-        >
-          {selectedItems.size} item{selectedItems.size !== 1 ? 's' : ''} selected
-        </IonText>
-      )}
     </div>
   );
 };

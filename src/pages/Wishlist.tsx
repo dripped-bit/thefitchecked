@@ -258,9 +258,52 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     }
   };
 
-  const handleMarkPurchased = (item: WishlistItem) => {
-    setSelectedItemForMove(item);
-    setShowMoveToCloset(true);
+  const handleMarkPurchased = async (item: WishlistItem) => {
+    try {
+      setToastMessage('Saving to wardrobe...');
+      setShowToast(true);
+
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        setToastMessage('Please log in first');
+        setShowToast(true);
+        return;
+      }
+
+      // Save to clothing_items table
+      const { error: saveError } = await supabase
+        .from('clothing_items')
+        .insert({
+          user_id: userData.user.id,
+          name: item.name,
+          category: item.category || 'tops',
+          image_url: item.image || item.image_url,
+          thumbnail_url: item.image || item.image_url,
+          brand: item.brand,
+          price: item.price ? parseFloat(item.price.replace(/[^0-9.]/g, '')) : null,
+          notes: `Purchased from ${item.retailer || 'wishlist'}`,
+          favorite: false,
+          times_worn: 0
+        });
+
+      if (saveError) throw saveError;
+
+      // Mark as purchased in wishlist
+      const { error: updateError } = await supabase
+        .from('wishlist_items')
+        .update({ is_purchased: true })
+        .eq('id', item.id);
+
+      if (updateError) throw updateError;
+
+      setToastMessage('Saved to closet!');
+      setShowToast(true);
+      fetchWishlist(); // Refresh list
+    } catch (error: any) {
+      console.error('Error saving to closet:', error);
+      setToastMessage('Failed to save: ' + error.message);
+      setShowToast(true);
+    }
   };
 
   const handleCheckAvailability = async (item: WishlistItem) => {
@@ -293,7 +336,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       {/* Header */}
       <div style={{
         position: 'sticky',
-        top: 0,
+        top: '64px',
         zIndex: 10,
         background: '#fff',
         borderBottom: '1px solid rgba(0,0,0,0.1)',
@@ -315,7 +358,9 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
         >
           ←
         </button>
-        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Wishlist</h1>
+        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#000' }}>
+          {showBirthdayMode ? 'Birthday Wishlist' : 'Wishlist'}
+        </h1>
       </div>
 
       {/* Content */}
@@ -323,6 +368,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
         flex: 1, 
         overflowY: 'auto',
         padding: '16px',
+        paddingTop: '80px',
         paddingBottom: '100px'
       }}>
         {console.log('🎨 [WISHLIST] Rendering - loading:', loading, 'error:', error, 'items:', allWishlistItems.length)}
@@ -425,23 +471,6 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
               allItems={allWishlistItems}
             />
 
-        {/* Birthday Mode Banner */}
-        {showBirthdayMode && (
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #FF6B9D 0%, #C44569 100%)',
-              padding: '12px 16px',
-              color: 'white',
-              textAlign: 'center',
-              fontSize: '14px',
-              fontWeight: '600',
-            }}
-          >
-            <IonIcon icon={giftOutline} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-            Birthday Mode Active
-          </div>
-        )}
-
         {/* Category Filter - Single Dropdown */}
         <div style={{ 
           backgroundColor: 'var(--ion-background-color)',
@@ -465,7 +494,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
             }}
           >
             <IonSelectOption value="All Items">
-              📋 All Items
+              📋 All Items ({allWishlistItems.length} items)
             </IonSelectOption>
             {Object.entries(CATEGORY_LABELS)
               .filter(([key]) => key !== 'All Items')
@@ -679,7 +708,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                         </div>
                       )}
 
-                      {/* Action Buttons - 20% Bigger */}
+                      {/* Action Buttons - 3 Buttons, 20% Bigger */}
                       <div style={{ 
                         marginTop: '16px', 
                         display: 'flex', 
@@ -719,23 +748,6 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                             Purchased
                           </IonButton>
                         )}
-
-                        <IonButton
-                          fill="outline"
-                          size="small"
-                          onClick={() => {
-                            setSelectedItemForComparison(item);
-                            setShowPriceComparison(true);
-                          }}
-                          style={{
-                            '--border-radius': '10px',
-                            '--padding-top': '10px',
-                            '--padding-bottom': '10px',
-                            fontSize: '15px',
-                          }}
-                        >
-                          <IonIcon icon={pricetagsOutline} style={{ transform: 'scale(1.2)' }} />
-                        </IonButton>
 
                         <IonButton
                           fill="outline"
