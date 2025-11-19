@@ -87,8 +87,19 @@ const FavoritesView: React.FC<FavoritesViewProps> = ({ onBack, onEdit }) => {
             <ChevronLeft size={24} />
           </button>
           <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#FF69B4' }}>
-              ❤️ My Favorites
+            <h1 style={{
+              margin: 0,
+              fontFamily: "'Dancing Script', cursive",
+              fontSize: '1.853rem',
+              fontWeight: 700,
+              letterSpacing: '0.15em',
+              textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+              background: 'linear-gradient(180deg, #FF69B4 0%, #FF1493 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              My Favorites
             </h1>
             <p style={{ margin: 0, fontSize: '14px', color: '#86868b' }}>
               {favoriteItems.length} item{favoriteItems.length !== 1 ? 's' : ''}
