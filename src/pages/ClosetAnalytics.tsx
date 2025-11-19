@@ -127,16 +127,7 @@ export default function ClosetAnalytics({ onBack }: ClosetAnalyticsProps) {
           <EmptyState />
         ) : (
           <>
-            {/* NEW: Share Stats Button */}
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white py-3.5 px-4 rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all mb-6"
-            >
-              <Share2 className="w-5 h-5" />
-              📸 Share My Stats
-            </button>
-
-            {/* Summary Cards */}
+            {/* Summary Cards - Clean 3-Column Grid */}
             <div className="grid grid-cols-3 gap-4">
               <SummaryCard 
                 icon="💰" 
@@ -148,22 +139,45 @@ export default function ClosetAnalytics({ onBack }: ClosetAnalyticsProps) {
                 value={`$${data.wishlistTotal.toLocaleString()}`} 
                 label="Wishlist" 
               />
-              <div className="bg-white rounded-2xl p-4 shadow-sm">
-                <div className="text-center">
-                  <div className="text-2xl mb-2">📈</div>
-                  <div className="text-xl font-bold text-gray-900">{data.itemsThisMonth}</div>
-                  <div className="text-xs text-gray-500 mt-1">Items Added This Month</div>
-                </div>
-                {/* NEW: Unworn Items Alert */}
-                {data.unwornItems && data.unwornItems > 0 && (
-                  <UnwornItemsAlert
-                    unwornCount={data.unwornItems}
-                    unwornValue={data.unwornValue || 0}
-                    unwornByCategory={data.unwornByCategory}
-                  />
-                )}
-              </div>
+              <SummaryCard 
+                icon="📈" 
+                value={data.itemsThisMonth} 
+                label="Items Added This Month" 
+              />
             </div>
+
+            {/* Total Sitting Unused - Long Horizontal Card */}
+            {data.unwornItems && data.unwornItems > 0 && (
+              <div className="bg-white rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-500 mb-1">Total Sitting Unused (3+ months)</div>
+                    <div className="text-3xl font-bold text-orange-600">
+                      {data.unwornItems} items
+                    </div>
+                    {data.unwornValue && data.unwornValue > 0 && (
+                      <div className="text-sm text-gray-600 mt-1">
+                        Worth ${data.unwornValue.toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+                  <button 
+                    onClick={() => window.open('https://poshmark.com', '_blank')}
+                    className="bg-gradient-to-r from-pink-500 to-red-500 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all flex items-center gap-2"
+                  >
+                    Sell on Poshmark
+                  </button>
+                </div>
+                
+                {/* Floating Cloud Tip */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-200/50">
+                  <div className="text-sm text-blue-800">
+                    <span className="font-semibold">💡 Tip:</span> Items unworn for 3+ months rarely get worn again. 
+                    Consider selling, donating, or styling them differently!
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Top Spending */}
             {data.categories.length > 0 && (
@@ -224,6 +238,15 @@ export default function ClosetAnalytics({ onBack }: ClosetAnalyticsProps) {
             <p className="text-xs text-center text-gray-400">
               Last updated: {new Date(data.lastUpdated).toLocaleString()}
             </p>
+
+            {/* Share My Stats - At Bottom with Green Transparent Style */}
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="w-full bg-green-500/20 backdrop-blur-sm text-black py-3.5 px-4 rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-sm hover:bg-green-500/30 transition-all border border-green-300/30"
+            >
+              <Share2 className="w-5 h-5" />
+              📸 Share My Stats
+            </button>
           </>
         )}
       </div>
@@ -403,11 +426,11 @@ function BestValueSection({ items, onItemClick }: BestValueSectionProps) {
             onClick={() => onItemClick(item)}
             className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-all text-left"
           >
-            <div className="text-2xl font-bold text-gray-400">{index + 1}.</div>
+            <div className="text-lg font-bold text-gray-400">{index + 1}.</div>
             
-            {/* Item Image */}
+            {/* Item Image - Larger */}
             {(item.thumbnail_url || item.image_url) && (
-              <div className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 shadow-sm">
                 <img 
                   src={item.thumbnail_url || item.image_url} 
                   alt={item.name}
@@ -417,13 +440,13 @@ function BestValueSection({ items, onItemClick }: BestValueSectionProps) {
             )}
             
             <div className="flex-1">
-              <div className="font-medium text-gray-900">{item.name}</div>
-              <div className={`text-sm ${isTracked ? 'text-gray-500' : 'text-blue-600'}`}>
+              {/* Removed item name - only show blue text */}
+              <div className="text-sm font-semibold text-blue-600">
                 {displayText}
               </div>
             </div>
             
-            <div className="flex gap-1">
+            <div className="flex gap-0.5">
               {Array.from({ length: item.stars }).map((_, i) => (
                 <span key={i} className="text-yellow-400 text-lg">⭐</span>
               ))}
