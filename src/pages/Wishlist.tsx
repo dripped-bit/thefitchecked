@@ -298,8 +298,11 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     setShowToast(true);
   };
 
+  console.log('🚀 [WISHLIST] Main render function executing');
+  
   return (
-    <IonPage>
+    <IonPage style={{ background: '#f2f2f7' }}>
+      {console.log('📄 [WISHLIST] IonPage rendering')}
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
@@ -311,7 +314,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent>
+      <IonContent style={{ '--background': '#f2f2f7' }}>
         {console.log('🎨 [WISHLIST] Rendering - loading:', loading, 'error:', error, 'items:', allWishlistItems.length)}
         {loading ? (
           <div style={{
@@ -399,6 +402,9 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
           </div>
         ) : (
           <>
+            {console.log('✅ [WISHLIST] Rendering content section with', allWishlistItems.length, 'items')}
+            {console.log('✅ [WISHLIST] filteredItems:', filteredItems.length)}
+            
             {/* Action Bar */}
             <WishlistActionBar
               selectedItems={selectedItems}
