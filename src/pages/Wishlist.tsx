@@ -26,7 +26,7 @@ import {
   IonButtons,
   IonButton,
 } from '@ionic/react';
-import { trash, openOutline, sparkles, checkmarkCircle, giftOutline, pricetagsOutline, chevronBackOutline } from 'ionicons/icons';
+import { trash, openOutline, sparkles, checkmarkCircle, giftOutline, pricetagsOutline, chevronBackOutline, warningOutline } from 'ionicons/icons';
 import { Browser } from '@capacitor/browser';
 import { Share } from '@capacitor/share';
 import { supabase } from '../services/supabaseClient';
@@ -72,6 +72,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const [allWishlistItems, setAllWishlistItems] = useState<WishlistItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Category filter states
   const [selectedCategory, setSelectedCategory] = useState<string>('All Items');
@@ -158,6 +159,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       
     } catch (error: any) {
       console.error('❌ [WISHLIST] Fatal error:', error);
+      setError(error.message || 'Failed to load wishlist');
       // Show error toast
       setToastMessage(`Failed to load wishlist: ${error.message}`);
       setShowToast(true);
@@ -296,21 +298,6 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     setShowToast(true);
   };
 
-  if (loading) {
-    return (
-      <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Wishlist</IonTitle>
-          </IonToolbar>
-        </IonHeader>
-        <IonContent className="ion-padding ion-text-center">
-          <IonSpinner name="crescent" style={{ marginTop: '50%' }} />
-        </IonContent>
-      </IonPage>
-    );
-  }
-
   return (
     <IonPage>
       <IonHeader>
@@ -325,6 +312,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       </IonHeader>
 
       <IonContent>
+        {console.log('🎨 [WISHLIST] Rendering - loading:', loading, 'error:', error, 'items:', allWishlistItems.length)}
         {loading ? (
           <div style={{
             display: 'flex',
@@ -339,7 +327,43 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
               <p style={{ fontSize: '16px' }}>Loading your wishlist...</p>
             </IonText>
           </div>
-        ) : filteredItems.length === 0 && allWishlistItems.length === 0 ? (
+        ) : error ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '70vh',
+            padding: '32px',
+            gap: '16px'
+          }}>
+            <IonIcon 
+              icon={warningOutline} 
+              style={{ fontSize: '80px', color: '#ff3b30', marginBottom: '8px' }} 
+            />
+            <h2 style={{ fontSize: '24px', fontWeight: '600', margin: '0', color: '#1c1c1e' }}>
+              Failed to Load Wishlist
+            </h2>
+            <p style={{ 
+              fontSize: '16px', 
+              color: '#86868b', 
+              textAlign: 'center',
+              maxWidth: '300px',
+              lineHeight: '1.5'
+            }}>
+              {error}
+            </p>
+            <IonButton 
+              onClick={() => {
+                setError(null);
+                fetchWishlist();
+              }}
+              style={{ marginTop: '16px' }}
+            >
+              Try Again
+            </IonButton>
+          </div>
+        ) : allWishlistItems.length === 0 ? (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
