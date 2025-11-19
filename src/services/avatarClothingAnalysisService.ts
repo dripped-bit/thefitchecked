@@ -4,11 +4,21 @@
  */
 
 export interface ClothingItem {
-  category: 'shirt' | 'pants' | 'dress' | 'jacket' | 'shoes' | 'accessories';
+  category: 'shirt' | 'pants' | 'dress' | 'jacket' | 'shoes' | 'skirt' | 'top' | 'bottom' | 'outerwear' | 'accessory' | 'accessories';
   color: string;
+  secondaryColors?: string[];
   style: string;
+  fit?: string;
+  cut?: string;
   pattern?: string;
   material?: string;
+  details?: string[];
+  length?: string;
+  neckline?: string;
+  sleeves?: string;
+  closure?: string;
+  silhouette?: string;
+  vibe?: string;
   description: string;
   searchTerms: string[];
 }
@@ -19,6 +29,8 @@ export interface AvatarClothingAnalysis {
   colorPalette: string[];
   occasion: string;
   season: string;
+  trendiness?: string;
+  fashionKeywords?: string[];
 }
 
 class AvatarClothingAnalysisService {
@@ -74,25 +86,49 @@ class AvatarClothingAnalysisService {
               },
               {
                 type: 'text',
-                text: `Analyze this avatar's clothing and return a JSON object with:
-                {
-                  "items": [
-                    {
-                      "category": "shirt|pants|dress|jacket|shoes|accessories",
-                      "color": "primary color",
-                      "style": "style description",
-                      "pattern": "pattern if any",
-                      "material": "apparent material",
-                      "description": "detailed description",
-                      "searchTerms": ["search", "terms", "for", "shopping"]
+                text: `You are a fashion expert AI analyzing clothing images to help users shop for similar items online.
+
+ANALYZE THIS IMAGE IN EXTREME DETAIL and extract ALL visual characteristics that would help find exact matches when shopping online.
+
+Return ONLY a valid JSON object (no markdown, no explanations) with this structure:
+{
+  "items": [
+    {
+      "category": "shirt|pants|dress|jacket|shoes|skirt|top|bottom|outerwear|accessory",
+      "color": "EXACT primary color (e.g., navy blue, burgundy, forest green)",
+      "secondaryColors": ["any additional colors"],
+      "style": "DETAILED style (e.g., oversized, fitted, cropped, longline, relaxed)",
+      "fit": "fit description (e.g., slim fit, relaxed fit, oversized, tailored)",
+      "cut": "cut details (e.g., v-neck, crew neck, high-waisted, low-rise, A-line)",
+      "pattern": "pattern if any (e.g., striped, floral, plaid, solid)",
+      "material": "apparent material (e.g., denim, leather, cotton, silk, knit)",
+      "details": ["specific features like pockets, buttons, zippers, ruffles, pleats"],
+      "length": "length description (e.g., ankle-length, cropped, midi, maxi)",
+      "neckline": "neckline type if applicable (e.g., v-neck, turtleneck, boat neck)",
+      "sleeves": "sleeve description if applicable (e.g., long sleeve, short sleeve, sleeveless)",
+      "closure": "closure type if visible (e.g., button-up, zip-up, pullover)",
+      "silhouette": "overall silhouette (e.g., boxy, fitted, flowy, structured)",
+      "vibe": "fashion vibe (e.g., minimalist, streetwear, bohemian, preppy)",
+      "description": "ultra-detailed 2-3 sentence description covering ALL visual aspects",
+      "searchTerms": ["comprehensive", "list", "of", "search", "keywords", "including", "color", "style", "fit"]
                     }
                   ],
-                  "overallStyle": "overall style assessment",
-                  "colorPalette": ["color1", "color2"],
-                  "occasion": "casual|formal|business|sport",
-                  "season": "spring|summer|fall|winter"
+                  "overallStyle": "overall fashion style (e.g., modern streetwear, classic preppy, boho chic)",
+                  "colorPalette": ["primary color", "secondary colors"],
+                  "occasion": "casual|formal|business|athletic|evening",
+                  "season": "spring|summer|fall|winter|all-season",
+                  "trendiness": "classic|trendy|avant-garde|vintage",
+                  "fashionKeywords": ["additional", "fashion", "trend", "keywords"]
                 }
-                Focus on details that would help find similar clothing items online.`
+
+CRITICAL: Be EXTREMELY specific about:
+- EXACT color shades (not just "blue" - say "navy blue" or "sky blue")
+- FIT details (oversized? cropped? relaxed? fitted?)
+- CUT specifics (high-waisted? v-neck? A-line?)
+- STYLE descriptors (minimalist? streetwear? preppy?)
+- Any unique DETAILS that make this item special
+
+Focus on creating searchTerms that would find THIS EXACT style when shopping online.`
               }
             ]
           }]

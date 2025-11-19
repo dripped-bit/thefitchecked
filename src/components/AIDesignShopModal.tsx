@@ -94,23 +94,87 @@ const AIDesignShopModal: React.FC<AIDesignShopModalProps> = ({ isOpen, onClose }
           setClothingAnalysis(analysis);
           console.log('✨ Claude Vision analysis completed:', analysis);
 
-          // Step 2: Enhance search query with color/style from analysis
+          // Step 2: Build comprehensive search query with ALL visual details from analysis
           if (analysis.items.length > 0) {
             const primaryItem = analysis.items[0];
+            const queryParts: string[] = [];
             
-            // Add color if not already in prompt
-            if (primaryItem.color && !designPrompt.toLowerCase().includes(primaryItem.color.toLowerCase())) {
-              enhancedQuery = `${primaryItem.color} ${designPrompt}`;
-              console.log('🎨 Enhanced with color:', primaryItem.color);
+            // Start with the category
+            queryParts.push(primaryItem.category);
+            
+            // Add EXACT color (most important for matching)
+            if (primaryItem.color) {
+              queryParts.push(primaryItem.color);
+              console.log('🎨 Added color:', primaryItem.color);
             }
-
-            // Add material if available and not in prompt
-            if (primaryItem.material && !designPrompt.toLowerCase().includes(primaryItem.material.toLowerCase())) {
-              enhancedQuery = `${enhancedQuery} ${primaryItem.material}`;
-              console.log('✨ Enhanced with material:', primaryItem.material);
+            
+            // Add style descriptors (oversized, cropped, fitted, etc.)
+            if (primaryItem.style) {
+              queryParts.push(primaryItem.style);
+              console.log('👔 Added style:', primaryItem.style);
             }
-
-            console.log('🎯 Enhanced search query:', enhancedQuery);
+            
+            // Add fit details (slim fit, relaxed, etc.)
+            if (primaryItem.fit) {
+              queryParts.push(primaryItem.fit);
+              console.log('📏 Added fit:', primaryItem.fit);
+            }
+            
+            // Add cut details (v-neck, high-waisted, etc.)
+            if (primaryItem.cut) {
+              queryParts.push(primaryItem.cut);
+              console.log('✂️ Added cut:', primaryItem.cut);
+            }
+            
+            // Add material (denim, leather, cotton, etc.)
+            if (primaryItem.material) {
+              queryParts.push(primaryItem.material);
+              console.log('✨ Added material:', primaryItem.material);
+            }
+            
+            // Add pattern if present (striped, floral, etc.)
+            if (primaryItem.pattern && primaryItem.pattern !== 'solid') {
+              queryParts.push(primaryItem.pattern);
+              console.log('🎨 Added pattern:', primaryItem.pattern);
+            }
+            
+            // Add silhouette (boxy, fitted, flowy, etc.)
+            if (primaryItem.silhouette) {
+              queryParts.push(primaryItem.silhouette);
+              console.log('📐 Added silhouette:', primaryItem.silhouette);
+            }
+            
+            // Add vibe/aesthetic (minimalist, streetwear, etc.)
+            if (primaryItem.vibe) {
+              queryParts.push(primaryItem.vibe);
+              console.log('✨ Added vibe:', primaryItem.vibe);
+            }
+            
+            // Add length if relevant (cropped, midi, ankle-length, etc.)
+            if (primaryItem.length) {
+              queryParts.push(primaryItem.length);
+              console.log('📏 Added length:', primaryItem.length);
+            }
+            
+            // Add sleeve details if applicable
+            if (primaryItem.sleeves) {
+              queryParts.push(primaryItem.sleeves);
+              console.log('👕 Added sleeves:', primaryItem.sleeves);
+            }
+            
+            // Add neckline if specified
+            if (primaryItem.neckline) {
+              queryParts.push(primaryItem.neckline);
+              console.log('👔 Added neckline:', primaryItem.neckline);
+            }
+            
+            // Build the enhanced query
+            enhancedQuery = queryParts.join(' ');
+            
+            console.log('🎯 COMPREHENSIVE Enhanced Search Query:', enhancedQuery);
+            console.log('📊 Query parts:', queryParts);
+            console.log('🔍 Original prompt:', designPrompt);
+            console.log('✨ Enhancement added:', queryParts.length, 'details');
           }
         } catch (analysisError) {
           console.log('⚠️ Claude Vision analysis skipped, using original prompt:', analysisError);
