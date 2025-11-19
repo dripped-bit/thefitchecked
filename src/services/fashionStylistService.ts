@@ -7,6 +7,8 @@ import { getChatGPTResponse } from '../lib/openai';
 import { supabase } from './supabaseClient';
 import authService from './authService';
 import claudeClosetAnalyzer from './claudeClosetAnalyzer';
+import claudeVisionStylistService from './claudeVisionStylistService';
+import fashionWebSearchService from './fashionWebSearchService';
 
 export interface StylistMessage {
   role: 'user' | 'assistant' | 'system';
@@ -60,17 +62,54 @@ class FashionStylistService {
       // 1. Get user's closet context
       const closetContext = await this.getUserClosetContext();
       
-      // 2. Analyze images if provided (future: Claude Vision)
+      // 2. Analyze images if provided with Claude Vision
       let imageAnalysis = '';
       if (images && images.length > 0) {
-        imageAnalysis = `User provided ${images.length} image(s) for styling advice.`;
+        console.log(`📸 [STYLIST] Analyzing ${images.length} image(s) with Claude Vision...`);
+        try {
+          const visionAnalysis = await claudeVisionStylistService.analyzeMultipleImages(images);
+          imageAnalysis = `
+IMAGE ANALYSIS:
+Items: ${visionAnalysis.items.join(', ')}
+Colors: ${visionAnalysis.colors.join(', ')}
+Style: ${visionAnalysis.style}
+Occasion: ${visionAnalysis.occasion}
+Suggestions: ${visionAnalysis.suggestions.join('; ')}
+          `.trim();
+          console.log('✅ [STYLIST] Image analysis complete');
+        } catch (error) {
+          console.error('❌ [STYLIST] Vision analysis failed:', error);
+          imageAnalysis = `User provided ${images.length} image(s) for styling advice.`;
+        }
       }
       
-      // 3. Build comprehensive prompt
+      // 3. Search web for relevant fashion trends (if applicable)
+      let webResults = '';
+      if (fashionWebSearchService.shouldSearchWeb(question)) {
+        console.log('🌐 [STYLIST] Searching web for fashion trends...');
+        try {
+          const keywords = fashionWebSearchService.extractKeywords(question);
+          if (keywords) {
+            const searchResults = await fashionWebSearchService.searchFashionAdvice(keywords);
+            if (searchResults.length > 0) {
+              webResults = `
+CURRENT FASHION TRENDS:
+${searchResults.slice(0, 3).map(r => `• ${r.title}: ${r.snippet}`).join('\n')}
+              `.trim();
+              console.log('✅ [STYLIST] Web search complete');
+            }
+          }
+        } catch (error) {
+          console.error('❌ [STYLIST] Web search failed:', error);
+        }
+      }
+      
+      // 4. Build comprehensive prompt
       const prompt = this.buildStylistPrompt({
         question,
         closetContext,
         imageAnalysis,
+        webResults,
         history: this.conversationHistory.slice(-4) // Last 4 messages for context
       });
       
@@ -166,6 +205,7 @@ class FashionStylistService {
     question: string;
     closetContext: string;
     imageAnalysis: string;
+    webResults?: string;
     history: StylistMessage[];
   }): string {
     let prompt = '';
@@ -182,10 +222,14 @@ class FashionStylistService {
     prompt += `CURRENT QUESTION:\n${context.question}\n\n`;
     
     if (context.imageAnalysis) {
-      prompt += `IMAGE CONTEXT:\n${context.imageAnalysis}\n\n`;
+      prompt += `${context.imageAnalysis}\n\n`;
     }
     
     prompt += `USER'S CLOSET:\n${context.closetContext}\n\n`;
+    
+    if (context.webResults) {
+      prompt += `${context.webResults}\n\n`;
+    }
     
     prompt += `
 Provide helpful, personalized fashion advice. Be specific about:

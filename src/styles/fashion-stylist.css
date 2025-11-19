@@ -563,3 +563,199 @@
 .stylist-chat-messages::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
 }
+
+/* ============================================
+   MESSAGE IMAGES
+   ============================================ */
+
+.message-images {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.message-image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+/* ============================================
+   ATTACHED IMAGES PREVIEW
+   ============================================ */
+
+.attached-images-preview {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.attached-image-item {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.attached-image-item img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 107, 157, 0.3);
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ff3b30;
+  border: 2px solid white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.remove-image-btn:hover {
+  transform: scale(1.1);
+}
+
+.remove-image-btn:active {
+  transform: scale(0.9);
+}
+
+/* ============================================
+   CAMERA CAPTURE MODAL
+   ============================================ */
+
+.camera-capture-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.camera-capture-modal {
+  background: white;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 400px;
+  padding: 24px;
+  animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.camera-capture-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.camera-capture-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.camera-capture-header .close-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+}
+
+.camera-capture-header .close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.camera-capture-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.capture-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 107, 157, 0.05);
+  border: 2px solid rgba(255, 107, 157, 0.2);
+  border-radius: 16px;
+  color: #C44569;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.capture-option:hover:not(:disabled) {
+  background: rgba(255, 107, 157, 0.1);
+  border-color: #FF6B9D;
+  transform: translateX(-4px);
+}
+
+.capture-option:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.capture-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.capture-option.cancel {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #666;
+}
+
+.capturing-indicator {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+}
+
+.capturing-indicator .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #FF6B9D;
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  animation: spin 1s linear infinite;
+}

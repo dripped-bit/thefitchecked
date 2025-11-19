@@ -4,8 +4,9 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Camera, Loader, Sparkles } from 'lucide-react';
+import { X, Send, Camera, Loader, Sparkles, Trash2 } from 'lucide-react';
 import fashionStylistService, { StylistMessage } from '../services/fashionStylistService';
+import StylistCameraCapture from './StylistCameraCapture';
 import haptics from '../utils/haptics';
 import '../styles/fashion-stylist.css';
 
@@ -27,6 +28,8 @@ const FashionStylistChat: React.FC<FashionStylistChatProps> = ({ onClose }) => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>(SUGGESTED_PROMPTS.slice(0, 4));
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -41,21 +44,27 @@ const FashionStylistChat: React.FC<FashionStylistChatProps> = ({ onClose }) => {
   }, []);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if ((!inputValue.trim() && attachedImages.length === 0) || isLoading) return;
 
     const userMessage: StylistMessage = {
       role: 'user',
-      content: inputValue,
+      content: inputValue || '📸 [Photo attached]',
+      images: attachedImages.length > 0 ? [...attachedImages] : undefined,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
+    const imagesToSend = [...attachedImages];
+    setAttachedImages([]);
     setIsLoading(true);
     haptics.light();
 
     try {
-      const response = await fashionStylistService.askStylist(inputValue);
+      const response = await fashionStylistService.askStylist(
+        inputValue || 'How should I style this?',
+        imagesToSend
+      );
 
       const assistantMessage: StylistMessage = {
         role: 'assistant',
@@ -84,6 +93,16 @@ const FashionStylistChat: React.FC<FashionStylistChatProps> = ({ onClose }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleImageSelected = (imageUrl: string) => {
+    setAttachedImages(prev => [...prev, imageUrl]);
+    haptics.light();
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setAttachedImages(prev => prev.filter((_, i) => i !== index));
+    haptics.light();
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -150,6 +169,18 @@ const FashionStylistChat: React.FC<FashionStylistChatProps> = ({ onClose }) => {
                     <div className="message-avatar">✨</div>
                   )}
                   <div className="message-content">
+                    {message.images && message.images.length > 0 && (
+                      <div className="message-images">
+                        {message.images.map((img, imgIndex) => (
+                          <img 
+                            key={imgIndex} 
+                            src={img} 
+                            alt="Attached" 
+                            className="message-image"
+                          />
+                        ))}
+                      </div>
+                    )}
                     <p className="message-text">{message.content}</p>
                     <span className="message-time">
                       {message.timestamp.toLocaleTimeString([], { 
@@ -192,9 +223,31 @@ const FashionStylistChat: React.FC<FashionStylistChatProps> = ({ onClose }) => {
           </div>
         )}
 
+        {/* Image Attachments Preview */}
+        {attachedImages.length > 0 && (
+          <div className="attached-images-preview">
+            {attachedImages.map((img, index) => (
+              <div key={index} className="attached-image-item">
+                <img src={img} alt="Attached" />
+                <button
+                  onClick={() => handleRemoveImage(index)}
+                  className="remove-image-btn"
+                  aria-label="Remove image"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Input Area */}
         <div className="stylist-chat-input">
-          <button className="camera-button" aria-label="Add photo">
+          <button 
+            className="camera-button" 
+            aria-label="Add photo"
+            onClick={() => setShowCamera(true)}
+          >
             <Camera size={20} />
           </button>
           <input
@@ -209,7 +262,7 @@ const FashionStylistChat: React.FC<FashionStylistChatProps> = ({ onClose }) => {
           />
           <button
             onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
+            disabled={(!inputValue.trim() && attachedImages.length === 0) || isLoading}
             className="send-button"
             aria-label="Send message"
           >
@@ -217,6 +270,14 @@ const FashionStylistChat: React.FC<FashionStylistChatProps> = ({ onClose }) => {
           </button>
         </div>
       </div>
+
+      {/* Camera Capture Modal */}
+      {showCamera && (
+        <StylistCameraCapture
+          onImageSelected={handleImageSelected}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
     </div>
   );
 };
