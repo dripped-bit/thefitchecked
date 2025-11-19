@@ -503,7 +503,8 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
         image: productToSave.image || productToSave.thumbnail,
         url: productToSave.url,
         retailer: productToSave.source || 'Unknown',
-        ai_design_prompt: `Occasion: ${occasion?.occasion || 'Unknown'}`,
+        ai_generated: true,
+        design_prompt: `Occasion: ${occasion?.occasion || 'Unknown'}`,
         created_at: new Date().toISOString()
       };
 
@@ -513,7 +514,8 @@ const IntegratedShopping: React.FC<IntegratedShoppingProps> = ({
 
       if (error) {
         console.error('❌ [WISHLIST] Error:', error);
-        alert('Failed to add to wishlist');
+        console.error('❌ [WISHLIST] Failed item:', wishlistItem);
+        alert(`Failed to add to wishlist: ${error.message || 'Unknown error'}`);
         return;
       }
 
