@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom';
 import { IonButton, IonIcon, IonSpinner } from '@ionic/react';
 import { close } from 'ionicons/icons';
 import { Browser } from '@capacitor/browser';
+import productLinkHandler from '../../services/productLinkHandler';
+import haptics from '../../utils/haptics';
 
 interface Deal {
   title: string;
@@ -77,9 +79,35 @@ const DealsModal: React.FC<DealsModalProps> = ({
   console.log(`🎯 [DEALS-MODAL] Filtered to ${qualityExact.length} exact, ${qualitySimilar.length} similar (similar quality)`);
   console.log(`🎯 [DEALS-MODAL] Showing top 4 ${activeTab} deals:`, deals.map(d => `${d.title.substring(0, 30)} - ${d.price}`));
 
-  const openUrl = async (url: string) => {
-    if (url) {
-      await Browser.open({ url });
+  const openUrl = async (deal: Deal) => {
+    try {
+      console.log('🛍️ [DEALS-MODAL] Opening product link:', deal.title);
+      
+      // Use productLinkHandler service for smart link opening + tracking
+      await productLinkHandler.openProductLink(
+        deal.url,
+        deal.retailer,
+        {
+          title: deal.title,
+          price: deal.price,
+          priceValue: deal.priceValue,
+          retailer: deal.retailer,
+          url: deal.url,
+          image: deal.image,
+          originalItem: originalItem, // Pass original for comparison
+        }
+      );
+      
+      console.log('✅ [DEALS-MODAL] Product link opened successfully');
+      haptics.light();
+    } catch (error) {
+      console.error('❌ [DEALS-MODAL] Failed to open link:', error);
+      // Fallback to direct Browser.open
+      try {
+        await Browser.open({ url: deal.url });
+      } catch (fallbackError) {
+        console.error('❌ [DEALS-MODAL] Fallback also failed:', fallbackError);
+      }
     }
   };
 
@@ -289,7 +317,7 @@ const DealsModal: React.FC<DealsModalProps> = ({
                   {deal.reviews && ` (${deal.reviews})`}
                 </p>
                 <button
-                  onClick={() => openUrl(deal.url)}
+                  onClick={() => openUrl(deal)}
                   style={{
                     background: '#34C759',
                     color: 'white',

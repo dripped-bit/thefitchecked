@@ -15,8 +15,11 @@ import { supabase } from '../services/supabaseClient';
 import PriceComparisonModal from '../components/wishlist/PriceComparisonModal';
 import DealsModal from '../components/wishlist/DealsModal';
 import MoveToClosetModal from '../components/wishlist/MoveToClosetModal';
+import PurchaseDetectionModal from '../components/wishlist/PurchaseDetectionModal';
 import claudeComparisonService from '../services/claudeComparisonService';
 import serpApiPriceSearchService from '../services/serpApiPriceSearchService';
+import purchaseDetectionService from '../services/purchaseDetectionService';
+import productLinkHandler from '../services/productLinkHandler';
 
 interface WishlistItem {
   id: string;
@@ -87,8 +90,20 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const [toastMessage, setToastMessage] = useState('');
   const [comparingItem, setComparingItem] = useState(false);
 
+  // Purchase detection state
+  const [showPurchaseDetection, setShowPurchaseDetection] = useState(false);
+  const [purchaseDetectionData, setPurchaseDetectionData] = useState<any>(null);
+
   useEffect(() => {
     fetchWishlist();
+  }, []);
+
+  // Initialize product link handler on mount
+  useEffect(() => {
+    console.log('🔧 [WISHLIST] Initializing product link handler...');
+    // Set up browser closed callback
+    productLinkHandler.setOnBrowserClosed(handleBrowserClosed);
+    console.log('✅ [WISHLIST] Product link handler initialized');
   }, []);
 
   useEffect(() => {
@@ -456,6 +471,142 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       });
     } catch (error) {
       console.error('Send gifts error:', error);
+    }
+  };
+
+  // Handle browser closed event
+  const handleBrowserClosed = async (productInfo: any) => {
+    console.log('🛍️ [WISHLIST] Browser closed, analyzing purchase...');
+    console.log('📦 [WISHLIST] Product info:', productInfo);
+    
+    try {
+      // Run AI purchase analysis
+      const analysis = await purchaseDetectionService.analyzePurchaseIntent(
+        productInfo,
+        productInfo.originalItem
+      );
+      
+      console.log('💡 [WISHLIST] AI Analysis:', analysis);
+      
+      // Show purchase detection modal
+      setPurchaseDetectionData({
+        product: productInfo,
+        originalItem: productInfo.originalItem,
+        analysis
+      });
+      setShowPurchaseDetection(true);
+      
+    } catch (error) {
+      console.error('❌ [WISHLIST] Purchase detection failed:', error);
+    }
+  };
+
+  // Handle mark as purchased from deal
+  const handleMarkPurchasedFromDeal = async (product: any, originalItem: any) => {
+    try {
+      console.log('✅ [WISHLIST] Marking as purchased from deal...');
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        console.error('❌ [WISHLIST] No user authenticated');
+        return;
+      }
+
+      // If original item exists in wishlist, mark it as purchased
+      if (originalItem?.id) {
+        console.log('📝 [WISHLIST] Updating existing wishlist item:', originalItem.id);
+        await supabase
+          .from('wishlist_items')
+          .update({
+            is_purchased: true,
+            purchase_date: new Date().toISOString(),
+            notes: `Purchased from ${product.retailer} for ${product.price} (found via price comparison)`
+          })
+          .eq('id', originalItem.id);
+      } else {
+        // Add as new purchased item
+        console.log('📝 [WISHLIST] Adding as new purchased item');
+        await supabase
+          .from('wishlist_items')
+          .insert({
+            user_id: userData.user.id,
+            name: product.title,
+            price: product.price,
+            retailer: product.retailer,
+            url: product.url,
+            image: product.image,
+            is_purchased: true,
+            purchase_date: new Date().toISOString(),
+            notes: `Purchased from deal - saved via price comparison`
+          });
+      }
+
+      setToastMessage('✅ Added to Purchased!');
+      setShowToast(true);
+      haptics.success();
+      
+      console.log('🔄 [WISHLIST] Refreshing wishlist...');
+      // Refresh wishlist and switch to purchased tab
+      await fetchWishlist();
+      handleTabClick('purchased');
+      
+    } catch (error) {
+      console.error('❌ [WISHLIST] Failed to mark as purchased:', error);
+      setToastMessage('Failed to mark as purchased');
+      setShowToast(true);
+      haptics.error();
+    }
+  };
+
+  // Handle save to wishlist from deal
+  const handleSaveToWishlistFromDeal = async (product: any, originalItem: any) => {
+    try {
+      console.log('💾 [WISHLIST] Saving to wishlist from deal...');
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        console.error('❌ [WISHLIST] No user authenticated');
+        return;
+      }
+
+      // Check if already in wishlist
+      if (originalItem?.id) {
+        console.log('⚠️ [WISHLIST] Already in wishlist');
+        setToastMessage('Already in your wishlist!');
+        setShowToast(true);
+        return;
+      }
+
+      // Calculate savings
+      const originalPrice = parseFloat(originalItem?.price?.replace(/[^0-9.]/g, '') || '0');
+      const dealPrice = product.priceValue || parseFloat(product.price?.replace(/[^0-9.]/g, '') || '0');
+      const savings = originalPrice > 0 ? (originalPrice - dealPrice).toFixed(0) : '0';
+
+      // Add to wishlist
+      console.log('📝 [WISHLIST] Adding to wishlist');
+      await supabase
+        .from('wishlist_items')
+        .insert({
+          user_id: userData.user.id,
+          name: product.title,
+          price: product.price,
+          retailer: product.retailer,
+          url: product.url,
+          image: product.image,
+          notes: `Found via price comparison - potential $${savings} savings from original`,
+          is_purchased: false
+        });
+
+      setToastMessage('💾 Saved to wishlist!');
+      setShowToast(true);
+      haptics.success();
+      
+      console.log('🔄 [WISHLIST] Refreshing wishlist...');
+      await fetchWishlist();
+      
+    } catch (error) {
+      console.error('❌ [WISHLIST] Failed to save to wishlist:', error);
+      setToastMessage('Failed to save to wishlist');
+      setShowToast(true);
+      haptics.error();
     }
   };
 
@@ -1332,6 +1483,25 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                   <p style={{ fontSize: '14px', opacity: 0.8 }}>This may take a moment</p>
                 </IonText>
               </div>
+            )}
+
+            {/* Purchase Detection Modal */}
+            {showPurchaseDetection && purchaseDetectionData && (
+              <PurchaseDetectionModal
+                isOpen={showPurchaseDetection}
+                onClose={() => setShowPurchaseDetection(false)}
+                product={purchaseDetectionData.product}
+                originalItem={purchaseDetectionData.originalItem}
+                aiAnalysis={purchaseDetectionData.analysis}
+                onMarkPurchased={() => handleMarkPurchasedFromDeal(
+                  purchaseDetectionData.product,
+                  purchaseDetectionData.originalItem
+                )}
+                onSaveToWishlist={() => handleSaveToWishlistFromDeal(
+                  purchaseDetectionData.product,
+                  purchaseDetectionData.originalItem
+                )}
+              />
             )}
           </>
         )}
