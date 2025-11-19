@@ -303,6 +303,43 @@ const AllItemsView: React.FC<AllItemsViewProps> = ({ onBack, onEdit }) => {
         </div>
       </div>
 
+      {/* Floating Back Button - Left Side */}
+      <button
+        onClick={onBack}
+        aria-label="Go back to closet"
+        style={{
+          position: 'fixed',
+          left: '16px',
+          top: '40%',
+          transform: 'translateY(-50%)',
+          width: '48px',
+          height: '48px',
+          background: 'rgba(255, 255, 255, 0.5)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1.5px solid rgba(255, 255, 255, 0.8)',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 999,
+          boxShadow: '0 8px 32px rgba(255, 105, 180, 0.3), 0 2px 8px rgba(0, 0, 0, 0.1)',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseDown={(e) => {
+          e.currentTarget.style.transform = 'translateY(-50%) scale(0.95)';
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+        }}
+      >
+        <ChevronLeft size={28} color="#FF69B4" strokeWidth={2.5} />
+      </button>
+
       {/* Filter Bar */}
       <div style={{
         position: 'fixed',
