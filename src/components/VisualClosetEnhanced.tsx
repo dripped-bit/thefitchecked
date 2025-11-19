@@ -25,6 +25,7 @@ import { InteractiveCropTool, CropBox } from './InteractiveCropTool';
 import { PhotoTipsModal } from './PhotoTipsModal';
 import { LoadingScreen } from './LoadingScreen';
 import AllItemsView from './AllItemsView';
+import FavoritesView from './FavoritesView';
 import CloudFavoritesButton from './CloudFavoritesButton';
 import '../styles/VisualClosetAdapter.css';
 
@@ -114,7 +115,6 @@ const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreT
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [itemDetails, setItemDetails] = useState({
     name: '',
     brand: '',
@@ -144,6 +144,9 @@ const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreT
 
   // All Items view state
   const [showAllItemsView, setShowAllItemsView] = useState(false);
+  
+  // Favorites view state
+  const [showFavoritesView, setShowFavoritesView] = useState(false);
 
   // Saving state to prevent duplicate saves
   const [isSaving, setIsSaving] = useState(false);
@@ -180,13 +183,8 @@ const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreT
       result = searchItems(searchText);
     }
     
-    // Apply favorites filter
-    if (showFavoritesOnly) {
-      result = result.filter(item => item.favorite);
-    }
-    
     return result;
-  }, [searchText, items, searchItems, showFavoritesOnly]);
+  }, [searchText, items, searchItems]);
 
   // Category data with filtered items
   const categoryData = useMemo(() => {
@@ -965,47 +963,34 @@ const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreT
     );
   }
 
+  // If Favorites view is shown, render it instead
+  if (showFavoritesView) {
+    return (
+      <FavoritesView 
+        onBack={() => setShowFavoritesView(false)}
+        onEdit={(itemId) => {
+          const item = items.find(i => i.id === itemId);
+          if (item) {
+            setShowFavoritesView(false);
+            setEditingItem(item);
+            setItemDetails({
+              name: item.name,
+              brand: item.brand || '',
+              price: item.price?.toString() || '',
+              description: item.notes || '',
+              subcategory: item.subcategory || ''
+            });
+            setSelectedItemCategory(item.category);
+            setSelectedCategory(item.category);
+            setShowEditModal(true);
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="visual-closet-adapter">
-      {/* Favorites Mode Banner */}
-      {showFavoritesOnly && (
-        <div style={{
-          padding: '12px 16px',
-          background: 'linear-gradient(135deg, #FF69B4 0%, #FFB6D9 100%)',
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          boxShadow: '0 2px 8px rgba(255, 105, 180, 0.3)',
-          margin: '0 16px 16px 16px',
-          borderRadius: '12px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Heart size={20} fill="white" />
-            <span style={{ fontWeight: '600', fontSize: '16px' }}>
-              Showing Favorites Only ({favoritesCount} items)
-            </span>
-          </div>
-          <button
-            onClick={() => setShowFavoritesOnly(false)}
-            style={{
-              background: 'rgba(255, 255, 255, 0.3)',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '6px 12px',
-              color: 'white',
-              fontWeight: '600',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            Show All
-          </button>
-        </div>
-      )}
-      
       {/* All Items Button */}
       <div style={{
         padding: '16px',
@@ -1161,12 +1146,8 @@ const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreT
         paddingBottom: '120px'
       }}>
         <CloudFavoritesButton
-          isSelected={showFavoritesOnly}
-          onClick={() => {
-            setShowFavoritesOnly(!showFavoritesOnly);
-            // Scroll to top when favorites is toggled
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          isSelected={showFavoritesView}
+          onClick={() => setShowFavoritesView(true)}
           itemCount={favoritesCount}
         />
       </div>
