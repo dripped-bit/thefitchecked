@@ -66,6 +66,15 @@ export interface PackingListItem {
   created_at: string;
 }
 
+export interface TripDayClothes {
+  id: string;
+  trip_id: string;
+  date: string;
+  clothing_item_id: string;
+  added_manually: boolean;
+  created_at: string;
+}
+
 export interface TripInput {
   user_id: string;
   name: string;
@@ -114,10 +123,12 @@ export const tripKeys = {
   list: (userId: string) => [...tripKeys.lists(), userId] as const,
   details: () => [...tripKeys.all, 'detail'] as const,
   detail: (tripId: string) => [...tripKeys.details(), tripId] as const,
+  trip: (tripId: string) => [...tripKeys.details(), tripId] as const,
   activities: (tripId: string) => [...tripKeys.detail(tripId), 'activities'] as const,
   outfits: (activityId: string) => ['trip-outfits', activityId] as const,
   packingList: (tripId: string) => [...tripKeys.detail(tripId), 'packing'] as const,
   stats: (tripId: string) => [...tripKeys.detail(tripId), 'stats'] as const,
+  dayClothes: (tripId: string, date: string) => ['trip-day-clothes', tripId, date] as const,
 };
 
 // ============================================
@@ -670,6 +681,116 @@ export function useTripDaysArray(startDate: string, endDate: string): Date[] {
   return dates;
 }
 
+// ============================================
+// TRIP DAY CLOTHES HOOKS
+// ============================================
+
+/**
+ * Get manually added clothes for a specific trip day
+ */
+export function useManualDayClothes(tripId: string, date: string) {
+  return useQuery<TripDayClothes[]>({
+    queryKey: tripKeys.dayClothes(tripId, date),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('trip_day_clothes')
+        .select('*')
+        .eq('trip_id', tripId)
+        .eq('date', date)
+        .eq('added_manually', true);
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+/**
+ * Add clothes to a specific trip day
+ */
+export function useAddDayClothes() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({
+      trip_id,
+      date,
+      clothing_item_ids,
+    }: {
+      trip_id: string;
+      date: string;
+      clothing_item_ids: string[];
+    }) => {
+      console.log('👕 [ADD-CLOTHES] Saving', clothing_item_ids.length, 'items for', date);
+      
+      // Insert multiple items
+      const items = clothing_item_ids.map(clothing_item_id => ({
+        trip_id,
+        date,
+        clothing_item_id,
+        added_manually: true,
+      }));
+      
+      const { data, error } = await supabase
+        .from('trip_day_clothes')
+        .insert(items)
+        .select();
+      
+      if (error) {
+        console.error('❌ [ADD-CLOTHES] Failed:', error);
+        throw error;
+      }
+      
+      console.log('✅ [ADD-CLOTHES] Items saved successfully');
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.dayClothes(variables.trip_id, variables.date) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.trip(variables.trip_id) });
+    },
+  });
+}
+
+/**
+ * Delete a manually added clothing item from a trip day
+ */
+export function useDeleteDayClothes() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({
+      trip_id,
+      date,
+      clothing_item_id,
+    }: {
+      trip_id: string;
+      date: string;
+      clothing_item_id: string;
+    }) => {
+      console.log('🗑️ [CLOTHES-BOX] Removing manual item:', clothing_item_id);
+      
+      const { error } = await supabase
+        .from('trip_day_clothes')
+        .delete()
+        .eq('trip_id', trip_id)
+        .eq('date', date)
+        .eq('clothing_item_id', clothing_item_id)
+        .eq('added_manually', true);
+      
+      if (error) {
+        console.error('❌ [CLOTHES-BOX] Failed to remove:', error);
+        throw error;
+      }
+      
+      console.log('✅ [CLOTHES-BOX] Item removed successfully');
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: tripKeys.dayClothes(variables.trip_id, variables.date) });
+      queryClient.invalidateQueries({ queryKey: tripKeys.trip(variables.trip_id) });
+    },
+  });
+}
+
 export default {
   useTrips,
   useTrip,
@@ -691,4 +812,7 @@ export default {
   useDeletePackingItem,
   useTripDuration,
   useTripDaysArray,
+  useManualDayClothes,
+  useAddDayClothes,
+  useDeleteDayClothes,
 };

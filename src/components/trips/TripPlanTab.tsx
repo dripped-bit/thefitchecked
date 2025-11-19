@@ -3,6 +3,8 @@ import { Plus, Minus, Clock, MapPin, Star, Trash2, Sparkles, ChevronDown, Chevro
 import { useTripActivities, useTripDaysArray, useDeleteActivity, useTripOutfit } from '../../hooks/useTrips';
 import { PlanActivityModal } from './PlanActivityModal';
 import { TripOutfitPlanningModal } from './TripOutfitPlanningModal';
+import { AddClothesModal } from './AddClothesModal';
+import { DayClothesBox } from './DayClothesBox';
 import { ACTIVITY_ICONS, TIME_SLOT_LABELS, FORMALITY_LEVELS } from '../../constants/tripTypes';
 import type { Trip, TripActivity } from '../../hooks/useTrips';
 import type { TimeSlot } from '../../constants/tripTypes';
@@ -28,6 +30,10 @@ export function TripPlanTab({ trip }: TripPlanTabProps) {
   // NEW: Shaded slots state (format: "2024-11-13-morning")
   const [shadedSlots, setShadedSlots] = useState<Set<string>>(new Set());
 
+  // NEW: Add clothes modal state
+  const [showAddClothesModal, setShowAddClothesModal] = useState(false);
+  const [addClothesDate, setAddClothesDate] = useState<string | null>(null);
+
   const handleAddActivity = (date: string, timeSlot: TimeSlot) => {
     setSelectedDate(date);
     setSelectedTimeSlot(timeSlot);
@@ -48,6 +54,12 @@ export function TripPlanTab({ trip }: TripPlanTabProps) {
   const handlePlanOutfit = (activity: TripActivity) => {
     setSelectedActivity(activity);
     setShowOutfitModal(true);
+  };
+
+  const handleAddClothes = (dateStr: string) => {
+    console.log('👕 [ADD-CLOTHES] Opening modal for date:', dateStr);
+    setAddClothesDate(dateStr);
+    setShowAddClothesModal(true);
   };
 
   // NEW: Toggle day expansion
@@ -219,6 +231,20 @@ export function TripPlanTab({ trip }: TripPlanTabProps) {
                       onDelete={handleDeleteActivity}
                       onPlanOutfit={handlePlanOutfit}
                     />
+
+                    {/* Add Clothes Button */}
+                    <div className="p-4 border-t border-gray-200">
+                      <button
+                        onClick={() => handleAddClothes(dateStr)}
+                        className="w-full px-4 py-3 border-2 border-dashed border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition-colors flex items-center justify-center gap-2 font-medium"
+                      >
+                        <Plus className="w-5 h-5" />
+                        <span>👕 Add Clothes for This Day</span>
+                      </button>
+                    </div>
+
+                    {/* Day Clothes Box */}
+                    <DayClothesBox tripId={trip.id} date={dateStr} />
                   </div>
                 </>
               ) : (
@@ -280,6 +306,20 @@ export function TripPlanTab({ trip }: TripPlanTabProps) {
           }}
           activity={selectedActivity}
           trip={trip}
+        />
+      )}
+
+      {/* Add Clothes Modal */}
+      {addClothesDate && (
+        <AddClothesModal
+          isOpen={showAddClothesModal}
+          onClose={() => {
+            setShowAddClothesModal(false);
+            setAddClothesDate(null);
+          }}
+          tripId={trip.id}
+          date={addClothesDate}
+          existingItemIds={[]} // TODO: Calculate existing items
         />
       )}
     </div>
