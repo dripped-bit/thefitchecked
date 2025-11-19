@@ -332,8 +332,29 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent style={{ '--background': '#f2f2f7' }}>
+      <IonContent 
+        style={{ '--background': '#f2f2f7' }}
+        className="wishlist-content"
+      >
         {console.log('🎨 [WISHLIST] Rendering - loading:', loading, 'error:', error, 'items:', allWishlistItems.length)}
+        
+        {/* TEST: Blue box inside IonContent */}
+        <div style={{
+          position: 'fixed',
+          top: '200px',
+          left: '20px',
+          right: '20px',
+          zIndex: 99999,
+          background: 'blue',
+          padding: '40px',
+          color: 'white',
+          fontSize: '20px',
+          fontWeight: 'bold',
+          border: '5px solid yellow'
+        }}>
+          💙 TEST: IonContent renders! Loading: {loading ? 'YES' : 'NO'}
+        </div>
+        
         {loading ? (
           <div style={{
             display: 'flex',
