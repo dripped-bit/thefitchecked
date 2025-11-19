@@ -228,7 +228,8 @@
   margin: 0;
 }
 
-.close-button {
+.close-button,
+.history-button {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   border-radius: 50%;
@@ -242,12 +243,20 @@
   transition: all 0.2s ease;
 }
 
-.close-button:hover {
+.close-button:hover,
+.history-button:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
-.close-button:active {
+.close-button:active,
+.history-button:active {
   transform: scale(0.9);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ============================================
@@ -393,10 +402,63 @@
   border-bottom-left-radius: 4px;
 }
 
+.message-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  gap: 8px;
+}
+
 .message-time {
   font-size: 11px;
   color: #999;
   padding: 0 4px;
+}
+
+.message-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.assistant-message:hover .message-actions {
+  opacity: 1;
+}
+
+.action-button {
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.action-button:hover {
+  background: rgba(255, 107, 157, 0.1);
+  color: #FF6B9D;
+  transform: scale(1.1);
+}
+
+.action-button:active {
+  transform: scale(0.9);
+}
+
+.action-button.saved {
+  background: rgba(255, 107, 157, 0.1);
+  color: #FF6B9D;
+}
+
+.action-button.saved svg {
+  fill: currentColor;
 }
 
 /* Typing Indicator */
@@ -738,7 +800,7 @@
   cursor: not-allowed;
 }
 
-.capture-option.cancel {
+.capture-option.secondary {
   background: rgba(0, 0, 0, 0.03);
   border-color: rgba(0, 0, 0, 0.1);
   color: #666;

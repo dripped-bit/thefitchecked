@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Camera as CameraIcon, Image as ImageIcon, Shirt, X } from 'lucide-react';
+import { Camera as CameraIcon, Image as ImageIcon, X } from 'lucide-react';
 import { Camera } from '@capacitor/camera';
 import { CameraResultType, CameraSource } from '@capacitor/camera';
 import haptics from '../utils/haptics';
@@ -103,7 +103,7 @@ const StylistCameraCapture: React.FC<StylistCameraCaptureProps> = ({ onImageSele
 
           <button
             onClick={handleClose}
-            className="capture-option cancel"
+            className="capture-option secondary"
           >
             <X size={32} />
             <span>Cancel</span>
