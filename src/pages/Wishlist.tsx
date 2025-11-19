@@ -269,6 +269,8 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   };
 
   const handleAIComparison = async (item: WishlistItem) => {
+    const startTime = Date.now();
+    
     try {
       setComparingItem(true);
       setToastMessage('🔄 Analyzing prices with AI...');
@@ -277,15 +279,24 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       console.log('🤖 [WISHLIST] Starting AI comparison for:', item.name);
 
       // Step 1: Use Claude to generate optimized search queries
+      console.log('📝 [WISHLIST] Calling Claude service...');
       const queries = await claudeComparisonService.generateSearchQueries(item);
+      console.log('✅ [WISHLIST] Claude returned queries:', queries);
 
       // Step 2: Search SerpAPI for deals
+      console.log('🔍 [WISHLIST] Calling SerpAPI service...');
       const results = await serpApiPriceSearchService.searchDeals(queries);
 
       console.log('✅ [WISHLIST] Got comparison results:', {
         exactMatches: results.exactMatches.length,
         similarItems: results.similarItems.length
       });
+
+      // Ensure loading spinner shows for at least 1 second
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 1000) {
+        await new Promise(resolve => setTimeout(resolve, 1000 - elapsed));
+      }
 
       // Step 3: Show results in modal
       setSelectedItemForComparison({
@@ -298,12 +309,23 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       if (results.exactMatches.length > 0 || results.similarItems.length > 0) {
         setToastMessage('✅ Found deals!');
       } else {
-        setToastMessage('⚠️ No deals found');
+        setToastMessage('⚠️ No deals found - APIs may need configuration');
       }
       setShowToast(true);
     } catch (error: any) {
       console.error('❌ [WISHLIST] AI comparison failed:', error);
-      setToastMessage('❌ Comparison failed - check connection');
+      console.error('❌ [WISHLIST] Error details:', {
+        message: error?.message,
+        stack: error?.stack
+      });
+      
+      // Ensure loading spinner shows for at least 1 second
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 1000) {
+        await new Promise(resolve => setTimeout(resolve, 1000 - elapsed));
+      }
+      
+      setToastMessage('❌ Comparison failed - check API keys');
       setShowToast(true);
       setComparingItem(false);
     }

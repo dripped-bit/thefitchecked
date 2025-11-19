@@ -71,13 +71,20 @@ class SerpApiPriceSearchService {
       const url = `https://serpapi.com/search.json?engine=google_shopping&q=${encodeURIComponent(query)}&api_key=${this.apiKey}&num=10`;
       
       console.log(`🌐 [SERPAPI-PRICE] Fetching: ${query}`);
+      console.log(`🔑 [SERPAPI-PRICE] API Key present: ${!!this.apiKey}, length: ${this.apiKey?.length || 0}`);
+      
       const response = await fetch(url);
       
+      console.log(`📡 [SERPAPI-PRICE] Response status: ${response.status}`);
+      
       if (!response.ok) {
-        throw new Error(`SerpAPI returned ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ [SERPAPI-PRICE] Error response:`, errorText);
+        throw new Error(`SerpAPI returned ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
+      console.log(`📦 [SERPAPI-PRICE] Got data:`, JSON.stringify(data).substring(0, 200));
       
       if (!data.shopping_results || data.shopping_results.length === 0) {
         console.log(`⚠️ [SERPAPI-PRICE] No results for: ${query}`);
@@ -100,8 +107,13 @@ class SerpApiPriceSearchService {
 
       console.log(`✅ [SERPAPI-PRICE] Processed ${results.length} valid results for: ${query}`);
       return results;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ [SERPAPI-PRICE] Search failed for "${query}":`, error);
+      console.error(`❌ [SERPAPI-PRICE] Error details:`, {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name
+      });
       return [];
     }
   }
