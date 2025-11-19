@@ -70,7 +70,8 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
 
   // Tab bar state
-  const [activeMainTab, setActiveMainTab] = useState<'compare' | 'purchased' | 'share' | 'gifts'>('compare');
+  const [activeMainTab, setActiveMainTab] = useState<'compare' | 'purchased' | 'share' | 'gifts' | null>(null);
+  const [showGiftsDropdown, setShowGiftsDropdown] = useState(false);
 
   // Selection state
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -93,6 +94,18 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   useEffect(() => {
     filterItems();
   }, [selectedCategory, allWishlistItems, showGiftsMode, showPurchasedMode]);
+
+  // Auto-trigger AI comparison when 1 item selected AND Compare tab active
+  useEffect(() => {
+    if (selectedItems.size === 1 && activeMainTab === 'compare' && !comparingItem) {
+      const itemId = Array.from(selectedItems)[0];
+      const item = filteredItems.find(i => i.id === itemId);
+      if (item) {
+        console.log('🎯 [AUTO-COMPARE] Triggering AI comparison for:', item.name);
+        handleAIComparison(item);
+      }
+    }
+  }, [selectedItems, activeMainTab]);
 
   const fetchWishlist = async () => {
     try {
@@ -349,13 +362,20 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
 
   const handleShareList = async () => {
     try {
+      // Share selected items, or entire wishlist if none selected
       const itemsToShare = selectedItems.size > 0
-        ? filteredItems.filter(i => selectedItems.has(i.id))
-        : filteredItems;
+        ? allWishlistItems.filter(i => selectedItems.has(i.id))
+        : allWishlistItems; // Whole wishlist if none selected
 
-      const shareText = itemsToShare
-        .map(item => `${item.name} - ${item.price}\n${item.url}`)
-        .join('\n\n');
+      if (itemsToShare.length === 0) {
+        setToastMessage('No items to share');
+        setShowToast(true);
+        return;
+      }
+
+      const shareText = `My Wishlist (${itemsToShare.length} items)\n\n${itemsToShare.map((item, i) =>
+        `${i + 1}. ${item.name}\n   ${item.price} • ${item.retailer}\n   ${item.url}`
+      ).join('\n\n')}`;
 
       await Share.share({
         title: 'My Wishlist',
@@ -364,6 +384,78 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       });
     } catch (error) {
       console.error('Share error:', error);
+    }
+  };
+
+  // Exclusive tab click handler - only one button active at a time
+  const handleTabClick = (tab: 'compare' | 'purchased' | 'share' | 'gifts') => {
+    // Toggle: if clicking same tab, deactivate
+    if (activeMainTab === tab) {
+      setActiveMainTab(null);
+      // Reset mode states
+      if (tab === 'purchased') setShowPurchasedMode(false);
+      if (tab === 'gifts') setShowGiftsMode(false);
+      return;
+    }
+    
+    // Activate new tab, deactivate all others
+    setActiveMainTab(tab);
+    
+    // Update mode states
+    setShowPurchasedMode(tab === 'purchased');
+    setShowGiftsMode(tab === 'gifts');
+    
+    // Reset category filter when switching modes
+    if (tab === 'gifts' || tab === 'purchased') {
+      setSelectedCategory('All Items');
+    }
+    
+    // Execute tab-specific actions
+    if (tab === 'compare') {
+      if (selectedItems.size === 0) {
+        setToastMessage('Select items by clicking on them');
+        setShowToast(true);
+      } else if (selectedItems.size === 1) {
+        const itemId = Array.from(selectedItems)[0];
+        const item = filteredItems.find(i => i.id === itemId);
+        if (item) {
+          handleAIComparison(item);
+        }
+      } else {
+        setToastMessage(`Select one item to compare`);
+        setShowToast(true);
+      }
+    } else if (tab === 'share') {
+      handleShareList();
+    }
+  };
+
+  const handleSendGifts = async () => {
+    try {
+      const giftItems = allWishlistItems.filter(i => i.is_birthday_item);
+      
+      // Send selected gifts, or all gifts if none selected
+      const itemsToSend = selectedItems.size > 0
+        ? giftItems.filter(i => selectedItems.has(i.id))
+        : giftItems; // All gifts if none selected
+      
+      if (itemsToSend.length === 0) {
+        setToastMessage('No gift items to send');
+        setShowToast(true);
+        return;
+      }
+      
+      const shareText = `🎁 My Gift Wishlist\n\n${itemsToSend.map((item, i) => 
+        `${i + 1}. ${item.name}${item.brand ? ` by ${item.brand}` : ''}\n   ${item.price}\n   ${item.url}`
+      ).join('\n\n')}`;
+      
+      await Share.share({
+        title: 'My Gift Wishlist',
+        text: shareText,
+        dialogTitle: 'Send Gift Wishlist'
+      });
+    } catch (error) {
+      console.error('Send gifts error:', error);
     }
   };
 
@@ -726,27 +818,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
               paddingBottom: '8px',
             }}>
               <button
-                onClick={() => {
-                  setActiveMainTab('compare');
-                  if (selectedItems.size === 0) {
-                    setToastMessage('Select items by clicking on them');
-                    setShowToast(true);
-                  } else if (selectedItems.size === 1) {
-                    const itemId = Array.from(selectedItems)[0];
-                    const item = filteredItems.find(i => i.id === itemId);
-                    if (item) {
-                      handleAIComparison(item);
-                    }
-                  } else {
-                    setToastMessage(`Comparing ${selectedItems.size} items...`);
-                    setShowToast(true);
-                    const itemId = Array.from(selectedItems)[0];
-                    const item = filteredItems.find(i => i.id === itemId);
-                    if (item) {
-                      handleAIComparison(item);
-                    }
-                  }
-                }}
+                onClick={() => handleTabClick('compare')}
                 style={{
                   flex: 1,
                   padding: '10px',
@@ -762,12 +834,12 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                 Compare
               </button>
               <button
-                onClick={handlePurchasedMode}
+                onClick={() => handleTabClick('purchased')}
                 style={{
                   flex: 1,
                   padding: '10px',
-                  background: showPurchasedMode ? '#007AFF' : '#f2f2f7',
-                  color: showPurchasedMode ? 'white' : '#000',
+                  background: activeMainTab === 'purchased' ? '#007AFF' : '#f2f2f7',
+                  color: activeMainTab === 'purchased' ? 'white' : '#000',
                   border: 'none',
                   borderRadius: '10px',
                   fontWeight: '600',
@@ -778,10 +850,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                 Purchased
               </button>
               <button
-                onClick={() => {
-                  setActiveMainTab('share');
-                  handleShareList();
-                }}
+                onClick={() => handleTabClick('share')}
                 style={{
                   flex: 1,
                   padding: '10px',
@@ -796,22 +865,83 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
               >
                 Share
               </button>
-              <button
-                onClick={handleGiftsMode}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  background: showGiftsMode ? '#007AFF' : '#f2f2f7',
-                  color: showGiftsMode ? 'white' : '#000',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontWeight: '600',
-                  fontSize: '15px',
-                  cursor: 'pointer',
-                }}
-              >
-                Gifts
-              </button>
+              
+              {/* Gifts Dropdown */}
+              <div style={{ position: 'relative', flex: 1 }}>
+                <button
+                  onClick={() => setShowGiftsDropdown(!showGiftsDropdown)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    background: activeMainTab === 'gifts' ? '#007AFF' : '#f2f2f7',
+                    color: activeMainTab === 'gifts' ? 'white' : '#000',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontWeight: '600',
+                    fontSize: '15px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <IonIcon icon={giftOutline} style={{ fontSize: '18px' }} />
+                  <span>Gifts</span>
+                  <span style={{ fontSize: '10px' }}>▼</span>
+                </button>
+                
+                {showGiftsDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    marginTop: '4px',
+                    background: 'white',
+                    borderRadius: '10px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 1000,
+                    overflow: 'hidden'
+                  }}>
+                    <button
+                      onClick={() => {
+                        setShowGiftsDropdown(false);
+                        handleTabClick('gifts');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        background: 'white',
+                        border: 'none',
+                        borderBottom: '1px solid #f2f2f7',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '15px'
+                      }}
+                    >
+                      👁️ View Gifts
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowGiftsDropdown(false);
+                        handleSendGifts();
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        background: 'white',
+                        border: 'none',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '15px'
+                      }}
+                    >
+                      📤 Send Gifts
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Apple Pull-Down Button for Categories */}
