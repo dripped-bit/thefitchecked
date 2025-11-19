@@ -374,7 +374,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       }
 
       const shareText = `My Wishlist (${itemsToShare.length} items)\n\n${itemsToShare.map((item, i) =>
-        `${i + 1}. ${item.name}\n   ${item.price} • ${item.retailer}\n   ${item.url}`
+        `${i + 1}. ${item.name}\n${item.price} • ${item.retailer}\n🔗 ${item.url}`
       ).join('\n\n')}`;
 
       await Share.share({
@@ -446,7 +446,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       }
       
       const shareText = `🎁 My Gift Wishlist\n\n${itemsToSend.map((item, i) => 
-        `${i + 1}. ${item.name}${item.brand ? ` by ${item.brand}` : ''}\n   ${item.price}\n   ${item.url}`
+        `${i + 1}. ${item.name}${item.brand ? ` by ${item.brand}` : ''}\n${item.price}\n🔗 ${item.url}`
       ).join('\n\n')}`;
       
       await Share.share({
