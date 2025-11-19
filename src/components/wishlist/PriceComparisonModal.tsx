@@ -38,9 +38,19 @@ const PriceComparisonModal: React.FC<PriceComparisonModalProps> = ({
   const hasAIResults = item?.aiResults;
   const originalItem = hasAIResults ? item.original : item;
 
+  console.log('🔍 [PRICE-MODAL] Render - isOpen:', isOpen, 'hasAIResults:', hasAIResults);
+  console.log('📊 [PRICE-MODAL] Item data:', item);
+
   useEffect(() => {
+    console.log('🔄 [PRICE-MODAL] useEffect - isOpen:', isOpen, 'hasAIResults:', hasAIResults);
     if (isOpen && item && !hasAIResults) {
+      console.log('📞 [PRICE-MODAL] Loading legacy price comparison...');
       loadPriceComparison();
+    } else if (isOpen && hasAIResults) {
+      console.log('✅ [PRICE-MODAL] AI results available:', {
+        exactMatches: item.aiResults.exactMatches.length,
+        similarItems: item.aiResults.similarItems.length
+      });
     }
   }, [isOpen, item]);
 

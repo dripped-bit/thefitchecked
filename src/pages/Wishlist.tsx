@@ -295,23 +295,35 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       // Ensure loading spinner shows for at least 1 second
       const elapsed = Date.now() - startTime;
       if (elapsed < 1000) {
+        console.log(`⏱️ [WISHLIST] Adding ${1000 - elapsed}ms delay for spinner`);
         await new Promise(resolve => setTimeout(resolve, 1000 - elapsed));
       }
 
+      console.log('🎯 [WISHLIST] Setting modal data...');
+      
       // Step 3: Show results in modal
-      setSelectedItemForComparison({
+      const modalData = {
         original: item,
         aiResults: results
-      });
+      };
+      
+      console.log('📦 [WISHLIST] Modal data:', modalData);
+      setSelectedItemForComparison(modalData);
+      
+      console.log('🚪 [WISHLIST] Opening modal...');
       setShowPriceComparison(true);
+      
+      console.log('💤 [WISHLIST] Hiding spinner...');
       setComparingItem(false);
       
       if (results.exactMatches.length > 0 || results.similarItems.length > 0) {
-        setToastMessage('✅ Found deals!');
+        setToastMessage(`✅ Found ${results.exactMatches.length + results.similarItems.length} deals!`);
       } else {
         setToastMessage('⚠️ No deals found - APIs may need configuration');
       }
       setShowToast(true);
+      
+      console.log('✅ [WISHLIST] Comparison complete!');
     } catch (error: any) {
       console.error('❌ [WISHLIST] AI comparison failed:', error);
       console.error('❌ [WISHLIST] Error details:', {
