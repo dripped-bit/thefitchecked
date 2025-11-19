@@ -6,6 +6,7 @@
 import { getChatGPTResponse } from '../lib/openai';
 import { supabase } from './supabaseClient';
 import authService from './authService';
+import claudeClosetAnalyzer from './claudeClosetAnalyzer';
 
 export interface StylistMessage {
   role: 'user' | 'assistant' | 'system';
@@ -115,54 +116,46 @@ class FashionStylistService {
   }
   
   /**
-   * Get user's closet items for context
+   * Get user's closet items for context using Claude AI analysis
    */
   private async getUserClosetContext(): Promise<string> {
     try {
-      const user = await authService.getCurrentUser();
-      if (!user) return 'No closet data available.';
+      console.log('🔍 [STYLIST] Getting closet context with Claude analysis...');
       
-      const { data: items } = await supabase
-        .from('wardrobe_items')
-        .select('name, category, color, brand, times_worn, subcategory')
-        .eq('user_id', user.id)
-        .order('times_worn', { ascending: false })
-        .limit(30);
+      // Use Claude to deeply analyze closet
+      const analysis = await claudeClosetAnalyzer.analyzeCloset();
       
-      if (!items || items.length === 0) {
-        return 'User has an empty closet. Suggest building a versatile wardrobe.';
+      if (analysis.totalItems === 0) {
+        return `User has an empty closet (${analysis.gaps.length} essential items recommended).\n\nSuggested starter pieces:\n${analysis.gaps.map(g => `- ${g}`).join('\n')}`;
       }
       
-      // Summarize by category
-      const byCategory: Record<string, any[]> = {};
-      items.forEach(item => {
-        const cat = item.category || 'other';
-        if (!byCategory[cat]) byCategory[cat] = [];
-        byCategory[cat].push(item);
-      });
+      console.log(`✅ [STYLIST] Got rich analysis: ${analysis.totalItems} items analyzed`);
       
-      let summary = `User's Closet (${items.length} items):\n\n`;
-      
-      for (const [category, categoryItems] of Object.entries(byCategory)) {
-        summary += `${category.toUpperCase()} (${categoryItems.length}):\n`;
-        categoryItems.slice(0, 5).forEach(item => {
-          summary += `  - ${item.name}`;
-          if (item.color) summary += ` (${item.color})`;
-          if (item.brand) summary += ` - ${item.brand}`;
-          if (item.times_worn > 0) summary += ` [worn ${item.times_worn}x]`;
-          summary += '\n';
-        });
-        if (categoryItems.length > 5) {
-          summary += `  ... and ${categoryItems.length - 5} more\n`;
-        }
-        summary += '\n';
-      }
-      
-      return summary.trim();
+      // Return Claude's comprehensive analysis
+      return analysis.summary;
       
     } catch (error) {
-      console.error('❌ [STYLIST] Error fetching closet:', error);
-      return 'Unable to access closet data.';
+      console.error('❌ [STYLIST] Error analyzing closet:', error);
+      
+      // Fallback to simple query if Claude fails
+      try {
+        const user = await authService.getCurrentUser();
+        if (!user) return 'No closet data available.';
+        
+        const { data: items } = await supabase
+          .from('wardrobe_items')
+          .select('name, category, color')
+          .eq('user_id', user.id)
+          .limit(20);
+        
+        if (!items || items.length === 0) {
+          return 'User has an empty closet. Suggest building a versatile wardrobe.';
+        }
+        
+        return `User has ${items.length} items: ${items.map(i => i.name).join(', ')}`;
+      } catch (fallbackError) {
+        return 'Unable to access closet data.';
+      }
     }
   }
   

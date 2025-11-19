@@ -4,20 +4,19 @@
  */
 
 /* ============================================
-   FLOATING BUTTON
+   COLLAPSIBLE FLOATING BUTTON - CENTER RIGHT
    ============================================ */
 
 .floating-stylist-button {
   position: fixed;
-  bottom: 100px;
+  top: 50%;
   right: 20px;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 20px;
+  justify-content: center;
   background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%);
   border: none;
-  border-radius: 50px;
   color: white;
   font-size: 15px;
   font-weight: 600;
@@ -25,16 +24,41 @@
   box-shadow: 0 8px 24px rgba(255, 107, 157, 0.4);
   z-index: 9999;
   animation: breathing 1.5s ease-in-out infinite;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.floating-stylist-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 12px 32px rgba(255, 107, 157, 0.6);
+/* Collapsed State (Default - Icon Only) */
+.floating-stylist-button.collapsed {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: 50%;
 }
 
-.floating-stylist-button:active {
-  transform: scale(0.95);
+.floating-stylist-button.collapsed .button-text {
+  width: 0;
+  opacity: 0;
+  margin-left: 0;
+  overflow: hidden;
+}
+
+.floating-stylist-button.collapsed .button-icon {
+  margin: 0;
+}
+
+/* Expanded State (Icon + Text) */
+.floating-stylist-button.expanded {
+  width: auto;
+  min-width: 160px;
+  padding: 14px 20px;
+  border-radius: 50px;
+  gap: 8px;
+}
+
+.floating-stylist-button.expanded .button-text {
+  width: auto;
+  opacity: 1;
+  white-space: nowrap;
 }
 
 .floating-stylist-button .button-icon {
@@ -42,17 +66,26 @@
 }
 
 .floating-stylist-button .button-text {
-  white-space: nowrap;
+  transition: width 0.3s ease, opacity 0.3s ease;
 }
 
-/* Breathing animation */
+/* Hover Effect */
+.floating-stylist-button:hover {
+  transform: translateY(-50%) scale(1.05);
+  box-shadow: 0 12px 32px rgba(255, 107, 157, 0.6);
+}
+
+/* Active (Click) Effect */
+.floating-stylist-button:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* Breathing animation - adjusted for center position */
 @keyframes breathing {
   0%, 100% {
-    transform: scale(1);
     box-shadow: 0 8px 24px rgba(255, 107, 157, 0.4);
   }
   50% {
-    transform: scale(1.05);
     box-shadow: 0 12px 32px rgba(255, 107, 157, 0.6);
   }
 }
@@ -60,10 +93,26 @@
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .floating-stylist-button {
-    bottom: 90px;
-    right: 16px;
-    padding: 12px 18px;
+    top: 50%;
+    right: 12px;
+  }
+  
+  .floating-stylist-button.collapsed {
+    width: 52px;
+    height: 52px;
+  }
+  
+  .floating-stylist-button.expanded {
+    min-width: 140px;
+    padding: 12px 16px;
     font-size: 14px;
+  }
+}
+
+/* Adjust for shorter screens to avoid tab bar conflict */
+@media (max-height: 600px) {
+  .floating-stylist-button {
+    top: 40%;
   }
 }
 
