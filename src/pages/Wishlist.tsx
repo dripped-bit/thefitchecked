@@ -303,6 +303,24 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   return (
     <IonPage style={{ background: '#f2f2f7' }}>
       {console.log('📄 [WISHLIST] IonPage rendering')}
+      
+      {/* TEST: Render outside header to see if page is visible */}
+      <div style={{ 
+        position: 'absolute', 
+        top: '100px', 
+        left: '20px', 
+        right: '20px',
+        zIndex: 9999,
+        background: 'red', 
+        padding: '40px',
+        color: 'white',
+        fontSize: '24px',
+        fontWeight: 'bold'
+      }}>
+        🚨 TEST: Can you see this red box?
+        <br/>Items: {allWishlistItems.length}
+      </div>
+      
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
