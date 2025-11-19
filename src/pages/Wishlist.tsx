@@ -69,13 +69,14 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
 
   // Tab bar state
-  const [activeMainTab, setActiveMainTab] = useState<'compare' | 'buy' | 'share' | 'gifts'>('compare');
+  const [activeMainTab, setActiveMainTab] = useState<'compare' | 'purchased' | 'share' | 'gifts'>('compare');
 
   // Selection state
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   // Feature states
   const [showGiftsMode, setShowGiftsMode] = useState(false);
+  const [showPurchasedMode, setShowPurchasedMode] = useState(false);
   const [showPriceComparison, setShowPriceComparison] = useState(false);
   const [selectedItemForComparison, setSelectedItemForComparison] = useState<any>(null);
   const [showMoveToCloset, setShowMoveToCloset] = useState(false);
@@ -90,7 +91,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
 
   useEffect(() => {
     filterItems();
-  }, [selectedCategory, allWishlistItems, showGiftsMode]);
+  }, [selectedCategory, allWishlistItems, showGiftsMode, showPurchasedMode]);
 
   const fetchWishlist = async () => {
     try {
@@ -163,14 +164,27 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     }
   };
 
-  // Filter items based on category and gifts mode
+  // Filter items based on category, gifts mode, and purchased mode
   const filterItems = () => {
     let filtered = [...allWishlistItems];
 
+    // Filter by mode
     if (showGiftsMode) {
       filtered = filtered.filter(item => item.is_birthday_item);
+    } else if (showPurchasedMode) {
+      filtered = filtered.filter(item => item.is_purchased);
+      // Sort by purchase date (most recent first)
+      filtered.sort((a, b) => {
+        const dateA = new Date(a.purchase_date || 0).getTime();
+        const dateB = new Date(b.purchase_date || 0).getTime();
+        return dateB - dateA;
+      });
+    } else {
+      // Default: Show only non-purchased items
+      filtered = filtered.filter(item => !item.is_purchased);
     }
 
+    // Apply category filter
     if (selectedCategory !== 'All Items') {
       filtered = filtered.filter(item => item.category === selectedCategory);
     }
@@ -184,6 +198,33 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       const price = parseFloat(item.price.replace(/[^0-9.]/g, ''));
       return sum + (isNaN(price) ? 0 : price);
     }, 0);
+  };
+
+  // Calculate purchased total
+  const calculatePurchasedTotal = () => {
+    const purchasedItems = allWishlistItems.filter(item => item.is_purchased);
+    return purchasedItems.reduce((sum, item) => {
+      const price = parseFloat(item.price.replace(/[^0-9.]/g, ''));
+      return sum + (isNaN(price) ? 0 : price);
+    }, 0);
+  };
+
+  // Format purchase date
+  const formatPurchaseDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
   };
 
   // Toggle item selection
@@ -291,8 +332,48 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const handleGiftsMode = () => {
     setActiveMainTab('gifts');
     setShowGiftsMode(!showGiftsMode);
+    setShowPurchasedMode(false);
     if (!showGiftsMode) {
       setSelectedCategory('All Items');
+    }
+  };
+
+  const handlePurchasedMode = () => {
+    setActiveMainTab('purchased');
+    setShowPurchasedMode(!showPurchasedMode);
+    setShowGiftsMode(false);
+  };
+
+  const handlePurchaseItem = async (item: WishlistItem) => {
+    try {
+      await Browser.open({ url: item.url });
+      
+      setToastMessage('Marking as purchased...');
+      setShowToast(true);
+      
+      const { error } = await supabase
+        .from('wishlist_items')
+        .update({ 
+          is_purchased: true,
+          purchase_date: new Date().toISOString()
+        })
+        .eq('id', item.id);
+      
+      if (error) throw error;
+      
+      setToastMessage('✅ Marked as purchased!');
+      setShowToast(true);
+      
+      // Switch to Purchased tab
+      setShowPurchasedMode(true);
+      setShowGiftsMode(false);
+      setActiveMainTab('purchased');
+      
+      fetchWishlist();
+    } catch (error: any) {
+      console.error('Error marking as purchased:', error);
+      setToastMessage('❌ Failed to mark as purchased');
+      setShowToast(true);
     }
   };
 
@@ -471,7 +552,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
           alignItems: 'center',
         }}>
           <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#000' }}>
-            {showGiftsMode ? 'Gift Wishlist' : 'Wishlist'}
+            {showPurchasedMode ? 'Purchased Items' : showGiftsMode ? 'Gift Wishlist' : 'Wishlist'}
           </h1>
           <div style={{ 
             display: 'flex', 
@@ -480,14 +561,28 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
             color: '#86868b',
             marginTop: '4px',
           }}>
-            <span>Total: ${totalCost.toFixed(2)}</span>
-            {selectedCount > 0 && (
-              <span style={{ 
-                color: '#007AFF',
-                fontWeight: '600',
-              }}>
-                • {selectedCount} selected
-              </span>
+            {showPurchasedMode ? (
+              <>
+                <span>Spent: ${calculatePurchasedTotal().toFixed(2)}</span>
+                <span style={{ 
+                  color: '#007AFF',
+                  fontWeight: '600',
+                }}>
+                  • {filteredItems.length} items
+                </span>
+              </>
+            ) : (
+              <>
+                <span>Total: ${totalCost.toFixed(2)}</span>
+                {selectedCount > 0 && (
+                  <span style={{ 
+                    color: '#007AFF',
+                    fontWeight: '600',
+                  }}>
+                    • {selectedCount} selected
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -629,21 +724,12 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                 Compare
               </button>
               <button
-                onClick={() => {
-                  setActiveMainTab('buy');
-                  if (selectedItems.size === 0) {
-                    setToastMessage('Select items to buy by clicking on them');
-                    setShowToast(true);
-                  } else {
-                    setToastMessage(`Ready to buy ${selectedItems.size} item(s). Click 🛒 to purchase.`);
-                    setShowToast(true);
-                  }
-                }}
+                onClick={handlePurchasedMode}
                 style={{
                   flex: 1,
                   padding: '10px',
-                  background: activeMainTab === 'buy' ? '#007AFF' : '#f2f2f7',
-                  color: activeMainTab === 'buy' ? 'white' : '#000',
+                  background: showPurchasedMode ? '#007AFF' : '#f2f2f7',
+                  color: showPurchasedMode ? 'white' : '#000',
                   border: 'none',
                   borderRadius: '10px',
                   fontWeight: '600',
@@ -651,7 +737,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                   cursor: 'pointer',
                 }}
               >
-                Buy
+                Purchased
               </button>
               <button
                 onClick={() => {
@@ -753,14 +839,28 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
             {/* Wishlist Items Grid - 2 Column Portrait */}
             {filteredItems.length === 0 ? (
               <div className="ion-padding ion-text-center" style={{ marginTop: '50%' }}>
-                <IonText color="medium">
-                  <h2 style={{ fontWeight: '600', fontSize: '22px' }}>No items found</h2>
-                  <p style={{ fontSize: '17px' }}>
-                    {allWishlistItems.length === 0 
-                      ? 'Your wishlist is empty. Start adding items!'
-                      : 'Try adjusting your filters'}
-                  </p>
-                </IonText>
+                {showPurchasedMode ? (
+                  <>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>
+                      🛍️
+                    </div>
+                    <h2 style={{ fontSize: '20px', fontWeight: '600', margin: '0 0 8px', color: '#1c1c1e' }}>
+                      No Purchases Yet
+                    </h2>
+                    <p style={{ color: '#86868b', fontSize: '15px', margin: 0 }}>
+                      Items you purchase will appear here
+                    </p>
+                  </>
+                ) : (
+                  <IonText color="medium">
+                    <h2 style={{ fontWeight: '600', fontSize: '22px' }}>No items found</h2>
+                    <p style={{ fontSize: '17px' }}>
+                      {allWishlistItems.length === 0 
+                        ? 'Your wishlist is empty. Start adding items!'
+                        : 'Try adjusting your filters'}
+                    </p>
+                  </IonText>
+                )}
               </div>
             ) : (
               <IonGrid style={{ padding: '16px' }}>
@@ -827,32 +927,52 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                             display: 'flex',
                             gap: '6px',
                           }}>
-                            {/* Shop Button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (activeMainTab === 'buy' && selectedItems.has(item.id)) {
-                                  handleBuyAndSave(item);
-                                } else {
+                            {/* Shop / View Button */}
+                            {showPurchasedMode ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   openProductLink(item.url);
-                                }
-                              }}
-                              style={{
-                                width: '36px',
-                                height: '36px',
-                                borderRadius: '50%',
-                                background: 'rgba(255,255,255,0.95)',
-                                border: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                                fontSize: '18px',
-                              }}
-                            >
-                              🛒
-                            </button>
+                                }}
+                                style={{
+                                  width: '36px',
+                                  height: '36px',
+                                  borderRadius: '50%',
+                                  background: 'rgba(255,255,255,0.95)',
+                                  border: 'none',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                  fontSize: '18px',
+                                }}
+                              >
+                                👁️
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePurchaseItem(item);
+                                }}
+                                style={{
+                                  width: '36px',
+                                  height: '36px',
+                                  borderRadius: '50%',
+                                  background: 'rgba(255,255,255,0.95)',
+                                  border: 'none',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                  fontSize: '18px',
+                                }}
+                              >
+                                🛒
+                              </button>
+                            )}
                             
                             {/* Trash Button */}
                             <button
@@ -907,7 +1027,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                         </div>
 
                         
-                        {/* Product Info - Simplified */}
+                        {/* Product Info - Enhanced for Purchased */}
                         <div style={{ padding: '12px' }}>
                           <h3 style={{
                             margin: '0 0 6px',
@@ -918,6 +1038,18 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                           }}>
                             {item.name.length > 50 ? `${item.name.substring(0, 50)}...` : item.name}
                           </h3>
+                          
+                          {showPurchasedMode && item.purchase_date && (
+                            <p style={{
+                              margin: '0 0 4px',
+                              fontSize: '11px',
+                              color: '#86868b',
+                              fontStyle: 'italic',
+                            }}>
+                              Purchased {formatPurchaseDate(item.purchase_date)}
+                            </p>
+                          )}
+                          
                           <p style={{
                             margin: '0 0 4px',
                             fontSize: '16px',
