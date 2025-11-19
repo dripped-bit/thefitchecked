@@ -310,6 +310,9 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       console.log('📦 [WISHLIST] Modal data:', modalData);
       setSelectedItemForComparison(modalData);
       
+      // Give React a moment to process the state update
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       console.log('🚪 [WISHLIST] Opening modal...');
       setShowPriceComparison(true);
       
@@ -1112,8 +1115,12 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
             {/* Modals */}
             <PriceComparisonModal
               isOpen={showPriceComparison}
-              onClose={() => setShowPriceComparison(false)}
+              onClose={() => {
+                console.log('🔴 [WISHLIST] Closing price comparison modal');
+                setShowPriceComparison(false);
+              }}
               item={selectedItemForComparison}
+              key={selectedItemForComparison?.original?.id || 'modal'}
             />
 
             <MoveToClosetModal

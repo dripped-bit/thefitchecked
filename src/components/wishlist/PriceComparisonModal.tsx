@@ -83,18 +83,35 @@ const PriceComparisonModal: React.FC<PriceComparisonModalProps> = ({
     await Browser.open({ url });
   };
 
+  console.log('🎨 [PRICE-MODAL] Rendering modal with isOpen:', isOpen);
+  
+  if (!isOpen) {
+    console.log('⏸️ [PRICE-MODAL] Modal not open, skipping render');
+    return null;
+  }
+
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onClose}>
+    <IonModal 
+      isOpen={true}
+      onDidDismiss={onClose}
+      backdropDismiss={true}
+      showBackdrop={true}
+      style={{
+        '--background': 'white',
+        '--width': '100%',
+        '--height': '100%',
+      } as any}
+    >
       <IonHeader>
-        <IonToolbar>
-          <IonTitle>Price Comparison</IonTitle>
-          <IonButton slot="end" fill="clear" onClick={onClose}>
+        <IonToolbar color="primary">
+          <IonTitle>🎁 Best Deals Found</IonTitle>
+          <IonButton slot="end" fill="clear" onClick={onClose} color="light">
             <IonIcon icon={close} />
           </IonButton>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding">
+      <IonContent className="ion-padding" style={{ background: 'white' }}>
         <IonText>
           <h2 style={{ fontWeight: '600', marginTop: 0 }}>
             {originalItem?.name?.substring(0, 60)}
