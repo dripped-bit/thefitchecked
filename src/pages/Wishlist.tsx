@@ -405,6 +405,13 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
             {console.log('✅ [WISHLIST] Rendering content section with', allWishlistItems.length, 'items')}
             {console.log('✅ [WISHLIST] filteredItems:', filteredItems.length)}
             
+            {/* TEST: Simple div to confirm rendering works */}
+            <div style={{ padding: '20px', background: '#fff', margin: '20px' }}>
+              <h1 style={{ color: '#000' }}>TEST: Wishlist Content</h1>
+              <p style={{ color: '#000' }}>Total items: {allWishlistItems.length}</p>
+              <p style={{ color: '#000' }}>Filtered items: {filteredItems.length}</p>
+            </div>
+            
             {/* Action Bar */}
             <WishlistActionBar
               selectedItems={selectedItems}
