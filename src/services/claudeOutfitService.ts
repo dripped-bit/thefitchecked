@@ -87,7 +87,7 @@ class ClaudeOutfitService {
       const message = await this.client.messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2000,
-        temperature: 0.7,
+        temperature: 0.9, // Increased for more variety (was 0.7)
         messages: [{
           role: 'user',
           content: prompt
@@ -262,7 +262,9 @@ IMPORTANT RULES:
 - Match formality level to the event type and time of day
 - Avoid repeating items from recent history if possible
 - Each outfit should be complete and ready to wear
-- Provide variety across the 3 suggestions (casual to formal range)
+- CREATE COMPLETELY DIFFERENT OUTFITS - do NOT reuse the same item combinations!
+- Each of the 3 outfits MUST use different items - maximum 1 shared item between any two outfits
+- Provide variety across the 3 suggestions (casual to formal range, different colors, different styles)
 - EXPLAIN in reasoning how outfit matches temperature and occasion
 
 OUTPUT FORMAT (JSON):

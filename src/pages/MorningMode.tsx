@@ -36,6 +36,7 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
   const [showSavedModal, setShowSavedModal] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [recentlyShownOutfits, setRecentlyShownOutfits] = useState<string[][]>([]);
 
   // Cache hook
   const { cache, isLoadingCache, hasCache, cacheAge, saveToCache } = useWeatherPicksCache();
@@ -59,32 +60,57 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
   // Save outfit mutation
   const saveOutfitMutation = useMutation({
     mutationFn: async (outfit: OutfitSuggestion) => {
-      if (!userId) throw new Error('Not authenticated');
+      console.log('💾 [SAVE-OUTFIT] Starting save...', outfit.id);
+      
+      if (!userId) {
+        console.error('❌ [SAVE-OUTFIT] No user ID');
+        throw new Error('Not authenticated');
+      }
 
       // Auto-generate name
       const name = `${Math.round(weather?.temperature || 0)}°F ${occasionContext?.occasion || 'Daily'} • ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
+      // Extract item IDs by category
+      const topId = outfit.outfitItems.find(i => /top|shirt|blouse/i.test(i.category || ''))?.id;
+      const bottomId = outfit.outfitItems.find(i => /bottom|pant|skirt|jean/i.test(i.category || ''))?.id;
+      const shoesId = outfit.outfitItems.find(i => /shoe/i.test(i.category || ''))?.id;
+      const outerwearId = outfit.outfitItems.find(i => /outer|jacket|coat|sweater/i.test(i.category || ''))?.id;
+      const dressId = outfit.outfitItems.find(i => /dress/i.test(i.category || ''))?.id;
+      
+      console.log('📦 [SAVE-OUTFIT] Item IDs:', { topId, bottomId, shoesId, outerwearId, dressId });
+
+      const outfitData = {
+        user_id: userId,
+        name,
+        occasion: occasionContext?.occasion || 'casual_daily',
+        weather: weather ? [weather.weatherDescription] : [],
+        top_id: topId || null,
+        bottom_id: bottomId || null,
+        shoes_id: shoesId || null,
+        outerwear_id: outerwearId || null,
+        dress_id: dressId || null,
+        tags: ['weather_picks'],
+        notes: outfit.reasoning
+      };
+      
+      console.log('📤 [SAVE-OUTFIT] Inserting:', outfitData);
+
       const { data, error } = await supabase
         .from('saved_outfits')
-        .insert({
-          user_id: userId,
-          name,
-          occasion: occasionContext?.occasion || 'casual_daily',
-          weather: weather ? [weather.weatherDescription] : [],
-          top_id: outfit.outfitItems.find(i => /top|shirt|blouse/i.test(i.category))?.id,
-          bottom_id: outfit.outfitItems.find(i => /bottom|pant|skirt|jean/i.test(i.category))?.id,
-          shoes_id: outfit.outfitItems.find(i => /shoe/i.test(i.category))?.id,
-          outerwear_id: outfit.outfitItems.find(i => /outer|jacket|coat/i.test(i.category))?.id,
-          tags: ['weather_picks'],
-          notes: outfit.reasoning
-        })
+        .insert(outfitData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ [SAVE-OUTFIT] Database error:', error);
+        throw error;
+      }
+      
+      console.log('✅ [SAVE-OUTFIT] Saved successfully:', data);
       return data;
     },
     onSuccess: (data) => {
+      console.log('🎉 [SAVE-OUTFIT] Success callback triggered');
       queryClient.invalidateQueries({ queryKey: ['savedOutfits'] });
       setSavedOutfitIds(prev => new Set(prev).add(data.id));
       setToastMessage('Outfit saved!');
@@ -92,9 +118,15 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
       setTimeout(() => setShowToast(false), 3000);
       haptics.success();
     },
-    onError: (error) => {
-      console.error('Failed to save outfit:', error);
-      setToastMessage('Failed to save outfit');
+    onError: (error: any) => {
+      console.error('❌ [SAVE-OUTFIT] Error callback:', error);
+      console.error('❌ [SAVE-OUTFIT] Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      setToastMessage(`Failed to save: ${error.message || 'Unknown error'}`);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
       haptics.error();
@@ -208,14 +240,29 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
 
       console.log('✅ [MORNING-MODE] Generated', suggestions.length, 'suggestions');
       
+      // Filter out duplicate outfit combinations
+      const uniqueSuggestions = suggestions.filter(suggestion => {
+        const itemIds = suggestion.outfitItems.map(i => i.id).sort().join('-');
+        const isDuplicate = recentlyShownOutfits.some(shown => shown.join('-') === itemIds);
+        if (!isDuplicate) {
+          return true;
+        }
+        console.log('⚠️ [MORNING-MODE] Filtered duplicate outfit:', itemIds);
+        return false;
+      });
+      
+      // Track these outfits to prevent duplicates on next refresh
+      const newOutfitIds = uniqueSuggestions.map(s => s.outfitItems.map(i => i.id).sort());
+      setRecentlyShownOutfits(prev => [...prev, ...newOutfitIds].slice(-10)); // Keep last 10
+      
       // Log if fewer than 3 (this is OK)
-      if (suggestions.length < 3) {
-        console.log('ℹ️ [MORNING-MODE] Generated fewer than 3 outfits (this is OK)');
+      if (uniqueSuggestions.length < 3) {
+        console.log('ℹ️ [MORNING-MODE] Generated fewer than 3 unique outfits (this is OK)');
       }
       
       // This should never happen with good fallback logic
-      if (suggestions.length === 0) {
-        console.error('⚠️ [MORNING-MODE] AI returned 0 suggestions - this should not happen');
+      if (uniqueSuggestions.length === 0) {
+        console.error('⚠️ [MORNING-MODE] AI returned 0 unique suggestions - this should not happen');
         console.log('📊 [MORNING-MODE] Item breakdown:', {
           total: allItems.length,
           tops: allItems.filter(i => /top|shirt/i.test(i.category)).length,
@@ -224,10 +271,10 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
         });
       }
       
-      setOutfitSuggestions(suggestions);
+      setOutfitSuggestions(uniqueSuggestions);
 
       // Save to cache
-      saveToCache(weatherData, suggestions, occasionCtx);
+      saveToCache(weatherData, uniqueSuggestions, occasionCtx);
 
       // Success haptic
       haptics.success();
