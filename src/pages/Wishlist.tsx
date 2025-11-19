@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  IonContent,
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonCard,
   IonCardContent,
   IonCardHeader,
@@ -23,10 +18,8 @@ import {
   IonLabel,
   IonCheckbox,
   IonToast,
-  IonButtons,
-  IonButton,
 } from '@ionic/react';
-import { trash, openOutline, sparkles, checkmarkCircle, giftOutline, pricetagsOutline, chevronBackOutline, warningOutline } from 'ionicons/icons';
+import { trash, openOutline, sparkles, checkmarkCircle, giftOutline, pricetagsOutline, warningOutline } from 'ionicons/icons';
 import { Browser } from '@capacitor/browser';
 import { Share } from '@capacitor/share';
 import { supabase } from '../services/supabaseClient';
@@ -301,59 +294,50 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   console.log('🚀 [WISHLIST] Main render function executing');
   
   return (
-    <IonPage style={{ background: '#f2f2f7' }}>
-      {console.log('📄 [WISHLIST] IonPage rendering')}
+    <div style={{ 
+      minHeight: '100vh', 
+      background: '#f2f2f7',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      {console.log('📄 [WISHLIST] Main div rendering')}
       
-      {/* TEST: Render outside header to see if page is visible */}
-      <div style={{ 
-        position: 'absolute', 
-        top: '100px', 
-        left: '20px', 
-        right: '20px',
-        zIndex: 9999,
-        background: 'red', 
-        padding: '40px',
-        color: 'white',
-        fontSize: '24px',
-        fontWeight: 'bold'
+      {/* Header */}
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        background: '#fff',
+        borderBottom: '1px solid rgba(0,0,0,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '16px',
+        minHeight: '60px'
       }}>
-        🚨 TEST: Can you see this red box?
-        <br/>Items: {allWishlistItems.length}
+        <button
+          onClick={onBack}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            padding: '8px',
+            marginRight: '12px'
+          }}
+        >
+          ←
+        </button>
+        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Wishlist</h1>
       </div>
-      
-      <IonHeader>
-        <IonToolbar>
-          <IonButtons slot="start">
-            <IonButton onClick={onBack}>
-              <IonIcon icon={chevronBackOutline} />
-            </IonButton>
-          </IonButtons>
-          <IonTitle>Wishlist</IonTitle>
-        </IonToolbar>
-      </IonHeader>
 
-      <IonContent 
-        style={{ '--background': '#f2f2f7' }}
-        className="wishlist-content"
-      >
+      {/* Content */}
+      <div style={{ 
+        flex: 1, 
+        overflowY: 'auto',
+        padding: '16px',
+        paddingBottom: '100px'
+      }}>
         {console.log('🎨 [WISHLIST] Rendering - loading:', loading, 'error:', error, 'items:', allWishlistItems.length)}
-        
-        {/* TEST: Blue box inside IonContent */}
-        <div style={{
-          position: 'fixed',
-          top: '200px',
-          left: '20px',
-          right: '20px',
-          zIndex: 99999,
-          background: 'blue',
-          padding: '40px',
-          color: 'white',
-          fontSize: '20px',
-          fontWeight: 'bold',
-          border: '5px solid yellow'
-        }}>
-          💙 TEST: IonContent renders! Loading: {loading ? 'YES' : 'NO'}
-        </div>
         
         {loading ? (
           <div style={{
@@ -443,13 +427,6 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
           <>
             {console.log('✅ [WISHLIST] Rendering content section with', allWishlistItems.length, 'items')}
             {console.log('✅ [WISHLIST] filteredItems:', filteredItems.length)}
-            
-            {/* TEST: Simple div to confirm rendering works */}
-            <div style={{ padding: '20px', background: '#fff', margin: '20px' }}>
-              <h1 style={{ color: '#000' }}>TEST: Wishlist Content</h1>
-              <p style={{ color: '#000' }}>Total items: {allWishlistItems.length}</p>
-              <p style={{ color: '#000' }}>Filtered items: {filteredItems.length}</p>
-            </div>
             
             {/* Action Bar */}
             <WishlistActionBar
@@ -875,8 +852,8 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
         />
           </>
         )}
-      </IonContent>
-    </IonPage>
+      </div>
+    </div>
   );
 };
 
