@@ -41,12 +41,29 @@ const DealsModal: React.FC<DealsModalProps> = ({
 
   console.log('✅ [DEALS-MODAL] Modal IS OPEN! Rendering...');
 
-  // Sort by price and take top 4 best deals
-  const sortedExact = [...exactMatches].sort((a, b) => a.priceValue - b.priceValue).slice(0, 4);
-  const sortedSimilar = [...similarItems].sort((a, b) => a.priceValue - b.priceValue).slice(0, 4);
+  // Get original price for comparison
+  const originalPrice = parseFloat(originalItem?.price?.replace('$', '') || '0');
+  const minAcceptablePrice = originalPrice * 0.5; // At least 50% of original price (similar quality)
+  const maxAcceptablePrice = originalPrice * 1.5; // Up to 150% (in case original was a deal)
+  
+  console.log(`💰 [DEALS-MODAL] Original price: $${originalPrice}, acceptable range: $${minAcceptablePrice}-$${maxAcceptablePrice}`);
+
+  // Filter for similar quality items (within 50%-150% of original price)
+  const qualityExact = exactMatches.filter(deal => 
+    deal.priceValue >= minAcceptablePrice && deal.priceValue <= maxAcceptablePrice
+  );
+  
+  const qualitySimilar = similarItems.filter(deal => 
+    deal.priceValue >= minAcceptablePrice && deal.priceValue <= maxAcceptablePrice
+  );
+  
+  // Sort by price (best deal first) and take top 4
+  const sortedExact = [...qualityExact].sort((a, b) => a.priceValue - b.priceValue).slice(0, 4);
+  const sortedSimilar = [...qualitySimilar].sort((a, b) => a.priceValue - b.priceValue).slice(0, 4);
   
   const deals = activeTab === 'exact' ? sortedExact : sortedSimilar;
   
+  console.log(`🎯 [DEALS-MODAL] Filtered to ${qualityExact.length} exact, ${qualitySimilar.length} similar (similar quality)`);
   console.log(`🎯 [DEALS-MODAL] Showing top 4 ${activeTab} deals:`, deals.map(d => `${d.title.substring(0, 30)} - ${d.price}`));
 
   const openUrl = async (url: string) => {
