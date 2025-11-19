@@ -33,6 +33,8 @@ export interface CalendarEvent {
   weatherRequired?: boolean;
   shoppingLinks?: ShoppingLink[];
   reminderMinutes?: number;
+  wornToday?: boolean; // True if outfit was actually worn (from Weather Picks or Wore This Today)
+  outfitImageUrl?: string; // Image URL for outfit display in calendar
 }
 
 export interface OutfitPlan {
@@ -208,7 +210,8 @@ class SmartCalendarService {
           outfit_id: eventData.outfitId || null,
           weather_required: eventData.weatherRequired || false,
           shopping_links: eventData.shoppingLinks || [],
-          outfit_image_url: eventData.outfitImageUrl || null
+          outfit_image_url: eventData.outfitImageUrl || null,
+          wore_today: eventData.wornToday || false
         })
         .select()
         .single();

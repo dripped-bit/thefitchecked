@@ -25,6 +25,7 @@ interface ScheduledOutfit {
   was_worn: boolean;
   outfit_items: OutfitItem[];
   shopping_links?: ShoppingLink[];
+  worn_today?: boolean; // Flag for visual "Worn" indicator
 }
 
 interface CalendarDayCellProps {
@@ -97,16 +98,23 @@ export const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
         {dayNumber}
       </div>
 
-      {/* Worn Indicator - Top Right below date (small green dot) */}
-      {wasWorn && (
+      {/* Worn Today Badge - Top Right (green checkmark) */}
+      {(wasWorn || scheduledOutfit?.worn_today) && (
         <div
-          className="absolute top-10 right-2 z-10 w-2.5 h-2.5 rounded-full"
+          className="absolute top-1 right-1 z-10 flex items-center justify-center"
           style={{
             backgroundColor: '#10B981',
-            boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.8)',
+            color: '#fff',
+            fontSize: '10px',
+            fontWeight: '600',
+            padding: '2px 4px',
+            borderRadius: '4px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
           }}
-          title="Outfit worn"
-        />
+          title="Outfit was worn"
+        >
+          ✓ Worn
+        </div>
       )}
 
       {/* PRODUCT/OUTFIT PHOTO - 70% height for shopping products */}

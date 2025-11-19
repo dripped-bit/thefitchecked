@@ -16,6 +16,8 @@ import { useWeatherPicksCache } from '../hooks/useWeatherPicksCache';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../services/supabaseClient';
 import haptics from '../utils/haptics';
+import smartCalendarService from '../services/smartCalendarService';
+import outfitHistoryService from '../services/outfitHistoryService';
 
 interface MorningModeProps {
   onBack: () => void;
@@ -288,10 +290,63 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
     }
   };
 
-  const handleWearOutfit = (outfit: OutfitSuggestion) => {
+  const handleWearOutfit = async (outfit: OutfitSuggestion) => {
     console.log('👔 [MORNING-MODE] User selected outfit:', outfit.id);
-    // TODO: Save to calendar or outfit history
-    alert(`Great choice! Outfit saved for today.`);
+    
+    try {
+      haptics.medium();
+      
+      // Get today's date
+      const today = new Date();
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('⚠️ No user logged in');
+        alert('Please log in to save outfits');
+        return;
+      }
+
+      // Create calendar event for today
+      const event = await smartCalendarService.createEvent({
+        title: `Wearing Today`,
+        description: `Outfit from Weather Picks: ${outfit.occasion || 'Daily wear'}`,
+        startTime: today,
+        endTime: new Date(today.getTime() + 60 * 60 * 1000), // 1 hour duration
+        isAllDay: false,
+        eventType: 'casual',
+        outfitItems: outfit.outfitItems,
+        occasion: outfit.occasion || 'Daily wear',
+        outfitImageUrl: outfit.outfitItems[0]?.imageUrl || '',
+        wornToday: true // Mark as actually worn
+      });
+
+      if (!event) {
+        throw new Error('Failed to create calendar event');
+      }
+
+      console.log('✅ [MORNING-MODE] Saved to calendar:', event.id);
+
+      // Also save to outfit_history for AI learning
+      await outfitHistoryService.saveOutfitHistory({
+        worn_date: today,
+        outfit_items: outfit.outfitItems,
+        event_id: event.id,
+        event_type: 'casual',
+        weather_data: weatherData,
+        time_of_day: 'morning',
+        notes: 'Selected from Weather Picks'
+      });
+
+      // Show success message
+      haptics.success();
+      alert(`✅ Great choice! Outfit saved to your calendar for today.`);
+      
+    } catch (error) {
+      console.error('❌ [MORNING-MODE] Error saving outfit:', error);
+      haptics.error();
+      alert('Failed to save outfit. Please try again.');
+    }
   };
 
   // Loading State

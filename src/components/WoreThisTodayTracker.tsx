@@ -257,6 +257,31 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
       selectedEvent?.id
     );
 
+    // NEW: Create calendar event for visibility on calendar grid
+    try {
+      console.log('📅 [WORE-THIS] Creating calendar event...');
+      
+      const event = await smartCalendarService.createEvent({
+        title: `Wore This Today`,
+        description: todaysOutfit.notes || 'Outfit recorded in Wore This Today tracker',
+        startTime: selectedDate,
+        endTime: new Date(selectedDate.getTime() + 60 * 60 * 1000), // 1 hour duration
+        isAllDay: false,
+        eventType: selectedEvent?.eventType || 'casual',
+        outfitItems: todaysOutfit.items,
+        occasion: selectedEvent?.title || 'Daily outfit',
+        outfitImageUrl: uploadedPhoto || todaysOutfit.items[0]?.imageUrl || '',
+        wornToday: true // Mark as actually worn
+      });
+
+      if (event) {
+        console.log('✅ [WORE-THIS] Calendar event created:', event.id);
+      }
+    } catch (error) {
+      console.error('⚠️ [WORE-THIS] Failed to create calendar event:', error);
+      // Don't fail the whole flow if calendar save fails
+    }
+
     // Increment times_worn for each item
     try {
       const user = await authService.getCurrentUser();

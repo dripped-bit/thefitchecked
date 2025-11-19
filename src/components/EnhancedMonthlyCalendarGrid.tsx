@@ -29,6 +29,7 @@ interface ScheduledOutfit {
     category: string;
   }>;
   shopping_links?: ShoppingLink[];
+  worn_today?: boolean; // Flag for visual indicators
 }
 
 interface MonthStats {
@@ -150,9 +151,10 @@ export const EnhancedMonthlyCalendarGrid: React.FC = () => {
           id: event.id,
           scheduled_date: dateKey,
           occasion: event.title || event.description,
-          was_worn: false, // TODO: Add was_worn tracking to calendar_events
+          was_worn: event.wore_today || false, // Use wore_today field!
           outfit_items: outfitItems,
-          shopping_links: event.shopping_links || []
+          shopping_links: event.shopping_links || [],
+          worn_today: event.wore_today || false // Add for visual indicators
         };
       });
 
