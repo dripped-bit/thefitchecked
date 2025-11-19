@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { IonButton, IonIcon, IonSpinner } from '@ionic/react';
 import { close } from 'ionicons/icons';
 import { Browser } from '@capacitor/browser';
@@ -82,7 +83,8 @@ const DealsModal: React.FC<DealsModalProps> = ({
     }
   };
 
-  return (
+  // Use React Portal to render at document.body level (escape IonContent overflow)
+  const modalContent = (
     <div 
       ref={modalRef}
       onClick={(e) => {
@@ -308,9 +310,11 @@ const DealsModal: React.FC<DealsModalProps> = ({
         </div>
       </div>
 
-
     </div>
   );
+
+  // Render to document.body using Portal (escapes parent overflow/stacking context)
+  return ReactDOM.createPortal(modalContent, document.body);
 };
 
 export default DealsModal;
