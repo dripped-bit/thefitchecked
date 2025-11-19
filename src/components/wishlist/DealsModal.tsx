@@ -31,9 +31,23 @@ const DealsModal: React.FC<DealsModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'exact' | 'similar'>('exact');
 
-  if (!isOpen) return null;
+  console.log('🎁 [DEALS-MODAL] Render called - isOpen:', isOpen, 'exact:', exactMatches.length, 'similar:', similarItems.length);
+  console.log('🎁 [DEALS-MODAL] OriginalItem:', originalItem?.name);
 
-  const deals = activeTab === 'exact' ? exactMatches : similarItems;
+  if (!isOpen) {
+    console.log('⏸️ [DEALS-MODAL] Not open, returning null');
+    return null;
+  }
+
+  console.log('✅ [DEALS-MODAL] Modal IS OPEN! Rendering...');
+
+  // Sort by price and take top 4 best deals
+  const sortedExact = [...exactMatches].sort((a, b) => a.priceValue - b.priceValue).slice(0, 4);
+  const sortedSimilar = [...similarItems].sort((a, b) => a.priceValue - b.priceValue).slice(0, 4);
+  
+  const deals = activeTab === 'exact' ? sortedExact : sortedSimilar;
+  
+  console.log(`🎯 [DEALS-MODAL] Showing top 4 ${activeTab} deals:`, deals.map(d => `${d.title.substring(0, 30)} - ${d.price}`));
 
   const openUrl = async (url: string) => {
     if (url) {
@@ -42,27 +56,35 @@ const DealsModal: React.FC<DealsModalProps> = ({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: 99999,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'flex-end',
-    }}>
-      {/* Modal Content */}
-      <div style={{
-        background: 'white',
-        borderRadius: '16px 16px 0 0',
-        maxHeight: '90vh',
+    <div 
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 99999,
+        background: 'rgba(0,0,0,0.7)',
         display: 'flex',
         flexDirection: 'column',
-        animation: 'slideUp 0.3s ease-out',
-      }}>
+        justifyContent: 'flex-end',
+      }}
+    >
+      {/* Modal Content */}
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'white',
+          borderRadius: '16px 16px 0 0',
+          maxHeight: '90vh',
+          height: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'slideUp 0.5s ease-out forwards',
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
+        }}
+      >
         {/* Header */}
         <div style={{
           background: '#007AFF',
@@ -127,7 +149,7 @@ const DealsModal: React.FC<DealsModalProps> = ({
               cursor: 'pointer',
             }}
           >
-            Same Item ({exactMatches.length})
+            Same Item (Top 4)
           </button>
           <button
             onClick={() => setActiveTab('similar')}
@@ -143,7 +165,7 @@ const DealsModal: React.FC<DealsModalProps> = ({
               cursor: 'pointer',
             }}
           >
-            Similar Items ({similarItems.length})
+            Similar Items (Top 4)
           </button>
         </div>
 
@@ -153,18 +175,41 @@ const DealsModal: React.FC<DealsModalProps> = ({
           overflowY: 'auto',
           padding: '16px',
         }}>
-          {deals.map((deal, index) => (
-            <div
-              key={index}
-              style={{
-                background: '#f9f9f9',
-                borderRadius: '12px',
-                padding: '12px',
-                marginBottom: '12px',
-                display: 'flex',
-                gap: '12px',
-              }}
-            >
+          {deals.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#86868b' }}>
+              <p>No deals found</p>
+            </div>
+          ) : (
+            deals.map((deal, index) => (
+              <div
+                key={index}
+                style={{
+                  background: index === 0 ? '#f0f9ff' : '#f9f9f9',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  gap: '12px',
+                  border: index === 0 ? '2px solid #007AFF' : 'none',
+                  position: 'relative',
+                }}
+              >
+              {index === 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '8px',
+                  left: '8px',
+                  background: '#34C759',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  zIndex: 1,
+                }}>
+                  💰 BEST DEAL
+                </div>
+              )}
               <img
                 src={deal.image}
                 alt={deal.title}
@@ -182,15 +227,25 @@ const DealsModal: React.FC<DealsModalProps> = ({
                   fontWeight: '600',
                   lineHeight: '1.3',
                 }}>
-                  {deal.title.length > 60 ? `${deal.title.substring(0, 60)}...` : deal.title}
+                  {deal.title.length > 50 ? `${deal.title.substring(0, 50)}...` : deal.title}
                 </h4>
                 <p style={{
                   margin: '0 0 4px',
-                  fontSize: '18px',
+                  fontSize: '20px',
                   fontWeight: '700',
-                  color: '#007AFF',
+                  color: index === 0 ? '#34C759' : '#007AFF',
                 }}>
                   {deal.price}
+                  {index === 0 && originalItem?.price && (
+                    <span style={{
+                      marginLeft: '8px',
+                      fontSize: '12px',
+                      color: '#34C759',
+                      fontWeight: '600',
+                    }}>
+                      Save ${(parseFloat(originalItem.price.replace('$', '')) - deal.priceValue).toFixed(0)}!
+                    </span>
+                  )}
                 </p>
                 <p style={{
                   margin: '0 0 8px',
@@ -218,17 +273,20 @@ const DealsModal: React.FC<DealsModalProps> = ({
                 </button>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
       <style>{`
         @keyframes slideUp {
-          from {
+          0% {
             transform: translateY(100%);
+            opacity: 0;
           }
-          to {
+          100% {
             transform: translateY(0);
+            opacity: 1;
           }
         }
       `}</style>

@@ -1114,8 +1114,20 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
             )}
 
             {/* Modals */}
+            {(() => {
+              const shouldShow = showPriceComparison && !!selectedItemForComparison?.aiResults;
+              console.log('🎁 [WISHLIST] DealsModal condition:', {
+                showPriceComparison,
+                hasAiResults: !!selectedItemForComparison?.aiResults,
+                shouldShow,
+                exactCount: selectedItemForComparison?.aiResults?.exactMatches?.length || 0,
+                similarCount: selectedItemForComparison?.aiResults?.similarItems?.length || 0
+              });
+              return null;
+            })()}
+            
             <DealsModal
-              isOpen={showPriceComparison && selectedItemForComparison?.aiResults}
+              isOpen={showPriceComparison && !!selectedItemForComparison?.aiResults}
               onClose={() => {
                 console.log('🔴 [WISHLIST] Closing deals modal');
                 setShowPriceComparison(false);
