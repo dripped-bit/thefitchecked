@@ -28,6 +28,7 @@ import ClosetAnalytics from './pages/ClosetAnalytics';
 import SettingsScreen from './pages/SettingsScreen';
 import MorningMode from './pages/MorningMode';
 import { TripsList } from './pages/TripsList';
+import FashionFeed from './pages/FashionFeed';
 import { TripDetailPage } from './pages/TripDetailPage';
 import DoorTransition from './components/DoorTransition';
 import ApiTestPage from './pages/ApiTestPage';
@@ -1159,6 +1160,11 @@ function App() {
               setCurrentScreen('analytics');
               setActiveTab('stylehub'); // Keep StyleHub tab active
             }}
+            onNavigateToFashionFeed={() => {
+              sessionStorage.setItem('navigated_from_stylehub', 'true');
+              setCurrentScreen('fashionfeed');
+              setActiveTab('stylehub'); // Keep StyleHub tab active
+            }}
           />
         );
 
@@ -1187,6 +1193,16 @@ function App() {
       case 'morningMode':
         return (
           <MorningMode
+            onBack={() => {
+              setCurrentScreen('stylehub');
+              setActiveTab('stylehub');
+            }}
+          />
+        );
+
+      case 'fashionfeed':
+        return (
+          <FashionFeed
             onBack={() => {
               setCurrentScreen('stylehub');
               setActiveTab('stylehub');

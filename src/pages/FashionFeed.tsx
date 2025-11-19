@@ -1,0 +1,188 @@
+/**
+ * FashionFeed - Digital Style Scrapbook
+ * Magazine-inspired personal style journal with AI-curated imagery
+ */
+
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Plus, Settings, Camera } from 'lucide-react';
+import { useCloset } from '../hooks/useCloset';
+import '../styles/scrapbook.css';
+
+interface FashionFeedProps {
+  onBack: () => void;
+}
+
+export default function FashionFeed({ onBack }: FashionFeedProps) {
+  const { items, loading } = useCloset();
+  const [mounted, setMounted] = useState(false);
+  const [vibe, setVibe] = useState('');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen scrapbook-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-pulse text-6xl mb-4">📸</div>
+          <p className="handwritten text-2xl">Loading your style scrapbook...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen scrapbook-bg pb-20">
+      {/* Scrapbook Header */}
+      <div className="sticky top-0 z-50 bg-white border-b-4 border-black shadow-heavy">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          {/* Back Button */}
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-black hover:text-pink-600 transition-colors"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+
+          {/* Title - Magazine Style */}
+          <div className="flex-1 text-center">
+            <h1 className="magazine-headline text-xl md:text-2xl">
+              My Style Scrapbook
+            </h1>
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <span className="text-xl">📸</span>
+              <span className="text-xl">✨</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <button className="p-2 hover:bg-pink-50 rounded-full transition-colors">
+              <Plus className="w-6 h-6" />
+            </button>
+            <button className="p-2 hover:bg-pink-50 rounded-full transition-colors">
+              <Settings className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Feed */}
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-12">
+        {/* Vibe Section */}
+        <div 
+          className={`torn-edge bg-white shadow-scrapbook transition-all duration-700 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <div className="washi-tape" />
+          <div className="p-6">
+            <h2 className="handwritten text-2xl mb-4 text-center">
+              YOUR VIBE TODAY
+            </h2>
+            <div className="relative">
+              <input
+                type="text"
+                value={vibe}
+                onChange={(e) => setVibe(e.target.value)}
+                placeholder="sunny & feeling cute! ☀️"
+                className="w-full px-4 py-3 border-2 border-pink-300 rounded-lg text-lg focus:outline-none focus:border-pink-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Closet Preview Section */}
+        <div 
+          className={`magazine-box magazine-box-pink transition-all duration-700 delay-150 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <div className="mb-6">
+            <h2 className="text-3xl font-black mb-2 flex items-center gap-3">
+              <span>👗</span>
+              <span>YOUR CLOSET</span>
+            </h2>
+            <div className="section-divider">
+              <div className="line" />
+            </div>
+          </div>
+
+          {/* Items Grid */}
+          {items.length > 0 ? (
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+              {items.slice(0, 8).map((item, index) => (
+                <div 
+                  key={item.id} 
+                  className="polaroid-frame animate-scaleIn"
+                  style={{ 
+                    animationDelay: `${index * 100}ms`,
+                    '--rotate': `${Math.random() * 6 - 3}deg` 
+                  } as React.CSSProperties}
+                >
+                  <img
+                    src={item.thumbnail_url || item.image_url}
+                    alt={item.name}
+                    className="w-full aspect-square object-cover rounded"
+                  />
+                  <p className="text-center text-xs mt-2 truncate">
+                    {item.name}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Camera className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="handwritten text-xl text-gray-500">
+                Add items to your closet to get started!
+              </p>
+            </div>
+          )}
+
+          {items.length > 8 && (
+            <div className="mt-6 text-center">
+              <div className="sticker inline-flex">
+                <span>✨</span>
+                <span>{items.length - 8} MORE ITEMS!</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Coming Soon Sections */}
+        <div 
+          className={`speech-bubble transition-all duration-700 delay-300 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <p className="handwritten text-xl text-center">
+            "More amazing features coming soon! 🎨✨"
+          </p>
+          <div className="mt-4 text-center text-sm text-gray-600">
+            <p>• AI Color Story Analysis</p>
+            <p>• Style Steal Inspiration</p>
+            <p>• Closet Heroes Report</p>
+            <p>• Weekly Style Challenges</p>
+            <p>• Your Outfit Timeline</p>
+          </div>
+        </div>
+
+        {/* Placeholder for future sections */}
+        <div className="dots-divider">• • •</div>
+
+        <div className="text-center py-12">
+          <div className="inline-block">
+            <div className="cutout-text">
+              STAY TUNED!
+            </div>
+            <p className="handwritten text-lg mt-4 text-gray-600">
+              We're building something special for you ✨
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

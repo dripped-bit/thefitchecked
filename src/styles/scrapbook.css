@@ -1,0 +1,488 @@
+/**
+ * FashionFeed Scrapbook Design System
+ * Magazine-inspired, early 2000s fashion collage aesthetic
+ */
+
+/* ============================================
+   BACKGROUNDS
+   ============================================ */
+
+.scrapbook-bg {
+  background: linear-gradient(135deg, #FFF9F3 0%, #FFEFD5 50%, #FFF9F3 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* ============================================
+   PHOTO FRAMES
+   ============================================ */
+
+/* Polaroid Style */
+.polaroid-frame {
+  background: white;
+  padding: 12px;
+  padding-bottom: 48px;
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 10px 20px rgba(0, 0, 0, 0.05);
+  transform: rotate(-2deg);
+  transition: transform 0.3s ease;
+  position: relative;
+}
+
+.polaroid-frame:hover {
+  transform: rotate(0deg) scale(1.02);
+  z-index: 10;
+}
+
+/* Torn Paper Edge */
+.torn-edge {
+  position: relative;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.torn-edge::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: linear-gradient(
+    135deg,
+    transparent 0px, white 0px, white 5px, transparent 5px
+  ) repeat-x;
+  background-size: 10px 10px;
+}
+
+/* Washi Tape Effect */
+.washi-tape {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 20px;
+  background: repeating-linear-gradient(
+    45deg,
+    #FFB6C1,
+    #FFB6C1 10px,
+    #FFC0CB 10px,
+    #FFC0CB 20px
+  );
+  opacity: 0.7;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+/* Push Pin Effect */
+.push-pin {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle, #FF6B6B 0%, #C92A2A 100%);
+  border-radius: 50%;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+/* Handwritten Text */
+.handwritten {
+  font-family: 'Caveat', 'Patrick Hand', 'Indie Flower', cursive;
+  font-size: 18px;
+  line-height: 1.4;
+  color: #2C3E50;
+  transform: rotate(-1deg);
+}
+
+/* Magazine Headline */
+.magazine-headline {
+  font-family: 'Impact', 'Arial Black', sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #000;
+  text-shadow: 3px 3px 0 #FFD700;
+  padding: 12px 16px;
+  background: white;
+  border: 4px solid #000;
+  display: inline-block;
+  line-height: 1.2;
+}
+
+/* Highlighter Effect */
+.highlight-yellow {
+  background: linear-gradient(
+    180deg,
+    transparent 60%,
+    #FFFF00 60%,
+    #FFFF00 90%,
+    transparent 90%
+  );
+  padding: 2px 4px;
+  display: inline;
+}
+
+.highlight-pink {
+  background: linear-gradient(
+    180deg,
+    transparent 60%,
+    #FFB6C1 60%,
+    #FFB6C1 90%,
+    transparent 90%
+  );
+  padding: 2px 4px;
+  display: inline;
+}
+
+/* ============================================
+   STICKERS & BADGES
+   ============================================ */
+
+/* Sticker Style */
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #FF1493 0%, #FF69B4 100%);
+  color: white;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 
+    0 4px 8px rgba(255, 20, 147, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: rotate(-5deg);
+}
+
+.sticker-blue {
+  background: linear-gradient(135deg, #4169E1 0%, #6495ED 100%);
+}
+
+.sticker-green {
+  background: linear-gradient(135deg, #32CD32 0%, #90EE90 100%);
+}
+
+.sticker-purple {
+  background: linear-gradient(135deg, #9370DB 0%, #BA55D3 100%);
+}
+
+/* ============================================
+   COLLAGE LAYOUTS
+   ============================================ */
+
+.collage-container {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+
+.collage-item {
+  position: relative;
+  transform: rotate(var(--rotate, 0deg));
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.collage-item:hover {
+  transform: rotate(0deg) scale(1.05);
+  z-index: 10;
+}
+
+/* Overlapping Images */
+.overlap-container {
+  position: relative;
+  min-height: 300px;
+}
+
+.overlap-item {
+  position: absolute;
+  transition: all 0.3s ease;
+}
+
+.overlap-item:hover {
+  z-index: 20 !important;
+  transform: scale(1.1) rotate(0deg) !important;
+}
+
+/* ============================================
+   SECTION DIVIDERS
+   ============================================ */
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 32px 0;
+  font-size: 20px;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: '✂️';
+  font-size: 20px;
+}
+
+.section-divider .line {
+  flex: 1;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    #000 0px,
+    #000 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+/* Alternative divider styles */
+.dots-divider {
+  text-align: center;
+  margin: 40px 0;
+  font-size: 24px;
+  letter-spacing: 12px;
+  color: #FFB6C1;
+}
+
+.zigzag-divider {
+  height: 20px;
+  background: linear-gradient(
+    135deg,
+    transparent 0px,
+    transparent 10px,
+    #FFB6C1 10px,
+    #FFB6C1 20px
+  ) repeat-x;
+  background-size: 20px 20px;
+  margin: 40px 0;
+}
+
+/* ============================================
+   MAGAZINE BOXES
+   ============================================ */
+
+.magazine-box {
+  background: white;
+  border: 4px solid #000;
+  padding: 24px;
+  position: relative;
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.1);
+}
+
+.magazine-box-pink {
+  border-color: #FF69B4;
+  box-shadow: 8px 8px 0 rgba(255, 105, 180, 0.2);
+}
+
+.magazine-box-blue {
+  border-color: #4169E1;
+  box-shadow: 8px 8px 0 rgba(65, 105, 225, 0.2);
+}
+
+/* Cutout text style */
+.cutout-text {
+  font-family: 'Impact', 'Arial Black', sans-serif;
+  font-size: 48px;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: linear-gradient(45deg, #FF1493, #FFD700, #4169E1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 3px;
+}
+
+/* ============================================
+   SPEECH BUBBLES
+   ============================================ */
+
+.speech-bubble {
+  position: relative;
+  background: white;
+  border: 3px solid #000;
+  border-radius: 20px;
+  padding: 16px 20px;
+  margin: 20px 0;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 30px;
+  width: 0;
+  height: 0;
+  border: 10px solid transparent;
+  border-top-color: #000;
+  border-bottom: 0;
+}
+
+.speech-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -14px;
+  left: 33px;
+  width: 0;
+  height: 0;
+  border: 7px solid transparent;
+  border-top-color: white;
+  border-bottom: 0;
+  z-index: 1;
+}
+
+/* ============================================
+   INTERACTIVE ELEMENTS
+   ============================================ */
+
+.flip-card {
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flip-card:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes wobble {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.5s ease-out;
+}
+
+.animate-wobble {
+  animation: wobble 2s ease-in-out infinite;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.rotate-slight-left {
+  transform: rotate(-2deg);
+}
+
+.rotate-slight-right {
+  transform: rotate(2deg);
+}
+
+.shadow-scrapbook {
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-heavy {
+  box-shadow: 
+    8px 8px 0 rgba(0, 0, 0, 0.1),
+    12px 12px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Paper texture overlay */
+.paper-texture {
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.01) 2px,
+      rgba(0, 0, 0, 0.01) 4px
+    );
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .magazine-headline {
+    font-size: 24px;
+    padding: 8px 12px;
+  }
+
+  .cutout-text {
+    font-size: 32px;
+  }
+
+  .handwritten {
+    font-size: 16px;
+  }
+
+  .collage-container {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .polaroid-frame {
+    padding: 8px;
+    padding-bottom: 32px;
+  }
+}
