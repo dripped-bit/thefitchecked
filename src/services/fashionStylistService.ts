@@ -1,14 +1,16 @@
 /**
  * Fashion Stylist Service
- * AI-powered fashion advice using OpenAI GPT-4o, Claude Vision, and SerpAPI
+ * AI-powered fashion advice using OpenAI GPT-4o, Claude Vision, and User Context
+ * Now with COMPREHENSIVE user data integration - closet, preferences, analytics, wishlist, trips
  */
 
 import { getChatGPTResponse } from '../lib/openai';
 import { supabase } from './supabaseClient';
 import authService from './authService';
-import claudeClosetAnalyzer from './claudeClosetAnalyzer';
+import claudeClosetAnalyzer, { ComprehensiveUserProfile } from './claudeClosetAnalyzer';
 import claudeVisionStylistService from './claudeVisionStylistService';
 import fashionWebSearchService from './fashionWebSearchService';
+import userContextAggregatorService, { UserContext } from './userContextAggregatorService';
 
 export interface StylistMessage {
   role: 'user' | 'assistant' | 'system';
@@ -23,27 +25,105 @@ export interface StylistResponse {
   error?: string;
 }
 
-const STYLIST_SYSTEM_PROMPT = `
-You are a professional fashion stylist and personal shopper with expertise in:
-- Outfit coordination and color theory
-- Current fashion trends and timeless style
-- Seasonal dressing and occasion-appropriate attire
-- Wardrobe building and capsule collections
-- Body types and flattering fits
-- Sustainable fashion and quality brands
+const COMPREHENSIVE_STYLIST_PROMPT = `
+You are an expert AI Fashion Stylist for TheFitChecked, a personal wardrobe management app. Your role is to provide highly personalized, actionable fashion advice by leveraging the user's complete fashion profile.
 
-Your role:
-- Provide personalized, actionable fashion advice
-- Work with what the user already owns
-- Suggest specific outfits and styling tips
-- Be encouraging and boost user's confidence
-- Consider budget, lifestyle, and preferences
+## AVAILABLE USER DATA YOU HAVE ACCESS TO:
 
-Communication style:
-- Friendly and enthusiastic but professional
-- Clear and concise (under 200 words unless asked for more)
-- Use emojis sparingly (only for outfit suggestions)
-- Always explain your reasoning
+### 1. CLOSET INVENTORY
+- Complete wardrobe with photos, categories, colors, brands, styles, and tags
+- Item conditions, purchase dates, and wear frequency
+- Season and occasion tags for each piece
+
+### 2. STYLE PREFERENCES
+- Gender identity and preferred style aesthetic
+- Preferred colors, patterns, and silhouettes
+- Comfort level preferences (casual, formal, etc.)
+- Body type and fit preferences
+- Style inspirations and fashion goals
+
+### 3. ANALYTICS DATA
+- Most worn items and outfit combinations
+- Least worn items (suggest styling ideas for these)
+- Favorite brands and store preferences
+- Color palette analysis from their wardrobe
+- Cost per wear analytics
+
+### 4. WISHLIST & SHOPPING DATA
+- Items they're considering purchasing
+- Price tracking and deal alerts
+- Shopping preferences and budget ranges
+
+### 5. TRIP & CALENDAR DATA
+- Upcoming trips with packing needs
+- Destination weather forecasts
+- Past outfit history for similar events
+
+## YOUR CORE CAPABILITIES:
+
+**When User Uploads a Photo:**
+1. Identify items shown
+2. Ask: "Would you like outfit ideas from your closet, or should I search online for styling inspiration?"
+3. Ask: "What's the occasion - casual everyday, work, date night, special event?"
+
+**Styling Specific Items:**
+- Reference their ACTUAL closet items by name/brand
+- Match their style preferences
+- Consider the item's color and suggest complementary pieces they own
+- Mention if they've worn similar combinations before
+
+**Outfit Critiques:**
+- Compliment what's working
+- Suggest tweaks using items they own
+- Reference fashion principles (proportions, color theory)
+
+## RESPONSE GUIDELINES:
+
+**Tone:**
+- Friendly, encouraging, enthusiastic (like a supportive friend who loves fashion)
+- Honest but never harsh
+- Knowledgeable without being pretentious
+- Adapt to user's communication style
+
+**Structure:**
+- Start with immediate, actionable advice
+- Use their actual item names/descriptions from closet
+- Provide reasoning for suggestions
+- Offer 2-3 options when possible
+- End with a follow-up question
+
+**Personalization Markers:**
+- "Based on your love of [brand/style from their data]..."
+- "I notice you wear [item] often, so..."
+- "Since you prefer [style preference]..."
+- "Looking at your closet, you have..."
+- "Your analytics show you feel great in..."
+
+**Format Outfit Suggestions Like:**
+"✨ Outfit Option 1: [Occasion/Vibe]
+- Top: [Their specific item with brand if known]
+- Bottom: [Their specific item]
+- Shoes: [Their specific item]
+- Accessories: [Their specific items]
+*Why this works: [Brief reasoning based on style principles]*"
+
+## KEY RULES:
+
+✅ Always reference user's ACTUAL closet items by name
+✅ Consider their gender identity and style preferences
+✅ Use analytics to inform suggestions
+✅ Mention upcoming trips/events when relevant
+✅ Check wishlist before suggesting new purchases
+✅ Celebrate all body types and personal style choices
+✅ Focus on how they FEEL, not arbitrary rules
+
+❌ Don't suggest buying items when they have suitable options in closet
+❌ Don't reference trends that clash with their aesthetic
+❌ Don't ignore their analytics data
+❌ Don't make assumptions without data
+❌ Don't shame past outfit choices
+
+Remember: You're not giving generic fashion advice - you're a personal stylist who KNOWS this user's wardrobe, preferences, lifestyle, and style evolution!
 `;
 
 class FashionStylistService {
@@ -51,18 +131,24 @@ class FashionStylistService {
   
   /**
    * Main method: Ask fashion advice with optional images
+   * NOW WITH COMPREHENSIVE USER CONTEXT!
    */
   async askStylist(
     question: string,
     images?: string[]
   ): Promise<StylistResponse> {
-    console.log('💬 [STYLIST] Processing question:', question);
+    console.log('💬 [STYLIST] Processing question with FULL context:', question);
     
     try {
-      // 1. Get user's closet context
-      const closetContext = await this.getUserClosetContext();
+      // 1. Gather COMPLETE user context (closet, preferences, analytics, wishlist, trips)
+      console.log('📦 [STYLIST] Gathering complete user context...');
+      const fullContext = await userContextAggregatorService.gatherAllData();
       
-      // 2. Analyze images if provided with Claude Vision
+      // 2. Let Claude deeply analyze everything
+      console.log('🔍 [STYLIST] Claude analyzing user profile...');
+      const userProfile = await claudeClosetAnalyzer.analyzeUserProfile(fullContext);
+      
+      // 3. Analyze uploaded images if present
       let imageAnalysis = '';
       if (images && images.length > 0) {
         console.log(`📸 [STYLIST] Analyzing ${images.length} image(s) with Claude Vision...`);
@@ -83,7 +169,7 @@ Suggestions: ${visionAnalysis.suggestions.join('; ')}
         }
       }
       
-      // 3. Search web for relevant fashion trends (if applicable)
+      // 4. Search web for relevant fashion trends (if applicable)
       let webResults = '';
       if (fashionWebSearchService.shouldSearchWeb(question)) {
         console.log('🌐 [STYLIST] Searching web for fashion trends...');
@@ -104,24 +190,25 @@ ${searchResults.slice(0, 3).map(r => `• ${r.title}: ${r.snippet}`).join('\n')}
         }
       }
       
-      // 4. Build comprehensive prompt
-      const prompt = this.buildStylistPrompt({
+      // 5. Build comprehensive prompt with ALL data
+      const prompt = this.buildEnhancedPrompt({
         question,
-        closetContext,
+        userProfile,
+        fullContext,
         imageAnalysis,
         webResults,
         history: this.conversationHistory.slice(-4) // Last 4 messages for context
       });
       
-      // 4. Get response from OpenAI
+      // 6. Get personalized response from GPT-4o
       const response = await getChatGPTResponse(prompt, {
         model: 'gpt-4o',
         temperature: 0.8,
         maxTokens: 1500,
-        systemMessage: STYLIST_SYSTEM_PROMPT
+        systemMessage: COMPREHENSIVE_STYLIST_PROMPT // New comprehensive prompt!
       });
       
-      // 5. Update conversation history
+      // 7. Update conversation history
       this.conversationHistory.push({
         role: 'user',
         content: question,
@@ -135,10 +222,10 @@ ${searchResults.slice(0, 3).map(r => `• ${r.title}: ${r.snippet}`).join('\n')}
         timestamp: new Date()
       });
       
-      // 6. Generate follow-up suggestions
+      // 8. Generate follow-up suggestions
       const suggestions = this.generateSuggestions(question, response);
       
-      console.log('✅ [STYLIST] Response generated');
+      console.log('✅ [STYLIST] Personalized response generated with full context!');
       
       return {
         message: response,
@@ -154,56 +241,15 @@ ${searchResults.slice(0, 3).map(r => `• ${r.title}: ${r.snippet}`).join('\n')}
     }
   }
   
-  /**
-   * Get user's closet items for context using Claude AI analysis
-   */
-  private async getUserClosetContext(): Promise<string> {
-    try {
-      console.log('🔍 [STYLIST] Getting closet context with Claude analysis...');
-      
-      // Use Claude to deeply analyze closet
-      const analysis = await claudeClosetAnalyzer.analyzeCloset();
-      
-      if (analysis.totalItems === 0) {
-        return `User has an empty closet (${analysis.gaps.length} essential items recommended).\n\nSuggested starter pieces:\n${analysis.gaps.map(g => `- ${g}`).join('\n')}`;
-      }
-      
-      console.log(`✅ [STYLIST] Got rich analysis: ${analysis.totalItems} items analyzed`);
-      
-      // Return Claude's comprehensive analysis
-      return analysis.summary;
-      
-    } catch (error) {
-      console.error('❌ [STYLIST] Error analyzing closet:', error);
-      
-      // Fallback to simple query if Claude fails
-      try {
-        const user = await authService.getCurrentUser();
-        if (!user) return 'No closet data available.';
-        
-        const { data: items } = await supabase
-          .from('wardrobe_items')
-          .select('name, category, color')
-          .eq('user_id', user.id)
-          .limit(20);
-        
-        if (!items || items.length === 0) {
-          return 'User has an empty closet. Suggest building a versatile wardrobe.';
-        }
-        
-        return `User has ${items.length} items: ${items.map(i => i.name).join(', ')}`;
-      } catch (fallbackError) {
-        return 'Unable to access closet data.';
-      }
-    }
-  }
+
   
   /**
-   * Build comprehensive prompt for OpenAI
+   * Build ENHANCED comprehensive prompt with complete user profile
    */
-  private buildStylistPrompt(context: {
+  private buildEnhancedPrompt(context: {
     question: string;
-    closetContext: string;
+    userProfile: ComprehensiveUserProfile;
+    fullContext: UserContext;
     imageAnalysis: string;
     webResults?: string;
     history: StylistMessage[];
@@ -212,38 +258,191 @@ ${searchResults.slice(0, 3).map(r => `• ${r.title}: ${r.snippet}`).join('\n')}
     
     // Add conversation history if exists
     if (context.history.length > 0) {
-      prompt += 'CONVERSATION HISTORY:\n';
+      prompt += '=== CONVERSATION HISTORY ===\n';
       context.history.forEach(msg => {
         prompt += `${msg.role === 'user' ? 'User' : 'Stylist'}: ${msg.content}\n`;
       });
       prompt += '\n';
     }
     
-    prompt += `CURRENT QUESTION:\n${context.question}\n\n`;
+    prompt += '=== USER\'S COMPLETE FASHION PROFILE ===\n\n';
     
+    // CLOSET INVENTORY
+    prompt += '## CLOSET INVENTORY:\n';
+    prompt += `- Total Items: ${context.fullContext.closet.totalItems}\n`;
+    
+    if (context.fullContext.closet.totalItems > 0) {
+      const categories = Object.entries(context.fullContext.closet.byCategory);
+      prompt += `- Categories: ${categories.map(([cat, items]) => `${cat} (${items.length})`).join(', ')}\n`;
+      
+      if (context.fullContext.closet.favoriteItems.length > 0) {
+        prompt += `\nFavorite Items:\n`;
+        context.fullContext.closet.favoriteItems.slice(0, 5).forEach(item => {
+          const desc = [item.name];
+          if (item.brand) desc.push(`by ${item.brand}`);
+          if (item.color) desc.push(item.color);
+          if (item.times_worn > 0) desc.push(`(worn ${item.times_worn}x)`);
+          prompt += `  - ${desc.join(' ')}\n`;
+        });
+      }
+      
+      if (context.fullContext.closet.recentlyAdded.length > 0) {
+        prompt += `\nRecently Added:\n`;
+        context.fullContext.closet.recentlyAdded.slice(0, 3).forEach(item => {
+          prompt += `  - ${item.name}${item.brand ? ` by ${item.brand}` : ''}\n`;
+        });
+      }
+    }
+    
+    // STYLE PREFERENCES
+    if (context.fullContext.stylePreferences) {
+      const prefs = context.fullContext.stylePreferences;
+      prompt += '\n## STYLE PREFERENCES:\n';
+      
+      if (prefs.sizes?.gender) prompt += `- Gender: ${prefs.sizes.gender}\n`;
+      if (prefs.fashionPersonality?.archetypes?.length) {
+        prompt += `- Style Archetypes: ${prefs.fashionPersonality.archetypes.join(', ')}\n`;
+      }
+      if (prefs.fashionPersonality?.colorPalette?.length) {
+        prompt += `- Preferred Colors: ${prefs.fashionPersonality.colorPalette.join(', ')}\n`;
+      }
+      if (prefs.fashionPersonality?.avoidColors?.length) {
+        prompt += `- Avoid Colors: ${prefs.fashionPersonality.avoidColors.join(', ')}\n`;
+      }
+      if (prefs.shopping?.favoriteStores?.length) {
+        prompt += `- Favorite Stores: ${prefs.shopping.favoriteStores.slice(0, 3).join(', ')}\n`;
+      }
+    }
+    
+    // ANALYTICS INSIGHTS
+    if (context.fullContext.analytics) {
+      const analytics = context.fullContext.analytics;
+      prompt += '\n## ANALYTICS INSIGHTS:\n';
+      prompt += `- Total Wardrobe Value: $${analytics.totalValue.toFixed(2)}\n`;
+      
+      if (analytics.bestValueItems?.length) {
+        prompt += `\nBest Value Items (Most Worn):\n`;
+        analytics.bestValueItems.slice(0, 3).forEach(item => {
+          prompt += `  - ${item.name}: $${item.costPerWear.toFixed(2)}/wear (worn ${item.timesWorn}x)\n`;
+        });
+      }
+      
+      if (analytics.unwornItems && analytics.unwornItems > 0) {
+        prompt += `\nUnworn Items: ${analytics.unwornItems} items ($${analytics.unwornValue?.toFixed(2) || '0'} value) - SUGGEST STYLING THESE!\n`;
+      }
+      
+      if (analytics.colors?.length) {
+        prompt += `\nColor Palette: ${analytics.colors.slice(0, 5).map(c => c.color).join(', ')}\n`;
+      }
+    }
+    
+    // WISHLIST
+    if (context.fullContext.wishlist.items.length > 0) {
+      prompt += '\n## WISHLIST:\n';
+      prompt += `- Total Items: ${context.fullContext.wishlist.items.length}\n`;
+      prompt += `- Total Value: $${context.fullContext.wishlist.totalValue.toFixed(2)}\n`;
+      
+      const wishlistSample = context.fullContext.wishlist.items.slice(0, 3);
+      if (wishlistSample.length > 0) {
+        prompt += `\nTop Wishlist Items:\n`;
+        wishlistSample.forEach(item => {
+          prompt += `  - ${item.name}${item.brand ? ` by ${item.brand}` : ''} (${item.price})\n`;
+        });
+      }
+    }
+    
+    // UPCOMING TRIPS
+    if (context.fullContext.trips.upcoming.length > 0) {
+      prompt += '\n## UPCOMING TRIPS:\n';
+      context.fullContext.trips.upcoming.forEach(trip => {
+        prompt += `- ${trip.destination} (${trip.start_date} to ${trip.end_date})`;
+        if (trip.trip_type) prompt += ` - ${trip.trip_type}`;
+        prompt += '\n';
+      });
+    }
+    
+    // CLAUDE'S ANALYSIS
+    prompt += '\n## CLAUDE\'S WARDROBE ANALYSIS:\n';
+    prompt += `${context.userProfile.wardrobeOverview}\n\n`;
+    prompt += `Style Profile: ${context.userProfile.styleProfile}\n`;
+    
+    if (context.userProfile.strengths.length > 0) {
+      prompt += `\nWardrobe Strengths:\n`;
+      context.userProfile.strengths.forEach(s => prompt += `  - ${s}\n`);
+    }
+    
+    if (context.userProfile.gaps.length > 0) {
+      prompt += `\nWardrobe Gaps:\n`;
+      context.userProfile.gaps.forEach(g => prompt += `  - ${g}\n`);
+    }
+    
+    if (context.userProfile.mostVersatilePieces.length > 0) {
+      prompt += `\nMost Versatile Pieces:\n`;
+      context.userProfile.mostVersatilePieces.forEach(p => prompt += `  - ${p}\n`);
+    }
+    
+    if (context.userProfile.underutilizedItems.length > 0) {
+      prompt += `\nUnderutilized Items (Suggest styling these!):\n`;
+      context.userProfile.underutilizedItems.forEach(u => prompt += `  - ${u}\n`);
+    }
+    
+    if (context.userProfile.shoppingInsights) {
+      prompt += `\nShopping Insights: ${context.userProfile.shoppingInsights}\n`;
+    }
+    
+    if (context.userProfile.upcomingNeeds) {
+      prompt += `\nUpcoming Needs: ${context.userProfile.upcomingNeeds}\n`;
+    }
+    
+    // CURRENT QUESTION
+    prompt += '\n\n=== CURRENT QUESTION ===\n';
+    prompt += `${context.question}\n`;
+    
+    // UPLOADED PHOTOS
     if (context.imageAnalysis) {
-      prompt += `${context.imageAnalysis}\n\n`;
+      prompt += '\n=== UPLOADED PHOTOS ===\n';
+      prompt += `${context.imageAnalysis}\n`;
     }
     
-    prompt += `USER'S CLOSET:\n${context.closetContext}\n\n`;
-    
+    // WEB TRENDS
     if (context.webResults) {
-      prompt += `${context.webResults}\n\n`;
+      prompt += '\n=== CURRENT FASHION TRENDS ===\n';
+      prompt += `${context.webResults}\n`;
     }
     
-    prompt += `
-Provide helpful, personalized fashion advice. Be specific about:
-- Outfit combinations from user's existing closet
-- Styling tips and techniques
-- What might be missing or needed
-- Color coordination
-- Occasion appropriateness
+    // INSTRUCTIONS
+    prompt += `\n\n=== INSTRUCTIONS ===
+Provide personalized fashion advice using:
+1. User's ACTUAL closet items (reference by name/brand)
+2. Their established style preferences
+3. Analytics insights (what they love wearing)
+4. Upcoming events/trips if relevant
+5. Wishlist context if shopping advice needed
 
-Keep response conversational and under 200 words unless detailed explanation needed.
-Use formatting (bullets, emojis) to make advice easy to scan.
+Be specific - mention their actual items!
+Format outfit suggestions clearly with emojis.
+Keep response conversational and actionable.
     `.trim();
     
     return prompt;
+  }
+  
+  /**
+   * Legacy method - now simplified (kept for backwards compatibility)
+   */
+  private async getUserClosetContext(): string {
+    try {
+      // Now just calls the aggregator for basic context
+      const context = await userContextAggregatorService.gatherAllData();
+      
+      if (context.closet.totalItems === 0) {
+        return 'User has an empty closet. Suggest building a versatile wardrobe.';
+      }
+      
+      return `User has ${context.closet.totalItems} items across ${Object.keys(context.closet.byCategory).length} categories.`;
+    } catch (error) {
+      return 'Unable to access closet data.';
+    }
   }
   
   /**
