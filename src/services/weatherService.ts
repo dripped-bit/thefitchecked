@@ -392,6 +392,54 @@ class WeatherService {
   }
 
   /**
+   * Get weather for a specific date and time slot
+   * Used by Trip Planner to show weather for activities
+   */
+  async getWeatherForDateAndTime(
+    location: string,
+    dateStr: string,
+    timeSlot: 'morning' | 'afternoon' | 'evening'
+  ): Promise<WeatherData> {
+    try {
+      console.log('🌤️ [WEATHER] Fetching weather for:', location, dateStr, timeSlot);
+
+      // Parse location (could be "Paris, France" or "New York, NY")
+      const parts = location.split(',').map(p => p.trim());
+      const city = parts[0];
+      const state = parts[1];
+
+      // Geocode location
+      const coords = await this.geocodeLocation(city, state);
+      
+      // Parse date
+      const targetDate = new Date(dateStr);
+      
+      // Get forecast for the date
+      const weather = await this.getWeatherForecast(coords.latitude, coords.longitude, targetDate);
+      
+      // Adjust temperature based on time of day (simple estimation)
+      // Morning: -5°F, Afternoon: +5°F, Evening: 0°F (average)
+      if (timeSlot === 'morning') {
+        weather.temperature = Math.round(weather.temperature - 5);
+        weather.feelsLike = Math.round(weather.feelsLike - 5);
+      } else if (timeSlot === 'afternoon') {
+        weather.temperature = Math.round(weather.temperature + 5);
+        weather.feelsLike = Math.round(weather.feelsLike + 5);
+      }
+      
+      weather.location.city = coords.displayName;
+      
+      console.log('✅ [WEATHER] Weather retrieved:', weather.temperature + '°F', weather.weatherDescription);
+      return weather;
+      
+    } catch (error) {
+      console.error('❌ [WEATHER] Failed to get weather for date/time:', error);
+      // Return fallback weather
+      return this.getFallbackWeather();
+    }
+  }
+
+  /**
    * Convert weather code to human-readable description
    */
   private getWeatherDescription(code: number): string {

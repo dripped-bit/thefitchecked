@@ -263,6 +263,7 @@ export function TripPlanTab({ trip }: TripPlanTabProps) {
           setSelectedTimeSlot(undefined);
         }}
         tripId={trip.id}
+        trip={trip}
         startDate={trip.start_date}
         endDate={trip.end_date}
         preselectedDate={selectedDate}
