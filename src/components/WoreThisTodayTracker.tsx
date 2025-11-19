@@ -853,7 +853,7 @@ const WoreThisTodayTracker: React.FC<WoreThisTodayTrackerProps> = ({
         onClick={onClose}
         className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors"
       >
-        Back to Calendar
+        Close
       </button>
     </div>
   );
