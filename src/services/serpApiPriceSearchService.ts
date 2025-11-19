@@ -3,6 +3,7 @@
  * Searches for fashion items across retailers to find best deals
  */
 
+import { CapacitorHttp, HttpResponse } from '@capacitor/core';
 import { SearchQueries } from './claudeComparisonService';
 
 export interface DealResult {
@@ -73,17 +74,22 @@ class SerpApiPriceSearchService {
       console.log(`🌐 [SERPAPI-PRICE] Fetching: ${query}`);
       console.log(`🔑 [SERPAPI-PRICE] API Key present: ${!!this.apiKey}, length: ${this.apiKey?.length || 0}`);
       
-      const response = await fetch(url);
+      // Use CapacitorHttp instead of fetch to bypass CORS on mobile
+      const response: HttpResponse = await CapacitorHttp.get({
+        url: url,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       console.log(`📡 [SERPAPI-PRICE] Response status: ${response.status}`);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ [SERPAPI-PRICE] Error response:`, errorText);
-        throw new Error(`SerpAPI returned ${response.status}: ${errorText}`);
+      if (response.status !== 200) {
+        console.error(`❌ [SERPAPI-PRICE] Error response:`, response.data);
+        throw new Error(`SerpAPI returned ${response.status}: ${JSON.stringify(response.data)}`);
       }
 
-      const data = await response.json();
+      const data = response.data;
       console.log(`📦 [SERPAPI-PRICE] Got data:`, JSON.stringify(data).substring(0, 200));
       
       if (!data.shopping_results || data.shopping_results.length === 0) {
