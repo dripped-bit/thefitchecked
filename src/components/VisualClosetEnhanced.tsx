@@ -1157,8 +1157,8 @@ const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreT
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '1rem 0',
-        margin: '0'
+        paddingTop: '24px',
+        paddingBottom: '0'
       }}>
         <CloudFavoritesButton
           isSelected={showFavoritesOnly}
