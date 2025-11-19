@@ -493,6 +493,7 @@ const MorningMode: React.FC<MorningModeProps> = ({ onBack }) => {
             onClick={() => {
               console.log('🔄 [MORNING-MODE] Refresh button clicked');
               haptics.medium(); // Haptic feedback on refresh
+              setRecentlyShownOutfits([]); // Clear duplicate tracking on manual refresh
               loadMorningMode();
             }}
             disabled={loading}
