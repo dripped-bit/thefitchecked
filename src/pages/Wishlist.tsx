@@ -230,7 +230,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const handleAIComparison = async (item: WishlistItem) => {
     try {
       setComparingItem(true);
-      setToastMessage('Finding best deals with AI...');
+      setToastMessage('🔄 Analyzing prices with AI...');
       setShowToast(true);
 
       console.log('🤖 [WISHLIST] Starting AI comparison for:', item.name);
@@ -254,11 +254,15 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       setShowPriceComparison(true);
       setComparingItem(false);
       
-      setToastMessage('Found deals!');
+      if (results.exactMatches.length > 0 || results.similarItems.length > 0) {
+        setToastMessage('✅ Found deals!');
+      } else {
+        setToastMessage('⚠️ No deals found');
+      }
       setShowToast(true);
     } catch (error: any) {
       console.error('❌ [WISHLIST] AI comparison failed:', error);
-      setToastMessage('Failed to find deals');
+      setToastMessage('❌ Comparison failed - check connection');
       setShowToast(true);
       setComparingItem(false);
     }
@@ -963,6 +967,42 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
               duration={2000}
               position="top"
             />
+
+            {/* Loading Overlay for AI Comparison */}
+            {comparingItem && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999,
+              }}>
+                <IonSpinner 
+                  name="crescent" 
+                  style={{ 
+                    transform: 'scale(2)',
+                    color: '#007AFF',
+                    marginBottom: '20px',
+                  }} 
+                />
+                <IonText style={{ 
+                  color: 'white',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  textAlign: 'center',
+                  padding: '0 20px',
+                }}>
+                  <p>🤖 AI is finding the best deals...</p>
+                  <p style={{ fontSize: '14px', opacity: 0.8 }}>This may take a moment</p>
+                </IonText>
+              </div>
+            )}
           </>
         )}
       </div>
