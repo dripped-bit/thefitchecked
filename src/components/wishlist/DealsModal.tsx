@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IonButton, IonIcon, IonSpinner } from '@ionic/react';
 import { close } from 'ionicons/icons';
 import { Browser } from '@capacitor/browser';
@@ -30,9 +30,19 @@ const DealsModal: React.FC<DealsModalProps> = ({
   similarItems
 }) => {
   const [activeTab, setActiveTab] = useState<'exact' | 'similar'>('exact');
+  const modalRef = useRef<HTMLDivElement>(null);
 
   console.log('🎁 [DEALS-MODAL] Render called - isOpen:', isOpen, 'exact:', exactMatches.length, 'similar:', similarItems.length);
   console.log('🎁 [DEALS-MODAL] OriginalItem:', originalItem?.name);
+
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      console.log('📐 [DEALS-MODAL] Modal mounted in DOM:', modalRef.current);
+      console.log('📐 [DEALS-MODAL] Modal visibility:', window.getComputedStyle(modalRef.current).visibility);
+      console.log('📐 [DEALS-MODAL] Modal display:', window.getComputedStyle(modalRef.current).display);
+      console.log('📐 [DEALS-MODAL] Modal z-index:', window.getComputedStyle(modalRef.current).zIndex);
+    }
+  }, [isOpen]);
 
   if (!isOpen) {
     console.log('⏸️ [DEALS-MODAL] Not open, returning null');
@@ -74,14 +84,18 @@ const DealsModal: React.FC<DealsModalProps> = ({
 
   return (
     <div 
-      onClick={onClose}
+      ref={modalRef}
+      onClick={(e) => {
+        console.log('🔴 [DEALS-MODAL] Backdrop clicked, closing...');
+        onClose();
+      }}
       style={{
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: 99999,
+        zIndex: 999999,
         background: 'rgba(0,0,0,0.7)',
         display: 'flex',
         flexDirection: 'column',
@@ -98,7 +112,6 @@ const DealsModal: React.FC<DealsModalProps> = ({
           height: '90vh',
           display: 'flex',
           flexDirection: 'column',
-          animation: 'slideUp 0.5s ease-out forwards',
           boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
         }}
       >
@@ -295,18 +308,7 @@ const DealsModal: React.FC<DealsModalProps> = ({
         </div>
       </div>
 
-      <style>{`
-        @keyframes slideUp {
-          0% {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          100% {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-      `}</style>
+
     </div>
   );
 };

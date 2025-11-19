@@ -1126,16 +1126,19 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
               return null;
             })()}
             
-            <DealsModal
-              isOpen={showPriceComparison && !!selectedItemForComparison?.aiResults}
-              onClose={() => {
-                console.log('🔴 [WISHLIST] Closing deals modal');
-                setShowPriceComparison(false);
-              }}
-              originalItem={selectedItemForComparison?.original}
-              exactMatches={selectedItemForComparison?.aiResults?.exactMatches || []}
-              similarItems={selectedItemForComparison?.aiResults?.similarItems || []}
-            />
+            {showPriceComparison && selectedItemForComparison?.aiResults && (
+              <DealsModal
+                isOpen={true}
+                onClose={() => {
+                  console.log('🔴 [WISHLIST] Closing deals modal');
+                  setShowPriceComparison(false);
+                  setSelectedItemForComparison(null);
+                }}
+                originalItem={selectedItemForComparison.original}
+                exactMatches={selectedItemForComparison.aiResults.exactMatches || []}
+                similarItems={selectedItemForComparison.aiResults.similarItems || []}
+              />
+            )}
             
             <PriceComparisonModal
               isOpen={showPriceComparison && !selectedItemForComparison?.aiResults}
