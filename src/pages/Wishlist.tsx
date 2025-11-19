@@ -29,6 +29,8 @@ import MoveToClosetModal from '../components/wishlist/MoveToClosetModal';
 import AvailabilityBadge from '../components/wishlist/AvailabilityBadge';
 import availabilityCheckerService from '../services/availabilityCheckerService';
 import birthdayWishlistService from '../services/birthdayWishlistService';
+import claudeComparisonService from '../services/claudeComparisonService';
+import serpApiPriceSearchService from '../services/serpApiPriceSearchService';
 
 interface WishlistItem {
   id: string;
@@ -89,6 +91,8 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const [selectedItemForMove, setSelectedItemForMove] = useState<any>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [compareMode, setCompareMode] = useState(false);
+  const [comparingItem, setComparingItem] = useState(false);
 
   useEffect(() => {
     fetchWishlist();
@@ -221,12 +225,54 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   };
 
   const handleComparePrice = () => {
-    if (selectedItems.size === 0) return;
+    if (selectedItems.size === 0) {
+      setToastMessage('Select items to compare prices');
+      setShowToast(true);
+      return;
+    }
+    
     const firstSelectedId = Array.from(selectedItems)[0];
     const item = allWishlistItems.find(i => i.id === firstSelectedId);
+    
     if (item) {
-      setSelectedItemForComparison(item);
+      handleAIComparison(item);
+    }
+  };
+
+  const handleAIComparison = async (item: WishlistItem) => {
+    try {
+      setComparingItem(true);
+      setToastMessage('Finding best deals with AI...');
+      setShowToast(true);
+
+      console.log('🤖 [WISHLIST] Starting AI comparison for:', item.name);
+
+      // Step 1: Use Claude to generate optimized search queries
+      const queries = await claudeComparisonService.generateSearchQueries(item);
+
+      // Step 2: Search SerpAPI for deals
+      const results = await serpApiPriceSearchService.searchDeals(queries);
+
+      console.log('✅ [WISHLIST] Got comparison results:', {
+        exactMatches: results.exactMatches.length,
+        similarItems: results.similarItems.length
+      });
+
+      // Step 3: Show results in modal
+      setSelectedItemForComparison({
+        original: item,
+        aiResults: results
+      });
       setShowPriceComparison(true);
+      setComparingItem(false);
+      
+      setToastMessage('Found deals!');
+      setShowToast(true);
+    } catch (error: any) {
+      console.error('❌ [WISHLIST] AI comparison failed:', error);
+      setToastMessage('Failed to find deals');
+      setShowToast(true);
+      setComparingItem(false);
     }
   };
 

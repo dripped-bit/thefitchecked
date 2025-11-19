@@ -32,9 +32,14 @@ const PriceComparisonModal: React.FC<PriceComparisonModalProps> = ({
   const [retailers, setRetailers] = useState<RetailerPrice[]>([]);
   const [bestDealIndex, setBestDealIndex] = useState(-1);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'exact' | 'similar'>('exact');
+
+  // Check if this is AI-powered results
+  const hasAIResults = item?.aiResults;
+  const originalItem = hasAIResults ? item.original : item;
 
   useEffect(() => {
-    if (isOpen && item) {
+    if (isOpen && item && !hasAIResults) {
       loadPriceComparison();
     }
   }, [isOpen, item]);
@@ -82,13 +87,55 @@ const PriceComparisonModal: React.FC<PriceComparisonModalProps> = ({
       <IonContent className="ion-padding">
         <IonText>
           <h2 style={{ fontWeight: '600', marginTop: 0 }}>
-            {item?.name?.substring(0, 60)}
-            {(item?.name?.length || 0) > 60 ? '...' : ''}
+            {originalItem?.name?.substring(0, 60)}
+            {(originalItem?.name?.length || 0) > 60 ? '...' : ''}
           </h2>
           <p style={{ color: 'var(--ion-color-medium)', marginBottom: '20px' }}>
-            Original: {item?.price} from {item?.retailer}
+            Original: {originalItem?.price} from {originalItem?.retailer}
           </p>
         </IonText>
+
+        {/* AI Results Tabs */}
+        {hasAIResults && (
+          <div style={{ 
+            display: 'flex', 
+            gap: '8px', 
+            marginBottom: '16px',
+            borderBottom: '1px solid rgba(0,0,0,0.1)',
+            paddingBottom: '8px'
+          }}>
+            <button
+              onClick={() => setActiveTab('exact')}
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                background: activeTab === 'exact' ? '#007AFF' : 'transparent',
+                color: activeTab === 'exact' ? 'white' : '#007AFF',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Same Item ({item.aiResults.exactMatches.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('similar')}
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                background: activeTab === 'similar' ? '#007AFF' : 'transparent',
+                color: activeTab === 'similar' ? 'white' : '#007AFF',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Similar Items ({item.aiResults.similarItems.length})
+            </button>
+          </div>
+        )}
 
         {loading && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
@@ -105,7 +152,62 @@ const PriceComparisonModal: React.FC<PriceComparisonModalProps> = ({
           </IonText>
         )}
 
-        {!loading && retailers.length > 0 && (
+        {/* AI-Powered Results */}
+        {hasAIResults && !loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {(activeTab === 'exact' ? item.aiResults.exactMatches : item.aiResults.similarItems).map((deal: any, index: number) => (
+              <IonCard key={index} style={{ margin: 0 }}>
+                <IonCardContent>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    {deal.image && (
+                      <img 
+                        src={deal.image} 
+                        alt={deal.title}
+                        style={{ 
+                          width: '80px', 
+                          height: '80px', 
+                          objectFit: 'cover',
+                          borderRadius: '8px'
+                        }}
+                      />
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ margin: '0 0 4px', fontWeight: '600', fontSize: '14px' }}>
+                        {deal.title.substring(0, 60)}{deal.title.length > 60 ? '...' : ''}
+                      </h3>
+                      <IonText color="medium" style={{ fontSize: '12px' }}>
+                        {deal.retailer}
+                      </IonText>
+                      <IonText color="primary">
+                        <p style={{ margin: '8px 0 0', fontWeight: '700', fontSize: '18px' }}>
+                          {deal.price}
+                        </p>
+                      </IonText>
+                    </div>
+                  </div>
+                  <IonButton
+                    expand="block"
+                    size="small"
+                    onClick={() => openRetailer(deal.url)}
+                    style={{ '--border-radius': '8px', marginTop: '12px' }}
+                  >
+                    <IonIcon icon={openOutline} slot="start" />
+                    Shop Now
+                  </IonButton>
+                </IonCardContent>
+              </IonCard>
+            ))}
+            
+            {(activeTab === 'exact' ? item.aiResults.exactMatches : item.aiResults.similarItems).length === 0 && (
+              <IonText color="medium" style={{ textAlign: 'center', padding: '20px' }}>
+                <p>No {activeTab === 'exact' ? 'exact matches' : 'similar items'} found</p>
+              </IonText>
+            )}
+          </div>
+        )}
+
+        {/* Legacy Multi-Retailer Results */}
+        {!hasAIResults && !loading && retailers.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {retailers.map((retailer, index) => (
               <IonCard
