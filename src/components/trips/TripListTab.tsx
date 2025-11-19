@@ -8,10 +8,11 @@ import {
   useTripChecklist,
   useToggleChecklistItem,
   useInitializeChecklist,
+  useTripPackingList,
   type Trip,
 } from '../../hooks/useTrips';
 import { useCloset } from '../../hooks/useCloset';
-import { ShopForTripSection } from './ShopForTripSection';
+import { ClothingTabView } from './ClothingTabView';
 import { ChecklistSection } from './ChecklistSection';
 import { FIXED_CHECKLIST_ITEMS, CLOTHING_CHECKLIST_ITEMS } from '../../constants/tripTypes';
 
@@ -24,6 +25,7 @@ export function TripListTab({ trip }: TripListTabProps) {
   const { data: allOutfits = [] } = useAllTripOutfits(trip.id);
   const { items: closetItems } = useCloset();
   const tripDays = useTripDaysArray(trip.start_date, trip.end_date);
+  const { data: packingList = [] } = useTripPackingList(trip.id);
   
   const { data: checklistItems = [], isLoading: checklistLoading } = useTripChecklist(trip.id);
   const toggleChecklistItem = useToggleChecklistItem();
@@ -64,6 +66,15 @@ export function TripListTab({ trip }: TripListTabProps) {
 
     return grouped;
   }, [allClothes]);
+
+  // Create set of packed item IDs
+  const packedItemIds = useMemo(() => {
+    return new Set(
+      packingList
+        .filter(item => item.is_packed && item.clothing_item_id)
+        .map(item => item.clothing_item_id!)
+    );
+  }, [packingList]);
 
   // Calculate clothing counts per category
   const clothingCounts = useMemo(() => {
@@ -176,8 +187,11 @@ export function TripListTab({ trip }: TripListTabProps) {
         </div>
       </div>
 
-      {/* Shop for Trip Section */}
-      <ShopForTripSection clothesByCategory={clothesByCategory} />
+      {/* Clothing Tab View */}
+      <ClothingTabView 
+        clothesByCategory={clothesByCategory} 
+        packedItemIds={packedItemIds}
+      />
 
       {/* Checklist Sections */}
       {(checklistLoading || isInitializing) ? (

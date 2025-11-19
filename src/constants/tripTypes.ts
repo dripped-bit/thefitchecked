@@ -131,6 +131,7 @@ export const CLOTHING_CHECKLIST_ITEMS = [
   'tops',
   'bottoms',
   'shoes',
+  'accessories',
   'outerwear',
   'other',
 ] as const;
