@@ -69,10 +69,13 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
 
   // Tab bar state
-  const [activeMainTab, setActiveMainTab] = useState<'compare' | 'buy' | 'share' | 'birthday'>('compare');
+  const [activeMainTab, setActiveMainTab] = useState<'compare' | 'buy' | 'share' | 'gifts'>('compare');
+
+  // Selection state
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   // Feature states
-  const [showBirthdayMode, setShowBirthdayMode] = useState(false);
+  const [showGiftsMode, setShowGiftsMode] = useState(false);
   const [showPriceComparison, setShowPriceComparison] = useState(false);
   const [selectedItemForComparison, setSelectedItemForComparison] = useState<any>(null);
   const [showMoveToCloset, setShowMoveToCloset] = useState(false);
@@ -87,7 +90,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
 
   useEffect(() => {
     filterItems();
-  }, [selectedCategory, allWishlistItems, showBirthdayMode]);
+  }, [selectedCategory, allWishlistItems, showGiftsMode]);
 
   const fetchWishlist = async () => {
     try {
@@ -160,11 +163,11 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     }
   };
 
-  // Filter items based on category and birthday mode
+  // Filter items based on category and gifts mode
   const filterItems = () => {
     let filtered = [...allWishlistItems];
 
-    if (showBirthdayMode) {
+    if (showGiftsMode) {
       filtered = filtered.filter(item => item.is_birthday_item);
     }
 
@@ -173,6 +176,27 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     }
 
     setFilteredItems(filtered);
+  };
+
+  // Calculate total cost
+  const calculateTotalCost = () => {
+    return filteredItems.reduce((sum, item) => {
+      const price = parseFloat(item.price.replace(/[^0-9.]/g, ''));
+      return sum + (isNaN(price) ? 0 : price);
+    }, 0);
+  };
+
+  // Toggle item selection
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
   };
 
   const deleteItem = async (id: string) => {
@@ -242,7 +266,11 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
 
   const handleShareList = async () => {
     try {
-      const shareText = filteredItems
+      const itemsToShare = selectedItems.size > 0
+        ? filteredItems.filter(i => selectedItems.has(i.id))
+        : filteredItems;
+
+      const shareText = itemsToShare
         .map(item => `${item.name} - ${item.price}\n${item.url}`)
         .join('\n\n');
 
@@ -256,10 +284,10 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     }
   };
 
-  const handleBirthdayMode = () => {
-    setActiveMainTab('birthday');
-    setShowBirthdayMode(!showBirthdayMode);
-    if (!showBirthdayMode) {
+  const handleGiftsMode = () => {
+    setActiveMainTab('gifts');
+    setShowGiftsMode(!showGiftsMode);
+    if (!showGiftsMode) {
       setSelectedCategory('All Items');
     }
   };
@@ -273,12 +301,12 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
 
       if (error) throw error;
 
-      setToastMessage('Added to birthday wishlist!');
+      setToastMessage('Added to gift wishlist!');
       setShowToast(true);
       fetchWishlist();
     } catch (error) {
-      console.error('Error marking as birthday item:', error);
-      setToastMessage('Failed to add to birthday list');
+      console.error('Error marking as gift item:', error);
+      setToastMessage('Failed to add to gift list');
       setShowToast(true);
     }
   };
@@ -287,29 +315,45 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     try {
       await Browser.open({ url: item.url });
       
-      setToastMessage('Saving to closet after purchase...');
+      setToastMessage('Saving purchase to closet...');
       setShowToast(true);
       
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
       
+      const price = parseFloat(item.price.replace(/[^0-9.]/g, ''));
+      
+      // Save to closet with full analytics
       await supabase.from('clothing_items').insert({
         user_id: userData.user.id,
         name: item.name,
         category: item.category || 'tops',
         image_url: item.image,
         brand: item.brand,
-        price: item.price ? parseFloat(item.price.replace(/[^0-9.]/g, '')) : null,
-        notes: `Purchased from ${item.retailer}`,
+        price: isNaN(price) ? null : price,
+        notes: `Purchased from wishlist via ${item.retailer}`,
         purchase_date: new Date().toISOString(),
         favorite: false,
         times_worn: 0,
-        tags: ['wishlist_purchase', item.retailer || 'wishlist']
+        tags: [
+          'wishlist_purchase',
+          item.retailer || 'unknown',
+          item.brand || 'unknown_brand',
+          `price_${Math.floor(price / 50) * 50}`,
+          new Date().toISOString().slice(0, 7),
+        ]
       });
       
       await supabase.from('wishlist_items').delete().eq('id', item.id);
       
-      setToastMessage('Saved to closet!');
+      // Remove from selection
+      setSelectedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(item.id);
+        return newSet;
+      });
+      
+      setToastMessage('✅ Saved to closet with analytics!');
       setShowToast(true);
       fetchWishlist();
     } catch (error: any) {
@@ -383,6 +427,9 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
     setShowToast(true);
   };
 
+  const totalCost = calculateTotalCost();
+  const selectedCount = selectedItems.size;
+
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -390,7 +437,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       display: 'flex',
       flexDirection: 'column'
     }}>
-      {/* Header - Centered Minimal */}
+      {/* Header - Centered with Total & Selected Count */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -414,9 +461,32 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
         >
           ←
         </button>
-        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#000' }}>
-          {showBirthdayMode ? 'Birthday Wishlist' : 'Wishlist'}
-        </h1>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
+          <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#000' }}>
+            {showGiftsMode ? 'Gift Wishlist' : 'Wishlist'}
+          </h1>
+          <div style={{ 
+            display: 'flex', 
+            gap: '12px',
+            fontSize: '13px',
+            color: '#86868b',
+            marginTop: '4px',
+          }}>
+            <span>Total: ${totalCost.toFixed(2)}</span>
+            {selectedCount > 0 && (
+              <span style={{ 
+                color: '#007AFF',
+                fontWeight: '600',
+              }}>
+                • {selectedCount} selected
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Content */}
@@ -521,8 +591,24 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
               <button
                 onClick={() => {
                   setActiveMainTab('compare');
-                  setToastMessage('Select an item to compare prices');
-                  setShowToast(true);
+                  if (selectedItems.size === 0) {
+                    setToastMessage('Select items by clicking on them');
+                    setShowToast(true);
+                  } else if (selectedItems.size === 1) {
+                    const itemId = Array.from(selectedItems)[0];
+                    const item = filteredItems.find(i => i.id === itemId);
+                    if (item) {
+                      handleAIComparison(item);
+                    }
+                  } else {
+                    setToastMessage(`Comparing ${selectedItems.size} items...`);
+                    setShowToast(true);
+                    const itemId = Array.from(selectedItems)[0];
+                    const item = filteredItems.find(i => i.id === itemId);
+                    if (item) {
+                      handleAIComparison(item);
+                    }
+                  }
                 }}
                 style={{
                   flex: 1,
@@ -541,8 +627,13 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
               <button
                 onClick={() => {
                   setActiveMainTab('buy');
-                  setToastMessage('Click 🛒 on any item to purchase');
-                  setShowToast(true);
+                  if (selectedItems.size === 0) {
+                    setToastMessage('Select items to buy by clicking on them');
+                    setShowToast(true);
+                  } else {
+                    setToastMessage(`Ready to buy ${selectedItems.size} item(s). Click 🛒 to purchase.`);
+                    setShowToast(true);
+                  }
                 }}
                 style={{
                   flex: 1,
@@ -578,12 +669,12 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                 Share
               </button>
               <button
-                onClick={handleBirthdayMode}
+                onClick={handleGiftsMode}
                 style={{
                   flex: 1,
                   padding: '10px',
-                  background: showBirthdayMode ? '#007AFF' : '#f2f2f7',
-                  color: showBirthdayMode ? 'white' : '#000',
+                  background: showGiftsMode ? '#007AFF' : '#f2f2f7',
+                  color: showGiftsMode ? 'white' : '#000',
                   border: 'none',
                   borderRadius: '10px',
                   fontWeight: '600',
@@ -591,7 +682,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                   cursor: 'pointer',
                 }}
               >
-                Birthday
+                Gifts
               </button>
             </div>
 
@@ -678,8 +769,20 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                         overflow: 'hidden',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
                       }}>
-                        {/* Image with overlay buttons - Portrait Aspect Ratio */}
-                        <div style={{ position: 'relative', aspectRatio: '3/4' }}>
+                        {/* Image with overlay buttons - Portrait Aspect Ratio - Clickable */}
+                        <div 
+                          onClick={() => toggleItemSelection(item.id)}
+                          style={{ 
+                            position: 'relative', 
+                            aspectRatio: '3/4',
+                            cursor: 'pointer',
+                            border: selectedItems.has(item.id) 
+                              ? '4px solid #007AFF' 
+                              : '4px solid transparent',
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                          }}
+                        >
                           <img
                             src={item.image}
                             alt={item.name}
@@ -691,6 +794,27 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                             }}
                           />
                           
+                          {/* Show checkmark when selected */}
+                          {selectedItems.has(item.id) && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '8px',
+                              left: '8px',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: '#007AFF',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'white',
+                              fontWeight: 'bold',
+                              fontSize: '18px',
+                            }}>
+                              ✓
+                            </div>
+                          )}
+                          
                           {/* Top-right overlay buttons */}
                           <div style={{
                             position: 'absolute',
@@ -701,8 +825,9 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                           }}>
                             {/* Shop Button */}
                             <button
-                              onClick={() => {
-                                if (activeMainTab === 'buy') {
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (activeMainTab === 'buy' && selectedItems.has(item.id)) {
                                   handleBuyAndSave(item);
                                 } else {
                                   openProductLink(item.url);
@@ -725,32 +850,12 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                               🛒
                             </button>
                             
-                            {/* Gift Icon - Add to Birthday */}
-                            <button
-                              onClick={() => {
-                                markAsBirthdayItem(item.id);
-                                setShowBirthdayMode(true);
-                              }}
-                              style={{
-                                width: '36px',
-                                height: '36px',
-                                borderRadius: '50%',
-                                background: 'rgba(255,255,255,0.95)',
-                                border: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                                fontSize: '18px',
-                              }}
-                            >
-                              🎁
-                            </button>
-                            
                             {/* Trash Button */}
                             <button
-                              onClick={() => deleteItem(item.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteItem(item.id);
+                              }}
                               style={{
                                 width: '36px',
                                 height: '36px',
@@ -768,6 +873,33 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
                               🗑️
                             </button>
                           </div>
+
+                          {/* Bottom-right gift button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markAsBirthdayItem(item.id);
+                              setShowGiftsMode(true);
+                            }}
+                            style={{
+                              position: 'absolute',
+                              bottom: '8px',
+                              right: '8px',
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '50%',
+                              background: 'rgba(255,255,255,0.95)',
+                              border: 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                              fontSize: '18px',
+                            }}
+                          >
+                            🎁
+                          </button>
                         </div>
 
                         
