@@ -141,6 +141,7 @@ export const tripKeys = {
   stats: (tripId: string) => [...tripKeys.detail(tripId), 'stats'] as const,
   dayClothes: (tripId: string, date: string) => ['trip-day-clothes', tripId, date] as const,
   checklist: (tripId: string) => [...tripKeys.detail(tripId), 'checklist'] as const,
+  insights: (tripId: string) => [...tripKeys.detail(tripId), 'insights'] as const,
 };
 
 // ============================================
@@ -899,6 +900,58 @@ export function useDeleteChecklistItem() {
   });
 }
 
+// ============================================
+// INSIGHTS HOOKS
+// ============================================
+
+/**
+ * Fetch AI-generated insights for a trip
+ */
+export function useTripInsights(tripId: string) {
+  return useQuery({
+    queryKey: tripKeys.insights(tripId),
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Check cache first
+      const { data: cached } = await supabase
+        .from('trip_insights')
+        .select('*')
+        .eq('trip_id', tripId)
+        .maybeSingle();
+
+      // Return cached if not expired
+      if (cached && new Date(cached.expires_at) > new Date()) {
+        console.log('✅ [INSIGHTS] Using cached insights');
+        return cached.insights_data;
+      }
+
+      // Generate new insights
+      console.log('🔄 [INSIGHTS] Generating new insights');
+      const { collectTripData } = await import('../services/tripInsightsService');
+      const { analyzeTrip } = await import('../services/openaiInsightsService');
+
+      const data = await collectTripData(tripId, user.id);
+      const insights = await analyzeTrip(data);
+
+      // Cache results
+      await supabase
+        .from('trip_insights')
+        .upsert({
+          trip_id: tripId,
+          insights_data: insights,
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+        });
+
+      return insights;
+    },
+    enabled: !!tripId,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+    retry: 1,
+  });
+}
+
 export default {
   useTrips,
   useTrip,
@@ -927,4 +980,5 @@ export default {
   useToggleChecklistItem,
   useInitializeChecklist,
   useDeleteChecklistItem,
+  useTripInsights,
 };

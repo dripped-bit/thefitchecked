@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ChevronLeft, Edit, Trash2, Calendar, MapPin, Users, Hotel } from 'lucide-react';
+import { ChevronLeft, Edit, Trash2, Calendar, MapPin, Users, Hotel, Plane } from 'lucide-react';
 import { useTrip, useTripStats, useDeleteTrip, useTripDuration } from '../hooks/useTrips';
 import { TRIP_TYPES, TRIP_STATUS, ACCOMMODATION_TYPES } from '../constants/tripTypes';
 import { TripOverviewTab } from '../components/trips/TripOverviewTab';
 import { TripPlanTab } from '../components/trips/TripPlanTab';
 import { TripListTab } from '../components/trips/TripListTab';
+import { TripInsightsTab } from '../components/trips/TripInsightsTab';
 import { TripShoppingPanel } from '../components/trips/TripShoppingPanel';
 import { TripRecommendationsBadge } from '../components/trips/TripRecommendationsBadge';
 
@@ -14,7 +15,7 @@ interface TripDetailPageProps {
   onEdit?: () => void;
 }
 
-type Tab = 'overview' | 'plan' | 'list';
+type Tab = 'overview' | 'plan' | 'list' | 'insights';
 
 export function TripDetailPage({ tripId, onBack, onEdit }: TripDetailPageProps) {
   const { data: trip, isLoading } = useTrip(tripId);
@@ -178,6 +179,17 @@ export function TripDetailPage({ tripId, onBack, onEdit }: TripDetailPageProps) 
             >
               LIST
             </button>
+            <button
+              onClick={() => setActiveTab('insights')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === 'insights'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+              aria-label="AI Insights"
+            >
+              <Plane className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>
@@ -189,6 +201,7 @@ export function TripDetailPage({ tripId, onBack, onEdit }: TripDetailPageProps) 
         )}
         {activeTab === 'plan' && <TripPlanTab trip={trip} />}
         {activeTab === 'list' && <TripListTab trip={trip} />}
+        {activeTab === 'insights' && <TripInsightsTab trip={trip} />}
       </div>
 
       {/* Delete Confirmation Modal */}
