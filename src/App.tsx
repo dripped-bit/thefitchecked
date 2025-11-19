@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, RefreshCw, Home, Shirt, Calendar, Sparkles, User, LogOut, Compass } from 'lucide-react';
 import { App as KonstaApp } from 'konsta/react';
+import { IonApp } from '@ionic/react';
+import '@ionic/react/css/core.css';
 import useDevMode from './hooks/useDevMode';
 import { FloatingTabBar, Tab } from './components/ui/FloatingTabBar';
 import FloatingStylistButton from './components/FloatingStylistButton';
@@ -1162,12 +1164,14 @@ function App() {
 
       case 'wishlist':
         return (
-          <Wishlist
-            onBack={() => {
-              setCurrentScreen('stylehub');
-              setActiveTab('stylehub');
-            }}
-          />
+          <IonApp>
+            <Wishlist
+              onBack={() => {
+                setCurrentScreen('stylehub');
+                setActiveTab('stylehub');
+              }}
+            />
+          </IonApp>
         );
 
       case 'analytics':
