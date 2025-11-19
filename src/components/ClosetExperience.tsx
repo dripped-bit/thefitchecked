@@ -153,11 +153,12 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
   initialView = 'doors'
 }) => {
   // Main state
-  const [currentView, setCurrentView] = useState<'doors' | 'interior' | 'outfit-creator' | 'try-on'>(initialView);
+  const [currentView, setCurrentView] = useState<'doors' | 'interior' | 'outfit-creator' | 'try-on' | 'wore-this'>(initialView);
   const [doorsOpen, setDoorsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ClothingCategory | 'all' | 'favorites'>('all');
   const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
   const [selectedOutfit, setSelectedOutfit] = useState<ClothingItem[]>([]);
+  const [showWoreThisModal, setShowWoreThisModal] = useState(false);
 
   // Achievement and gamification state
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -1660,7 +1661,18 @@ const ClosetExperience: React.FC<ClosetExperienceProps> = ({
 
 
           {currentView === 'interior' && (
-            <VisualClosetEnhanced />
+            <VisualClosetEnhanced 
+              onShowWoreThis={() => setShowWoreThisModal(true)}
+            />
+          )}
+          
+          {/* Wore This Today Tracker Modal */}
+          {showWoreThisModal && (
+            <WoreThisTodayTracker
+              onClose={() => setShowWoreThisModal(false)}
+              clothingItems={clothingItems}
+              todaysEvents={[]}
+            />
           )}
 
           {/* Old interior view code - keeping as fallback/reference */}

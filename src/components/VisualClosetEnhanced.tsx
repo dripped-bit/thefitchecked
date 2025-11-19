@@ -88,7 +88,11 @@ const CATEGORIES: CategoryConfig[] = [
   }
 ];
 
-const VisualClosetEnhanced: React.FC = () => {
+interface VisualClosetEnhancedProps {
+  onShowWoreThis?: () => void;
+}
+
+const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreThis }) => {
   const {
     items,
     loading,
@@ -1166,6 +1170,41 @@ const VisualClosetEnhanced: React.FC = () => {
           itemCount={favoritesCount}
         />
       </div>
+
+      {/* Wore This Today Button */}
+      {onShowWoreThis && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '1rem 0 2rem',
+          margin: '0 1rem'
+        }}>
+          <button
+            onClick={onShowWoreThis}
+            style={{
+              background: 'linear-gradient(135deg, #FF6B9D 0%, #C44569 100%)',
+              padding: '16px 32px',
+              borderRadius: '16px',
+              fontSize: '18px',
+              fontWeight: '600',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              boxShadow: '0 4px 12px rgba(255, 105, 180, 0.3)',
+              transition: 'all 0.2s ease',
+              border: 'none',
+              width: '100%',
+              maxWidth: '300px'
+            }}
+          >
+            <Camera size={24} />
+            <span>Wore This</span>
+          </button>
+        </div>
+      )}
 
       {/* Action Sheet Modal */}
       {showActionSheet && selectedItemData && (
