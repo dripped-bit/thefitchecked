@@ -1006,42 +1006,11 @@ const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreT
         </div>
       )}
       
-      {/* Quick Actions - Wore This and All Items */}
+      {/* All Items Button */}
       <div style={{
         padding: '16px',
-        paddingBottom: '8px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px'
+        paddingBottom: '8px'
       }}>
-        {/* Wore This Button - Prominent at top */}
-        {onShowWoreThis && (
-          <button
-            onClick={onShowWoreThis}
-            style={{
-              width: '100%',
-              padding: '16px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              borderRadius: '16px',
-              fontSize: '18px',
-              fontWeight: '600',
-              color: 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Camera size={24} />
-            <span>Wore This Today</span>
-          </button>
-        )}
-
-        {/* All Items Button */}
         <button
           onClick={() => setShowAllItemsView(true)}
           style={{
@@ -1188,8 +1157,8 @@ const VisualClosetEnhanced: React.FC<VisualClosetEnhancedProps> = ({ onShowWoreT
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '2rem 0',
-        margin: '1rem 0'
+        padding: '1rem 0',
+        margin: '0'
       }}>
         <CloudFavoritesButton
           isSelected={showFavoritesOnly}
