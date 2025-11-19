@@ -98,26 +98,69 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
 
   const fetchWishlist = async () => {
     try {
+      console.log('🛍️ [WISHLIST] Starting fetch...');
+      setLoading(true);
+      
       const { data: userData } = await supabase.auth.getUser();
       
       if (!userData.user) {
+        console.log('❌ [WISHLIST] No authenticated user');
         setLoading(false);
         return;
       }
+      
+      console.log('👤 [WISHLIST] User ID:', userData.user.id);
 
-      // Query the wishlist_items table (or wishlist table if that's what you're using)
-      const { data, error } = await supabase
-        .from('wishlist_items') // Change to 'wishlist' if that's your table name
+      // Try both possible table names
+      let data, error;
+      
+      // First try 'wishlist_items'
+      console.log('🔍 [WISHLIST] Trying table: wishlist_items');
+      const result1 = await supabase
+        .from('wishlist_items')
         .select('*')
         .eq('user_id', userData.user.id)
         .order('created_at', { ascending: false });
-
-      if (error) throw error;
       
+      if (result1.error && result1.error.message.includes('does not exist')) {
+        console.log('⚠️ [WISHLIST] wishlist_items not found, trying: wishlist');
+        
+        // Try 'wishlist' table
+        const result2 = await supabase
+          .from('wishlist')
+          .select('*')
+          .eq('user_id', userData.user.id)
+          .order('created_at', { ascending: false });
+        
+        data = result2.data;
+        error = result2.error;
+        
+        if (!error) {
+          console.log('✅ [WISHLIST] Using table: wishlist');
+        }
+      } else {
+        data = result1.data;
+        error = result1.error;
+        
+        if (!error) {
+          console.log('✅ [WISHLIST] Using table: wishlist_items');
+        }
+      }
+
+      if (error) {
+        console.error('❌ [WISHLIST] Database error:', error.message);
+        throw error;
+      }
+      
+      console.log(`✅ [WISHLIST] Loaded ${data?.length || 0} items`);
       setAllWishlistItems(data || []);
       setFilteredItems(data || []);
-    } catch (error) {
-      console.error('Error fetching wishlist:', error);
+      
+    } catch (error: any) {
+      console.error('❌ [WISHLIST] Fatal error:', error);
+      // Show error toast
+      setToastMessage(`Failed to load wishlist: ${error.message}`);
+      setShowToast(true);
     } finally {
       setLoading(false);
     }
@@ -282,14 +325,64 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       </IonHeader>
 
       <IonContent>
-        {/* Action Bar */}
-        <WishlistActionBar
-          selectedItems={selectedItems}
-          onComparePrice={handleComparePrice}
-          onShareList={handleShareList}
-          onBirthdayMode={handleBirthdayMode}
-          allItems={allWishlistItems}
-        />
+        {loading ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '70vh',
+            gap: '16px'
+          }}>
+            <IonSpinner name="crescent" color="primary" style={{ transform: 'scale(1.5)' }} />
+            <IonText color="medium">
+              <p style={{ fontSize: '16px' }}>Loading your wishlist...</p>
+            </IonText>
+          </div>
+        ) : filteredItems.length === 0 && allWishlistItems.length === 0 ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '70vh',
+            padding: '32px',
+            gap: '16px'
+          }}>
+            <IonIcon 
+              icon={giftOutline} 
+              style={{ fontSize: '80px', color: '#d1d1d6', marginBottom: '8px' }} 
+            />
+            <h2 style={{ fontSize: '24px', fontWeight: '600', margin: '0', color: '#1c1c1e' }}>
+              No Wishlist Items Yet
+            </h2>
+            <p style={{ 
+              fontSize: '16px', 
+              color: '#86868b', 
+              textAlign: 'center',
+              maxWidth: '300px',
+              lineHeight: '1.5'
+            }}>
+              Start adding items you love to your wishlist and they'll appear here!
+            </p>
+            <IonButton 
+              onClick={onBack}
+              fill="outline"
+              style={{ marginTop: '16px' }}
+            >
+              Go Back
+            </IonButton>
+          </div>
+        ) : (
+          <>
+            {/* Action Bar */}
+            <WishlistActionBar
+              selectedItems={selectedItems}
+              onComparePrice={handleComparePrice}
+              onShareList={handleShareList}
+              onBirthdayMode={handleBirthdayMode}
+              allItems={allWishlistItems}
+            />
 
         {/* Birthday Mode Banner */}
         {showBirthdayMode && (
@@ -704,6 +797,8 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
           duration={2000}
           position="top"
         />
+          </>
+        )}
       </IonContent>
     </IonPage>
   );
