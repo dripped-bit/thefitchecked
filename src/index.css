@@ -1,6 +1,9 @@
 /* Apple Design System */
 @import './styles/apple-design.css';
 
+/* Style Quiz */
+@import './styles/quiz.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

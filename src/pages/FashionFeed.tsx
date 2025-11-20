@@ -18,7 +18,10 @@ import YourFitsWeekSection from '../components/fashionfeed/YourFitsWeekSection';
 import ShoppingBoardSection from '../components/fashionfeed/ShoppingBoardSection';
 import BeforeAfterSection from '../components/fashionfeed/BeforeAfterSection';
 import VibePhotoGallery, { VibePhoto } from '../components/fashionfeed/VibePhotoGallery';
+import StyleQuiz from '../components/fashionfeed/StyleQuiz';
+import StyleQuizResults from '../components/fashionfeed/StyleQuizResults';
 import { supabase } from '../services/supabaseClient';
+import styleQuizService, { StyleQuizResult } from '../services/styleQuizService';
 import haptics from '../utils/haptics';
 import '../styles/scrapbook.css';
 
@@ -40,11 +43,30 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
   const [vibe, setVibe] = useState('');
   const [vibePhotos, setVibePhotos] = useState<VibePhoto[]>([]);
   const [loadingVibe, setLoadingVibe] = useState(true);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizResults, setQuizResults] = useState<StyleQuizResult | null>(null);
+  const [showResults, setShowResults] = useState(false);
+  const [hasCompletedQuiz, setHasCompletedQuiz] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     loadTodaysVibe();
+    checkQuizStatus();
   }, []);
+
+  const checkQuizStatus = async () => {
+    try {
+      const completed = await styleQuizService.hasCompletedQuiz();
+      setHasCompletedQuiz(completed);
+      
+      if (completed) {
+        const results = await styleQuizService.getQuizResults();
+        setQuizResults(results);
+      }
+    } catch (error) {
+      console.error('Error checking quiz status:', error);
+    }
+  };
 
   const loadTodaysVibe = async () => {
     setLoadingVibe(true);
@@ -247,6 +269,26 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
       if (error.message !== 'Share canceled') {
         console.error('Share failed:', error);
       }
+    }
+  };
+
+  const handleQuizComplete = (results: StyleQuizResult) => {
+    setQuizResults(results);
+    setShowQuiz(false);
+    setShowResults(true);
+    setHasCompletedQuiz(true);
+    haptics.notification({ type: 'success' });
+  };
+
+  const handleRetakeQuiz = async () => {
+    try {
+      await styleQuizService.deleteQuizResults();
+      setShowResults(false);
+      setHasCompletedQuiz(false);
+      setQuizResults(null);
+      setShowQuiz(true);
+    } catch (error) {
+      console.error('Error retaking quiz:', error);
     }
   };
 
@@ -480,11 +522,70 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
           <BeforeAfterSection items={items} />
         </div>
 
-        {/* Coming Soon Sections */}
+        {/* Style Quiz CTA */}
         <div className="dots-divider">• • •</div>
 
         <div 
-          className={`speech-bubble transition-all duration-700 delay-900 ${
+          className={`transition-all duration-700 delay-1100 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          {!hasCompletedQuiz ? (
+            <div className="quiz-cta-container">
+              <h2 className="quiz-cta-title">
+                DISCOVER YOUR STYLE
+              </h2>
+              <p className="text-lg text-gray-700 mb-6">
+                Take our 2-min quiz and get personalized fashion inspo!
+              </p>
+              <button
+                onClick={() => {
+                  setShowQuiz(true);
+                  haptics.impact();
+                }}
+                className="quiz-cta-button"
+              >
+                Start Style Quiz →
+              </button>
+            </div>
+          ) : (
+            <div className="quiz-cta-container">
+              <h2 className="quiz-cta-title">
+                YOU'RE A {quizResults?.styleType || 'FASHIONISTA'}!
+              </h2>
+              <p className="text-lg text-gray-700 mb-4">
+                Your personalized style profile is helping curate your feed ✨
+              </p>
+              <div className="flex gap-3 justify-center flex-wrap">
+                <button
+                  onClick={() => {
+                    setShowResults(true);
+                    haptics.impact();
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                >
+                  View My Profile
+                </button>
+                <button
+                  onClick={async () => {
+                    await styleQuizService.deleteQuizResults();
+                    setHasCompletedQuiz(false);
+                    setQuizResults(null);
+                    setShowQuiz(true);
+                    haptics.impact();
+                  }}
+                  className="px-6 py-3 bg-white border-2 border-pink-400 text-pink-600 font-bold rounded-full hover:bg-pink-50 transition-all"
+                >
+                  Retake Quiz
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Coming Soon Sections */}
+        <div 
+          className={`speech-bubble transition-all duration-700 delay-1200 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}
         >
@@ -494,21 +595,26 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
           <div className="mt-4 text-center text-sm text-gray-600">
             <p>• Styling Lessons</p>
             <p>• Mood Board Creation</p>
-            <p>• Style Quiz</p>
-          </div>
-        </div>
-
-        <div className="text-center py-12">
-          <div className="inline-block">
-            <div className="cutout-text">
-              STAY TUNED!
-            </div>
-            <p className="handwritten text-lg mt-4 text-gray-600">
-              More magic on the way ✨
-            </p>
           </div>
         </div>
       </div>
+
+      {/* Quiz Modals */}
+      {showQuiz && (
+        <StyleQuiz
+          isOpen={showQuiz}
+          onClose={() => setShowQuiz(false)}
+          onComplete={handleQuizComplete}
+        />
+      )}
+
+      {showResults && quizResults && (
+        <StyleQuizResults
+          results={quizResults}
+          onClose={() => setShowResults(false)}
+          onRetake={handleRetakeQuiz}
+        />
+      )}
     </div>
   );
 }
