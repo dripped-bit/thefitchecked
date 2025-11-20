@@ -15,7 +15,7 @@ import WeeklyChallengeSection from '../components/fashionfeed/WeeklyChallengeSec
 import StyleStealSection from '../components/fashionfeed/StyleStealSection';
 import AISpottedSection from '../components/fashionfeed/AISpottedSection';
 import YourFitsWeekSection from '../components/fashionfeed/YourFitsWeekSection';
-import ShoppingBoardSection from '../components/fashionfeed/ShoppingBoardSection';
+
 import BeforeAfterSection from '../components/fashionfeed/BeforeAfterSection';
 import VibePhotoGallery, { VibePhoto } from '../components/fashionfeed/VibePhotoGallery';
 import StyleQuiz from '../components/fashionfeed/StyleQuiz';
@@ -502,15 +502,6 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
           }`}
         >
           <YourFitsWeekSection />
-        </div>
-
-        {/* Shopping Board Section */}
-        <div 
-          className={`transition-all duration-700 delay-900 ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
-          <ShoppingBoardSection />
         </div>
 
         {/* Before/After Style Evolution Section */}
