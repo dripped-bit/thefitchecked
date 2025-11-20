@@ -7,6 +7,9 @@ import React, { useEffect, useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { ClothingItem } from '../../hooks/useCloset';
 import fashionImageCurationService, { CuratedImage } from '../../services/fashionImageCurationService';
+import claudeStyleAnalyzer from '../../services/claudeStyleAnalyzer';
+import openaiImageCurator from '../../services/openaiImageCurator';
+import { supabase } from '../../services/supabaseClient';
 
 interface StyleStealSectionProps {
   items: ClothingItem[];
@@ -17,6 +20,7 @@ export default function StyleStealSection({ items }: StyleStealSectionProps) {
   const [selectedImage, setSelectedImage] = useState<CuratedImage | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [styleTips, setStyleTips] = useState<string[]>([]);
 
   useEffect(() => {
     if (items.length > 0) {
@@ -30,10 +34,46 @@ export default function StyleStealSection({ items }: StyleStealSectionProps) {
     setLoading(true);
     
     try {
-      const imgs = await fashionImageCurationService.getStyleStealImages(items, 6);
-      setImages(imgs);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // 1. Use Claude to analyze user's complete profile
+      const analysis = await claudeStyleAnalyzer.analyzeForFashionFeed(items, user?.id || '');
+      
+      console.log('🤖 [CLAUDE] Style Steal Queries:', analysis.styleStealQueries);
+      
+      // 2. Search Unsplash with Claude-generated queries
+      const allImages: CuratedImage[] = [];
+      
+      for (const query of analysis.styleStealQueries) {
+        const imgs = await fashionImageCurationService.searchUnsplash(query, 3);
+        allImages.push(...imgs);
+      }
+      
+      console.log(`📸 [UNSPLASH] Found ${allImages.length} candidate images`);
+      
+      // 3. Use OpenAI to curate and rank images
+      const curated = await openaiImageCurator.curateImages(
+        allImages,
+        analysis.userGender,
+        analysis.stylePersona,
+        'style-steal'
+      );
+      
+      console.log(`✨ [OPENAI] Selected ${curated.selectedImages.length} images`);
+      
+      setImages(curated.selectedImages);
+      setStyleTips(analysis.styleStealTips);
+      
     } catch (err) {
-      console.error('Error loading style steal images:', err);
+      console.error('Error loading style steal:', err);
+      
+      // Fallback to old method if AI fails
+      try {
+        const imgs = await fashionImageCurationService.getStyleStealImages(items, 6);
+        setImages(imgs);
+      } catch (fallbackErr) {
+        console.error('Fallback also failed:', fallbackErr);
+      }
     } finally {
       setLoading(false);
     }

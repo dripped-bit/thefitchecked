@@ -7,6 +7,9 @@ import React, { useEffect, useState } from 'react';
 import { Sparkles, TrendingUp } from 'lucide-react';
 import { ClothingItem } from '../../hooks/useCloset';
 import fashionImageCurationService, { CuratedImage } from '../../services/fashionImageCurationService';
+import claudeStyleAnalyzer from '../../services/claudeStyleAnalyzer';
+import openaiImageCurator from '../../services/openaiImageCurator';
+import { supabase } from '../../services/supabaseClient';
 import UnsplashAttribution from './UnsplashAttribution';
 
 interface Trend {
@@ -38,15 +41,70 @@ export default function AISpottedSection({ items }: AISpottedSectionProps) {
     setLoading(true);
     
     try {
-      const detected = await inferTrendsFromCloset(items);
-      setTrends(detected);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // 1. Use Claude to detect personalized trends
+      const analysis = await claudeStyleAnalyzer.analyzeForFashionFeed(items, user?.id || '');
+      
+      console.log('🤖 [CLAUDE] Detected Trends:', analysis.detectedTrends);
+      
+      // 2. For each trend, get gender-specific images
+      const trendsWithImages = await Promise.all(
+        analysis.detectedTrends.map(async (trend) => {
+          try {
+            // Get candidate images using Claude's gender-aware query
+            const candidates = await fashionImageCurationService.searchUnsplash(
+              trend.searchQuery,  // Already gender-specific from Claude
+              4
+            );
+            
+            // Use OpenAI to pick the best image
+            const curated = await openaiImageCurator.curateImages(
+              candidates,
+              analysis.userGender,
+              analysis.stylePersona,
+              'trend'
+            );
+            
+            return {
+              name: trend.name,
+              reason: trend.reason,
+              stylingTip: trend.stylingTip,
+              image: curated.selectedImages[0] || null,
+              icon: trend.icon
+            };
+          } catch (err) {
+            console.error(`Error loading image for trend ${trend.name}:`, err);
+            return {
+              name: trend.name,
+              reason: trend.reason,
+              stylingTip: trend.stylingTip,
+              image: null,
+              icon: trend.icon
+            };
+          }
+        })
+      );
+      
+      console.log(`✨ [OPENAI] Loaded ${trendsWithImages.length} trends with images`);
+      
+      setTrends(trendsWithImages);
     } catch (err) {
       console.error('Error analyzing trends:', err);
+      
+      // Fallback to old heuristic method
+      try {
+        const detected = await inferTrendsFromCloset(items);
+        setTrends(detected);
+      } catch (fallbackErr) {
+        console.error('Fallback also failed:', fallbackErr);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Keep old heuristic method as fallback
   const inferTrendsFromCloset = async (items: ClothingItem[]): Promise<Trend[]> => {
     const trends: Trend[] = [];
 
