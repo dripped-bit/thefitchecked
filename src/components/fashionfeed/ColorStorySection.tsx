@@ -9,6 +9,7 @@ import aiStyleAnalysisService from '../../services/aiStyleAnalysisService';
 import fashionImageCurationService, { CuratedImage } from '../../services/fashionImageCurationService';
 import UnsplashAttribution from './UnsplashAttribution';
 import { supabase } from '../../services/supabaseClient';
+import WeeklyChallengeCard from './WeeklyChallengeCard';
 
 interface ColorStorySectionProps {
   items: ClothingItem[];
@@ -143,6 +144,9 @@ export default function ColorStorySection({ items }: ColorStorySectionProps) {
         <div className="section-divider">
           <div className="line" />
         </div>
+
+        {/* Weekly Challenge Card */}
+        <WeeklyChallengeCard />
 
         {/* Your Colors */}
         {dominantColors.length > 0 && (

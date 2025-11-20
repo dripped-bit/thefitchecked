@@ -1,0 +1,229 @@
+/* ============================================
+   Weekly Challenge Card
+   ============================================ */
+
+.weekly-challenge-card {
+  background: linear-gradient(135deg, #FFF9F3 0%, #FFE4E1 100%);
+  border: 2px dashed #FF69B4;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.15);
+  transition: all 0.3s ease;
+}
+
+.weekly-challenge-card:hover {
+  box-shadow: 0 6px 16px rgba(255, 105, 180, 0.25);
+  transform: translateY(-2px);
+}
+
+.challenge-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.challenge-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+/* ============================================
+   Accept Challenge Button
+   ============================================ */
+
+.accept-challenge-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(to right, #FF69B4, #FF1493);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
+  transition: all 0.3s ease;
+}
+
+.accept-challenge-btn:hover {
+  box-shadow: 0 6px 16px rgba(255, 105, 180, 0.4);
+  transform: translateY(-2px);
+}
+
+.accept-challenge-btn:active {
+  transform: translateY(0);
+}
+
+.accept-challenge-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Challenge States
+   ============================================ */
+
+.challenge-completed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: linear-gradient(to right, #D4EDDA, #C3E6CB);
+  border-radius: 12px;
+  font-weight: 600;
+  color: #155724;
+}
+
+.challenge-in-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: linear-gradient(to right, #FFF3CD, #FFE69C);
+  border-radius: 12px;
+  font-weight: 600;
+  color: #856404;
+}
+
+.progress-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #856404;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+/* ============================================
+   Challenge Complete Banner
+   ============================================ */
+
+.challenge-complete-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.banner-content {
+  background: white;
+  border-radius: 24px;
+  padding: 40px 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  animation: slideUp 0.5s ease;
+}
+
+.banner-close-btn {
+  padding: 12px 32px;
+  background: linear-gradient(to right, #FF69B4, #FF1493);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
+  transition: all 0.3s ease;
+}
+
+.banner-close-btn:hover {
+  box-shadow: 0 6px 16px rgba(255, 105, 180, 0.4);
+  transform: translateY(-2px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(30px);
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   Loading Skeleton
+   ============================================ */
+
+.challenge-skeleton {
+  background: #F5F5F5;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 16px 0;
+}
+
+.skeleton-header,
+.skeleton-text,
+.skeleton-button {
+  background: linear-gradient(90deg, #E0E0E0 25%, #F0F0F0 50%, #E0E0E0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.skeleton-header {
+  width: 60%;
+  height: 24px;
+}
+
+.skeleton-text {
+  width: 100%;
+  height: 48px;
+}
+
+.skeleton-button {
+  width: 100%;
+  height: 48px;
+  border-radius: 24px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+
+@media (max-width: 768px) {
+  .challenge-text {
+    font-size: 16px;
+  }
+  
+  .banner-content {
+    padding: 32px 24px;
+  }
+}

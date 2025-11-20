@@ -198,21 +198,30 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
     await haptics.impact();
     
     try {
-      const photo = await Camera.getPhoto({
+      console.log('📸 Opening photo library...');
+      
+      // Import Camera module dynamically
+      const { Camera: CameraModule, CameraResultType, CameraSource } = 
+        await import('@capacitor/camera');
+      
+      const photo = await CameraModule.getPhoto({
         quality: 90,
         allowEditing: true,
         resultType: Capacitor.isNativePlatform() ? 
-          (await import('@capacitor/camera')).CameraResultType.Uri : 
-          (await import('@capacitor/camera')).CameraResultType.DataUrl,
-        source: (await import('@capacitor/camera')).CameraSource.Photos
+          CameraResultType.Uri : 
+          CameraResultType.DataUrl,
+        source: CameraSource.Photos
       });
+
+      console.log('📸 Photo selected:', photo);
 
       if (photo.webPath || photo.dataUrl) {
         await handlePhotoCapture(photo.webPath || photo.dataUrl || '');
       }
     } catch (error: any) {
-      if (error.message !== 'User cancelled photos app') {
-        console.error('Photo library error:', error);
+      console.error('❌ Photo library error:', error);
+      if (error.message && !error.message.includes('cancel')) {
+        alert(`Photo error: ${error.message}`);
       }
     }
   };
@@ -221,21 +230,30 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
     await haptics.impact();
     
     try {
-      const photo = await Camera.getPhoto({
+      console.log('📷 Opening camera...');
+      
+      // Import Camera module dynamically
+      const { Camera: CameraModule, CameraResultType, CameraSource } = 
+        await import('@capacitor/camera');
+      
+      const photo = await CameraModule.getPhoto({
         quality: 90,
         allowEditing: true,
         resultType: Capacitor.isNativePlatform() ? 
-          (await import('@capacitor/camera')).CameraResultType.Uri : 
-          (await import('@capacitor/camera')).CameraResultType.DataUrl,
-        source: (await import('@capacitor/camera')).CameraSource.Camera
+          CameraResultType.Uri : 
+          CameraResultType.DataUrl,
+        source: CameraSource.Camera
       });
+
+      console.log('📷 Photo taken:', photo);
 
       if (photo.webPath || photo.dataUrl) {
         await handlePhotoCapture(photo.webPath || photo.dataUrl || '');
       }
     } catch (error: any) {
-      if (error.message !== 'User cancelled photos app') {
-        console.error('Camera error:', error);
+      console.error('❌ Camera error:', error);
+      if (error.message && !error.message.includes('cancel')) {
+        alert(`Camera error: ${error.message}`);
       }
     }
   };
@@ -443,7 +461,12 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
             <div className="mt-4 flex items-center justify-center gap-4">
               {/* Add from Library Button */}
               <button
-                onClick={handleAddFromLibrary}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('➕ Plus button clicked');
+                  await handleAddFromLibrary();
+                }}
                 className="w-14 h-14 rounded-full bg-pink-500 hover:bg-pink-600 active:bg-pink-700 transition-all flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
                 aria-label="Add photo from library"
               >
@@ -452,7 +475,12 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
               
               {/* Take Picture Button */}
               <button
-                onClick={handleTakePicture}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('📷 Camera button clicked');
+                  await handleTakePicture();
+                }}
                 className="w-14 h-14 rounded-full bg-pink-500 hover:bg-pink-600 active:bg-pink-700 transition-all flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
                 aria-label="Take a picture"
               >
