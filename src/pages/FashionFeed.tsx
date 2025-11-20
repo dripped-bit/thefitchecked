@@ -194,7 +194,7 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
     }
   };
 
-  const handlePlusClick = async () => {
+  const handleAddFromLibrary = async () => {
     await haptics.impact();
     
     try {
@@ -204,7 +204,30 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
         resultType: Capacitor.isNativePlatform() ? 
           (await import('@capacitor/camera')).CameraResultType.Uri : 
           (await import('@capacitor/camera')).CameraResultType.DataUrl,
-        source: (await import('@capacitor/camera')).CameraSource.Prompt
+        source: (await import('@capacitor/camera')).CameraSource.Photos
+      });
+
+      if (photo.webPath || photo.dataUrl) {
+        await handlePhotoCapture(photo.webPath || photo.dataUrl || '');
+      }
+    } catch (error: any) {
+      if (error.message !== 'User cancelled photos app') {
+        console.error('Photo library error:', error);
+      }
+    }
+  };
+
+  const handleTakePicture = async () => {
+    await haptics.impact();
+    
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: true,
+        resultType: Capacitor.isNativePlatform() ? 
+          (await import('@capacitor/camera')).CameraResultType.Uri : 
+          (await import('@capacitor/camera')).CameraResultType.DataUrl,
+        source: (await import('@capacitor/camera')).CameraSource.Camera
       });
 
       if (photo.webPath || photo.dataUrl) {
@@ -416,23 +439,26 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
               onRemovePhoto={handleRemovePhoto}
             />
 
-            {/* Add Photo Button */}
-            <button
-              onClick={handlePlusClick}
-              className="mt-4 w-full py-4 border-2 border-dashed border-pink-300 rounded-lg hover:bg-pink-50 hover:border-pink-400 transition-all flex items-center justify-center gap-3 text-gray-600 hover:text-pink-600 group"
-              aria-label="Add photo to vibe"
-            >
-              {/* Plus Icon */}
-              <Plus className="w-6 h-6 text-pink-500 group-hover:text-pink-600 transition-colors" strokeWidth={2.5} />
+            {/* Add Photo Buttons */}
+            <div className="mt-4 flex items-center justify-center gap-4">
+              {/* Add from Library Button */}
+              <button
+                onClick={handleAddFromLibrary}
+                className="w-14 h-14 rounded-full bg-pink-500 hover:bg-pink-600 active:bg-pink-700 transition-all flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                aria-label="Add photo from library"
+              >
+                <Plus className="w-7 h-7 text-white" strokeWidth={2.5} />
+              </button>
               
-              {/* Camera Icon */}
-              <CameraIcon className="w-6 h-6 text-pink-500 group-hover:text-pink-600 transition-colors" strokeWidth={2} />
-              
-              {/* Text */}
-              <span className="font-semibold text-base group-hover:text-pink-700 transition-colors">
-                Add a photo to your vibe
-              </span>
-            </button>
+              {/* Take Picture Button */}
+              <button
+                onClick={handleTakePicture}
+                className="w-14 h-14 rounded-full bg-pink-500 hover:bg-pink-600 active:bg-pink-700 transition-all flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                aria-label="Take a picture"
+              >
+                <CameraIcon className="w-7 h-7 text-white" strokeWidth={2} />
+              </button>
+            </div>
           </div>
         </div>
 
