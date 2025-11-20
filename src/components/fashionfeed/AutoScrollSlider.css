@@ -1,0 +1,384 @@
+/* ============================================
+   LIQUID GLASS SLIDER CONTAINER
+   ============================================ */
+
+.scroll-slider-container {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  
+  width: 70px;
+  height: 280px;
+  
+  /* Liquid glass effect */
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  
+  /* Border */
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 30px;
+  
+  /* Shadow for depth */
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  
+  /* High z-index to stay on top */
+  z-index: 1000;
+  
+  /* Smooth transitions */
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  /* Prevent text selection */
+  user-select: none;
+  -webkit-user-select: none;
+  
+  /* Gradient overlay for depth */
+  position: relative;
+  overflow: hidden;
+  
+  /* Animation on mount */
+  animation: slide-out 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.slider-glass-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.slider-glass-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  pointer-events: none;
+}
+
+/* ============================================
+   INTERACTION STATES
+   ============================================ */
+
+/* Hover state */
+.scroll-slider-container.hovered {
+  width: 75px;
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Dragging state */
+.scroll-slider-container.dragging {
+  width: 78px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(255, 105, 180, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transform: translateY(-50%) scale(1.02);
+}
+
+/* Idle pulse animation */
+@keyframes subtle-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+.pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 30px;
+  border: 2px solid rgba(255, 105, 180, 0.3);
+  animation: subtle-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Hide pulse when dragging */
+.scroll-slider-container.dragging .pulse-ring {
+  display: none;
+}
+
+/* ============================================
+   SLIDER TRACK
+   ============================================ */
+
+.slider-track-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 15px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Filled portion (below thumb) */
+.slider-track-filled {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 105, 180, 0.6),
+    rgba(255, 105, 180, 0.4)
+  );
+  border-radius: 10px;
+  transition: height 0.1s ease;
+}
+
+/* Empty portion (above thumb) */
+.slider-track-empty {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  transition: height 0.1s ease;
+}
+
+/* ============================================
+   PENCIL THUMB
+   ============================================ */
+
+.slider-thumb {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  
+  /* Center horizontally */
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  
+  /* Liquid glass effect */
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  
+  border: 2px solid rgba(255, 105, 180, 0.5);
+  border-radius: 50%;
+  
+  /* Shadow */
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  
+  /* Center pencil icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Cursor */
+  cursor: grab;
+  
+  /* Smooth movement */
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  z-index: 10;
+}
+
+.slider-thumb:active,
+.scroll-slider-container.dragging .slider-thumb {
+  cursor: grabbing;
+  transform: translateX(-50%) translateY(-50%) scale(1.15);
+  box-shadow: 
+    0 8px 20px rgba(0, 0, 0, 0.25),
+    0 0 25px rgba(255, 105, 180, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.pencil-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+/* Liquid glass morph effect when dragging */
+@keyframes liquid-glow {
+  0%, 100% {
+    box-shadow: 
+      0 8px 20px rgba(0, 0, 0, 0.25),
+      0 0 25px rgba(255, 105, 180, 0.5);
+  }
+  50% {
+    box-shadow: 
+      0 8px 20px rgba(0, 0, 0, 0.25),
+      0 0 35px rgba(255, 105, 180, 0.7);
+  }
+}
+
+.scroll-slider-container.dragging .slider-thumb {
+  animation: liquid-glow 1s ease-in-out infinite;
+}
+
+/* Spring back animation for thumb */
+.slider-thumb {
+  transition: top 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================
+   HIDDEN STATE - TAB/HANDLE
+   ============================================ */
+
+.scroll-slider-tab {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  
+  width: 40px;
+  height: 80px;
+  
+  /* Liquid glass effect */
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-right: none;
+  border-radius: 20px 0 0 20px;
+  
+  box-shadow: 
+    -4px 8px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  
+  /* Center icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  cursor: pointer;
+  z-index: 1000;
+  
+  /* Slide in animation */
+  animation: slide-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  /* Transition for hover */
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slide-in {
+  from {
+    right: -40px;
+    opacity: 0;
+  }
+  to {
+    right: 0;
+    opacity: 1;
+  }
+}
+
+.scroll-slider-tab:hover {
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    -6px 10px 20px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.scroll-slider-tab .pencil-icon {
+  font-size: 20px;
+}
+
+/* ============================================
+   SLIDE OUT/IN ANIMATIONS
+   ============================================ */
+
+@keyframes slide-out {
+  from {
+    right: -100px;
+    opacity: 0;
+  }
+  to {
+    right: 20px;
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .scroll-slider-container {
+    right: 10px;
+    width: 60px;
+    height: 240px;
+  }
+  
+  .scroll-slider-container.hovered {
+    width: 65px;
+  }
+  
+  .scroll-slider-container.dragging {
+    width: 68px;
+  }
+  
+  .slider-thumb {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .pencil-icon {
+    font-size: 20px;
+  }
+  
+  .scroll-slider-tab {
+    width: 35px;
+    height: 70px;
+  }
+  
+  .scroll-slider-tab .pencil-icon {
+    font-size: 18px;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+.scroll-slider-container:focus-visible,
+.scroll-slider-tab:focus-visible {
+  outline: 2px solid #FF69B4;
+  outline-offset: 4px;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-slider-container,
+  .scroll-slider-tab,
+  .slider-thumb,
+  .pulse-ring {
+    animation: none !important;
+    transition: none !important;
+  }
+}

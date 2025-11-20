@@ -3,7 +3,7 @@
  * Magazine-inspired personal style journal with AI-curated imagery
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Plus, Camera as CameraIcon, Share2 } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
@@ -15,7 +15,7 @@ import WeeklyChallengeSection from '../components/fashionfeed/WeeklyChallengeSec
 import StyleStealSection from '../components/fashionfeed/StyleStealSection';
 import AISpottedSection from '../components/fashionfeed/AISpottedSection';
 import YourFitsWeekSection from '../components/fashionfeed/YourFitsWeekSection';
-
+import AutoScrollSlider from '../components/fashionfeed/AutoScrollSlider';
 import BeforeAfterSection from '../components/fashionfeed/BeforeAfterSection';
 import VibePhotoGallery, { VibePhoto } from '../components/fashionfeed/VibePhotoGallery';
 import StyleQuiz from '../components/fashionfeed/StyleQuiz';
@@ -47,6 +47,10 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
   const [quizResults, setQuizResults] = useState<StyleQuizResult | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [hasCompletedQuiz, setHasCompletedQuiz] = useState(false);
+  
+  // Auto-scroll state
+  const [scrollSpeed, setScrollSpeed] = useState(0); // -100 to +100
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -66,6 +70,46 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
     } catch (error) {
       console.error('Error checking quiz status:', error);
     }
+  };
+
+  // Auto-scroll effect
+  useEffect(() => {
+    if (scrollSpeed !== 0) {
+      // Clear existing interval
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+      }
+
+      // Create new scroll interval
+      scrollIntervalRef.current = setInterval(() => {
+        // Calculate scroll amount based on speed
+        // Positive speed = scroll down, Negative = scroll up
+        const scrollAmount = (scrollSpeed / 100) * 5; // Max 5px per tick
+        
+        window.scrollBy({
+          top: scrollAmount,
+          behavior: 'auto' // Smooth scrolling done by interval timing
+        });
+      }, 16); // ~60fps
+
+    } else {
+      // Stop scrolling
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    }
+
+    // Cleanup
+    return () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+      }
+    };
+  }, [scrollSpeed]);
+
+  const handleScrollSpeedChange = (speed: number) => {
+    setScrollSpeed(speed);
   };
 
   const loadTodaysVibe = async () => {
@@ -606,6 +650,9 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
           onRetake={handleRetakeQuiz}
         />
       )}
+
+      {/* Auto-Scroll Slider Overlay */}
+      <AutoScrollSlider onScrollSpeedChange={handleScrollSpeedChange} />
     </div>
   );
 }
