@@ -9,8 +9,7 @@ import {
   Heart, 
   Luggage,
   DollarSign,
-  ChevronRight,
-  UtensilsCrossed
+  ChevronRight
 } from 'lucide-react';
 import AIDesignShopModal from '../components/AIDesignShopModal';
 
@@ -138,47 +137,9 @@ export default function StyleHub({
           </div>
         </div>
 
-        {/* FashionFeed Tab - Translucent Circle */}
+        {/* Design and Shop - Compact Oval Button (MOVED UP) */}
         <div 
-          className={`flex flex-col items-center justify-center px-4 py-6 transition-all duration-700 delay-250 ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
-          <button
-            onClick={onNavigateToFashionFeed}
-            className="relative group"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            {/* Translucent Circle Button */}
-            <div
-              className="w-24 h-24 rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-105 group-active:scale-95 shadow-lg"
-              style={{
-                background: 'rgba(255, 255, 255, 0.35)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                border: '1.5px solid rgba(255, 255, 255, 0.6)',
-                boxShadow: '0 8px 32px rgba(255, 105, 180, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1)'
-              }}
-            >
-              <UtensilsCrossed 
-                className="w-10 h-10 text-purple-600" 
-                strokeWidth={2}
-              />
-            </div>
-            
-            {/* Label - Centered Below */}
-            <p 
-              className="text-center mt-3 text-sm font-semibold tracking-wide"
-              style={{ color: '#444' }}
-            >
-              FashionFeed
-            </p>
-          </button>
-        </div>
-
-        {/* Design and Shop - Compact Oval Button */}
-        <div 
-          className={`flex justify-center px-4 py-6 transition-all duration-700 delay-300 ${
+          className={`flex justify-center px-4 py-6 transition-all duration-700 delay-250 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}
         >
@@ -188,6 +149,39 @@ export default function StyleHub({
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             Design and Shop
+          </button>
+        </div>
+
+        {/* Style Scrapbook - Yellow Notepad Line (NEW DESIGN) */}
+        <div 
+          className={`flex justify-center px-4 py-3 transition-all duration-700 delay-300 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <button
+            onClick={onNavigateToFashionFeed}
+            className="w-full max-w-md group"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            {/* Yellow Notepad Paper with Red Margin Line */}
+            <div className="relative flex items-center bg-gradient-to-b from-yellow-50 to-yellow-100 border-l-4 border-red-500 rounded-r-lg shadow-md p-4 pl-6 hover:shadow-lg transition-all hover:-translate-y-1 active:scale-98">
+              {/* Pencil Emoji */}
+              <span className="text-2xl mr-3">✏️</span>
+              
+              {/* Text */}
+              <span className="text-lg font-semibold text-gray-800" style={{ fontFamily: 'Comic Sans MS, cursive' }}>
+                Style Scrapbook
+              </span>
+              
+              {/* Arrow */}
+              <ChevronRight className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" />
+              
+              {/* Decorative Blue Lines (like lined paper) */}
+              <div className="absolute inset-0 pointer-events-none pl-6 pr-4">
+                <div className="h-px bg-blue-200/30 absolute top-1/3 left-6 right-4" />
+                <div className="h-px bg-blue-200/30 absolute top-2/3 left-6 right-4" />
+              </div>
+            </div>
           </button>
         </div>
         
