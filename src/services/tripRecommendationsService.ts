@@ -8,6 +8,7 @@ import { getChatGPTJSON } from '../lib/openai';
 import { supabase } from './supabaseClient';
 import authService from './authService';
 import stylePreferencesService from './stylePreferencesService';
+import styleQuizService from './styleQuizService';
 import closetAnalyticsService from './closetAnalyticsService';
 import { searchGoogleShopping } from './serpApiService';
 
@@ -33,6 +34,7 @@ interface RecommendationContext {
   trip: TripRecommendationRequest;
   weather: any[];
   stylePrefs: any;
+  quizResults?: any; // NEW: Style quiz results
   closetSummary: any;
   wishlistSummary: any;
   analytics: any;
@@ -56,8 +58,9 @@ export async function generateTripRecommendations(
       return [];
     }
 
-    const [stylePrefs, closetItems, wishlist, analytics] = await Promise.all([
+    const [stylePrefs, quizResults, closetItems, wishlist, analytics] = await Promise.all([
       stylePreferencesService.loadStyleProfile(),
+      styleQuizService.getQuizResults(), // NEW: Get quiz results
       getClosetInventory(user.id),
       getWishlist(user.id),
       closetAnalyticsService.getAnalytics().catch(() => null),
@@ -70,11 +73,12 @@ export async function generateTripRecommendations(
     const closetSummary = summarizeCloset(closetItems);
     const wishlistSummary = summarizeWishlist(wishlist);
 
-    // 4. Build comprehensive prompt for OpenAI
+    // 4. Build comprehensive prompt for OpenAI (with quiz results)
     const prompt = buildRecommendationPrompt({
       trip: request,
       weather,
       stylePrefs,
+      quizResults, // NEW: Include quiz results
       closetSummary,
       wishlistSummary,
       analytics: {
@@ -274,6 +278,17 @@ ${context.weather.map((w) => `- ${w.date}: ${w.temp}°F, ${w.condition}`).join('
 ## User Style Profile
 - Gender: ${context.gender}
 - Sizes: Tops ${context.measurements.tops || 'not specified'}, Bottoms ${context.measurements.bottoms || 'not specified'}, Shoes ${context.measurements.shoes || 'not specified'}
+${context.quizResults ? `
+
+✨ VERIFIED STYLE QUIZ RESULTS (PRIORITIZE THIS):
+- Style Type: ${context.quizResults.styleType}
+- Style Description: ${context.quizResults.styleDescription}
+- Priorities: ${context.quizResults.priorities.join(', ')}
+- Recommended Palette: ${context.quizResults.recommendedPalette.map(c => c.name).join(', ')}
+- Shopping Behavior: ${context.quizResults.shoppingBehavior}
+
+**IMPORTANT**: User completed a style quiz. All recommendations should align with their ${context.quizResults.styleType} aesthetic and priorities: ${context.quizResults.priorities.join(', ')}.
+` : ''}
 - Style Archetypes: ${context.stylePrefs?.fashionPersonality?.archetypes?.join(', ') || 'Not specified'}
 - Preferred Colors: ${context.stylePrefs?.fashionPersonality?.colorPalette?.join(', ') || 'All colors'}
 - Avoid Colors: ${context.stylePrefs?.fashionPersonality?.avoidColors?.join(', ') || 'None'}

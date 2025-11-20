@@ -34,7 +34,9 @@ class OpenAIImageCurator {
     candidates: CuratedImage[],
     userGender: string,
     stylePersona: string,
-    purpose: 'style-steal' | 'trend'
+    purpose: 'style-steal' | 'trend',
+    quizStyleType?: string, // NEW: Quiz style type for better curation
+    quizPriorities?: string[] // NEW: User's style priorities
   ): Promise<ImageCurationResult> {
     try {
       console.log(`✨ [OPENAI] Curating ${candidates.length} images for ${purpose}...`);
@@ -52,7 +54,7 @@ class OpenAIImageCurator {
         return this.basicCuration(candidates, userGender, purpose);
       }
 
-      const prompt = this.buildCurationPrompt(candidates, userGender, stylePersona, purpose);
+      const prompt = this.buildCurationPrompt(candidates, userGender, stylePersona, purpose, quizStyleType, quizPriorities);
       const response = await this.callOpenAI(prompt);
       const result = this.parseImageSelections(response, candidates);
 
@@ -74,10 +76,22 @@ class OpenAIImageCurator {
     candidates: CuratedImage[],
     userGender: string,
     stylePersona: string,
-    purpose: string
+    purpose: string,
+    quizStyleType?: string,
+    quizPriorities?: string[]
   ): string {
     const targetCount = purpose === 'style-steal' ? 6 : 4;
     const genderFilter = userGender === 'women' ? 'womens fashion' : userGender === 'men' ? 'mens fashion' : 'unisex fashion';
+
+    // Build quiz context section
+    const quizContext = quizStyleType ? `
+✨ USER'S VERIFIED STYLE PROFILE (PRIORITIZE THIS):
+- Style Type: ${quizStyleType}
+- Priorities: ${quizPriorities?.join(', ') || 'not specified'}
+
+**IMPORTANT**: User completed a style quiz. Filter and rank images to match their ${quizStyleType} aesthetic.
+${quizPriorities && quizPriorities.length > 0 ? `Focus on images that align with: ${quizPriorities.join(', ')}` : ''}
+` : '';
 
     // Create image descriptions for analysis
     const imageDescriptions = candidates.map((img, idx) => {
@@ -91,6 +105,7 @@ USER CONTEXT:
 - Target Fashion: ${genderFilter}
 - Style Persona: ${stylePersona}
 - Purpose: ${purpose === 'style-steal' ? 'Everyday wearable outfit inspiration' : 'Trend showcase'}
+${quizContext}
 
 CANDIDATE IMAGES (${candidates.length} total):
 ${imageDescriptions}

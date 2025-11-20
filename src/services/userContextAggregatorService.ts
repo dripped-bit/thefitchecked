@@ -12,6 +12,7 @@
 import { supabase } from './supabaseClient';
 import authService from './authService';
 import stylePreferencesService, { UserStyleProfile } from './stylePreferencesService';
+import styleQuizService, { StyleQuizResult } from './styleQuizService';
 import closetAnalyticsService, { AnalyticsData } from './closetAnalyticsService';
 
 export interface ClothingItem {
@@ -64,6 +65,9 @@ export interface UserContext {
   // Style Preferences
   stylePreferences: UserStyleProfile | null;
   
+  // NEW: Style Quiz Results (AI-powered personalization)
+  styleQuiz: StyleQuizResult | null;
+  
   // Analytics
   analytics: AnalyticsData | null;
   
@@ -115,12 +119,14 @@ class UserContextAggregatorService {
     const [
       closetData,
       stylePrefs,
+      quizResults,
       analyticsData,
       wishlistData,
       tripsData
     ] = await Promise.all([
       this.fetchClosetInventory(user.id),
       this.fetchStylePreferences(),
+      this.fetchStyleQuiz(), // NEW: Fetch quiz results
       this.fetchAnalytics(),
       this.fetchWishlist(user.id),
       this.fetchTrips(user.id)
@@ -129,10 +135,11 @@ class UserContextAggregatorService {
     const context: UserContext = {
       closet: closetData,
       stylePreferences: stylePrefs,
+      styleQuiz: quizResults, // NEW: Include quiz results
       analytics: analyticsData,
       wishlist: wishlistData,
       trips: tripsData,
-      hasData: closetData.totalItems > 0 || !!stylePrefs,
+      hasData: closetData.totalItems > 0 || !!stylePrefs || !!quizResults,
       dataTimestamp: new Date().toISOString()
     };
 
@@ -145,6 +152,8 @@ class UserContextAggregatorService {
     console.log('✅ [USER-CONTEXT] Data gathered:', {
       closetItems: closetData.totalItems,
       hasPreferences: !!stylePrefs,
+      hasQuizResults: !!quizResults, // NEW: Log quiz status
+      quizStyleType: quizResults?.styleType || 'not completed',
       wishlistItems: wishlistData.items.length,
       upcomingTrips: tripsData.upcoming.length
     });
@@ -211,6 +220,22 @@ class UserContextAggregatorService {
       return await stylePreferencesService.loadStyleProfile();
     } catch (error) {
       console.error('❌ [USER-CONTEXT] Error fetching style prefs:', error);
+      return null;
+    }
+  }
+
+  /**
+   * NEW: Fetch style quiz results from database
+   */
+  private async fetchStyleQuiz(): Promise<StyleQuizResult | null> {
+    try {
+      const results = await styleQuizService.getQuizResults();
+      if (results) {
+        console.log('✨ [USER-CONTEXT] Quiz results loaded:', results.styleType);
+      }
+      return results;
+    } catch (error) {
+      console.error('❌ [USER-CONTEXT] Error fetching quiz results:', error);
       return null;
     }
   }
@@ -312,6 +337,7 @@ class UserContextAggregatorService {
         recentlyAdded: []
       },
       stylePreferences: null,
+      styleQuiz: null, // NEW: Empty quiz results
       analytics: null,
       wishlist: {
         items: [],

@@ -6,6 +6,7 @@
 
 import { ClothingItem } from '../hooks/useCloset';
 import stylePreferencesService from './stylePreferencesService';
+import styleQuizService from './styleQuizService';
 import { supabase } from './supabaseClient';
 
 export interface CuratedImage {
@@ -48,6 +49,11 @@ export interface PersonalizedSearchContext {
   
   // From occasions
   commonOccasions: string[];
+  
+  // NEW: From style quiz
+  quizStyleType?: string;
+  quizPriorities?: string[];
+  quizRecommendedBrands?: string[];
 }
 
 interface WishlistItem {
@@ -384,21 +390,38 @@ class FashionImageCurationService {
     // 2. Load style profile
     const styleProfile = await stylePreferencesService.loadStyleProfile();
     
-    // 3. Load wishlist
+    // 3. Load style quiz results (NEW - adds quiz personalization)
+    const quizResults = await styleQuizService.getQuizResults();
+    
+    // 4. Load wishlist
     const wishlist = await this.getWishlistItems(userId);
+    
+    // Merge quiz results with existing preferences
+    const styleArchetypes = styleProfile?.fashionPersonality?.archetypes || [];
+    if (quizResults?.visualStyle) {
+      styleArchetypes.push(...quizResults.visualStyle);
+    }
+    
+    // Use quiz color palette if available, otherwise fall back to style profile
+    const favoriteColors = quizResults?.recommendedPalette?.map(c => c.name.toLowerCase()) || 
+                          styleProfile?.fashionPersonality?.colorPalette || [];
     
     return {
       closetCategories: closetAnalysis.topCategories,
       closetBrands: closetAnalysis.brands,
       closetColors: closetAnalysis.dominantColors,
-      styleArchetypes: styleProfile?.fashionPersonality?.archetypes || [],
-      favoriteColors: styleProfile?.fashionPersonality?.colorPalette || [],
+      styleArchetypes: [...new Set(styleArchetypes)], // Remove duplicates
+      favoriteColors: [...new Set(favoriteColors)], // Remove duplicates
       avoidColors: styleProfile?.fashionPersonality?.avoidColors || [],
       preferredMaterials: styleProfile?.preferences?.materials || [],
       genderContext: styleProfile?.sizes?.gender || 'women',
       wishlistCategories: wishlist.map(w => w.category).filter(Boolean),
       favoriteStores: styleProfile?.shopping?.favoriteStores || [],
-      commonOccasions: this.extractOccasions(styleProfile)
+      commonOccasions: this.extractOccasions(styleProfile),
+      // NEW: Quiz-specific preferences
+      quizStyleType: quizResults?.styleType,
+      quizPriorities: quizResults?.priorities || [],
+      quizRecommendedBrands: quizResults?.recommendedBrands || []
     };
   }
 

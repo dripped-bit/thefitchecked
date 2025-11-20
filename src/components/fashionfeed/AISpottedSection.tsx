@@ -43,12 +43,15 @@ export default function AISpottedSection({ items }: AISpottedSectionProps) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // 1. Use Claude to detect personalized trends
+      // 1. Use Claude to detect personalized trends (includes quiz results now)
       const analysis = await claudeStyleAnalyzer.analyzeForFashionFeed(items, user?.id || '');
       
       console.log('🤖 [CLAUDE] Detected Trends:', analysis.detectedTrends);
       
-      // 2. For each trend, get gender-specific images
+      // 2. Get personalization context (includes quiz data)
+      const context = await fashionImageCurationService.buildPersonalizationContext(items, user?.id || '');
+      
+      // 3. For each trend, get gender-specific images
       const trendsWithImages = await Promise.all(
         analysis.detectedTrends.map(async (trend) => {
           try {
@@ -58,12 +61,14 @@ export default function AISpottedSection({ items }: AISpottedSectionProps) {
               4
             );
             
-            // Use OpenAI to pick the best image
+            // Use OpenAI to pick the best image (with quiz preferences)
             const curated = await openaiImageCurator.curateImages(
               candidates,
               analysis.userGender,
               analysis.stylePersona,
-              'trend'
+              'trend',
+              context.quizStyleType, // NEW: Pass quiz style type
+              context.quizPriorities // NEW: Pass quiz priorities
             );
             
             return {

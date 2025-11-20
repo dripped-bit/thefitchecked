@@ -5,6 +5,7 @@
 
 import { ClothingItem } from '../hooks/useCloset';
 import stylePreferencesService from './stylePreferencesService';
+import styleQuizService from './styleQuizService';
 import fashionImageCurationService, { PersonalizedSearchContext } from './fashionImageCurationService';
 
 export interface ClaudeStyleAnalysis {
@@ -83,8 +84,19 @@ class ClaudeStyleAnalyzer {
     const categorySummary = this.summarizeByCategory(items);
     const currentYear = new Date().getFullYear();
 
-    return `You are a professional fashion stylist analyzing a user's wardrobe and style preferences.
+    // Build quiz context section if available
+    const quizSection = context.quizStyleType ? `
+## STYLE QUIZ PROFILE ✨ (PRIORITIZE THIS)
+- Style Type: ${context.quizStyleType}
+- Priorities: ${context.quizPriorities?.join(', ') || 'not specified'}
+- Recommended Brands: ${context.quizRecommendedBrands?.slice(0, 5).join(', ') || 'not specified'}
 
+**IMPORTANT**: This quiz was completed by the user and represents their true style identity. 
+Use this as the PRIMARY guide for recommendations, and align all suggestions with their ${context.quizStyleType} style.
+` : '';
+
+    return `You are a professional fashion stylist analyzing a user's wardrobe and style preferences.
+${quizSection}
 ## USER PROFILE
 - Gender: ${context.genderContext || 'unisex'}
 - Style Archetypes: ${context.styleArchetypes.length > 0 ? context.styleArchetypes.join(', ') : 'casual, everyday'}

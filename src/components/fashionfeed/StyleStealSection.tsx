@@ -36,12 +36,15 @@ export default function StyleStealSection({ items }: StyleStealSectionProps) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // 1. Use Claude to analyze user's complete profile
+      // 1. Use Claude to analyze user's complete profile (includes quiz results now)
       const analysis = await claudeStyleAnalyzer.analyzeForFashionFeed(items, user?.id || '');
       
       console.log('🤖 [CLAUDE] Style Steal Queries:', analysis.styleStealQueries);
       
-      // 2. Search Unsplash with Claude-generated queries
+      // 2. Get personalization context (includes quiz data)
+      const context = await fashionImageCurationService.buildPersonalizationContext(items, user?.id || '');
+      
+      // 3. Search Unsplash with Claude-generated queries
       const allImages: CuratedImage[] = [];
       
       for (const query of analysis.styleStealQueries) {
@@ -51,12 +54,14 @@ export default function StyleStealSection({ items }: StyleStealSectionProps) {
       
       console.log(`📸 [UNSPLASH] Found ${allImages.length} candidate images`);
       
-      // 3. Use OpenAI to curate and rank images
+      // 4. Use OpenAI to curate and rank images (with quiz preferences)
       const curated = await openaiImageCurator.curateImages(
         allImages,
         analysis.userGender,
         analysis.stylePersona,
-        'style-steal'
+        'style-steal',
+        context.quizStyleType, // NEW: Pass quiz style type
+        context.quizPriorities // NEW: Pass quiz priorities
       );
       
       console.log(`✨ [OPENAI] Selected ${curated.selectedImages.length} images`);
