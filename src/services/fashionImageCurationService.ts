@@ -155,7 +155,7 @@ class FashionImageCurationService {
   /**
    * Search Unsplash for fashion images
    */
-  async searchUnsplash(query: string, perPage: number = 10): Promise<CuratedImage[]> {
+  async searchUnsplash(query: string, perPage: number = 10, page: number = 1): Promise<CuratedImage[]> {
     if (!this.unsplashAccessKey) {
       console.warn('Unsplash API key not configured');
       return [];
@@ -163,7 +163,7 @@ class FashionImageCurationService {
 
     try {
       const response = await fetch(
-        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${perPage}&orientation=portrait`,
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${page}&orientation=portrait`,
         {
           headers: {
             'Authorization': `Client-ID ${this.unsplashAccessKey}`

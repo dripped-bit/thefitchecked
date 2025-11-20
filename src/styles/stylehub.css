@@ -1,0 +1,56 @@
+/* ============================================
+   DESIGN AND SHOP BUTTON
+   ============================================ */
+
+.design-shop-button {
+  /* Position: Left aligned */
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  
+  /* Baby blue background with 30% opacity */
+  background: rgba(173, 216, 230, 0.3); /* Baby blue #ADD8E6 */
+  
+  /* Blur effect on borders */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  
+  /* Rounded borders with blur */
+  border: 1px solid rgba(173, 216, 230, 0.5);
+  border-radius: 24px;
+  
+  /* Padding */
+  padding: 12px 24px;
+  
+  /* Shadow */
+  box-shadow: 
+    0 4px 12px rgba(173, 216, 230, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  
+  /* Transitions */
+  transition: all 0.3s ease;
+}
+
+.design-shop-button:hover {
+  background: rgba(173, 216, 230, 0.4);
+  box-shadow: 
+    0 6px 16px rgba(173, 216, 230, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+}
+
+.design-shop-button:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 2px 8px rgba(173, 216, 230, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.design-shop-text {
+  /* Sky blue text color */
+  color: #87CEEB; /* Sky blue */
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}

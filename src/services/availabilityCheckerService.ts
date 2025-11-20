@@ -45,7 +45,7 @@ NO additional text.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20240620',
+          model: 'claude-sonnet-4-5-20250514',
           max_tokens: 500,
           messages: [{ role: 'user', content: prompt }],
         }),

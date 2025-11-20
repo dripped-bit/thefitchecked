@@ -44,11 +44,17 @@ export default function StyleStealSection({ items }: StyleStealSectionProps) {
       // 2. Get personalization context (includes quiz data)
       const context = await fashionImageCurationService.buildPersonalizationContext(items, user?.id || '');
       
-      // 3. Search Unsplash with Claude-generated queries
+      // 3. Search Unsplash with SHUFFLED queries for variety
       const allImages: CuratedImage[] = [];
       
-      for (const query of analysis.styleStealQueries) {
-        const imgs = await fashionImageCurationService.searchUnsplash(query, 3);
+      // Shuffle queries to get different results each time
+      const shuffledQueries = [...analysis.styleStealQueries]
+        .sort(() => Math.random() - 0.5);
+      
+      for (const query of shuffledQueries) {
+        // Use random page (1-3) for variety on each refresh
+        const randomPage = Math.floor(Math.random() * 3) + 1;
+        const imgs = await fashionImageCurationService.searchUnsplash(query, 3, randomPage);
         allImages.push(...imgs);
       }
       
@@ -60,8 +66,8 @@ export default function StyleStealSection({ items }: StyleStealSectionProps) {
         analysis.userGender,
         analysis.stylePersona,
         'style-steal',
-        context.quizStyleType, // NEW: Pass quiz style type
-        context.quizPriorities // NEW: Pass quiz priorities
+        context.quizStyleType,
+        context.quizPriorities
       );
       
       console.log(`✨ [OPENAI] Selected ${curated.selectedImages.length} images`);

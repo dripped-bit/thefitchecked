@@ -250,7 +250,7 @@ export default function StyleQuiz({ isOpen, onClose, onComplete }: StyleQuizProp
   const currentAnswer = getCurrentAnswer();
 
   return (
-    <div className="quiz-modal" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="quiz-modal">
       <div className="quiz-content">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -272,8 +272,11 @@ export default function StyleQuiz({ isOpen, onClose, onComplete }: StyleQuizProp
           </div>
 
           <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors z-50"
           >
             <X size={24} />
           </button>
@@ -435,7 +438,11 @@ export default function StyleQuiz({ isOpen, onClose, onComplete }: StyleQuizProp
           </button>
 
           <button
-            onClick={handleNext}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleNext();
+            }}
             disabled={!isAnswered()}
             className="px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
           >

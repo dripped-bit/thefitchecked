@@ -12,6 +12,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import AIDesignShopModal from '../components/AIDesignShopModal';
+import '../styles/stylehub.css';
 
 interface StyleHubProps {
   onBack: () => void;
@@ -135,21 +136,6 @@ export default function StyleHub({
               <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
           </div>
-        </div>
-
-        {/* Design and Shop - Compact Oval Button (MOVED UP) */}
-        <div 
-          className={`flex justify-center px-4 py-6 transition-all duration-700 delay-250 ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
-          <button
-            onClick={() => setShowAIDesign(true)}
-            className="px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-base font-semibold rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 active:scale-95"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            Design and Shop
-          </button>
         </div>
 
         {/* Style Scrapbook - Yellow Notepad Line (NEW DESIGN) */}
