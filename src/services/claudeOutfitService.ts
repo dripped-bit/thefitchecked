@@ -85,7 +85,7 @@ class ClaudeOutfitService {
       const prompt = this.buildPrompt({ ...request, outfitHistory });
 
       const message = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250514',
         max_tokens: 2000,
         temperature: 0.9, // Increased for more variety (was 0.7)
         messages: [{
