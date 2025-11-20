@@ -269,6 +269,71 @@ class OutfitHistoryService {
       return overlap > itemIds.length / 2;
     });
   }
+
+  /**
+   * Get recent outfit history for timeline display
+   */
+  async getRecentHistory(days: number = 7): Promise<OutfitHistoryRecord[]> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.warn('⚠️ [OUTFIT-HISTORY] No authenticated user');
+        return [];
+      }
+
+      const daysAgo = new Date();
+      daysAgo.setDate(daysAgo.getDate() - days);
+
+      const { data, error } = await supabase
+        .from('outfit_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('worn_date', daysAgo.toISOString().split('T')[0])
+        .order('worn_date', { ascending: false });
+
+      if (error) {
+        console.error('❌ [OUTFIT-HISTORY] Error fetching recent history:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('❌ [OUTFIT-HISTORY] Exception in getRecentHistory:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get outfit image from calendar event for a specific date
+   */
+  async getOutfitImage(date: string): Promise<string | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('outfit_image_url')
+        .eq('user_id', user.id)
+        .eq('event_date', date)
+        .eq('wore_today', true)
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ [OUTFIT-HISTORY] Error fetching outfit image:', error);
+        return null;
+      }
+
+      return data?.outfit_image_url || null;
+    } catch (error) {
+      console.error('❌ [OUTFIT-HISTORY] Exception in getOutfitImage:', error);
+      return null;
+    }
+  }
 }
 
 export const outfitHistoryService = new OutfitHistoryService();

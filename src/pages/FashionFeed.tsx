@@ -9,6 +9,9 @@ import { useCloset } from '../hooks/useCloset';
 import ColorStorySection from '../components/fashionfeed/ColorStorySection';
 import ClosetHeroesSection from '../components/fashionfeed/ClosetHeroesSection';
 import WeeklyChallengeSection from '../components/fashionfeed/WeeklyChallengeSection';
+import StyleStealSection from '../components/fashionfeed/StyleStealSection';
+import AISpottedSection from '../components/fashionfeed/AISpottedSection';
+import YourFitsWeekSection from '../components/fashionfeed/YourFitsWeekSection';
 import '../styles/scrapbook.css';
 
 interface FashionFeedProps {
@@ -181,23 +184,48 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
           <WeeklyChallengeSection items={items} />
         </div>
 
+        {/* Style Steal Section */}
+        <div 
+          className={`transition-all duration-700 delay-600 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <StyleStealSection items={items} />
+        </div>
+
+        {/* AI Spotted Section */}
+        <div 
+          className={`transition-all duration-700 delay-700 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <AISpottedSection items={items} />
+        </div>
+
+        {/* Your Fits This Week Section */}
+        <div 
+          className={`transition-all duration-700 delay-800 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <YourFitsWeekSection />
+        </div>
+
         {/* Coming Soon Sections */}
         <div className="dots-divider">• • •</div>
 
         <div 
-          className={`speech-bubble transition-all duration-700 delay-600 ${
+          className={`speech-bubble transition-all duration-700 delay-900 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}
         >
           <p className="handwritten text-xl text-center">
-            "More amazing features coming soon! 🎨✨"
+            "More magic coming soon! 🎨✨"
           </p>
           <div className="mt-4 text-center text-sm text-gray-600">
-            <p>• Style Steal Inspiration</p>
-            <p>• AI Spotted Trends</p>
-            <p>• Your Outfit Timeline</p>
             <p>• Before/After Comparisons</p>
             <p>• Shopping Board</p>
+            <p>• Styling Lessons</p>
           </div>
         </div>
 

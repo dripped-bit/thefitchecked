@@ -297,6 +297,17 @@ class FashionImageCurationService {
 
     return allImages.slice(0, count);
   }
+
+  /**
+   * Get trending style images for current season
+   */
+  async getTrendingStyleImages(
+    trendName: string,
+    count: number = 4
+  ): Promise<CuratedImage[]> {
+    const query = `${trendName} fashion trend 2024`;
+    return this.searchUnsplash(query, count);
+  }
 }
 
 export default new FashionImageCurationService();
