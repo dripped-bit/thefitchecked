@@ -4,9 +4,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Settings, Camera, Share2 } from 'lucide-react';
+import { ArrowLeft, Plus, Settings, Camera as CameraIcon, Share2 } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
+import { Camera, Photo } from '@capacitor/camera';
 import { useCloset } from '../hooks/useCloset';
 import ColorStorySection from '../components/fashionfeed/ColorStorySection';
 import ClosetHeroesSection from '../components/fashionfeed/ClosetHeroesSection';
@@ -16,6 +17,8 @@ import AISpottedSection from '../components/fashionfeed/AISpottedSection';
 import YourFitsWeekSection from '../components/fashionfeed/YourFitsWeekSection';
 import ShoppingBoardSection from '../components/fashionfeed/ShoppingBoardSection';
 import BeforeAfterSection from '../components/fashionfeed/BeforeAfterSection';
+import VibePhotoGallery, { VibePhoto } from '../components/fashionfeed/VibePhotoGallery';
+import { supabase } from '../services/supabaseClient';
 import haptics from '../utils/haptics';
 import '../styles/scrapbook.css';
 
@@ -23,14 +26,197 @@ interface FashionFeedProps {
   onBack: () => void;
 }
 
+const VIBE_STORAGE_KEY = 'fashionfeed_daily_vibes';
+
+interface DailyVibe {
+  date: string;
+  text: string;
+  timestamp: number;
+}
+
 export default function FashionFeed({ onBack }: FashionFeedProps) {
   const { items, loading } = useCloset();
   const [mounted, setMounted] = useState(false);
   const [vibe, setVibe] = useState('');
+  const [vibePhotos, setVibePhotos] = useState<VibePhoto[]>([]);
+  const [loadingVibe, setLoadingVibe] = useState(true);
 
   useEffect(() => {
     setMounted(true);
+    loadTodaysVibe();
   }, []);
+
+  const loadTodaysVibe = async () => {
+    setLoadingVibe(true);
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Try Supabase first
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { data, error } = await supabase
+          .from('daily_vibes')
+          .select('vibe_text, photos')
+          .eq('user_id', user.id)
+          .eq('vibe_date', today)
+          .single();
+        
+        if (data && !error) {
+          setVibe(data.vibe_text || '');
+          setVibePhotos(data.photos || []);
+          setLoadingVibe(false);
+          return;
+        }
+      }
+      
+      // Fallback to localStorage
+      const stored = localStorage.getItem(VIBE_STORAGE_KEY);
+      if (stored) {
+        const vibes: DailyVibe[] = JSON.parse(stored);
+        const todaysVibe = vibes.find(v => v.date === today);
+        if (todaysVibe) {
+          setVibe(todaysVibe.text);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load vibe:', error);
+    } finally {
+      setLoadingVibe(false);
+    }
+  };
+
+  const saveVibe = async (newVibe: string) => {
+    setVibe(newVibe);
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Try Supabase first
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        await supabase.from('daily_vibes').upsert({
+          user_id: user.id,
+          vibe_date: today,
+          vibe_text: newVibe,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,vibe_date'
+        });
+      }
+      
+      // Also save to localStorage as backup
+      const stored = localStorage.getItem(VIBE_STORAGE_KEY) || '[]';
+      const vibes: DailyVibe[] = JSON.parse(stored);
+      const existing = vibes.findIndex(v => v.date === today);
+      
+      if (existing >= 0) {
+        vibes[existing] = { date: today, text: newVibe, timestamp: Date.now() };
+      } else {
+        vibes.push({ date: today, text: newVibe, timestamp: Date.now() });
+      }
+      
+      // Keep only last 30 days
+      const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      const recent = vibes.filter(v => v.timestamp > cutoff);
+      localStorage.setItem(VIBE_STORAGE_KEY, JSON.stringify(recent));
+      
+    } catch (error) {
+      console.error('Failed to save vibe:', error);
+    }
+  };
+
+  const handlePlusClick = async () => {
+    await haptics.impact();
+    
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: true,
+        resultType: Capacitor.isNativePlatform() ? 
+          (await import('@capacitor/camera')).CameraResultType.Uri : 
+          (await import('@capacitor/camera')).CameraResultType.DataUrl,
+        source: (await import('@capacitor/camera')).CameraSource.Prompt
+      });
+
+      if (photo.webPath || photo.dataUrl) {
+        await handlePhotoCapture(photo.webPath || photo.dataUrl || '');
+      }
+    } catch (error: any) {
+      if (error.message !== 'User cancelled photos app') {
+        console.error('Camera error:', error);
+      }
+    }
+  };
+
+  const handlePhotoCapture = async (photoUrl: string) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Random rotation for scrapbook effect (-5 to 5 degrees)
+      const rotation = Math.random() * 10 - 5;
+      
+      // Random sticker style
+      const styles: Array<'polaroid' | 'cutout' | 'torn' | 'tape'> = ['polaroid', 'cutout', 'torn', 'tape'];
+      const stickerStyle = styles[Math.floor(Math.random() * styles.length)];
+      
+      const newPhoto: VibePhoto = {
+        id: Date.now().toString(),
+        url: photoUrl,
+        rotation,
+        stickerStyle
+      };
+      
+      const updatedPhotos = [...vibePhotos, newPhoto];
+      setVibePhotos(updatedPhotos);
+      
+      // Save to Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('daily_vibes').upsert({
+          user_id: user.id,
+          vibe_date: today,
+          photos: updatedPhotos,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,vibe_date'
+        });
+      }
+      
+      await haptics.notification({ type: 'success' });
+    } catch (error) {
+      console.error('Failed to add photo:', error);
+      await haptics.notification({ type: 'error' });
+    }
+  };
+
+  const handleRemovePhoto = async (photoId: string) => {
+    await haptics.impact();
+    
+    try {
+      const updatedPhotos = vibePhotos.filter(p => p.id !== photoId);
+      setVibePhotos(updatedPhotos);
+      
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Update Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('daily_vibes').upsert({
+          user_id: user.id,
+          vibe_date: today,
+          photos: updatedPhotos,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,vibe_date'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to remove photo:', error);
+    }
+  };
 
   const handleShare = async () => {
     await haptics.impact();
@@ -108,7 +294,11 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
             >
               <Share2 className="w-6 h-6" />
             </button>
-            <button className="p-2 hover:bg-pink-50 rounded-full transition-colors">
+            <button 
+              onClick={handlePlusClick}
+              className="p-2 hover:bg-pink-50 rounded-full transition-colors"
+              aria-label="Add photo"
+            >
               <Plus className="w-6 h-6" />
             </button>
             <button className="p-2 hover:bg-pink-50 rounded-full transition-colors">
@@ -131,15 +321,33 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
             <h2 className="handwritten text-2xl mb-4 text-center">
               YOUR VIBE TODAY
             </h2>
+            
+            {/* Vibe Input */}
             <div className="relative">
               <input
                 type="text"
                 value={vibe}
-                onChange={(e) => setVibe(e.target.value)}
+                onChange={(e) => saveVibe(e.target.value)}
                 placeholder="sunny & feeling cute! ☀️"
-                className="w-full px-4 py-3 border-2 border-pink-300 rounded-lg text-lg focus:outline-none focus:border-pink-500"
+                className="w-full px-4 py-3 border-2 border-pink-300 rounded-lg text-lg focus:outline-none focus:border-pink-500 transition-colors"
+                disabled={loadingVibe}
               />
             </div>
+
+            {/* Photo Gallery */}
+            <VibePhotoGallery 
+              photos={vibePhotos}
+              onRemovePhoto={handleRemovePhoto}
+            />
+
+            {/* Add Photo Button */}
+            <button
+              onClick={handlePlusClick}
+              className="mt-4 w-full py-3 border-2 border-dashed border-pink-300 rounded-lg hover:bg-pink-50 transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-pink-600"
+            >
+              <CameraIcon className="w-5 h-5" />
+              <span className="font-medium">Add a photo to your vibe</span>
+            </button>
           </div>
         </div>
 

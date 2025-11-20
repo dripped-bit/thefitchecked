@@ -379,6 +379,134 @@
 }
 
 /* ============================================
+   VIBE PHOTO STYLES
+   ============================================ */
+
+/* Vibe Photos Grid */
+.vibe-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.vibe-photo-item {
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0;
+  position: relative;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Cutout Photo Style */
+.cutout-photo {
+  position: relative;
+  border: none;
+  filter: drop-shadow(4px 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.cutout-photo img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 12px;
+  clip-path: polygon(
+    5% 0%, 95% 0%, 100% 5%, 100% 95%, 95% 100%, 5% 100%, 0% 95%, 0% 5%
+  );
+}
+
+/* Torn Edge Photo */
+.torn-edge-photo {
+  position: relative;
+  background: white;
+  padding: 8px;
+  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.torn-edge-photo::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(
+    135deg,
+    transparent 0px, white 0px, white 3px, transparent 3px
+  ) repeat-x;
+  background-size: 6px 6px;
+}
+
+.torn-edge-photo img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+/* Photo with Tape Effect */
+.photo-with-tape {
+  position: relative;
+}
+
+.photo-with-tape::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+/* Delete Photo Button */
+.delete-photo-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #FF1493;
+  color: white;
+  border-radius: 50%;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 10;
+  border: 2px solid white;
+}
+
+.delete-photo-btn:hover {
+  transform: scale(1.1);
+}
+
+.vibe-photo-item:hover .delete-photo-btn {
+  opacity: 1;
+}
+
+/* Mobile - always show delete button */
+@media (max-width: 768px) {
+  .delete-photo-btn {
+    opacity: 0.7;
+  }
+  
+  .delete-photo-btn:active {
+    opacity: 1;
+  }
+}
+
+/* ============================================
    ANIMATIONS
    ============================================ */
 
