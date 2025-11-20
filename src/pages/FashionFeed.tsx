@@ -4,7 +4,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Settings, Camera } from 'lucide-react';
+import { ArrowLeft, Plus, Settings, Camera, Share2 } from 'lucide-react';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import { useCloset } from '../hooks/useCloset';
 import ColorStorySection from '../components/fashionfeed/ColorStorySection';
 import ClosetHeroesSection from '../components/fashionfeed/ClosetHeroesSection';
@@ -12,6 +14,8 @@ import WeeklyChallengeSection from '../components/fashionfeed/WeeklyChallengeSec
 import StyleStealSection from '../components/fashionfeed/StyleStealSection';
 import AISpottedSection from '../components/fashionfeed/AISpottedSection';
 import YourFitsWeekSection from '../components/fashionfeed/YourFitsWeekSection';
+import ShoppingBoardSection from '../components/fashionfeed/ShoppingBoardSection';
+import haptics from '../utils/haptics';
 import '../styles/scrapbook.css';
 
 interface FashionFeedProps {
@@ -26,6 +30,38 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleShare = async () => {
+    await haptics.impact();
+    
+    try {
+      if (Capacitor.isNativePlatform()) {
+        // iOS native share sheet
+        await Share.share({
+          title: 'My FashionFeed Style Scrapbook',
+          text: `Check out my personal style journey! 🎨✨\n\nI've been using FitChecked to track my outfits and discover my style.\n\n📸 ${items.length} items in my closet\n✨ AI-powered style insights\n💫 Personal style scrapbook`,
+          dialogTitle: 'Share Your Style Scrapbook'
+        });
+      } else {
+        // Web fallback
+        if (navigator.share) {
+          await navigator.share({
+            title: 'My FashionFeed Style Scrapbook',
+            text: `Check out my personal style journey on FitChecked! 🎨✨`
+          });
+        } else {
+          // Copy to clipboard fallback
+          await navigator.clipboard.writeText('Check out my FashionFeed style scrapbook on FitChecked! 🎨✨');
+          alert('Link copied to clipboard!');
+        }
+      }
+    } catch (error: any) {
+      // User cancelled or error occurred
+      if (error.message !== 'Share canceled') {
+        console.error('Share failed:', error);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -64,6 +100,13 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            <button 
+              onClick={handleShare}
+              className="p-2 hover:bg-pink-50 rounded-full transition-colors"
+              aria-label="Share"
+            >
+              <Share2 className="w-6 h-6" />
+            </button>
             <button className="p-2 hover:bg-pink-50 rounded-full transition-colors">
               <Plus className="w-6 h-6" />
             </button>
@@ -211,6 +254,15 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
           <YourFitsWeekSection />
         </div>
 
+        {/* Shopping Board Section */}
+        <div 
+          className={`transition-all duration-700 delay-900 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <ShoppingBoardSection />
+        </div>
+
         {/* Coming Soon Sections */}
         <div className="dots-divider">• • •</div>
 
@@ -224,8 +276,8 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
           </p>
           <div className="mt-4 text-center text-sm text-gray-600">
             <p>• Before/After Comparisons</p>
-            <p>• Shopping Board</p>
             <p>• Styling Lessons</p>
+            <p>• Mood Board Creation</p>
           </div>
         </div>
 
