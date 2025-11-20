@@ -16,6 +16,7 @@ import PriceComparisonModal from '../components/wishlist/PriceComparisonModal';
 import DealsModal from '../components/wishlist/DealsModal';
 import MoveToClosetModal from '../components/wishlist/MoveToClosetModal';
 import PurchaseDetectionModal from '../components/wishlist/PurchaseDetectionModal';
+import PdfOptionsModal from '../components/wishlist/PdfOptionsModal';
 import claudeComparisonService from '../services/claudeComparisonService';
 import serpApiPriceSearchService from '../services/serpApiPriceSearchService';
 import purchaseDetectionService from '../services/purchaseDetectionService';
@@ -93,6 +94,10 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
   // Purchase detection state
   const [showPurchaseDetection, setShowPurchaseDetection] = useState(false);
   const [purchaseDetectionData, setPurchaseDetectionData] = useState<any>(null);
+
+  // PDF generation state
+  const [showPdfOptions, setShowPdfOptions] = useState(false);
+  const [pdfMode, setPdfMode] = useState<'share' | 'gifts'>('share');
 
   useEffect(() => {
     fetchWishlist();
@@ -380,7 +385,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       // Share selected items, or entire wishlist if none selected
       const itemsToShare = selectedItems.size > 0
         ? allWishlistItems.filter(i => selectedItems.has(i.id))
-        : allWishlistItems; // Whole wishlist if none selected
+        : allWishlistItems;
 
       if (itemsToShare.length === 0) {
         setToastMessage('No items to share');
@@ -388,15 +393,9 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
         return;
       }
 
-      const shareText = `My Wishlist (${itemsToShare.length} items)\n\n${itemsToShare.map((item, i) =>
-        `${i + 1}. ${item.name}\n${item.price} • ${item.retailer}\n🔗 ${item.url}`
-      ).join('\n\n')}`;
-
-      await Share.share({
-        title: 'My Wishlist',
-        text: shareText,
-        dialogTitle: 'Share Wishlist'
-      });
+      // Open PDF options modal instead of plain text share
+      setPdfMode('share');
+      setShowPdfOptions(true);
     } catch (error) {
       console.error('Share error:', error);
     }
@@ -452,7 +451,7 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       // Send selected gifts, or all gifts if none selected
       const itemsToSend = selectedItems.size > 0
         ? giftItems.filter(i => selectedItems.has(i.id))
-        : giftItems; // All gifts if none selected
+        : giftItems;
       
       if (itemsToSend.length === 0) {
         setToastMessage('No gift items to send');
@@ -460,15 +459,9 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
         return;
       }
       
-      const shareText = `🎁 My Gift Wishlist\n\n${itemsToSend.map((item, i) => 
-        `${i + 1}. ${item.name}${item.brand ? ` by ${item.brand}` : ''}\n${item.price}\n🔗 ${item.url}`
-      ).join('\n\n')}`;
-      
-      await Share.share({
-        title: 'My Gift Wishlist',
-        text: shareText,
-        dialogTitle: 'Send Gift Wishlist'
-      });
+      // Open PDF options modal for gifts
+      setPdfMode('gifts');
+      setShowPdfOptions(true);
     } catch (error) {
       console.error('Send gifts error:', error);
     }
@@ -1506,6 +1499,19 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
           </>
         )}
       </div>
+
+      {/* PDF Options Modal */}
+      <PdfOptionsModal
+        isOpen={showPdfOptions}
+        onClose={() => setShowPdfOptions(false)}
+        items={pdfMode === 'gifts' 
+          ? allWishlistItems.filter(i => i.is_birthday_item && (selectedItems.size === 0 || selectedItems.has(i.id)))
+          : (selectedItems.size > 0 
+              ? allWishlistItems.filter(i => selectedItems.has(i.id))
+              : allWishlistItems)
+        }
+        mode={pdfMode}
+      />
     </div>
   );
 };
