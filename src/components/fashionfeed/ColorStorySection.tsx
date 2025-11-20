@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { ClothingItem } from '../../hooks/useCloset';
 import aiStyleAnalysisService from '../../services/aiStyleAnalysisService';
 import fashionImageCurationService, { CuratedImage } from '../../services/fashionImageCurationService';
+import UnsplashAttribution from './UnsplashAttribution';
 
 interface ColorStorySectionProps {
   items: ClothingItem[];
@@ -46,6 +47,13 @@ export default function ColorStorySection({ items }: ColorStorySectionProps) {
           4
         );
         setInspirationImages(images);
+        
+        // Track Unsplash downloads when images load (production compliance)
+        images.forEach(img => {
+          if (img.source === 'unsplash') {
+            fashionImageCurationService.triggerUnsplashDownload(img.id, img.downloadLocation);
+          }
+        });
       }
     } catch (err) {
       console.error('Error analyzing colors:', err);
@@ -204,17 +212,20 @@ export default function ColorStorySection({ items }: ColorStorySectionProps) {
             <p className="handwritten text-lg mb-3">Inspo for you:</p>
             <div className="grid grid-cols-2 gap-4">
               {inspirationImages.map((img) => (
-                <div key={img.id} className="relative group">
+                <div key={img.id} className="space-y-2">
                   <img
                     src={img.url}
                     alt="Style inspiration"
                     className="w-full aspect-[3/4] object-cover rounded-lg shadow-lg transition-transform hover:scale-105"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-white text-xs">
-                      Photo by {img.photographer}
-                    </p>
-                  </div>
+                  {/* Always visible attribution (Unsplash compliance) */}
+                  {img.source === 'unsplash' && img.photographer && img.photographerUrl && (
+                    <UnsplashAttribution
+                      photographer={img.photographer}
+                      photographerUrl={img.photographerUrl}
+                      variant="compact"
+                    />
+                  )}
                 </div>
               ))}
             </div>

@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { Sparkles, TrendingUp } from 'lucide-react';
 import { ClothingItem } from '../../hooks/useCloset';
 import fashionImageCurationService, { CuratedImage } from '../../services/fashionImageCurationService';
+import UnsplashAttribution from './UnsplashAttribution';
 
 interface Trend {
   name: string;
@@ -163,7 +164,13 @@ export default function AISpottedSection({ items }: AISpottedSectionProps) {
           <div
             key={index}
             className="relative h-80 perspective-1000 cursor-pointer"
-            onClick={() => setFlippedCard(flippedCard === index ? null : index)}
+            onClick={() => {
+              setFlippedCard(flippedCard === index ? null : index);
+              // Track Unsplash download on card flip (production compliance)
+              if (trend.image && trend.image.source === 'unsplash') {
+                fashionImageCurationService.triggerUnsplashDownload(trend.image.id, trend.image.downloadLocation);
+              }
+            }}
             style={{
               animationDelay: `${index * 150}ms`,
               perspective: '1000px'
@@ -218,6 +225,17 @@ export default function AISpottedSection({ items }: AISpottedSectionProps) {
                         <span>TAP ME</span>
                       </div>
                     </div>
+                    
+                    {/* Unsplash Attribution */}
+                    {trend.image.source === 'unsplash' && trend.image.photographer && trend.image.photographerUrl && (
+                      <div className="absolute bottom-20 left-6 right-6">
+                        <UnsplashAttribution
+                          photographer={trend.image.photographer}
+                          photographerUrl={trend.image.photographerUrl}
+                          variant="overlay"
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">

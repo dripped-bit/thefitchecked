@@ -108,7 +108,13 @@ export default function StyleStealSection({ items }: StyleStealSectionProps) {
                 style={{
                   animationDelay: `${index * 100}ms`
                 }}
-                onClick={() => setSelectedImage(img)}
+                onClick={() => {
+                  setSelectedImage(img);
+                  // Track Unsplash download on image click (production compliance)
+                  if (img.source === 'unsplash') {
+                    fashionImageCurationService.triggerUnsplashDownload(img.id, img.downloadLocation);
+                  }
+                }}
               >
                 {/* Image with Polaroid Frame */}
                 <div className="polaroid-frame hover:scale-105 transition-transform">

@@ -16,6 +16,7 @@ export interface CuratedImage {
   description?: string;
   tags: string[];
   relevanceScore: number;
+  downloadLocation?: string; // Unsplash download tracking URL
 }
 
 export interface StyleProfile {
@@ -153,7 +154,8 @@ class FashionImageCurationService {
         photographerUrl: photo.user.links.html,
         description: photo.description || photo.alt_description,
         tags: photo.tags?.map((t: any) => t.title) || [],
-        relevanceScore: 1.0
+        relevanceScore: 1.0,
+        downloadLocation: photo.links?.download_location
       }));
     } catch (error) {
       console.error('Error searching Unsplash:', error);
@@ -307,6 +309,39 @@ class FashionImageCurationService {
   ): Promise<CuratedImage[]> {
     const query = `${trendName} fashion trend 2024`;
     return this.searchUnsplash(query, count);
+  }
+
+  /**
+   * Trigger Unsplash download event (required for production API compliance)
+   * Must be called when user views or interacts with an Unsplash image
+   * https://unsplash.com/documentation#track-a-photo-download
+   */
+  async triggerUnsplashDownload(photoId: string, downloadLocation?: string): Promise<void> {
+    if (!this.unsplashAccessKey) {
+      console.warn('⚠️ [UNSPLASH] Cannot track download - API key not configured');
+      return;
+    }
+
+    try {
+      // Use download_location if provided, otherwise construct URL
+      const url = downloadLocation || `https://api.unsplash.com/photos/${photoId}/download`;
+      
+      console.log('📸 [UNSPLASH] Tracking download for photo:', photoId);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Client-ID ${this.unsplashAccessKey}`
+        }
+      });
+
+      if (response.ok) {
+        console.log('✅ [UNSPLASH] Download tracked successfully:', photoId);
+      } else {
+        console.error('❌ [UNSPLASH] Download tracking failed:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ [UNSPLASH] Error tracking download:', error);
+    }
   }
 }
 
