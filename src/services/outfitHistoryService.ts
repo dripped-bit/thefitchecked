@@ -315,11 +315,13 @@ class OutfitHistoryService {
         return null;
       }
 
+      // Query using start_time (timestamp) - need to match just the date portion
       const { data, error } = await supabase
         .from('calendar_events')
         .select('outfit_image_url')
         .eq('user_id', user.id)
-        .eq('start_date', date)
+        .gte('start_time', `${date}T00:00:00`)
+        .lt('start_time', `${date}T23:59:59`)
         .eq('wore_today', true)
         .maybeSingle();
 
