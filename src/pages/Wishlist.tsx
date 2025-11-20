@@ -382,10 +382,14 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
 
   const handleShareList = async () => {
     try {
+      console.log('📤 [WISHLIST] Share button clicked');
+      
       // Share selected items, or entire wishlist if none selected
       const itemsToShare = selectedItems.size > 0
         ? allWishlistItems.filter(i => selectedItems.has(i.id))
         : allWishlistItems;
+
+      console.log('📤 [WISHLIST] Items to share:', itemsToShare.length);
 
       if (itemsToShare.length === 0) {
         setToastMessage('No items to share');
@@ -394,10 +398,14 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       }
 
       // Open PDF options modal instead of plain text share
+      console.log('📤 [WISHLIST] Opening PDF modal in share mode');
       setPdfMode('share');
       setShowPdfOptions(true);
+      console.log('📤 [WISHLIST] PDF modal state set - showPdfOptions:', true, 'pdfMode:', 'share');
     } catch (error) {
-      console.error('Share error:', error);
+      console.error('❌ [WISHLIST] Share error:', error);
+      setToastMessage(`Share error: ${error}`);
+      setShowToast(true);
     }
   };
 
@@ -446,12 +454,17 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
 
   const handleSendGifts = async () => {
     try {
+      console.log('🎁 [WISHLIST] Send gifts button clicked');
+      
       const giftItems = allWishlistItems.filter(i => i.is_birthday_item);
+      console.log('🎁 [WISHLIST] Total gift items:', giftItems.length);
       
       // Send selected gifts, or all gifts if none selected
       const itemsToSend = selectedItems.size > 0
         ? giftItems.filter(i => selectedItems.has(i.id))
         : giftItems;
+      
+      console.log('🎁 [WISHLIST] Items to send:', itemsToSend.length);
       
       if (itemsToSend.length === 0) {
         setToastMessage('No gift items to send');
@@ -460,10 +473,14 @@ const Wishlist: React.FC<WishlistProps> = ({ onBack }) => {
       }
       
       // Open PDF options modal for gifts
+      console.log('🎁 [WISHLIST] Opening PDF modal in gifts mode');
       setPdfMode('gifts');
       setShowPdfOptions(true);
+      console.log('🎁 [WISHLIST] PDF modal state set - showPdfOptions:', true, 'pdfMode:', 'gifts');
     } catch (error) {
-      console.error('Send gifts error:', error);
+      console.error('❌ [WISHLIST] Send gifts error:', error);
+      setToastMessage(`Gift send error: ${error}`);
+      setShowToast(true);
     }
   };
 

@@ -285,9 +285,137 @@ class OutfitGenerationService {
       });
     }
 
+    // Add random variations to ensure different suggestions each time
+    const randomVariations = this.generateRandomVariations(weather, season, timeOfDay);
+    prompts.push(...randomVariations);
+
     // Shuffle prompts and limit to 3 suggestions for variety each time
     const shuffledPrompts = prompts.sort(() => Math.random() - 0.5);
     return shuffledPrompts.slice(0, 3);
+  }
+
+  /**
+   * Generate random outfit variations for variety
+   * Ensures different suggestions each time user generates
+   */
+  private generateRandomVariations(
+    weather: WeatherData,
+    season: string,
+    timeOfDay?: string
+  ): OutfitSuggestion[] {
+    const variations: OutfitSuggestion[] = [];
+    const temp = weather.temperature;
+
+    // Random style variations
+    const styles = ['Chic', 'Casual', 'Sporty', 'Elegant', 'Boho', 'Classic', 'Trendy', 'Artsy'];
+    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+
+    // Random color palettes
+    const colorPalettes = [
+      ['Navy', 'White', 'Tan'],
+      ['Black', 'Gray', 'Burgundy'],
+      ['Olive', 'Cream', 'Brown'],
+      ['Denim', 'White', 'Camel'],
+      ['Charcoal', 'Rose', 'Ivory'],
+      ['Forest Green', 'Beige', 'Gold'],
+      ['Rust', 'Cream', 'Khaki'],
+      ['Plum', 'Gray', 'Blush']
+    ];
+    const randomPalette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+
+    // Temperature-based random outfits
+    if (temp > 75) {
+      // Hot weather variations
+      const hotOutfits = [
+        {
+          name: `${randomStyle} Summer`,
+          description: 'Fresh and breezy for warm days',
+          pieces: ['Linen top', 'Wide-leg pants', 'Sandals'],
+          colors: randomPalette,
+          style: randomStyle,
+          occasion: 'Daytime casual',
+          temperature_range: { min: 75, max: 100 },
+          falPrompt: `wearing ${randomStyle.toLowerCase()} summer outfit, linen top, wide-leg pants, ${randomPalette[0].toLowerCase()} and ${randomPalette[1].toLowerCase()} colors, sunny day`
+        },
+        {
+          name: 'Breezy Layers',
+          description: 'Light and comfortable',
+          pieces: ['Tank top', 'Lightweight kimono', 'Shorts'],
+          colors: randomPalette,
+          style: 'Casual',
+          occasion: 'Weekend wear',
+          temperature_range: { min: 75, max: 100 },
+          falPrompt: `wearing breezy layered outfit, tank top with lightweight kimono, shorts, ${randomPalette.join(' and ').toLowerCase()}`
+        }
+      ];
+      variations.push(hotOutfits[Math.floor(Math.random() * hotOutfits.length)]);
+    } else if (temp > 60) {
+      // Mild weather variations
+      const mildOutfits = [
+        {
+          name: `${randomStyle} Transitional`,
+          description: 'Perfect for changing temperatures',
+          pieces: ['Long sleeve shirt', 'Vest', 'Chinos'],
+          colors: randomPalette,
+          style: randomStyle,
+          occasion: 'Versatile daily',
+          temperature_range: { min: 60, max: 75 },
+          falPrompt: `wearing ${randomStyle.toLowerCase()} transitional outfit, long sleeve shirt, vest, chinos, ${randomPalette[0].toLowerCase()} tones`
+        },
+        {
+          name: 'Layered Comfort',
+          description: 'Easy layers for mild days',
+          pieces: ['Turtleneck', 'Blazer', 'Jeans'],
+          colors: randomPalette,
+          style: 'Smart casual',
+          occasion: 'Day to night',
+          temperature_range: { min: 60, max: 75 },
+          falPrompt: `wearing smart casual layered look, turtleneck under blazer, jeans, ${randomPalette.join(' ').toLowerCase()}`
+        }
+      ];
+      variations.push(mildOutfits[Math.floor(Math.random() * mildOutfits.length)]);
+    } else {
+      // Cold weather variations
+      const coldOutfits = [
+        {
+          name: `${randomStyle} Winter`,
+          description: 'Cozy and warm',
+          pieces: ['Chunky sweater', 'Wool coat', 'Boots'],
+          colors: randomPalette,
+          style: randomStyle,
+          occasion: 'Cold weather chic',
+          temperature_range: { min: 30, max: 60 },
+          falPrompt: `wearing ${randomStyle.toLowerCase()} winter outfit, chunky sweater, wool coat, boots, ${randomPalette[0].toLowerCase()} and ${randomPalette[2].toLowerCase()}`
+        },
+        {
+          name: 'Warm Layers',
+          description: 'Stylish cold weather gear',
+          pieces: ['Turtleneck', 'Puffer vest', 'Corduroys'],
+          colors: randomPalette,
+          style: 'Casual',
+          occasion: 'Weekend warmth',
+          temperature_range: { min: 30, max: 60 },
+          falPrompt: `wearing warm layered outfit, turtleneck, puffer vest, corduroys, ${randomPalette.join(' ').toLowerCase()} palette`
+        }
+      ];
+      variations.push(coldOutfits[Math.floor(Math.random() * coldOutfits.length)]);
+    }
+
+    // Add time-specific variation
+    if (timeOfDay === 'evening' || timeOfDay === 'night') {
+      variations.push({
+        name: 'Evening Elevated',
+        description: 'Dressed up for after dark',
+        pieces: ['Statement top', 'Dark trousers', 'Heels'],
+        colors: ['Black', 'Gold', randomPalette[2]],
+        style: 'Evening',
+        occasion: 'Night out',
+        temperature_range: { min: temp - 10, max: temp + 10 },
+        falPrompt: `wearing elevated evening outfit, statement top, dark trousers, heels, sophisticated and glamorous`
+      });
+    }
+
+    return variations;
   }
 
   /**
@@ -449,7 +577,7 @@ class OutfitGenerationService {
           guidance_scale: 9.0,
           num_images: 1,
           enable_safety_checker: false,
-          seed: Math.floor(Math.random() * 1000000)
+          seed: Math.floor(Math.random() * 1000000) + Date.now() % 10000
         }),
       });
 
