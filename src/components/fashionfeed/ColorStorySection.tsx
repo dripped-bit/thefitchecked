@@ -8,6 +8,7 @@ import { ClothingItem } from '../../hooks/useCloset';
 import aiStyleAnalysisService from '../../services/aiStyleAnalysisService';
 import fashionImageCurationService, { CuratedImage } from '../../services/fashionImageCurationService';
 import UnsplashAttribution from './UnsplashAttribution';
+import { supabase } from '../../services/supabaseClient';
 
 interface ColorStorySectionProps {
   items: ClothingItem[];
@@ -34,15 +35,19 @@ export default function ColorStorySection({ items }: ColorStorySectionProps) {
     setError(null);
     
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       // Analyze user's color palette
       const analysis = await aiStyleAnalysisService.analyzeStyle(items);
       setDominantColors(analysis.colorPalette.primary);
       setSuggestedColors(analysis.colorPalette.missing);
       setColorSuggestions(analysis.colorPalette.suggestions);
 
-      // Get inspiration images for suggested colors
+      // Get PERSONALIZED inspiration images based on user's complete profile
       if (analysis.colorPalette.missing.length > 0) {
-        const images = await fashionImageCurationService.getColorInspiration(
+        const images = await fashionImageCurationService.getPersonalizedColorInspiration(
+          items,
+          user?.id || '',
           analysis.colorPalette.missing[0],
           4
         );

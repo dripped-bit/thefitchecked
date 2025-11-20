@@ -5,6 +5,8 @@
  */
 
 import { ClothingItem } from '../hooks/useCloset';
+import stylePreferencesService from './stylePreferencesService';
+import { supabase } from './supabaseClient';
 
 export interface CuratedImage {
   id: string;
@@ -25,6 +27,31 @@ export interface StyleProfile {
   styleKeywords: string[];
   bodyType?: string;
   ageRange?: string;
+}
+
+export interface PersonalizedSearchContext {
+  // From closet analysis
+  closetCategories: string[];
+  closetBrands: string[];
+  closetColors: string[];
+  
+  // From style profile
+  styleArchetypes: string[];
+  favoriteColors: string[];
+  avoidColors: string[];
+  preferredMaterials: string[];
+  genderContext: 'women' | 'men' | 'unisex';
+  
+  // From wishlist/shopping
+  wishlistCategories: string[];
+  favoriteStores: string[];
+  
+  // From occasions
+  commonOccasions: string[];
+}
+
+interface WishlistItem {
+  category: string;
 }
 
 class FashionImageCurationService {
@@ -342,6 +369,228 @@ class FashionImageCurationService {
     } catch (error) {
       console.error('❌ [UNSPLASH] Error tracking download:', error);
     }
+  }
+
+  /**
+   * Build comprehensive personalization context from all user data
+   */
+  async buildPersonalizationContext(
+    items: ClothingItem[],
+    userId: string
+  ): Promise<PersonalizedSearchContext> {
+    // 1. Analyze closet
+    const closetAnalysis = this.analyzeClosetComposition(items);
+    
+    // 2. Load style profile
+    const styleProfile = await stylePreferencesService.loadStyleProfile();
+    
+    // 3. Load wishlist
+    const wishlist = await this.getWishlistItems(userId);
+    
+    return {
+      closetCategories: closetAnalysis.topCategories,
+      closetBrands: closetAnalysis.brands,
+      closetColors: closetAnalysis.dominantColors,
+      styleArchetypes: styleProfile?.fashionPersonality?.archetypes || [],
+      favoriteColors: styleProfile?.fashionPersonality?.colorPalette || [],
+      avoidColors: styleProfile?.fashionPersonality?.avoidColors || [],
+      preferredMaterials: styleProfile?.preferences?.materials || [],
+      genderContext: styleProfile?.sizes?.gender || 'women',
+      wishlistCategories: wishlist.map(w => w.category).filter(Boolean),
+      favoriteStores: styleProfile?.shopping?.favoriteStores || [],
+      commonOccasions: this.extractOccasions(styleProfile)
+    };
+  }
+
+  /**
+   * Analyze closet composition for personalization
+   */
+  private analyzeClosetComposition(items: ClothingItem[]) {
+    // Categories
+    const categoryCounts = new Map<string, number>();
+    items.forEach(item => {
+      categoryCounts.set(item.category, (categoryCounts.get(item.category) || 0) + 1);
+    });
+    
+    const topCategories = Array.from(categoryCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([cat]) => cat);
+    
+    // Brands
+    const brands = Array.from(new Set(
+      items.filter(i => i.brand).map(i => i.brand!)
+    ));
+    
+    // Colors
+    const colorCounts = new Map<string, number>();
+    items.forEach(item => {
+      if (item.color) {
+        colorCounts.set(item.color.toLowerCase(), (colorCounts.get(item.color.toLowerCase()) || 0) + 1);
+      }
+    });
+    
+    const dominantColors = Array.from(colorCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([color]) => color);
+    
+    return {
+      topCategories,
+      brands: brands.slice(0, 5),
+      dominantColors
+    };
+  }
+
+  /**
+   * Generate smart search queries based on personalization context
+   */
+  private generatePersonalizedQueries(
+    context: PersonalizedSearchContext,
+    targetColor?: string
+  ): string[] {
+    const queries: string[] = [];
+    
+    // Gender-specific context
+    const genderTerm = context.genderContext === 'men' ? 'mens' :
+                       context.genderContext === 'women' ? 'womens' : '';
+    
+    // Style archetype queries
+    if (context.styleArchetypes.length > 0) {
+      const style = context.styleArchetypes[0];
+      const color = targetColor || context.favoriteColors[0] || '';
+      queries.push(`${genderTerm} ${style} ${color} outfit`.trim());
+    }
+    
+    // Category-specific queries
+    if (context.closetCategories.length > 0) {
+      const cat = context.closetCategories[0];
+      const color = targetColor || context.favoriteColors[0] || '';
+      queries.push(`${genderTerm} ${cat} ${color} fashion`.trim());
+    }
+    
+    // Material-based queries
+    if (context.preferredMaterials.length > 0) {
+      const material = context.preferredMaterials[0];
+      queries.push(`${genderTerm} ${material} ${targetColor || ''} outfit inspiration`.trim());
+    }
+    
+    // Occasion-based queries
+    if (context.commonOccasions.length > 0) {
+      const occasion = context.commonOccasions[0];
+      const color = targetColor || context.favoriteColors[0] || '';
+      queries.push(`${genderTerm} ${occasion} outfit ${color}`.trim());
+    }
+    
+    // Wishlist-based (what they WANT but don't have)
+    if (context.wishlistCategories.length > 0) {
+      const wishCat = context.wishlistCategories[0];
+      queries.push(`${genderTerm} ${wishCat} styling ideas ${targetColor || ''}`.trim());
+    }
+    
+    // Color combination from their favorites
+    if (context.favoriteColors.length >= 2) {
+      const color1 = context.favoriteColors[0];
+      const color2 = context.favoriteColors[1];
+      queries.push(`${genderTerm} ${color1} and ${color2} outfit`.trim());
+    }
+    
+    // Fallback to basic query if no personalization available
+    if (queries.length === 0) {
+      queries.push(`${genderTerm} ${targetColor || 'fashion'} outfit`.trim());
+    }
+    
+    return queries.filter(q => q.length > 0);
+  }
+
+  /**
+   * Get personalized color inspiration based on user's complete profile
+   */
+  async getPersonalizedColorInspiration(
+    items: ClothingItem[],
+    userId: string,
+    targetColor: string,
+    count: number = 4
+  ): Promise<CuratedImage[]> {
+    try {
+      // Build comprehensive context
+      const context = await this.buildPersonalizationContext(items, userId);
+      
+      console.log('🎨 [INSPIRATION] Personalization context:', {
+        gender: context.genderContext,
+        styles: context.styleArchetypes,
+        favoriteColors: context.favoriteColors,
+        topCategories: context.closetCategories
+      });
+      
+      // Generate smart queries
+      const queries = this.generatePersonalizedQueries(context, targetColor);
+      
+      console.log('🔍 [INSPIRATION] Search queries:', queries);
+      
+      // Search with personalized queries
+      const allImages: CuratedImage[] = [];
+      
+      for (const query of queries.slice(0, 3)) {
+        const images = await this.searchUnsplash(query, 2);
+        allImages.push(...images);
+        
+        if (allImages.length >= count) break;
+      }
+      
+      // Filter out images with avoided colors
+      const filtered = allImages.filter(img => {
+        const desc = (img.description || '').toLowerCase();
+        return !context.avoidColors.some(avoid => 
+          desc.includes(avoid.toLowerCase())
+        );
+      });
+      
+      return filtered.slice(0, count);
+      
+    } catch (error) {
+      console.error('Error getting personalized inspiration:', error);
+      // Fallback to basic search
+      return this.searchUnsplash(`${targetColor} fashion outfit`, count);
+    }
+  }
+
+  /**
+   * Get wishlist items from Supabase
+   */
+  private async getWishlistItems(userId: string): Promise<WishlistItem[]> {
+    if (!userId) return [];
+    
+    try {
+      const { data } = await supabase
+        .from('wishlist_items')
+        .select('category')
+        .eq('user_id', userId)
+        .limit(20);
+      
+      return (data || []) as WishlistItem[];
+    } catch (error) {
+      console.error('Error loading wishlist:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Extract occasions from style profile
+   */
+  private extractOccasions(profile: any): string[] {
+    if (!profile?.occasions) return [];
+    
+    const occasions: string[] = [];
+    
+    if (profile.occasions.weekend) {
+      occasions.push(...profile.occasions.weekend);
+    }
+    if (profile.occasions.nightOut) {
+      occasions.push(...profile.occasions.nightOut);
+    }
+    
+    return occasions.slice(0, 3);
   }
 }
 
