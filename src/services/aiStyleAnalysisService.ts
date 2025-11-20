@@ -138,7 +138,7 @@ Provide a JSON object with:
 Return ONLY valid JSON, no markdown.`;
 
     const response = await this.claude!.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250514',
       max_tokens: 2000,
       messages: [{
         role: 'user',

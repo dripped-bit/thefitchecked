@@ -154,7 +154,7 @@ NO additional text before or after the JSON. Just the JSON object.`;
     }
 
     const requestBody = {
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250514',
       max_tokens: 1500,
       messages: [{
         role: 'user',
