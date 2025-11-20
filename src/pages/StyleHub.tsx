@@ -169,7 +169,7 @@ export default function StyleHub({
               <span className="text-2xl mr-3">✏️</span>
               
               {/* Text */}
-              <span className="text-lg font-semibold text-gray-800" style={{ fontFamily: 'Comic Sans MS, cursive' }}>
+              <span className="text-xl font-semibold text-gray-800" style={{ fontFamily: 'Comic Sans MS, cursive', fontSize: '1.35rem' }}>
                 Style Scrapbook
               </span>
               
