@@ -182,7 +182,7 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 2000,
         messages: [{
           role: 'user',
@@ -247,6 +247,42 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
     const topColor = context.closetColors[0] || 'neutral';
     const topCategory = context.closetCategories[0] || 'outfit';
 
+    // Generate 3-4 fallback trends (increased from 2)
+    const fallbackTrends = [
+      {
+        name: 'Everyday Chic',
+        reason: 'Your closet is full of versatile pieces perfect for daily wear',
+        stylingTip: 'Elevate basics with quality accessories and proper fit',
+        searchQuery: `${genderPrefix} casual chic outfit street style`,
+        icon: '✨'
+      },
+      {
+        name: 'Color Play',
+        reason: `You have great ${topColor} pieces to work with`,
+        stylingTip: 'Build monochromatic looks or add pops of contrast',
+        searchQuery: `${genderPrefix} ${topColor} outfit inspiration`,
+        icon: '🎨'
+      },
+      {
+        name: 'Mix & Match Master',
+        reason: 'Your closet variety makes creative combos possible',
+        stylingTip: 'Layer textures and patterns for depth and interest',
+        searchQuery: `${genderPrefix} layered ${topCategory} outfit 2024`,
+        icon: '🎯'
+      }
+    ];
+
+    // Add 4th trend if user has multiple categories
+    if (context.closetCategories.length >= 3) {
+      fallbackTrends.push({
+        name: 'Statement Moments',
+        reason: 'You have standout pieces ready to make an impact',
+        stylingTip: 'Feature one bold item, keep the rest understated',
+        searchQuery: `${genderPrefix} statement piece outfit inspiration`,
+        icon: '💫'
+      });
+    }
+
     return {
       styleStealQueries: [
         `${genderPrefix} ${topColor} ${topCategory} outfit street style`,
@@ -261,22 +297,7 @@ Respond ONLY with valid JSON (no markdown, no code blocks):
         'Experiment with layering to add depth to simple outfits',
         'Accessorize to elevate basic pieces'
       ],
-      detectedTrends: [
-        {
-          name: 'Everyday Chic',
-          reason: 'Your closet is full of versatile pieces perfect for daily wear',
-          stylingTip: 'Elevate basics with quality accessories and proper fit',
-          searchQuery: `${genderPrefix} casual chic outfit street style`,
-          icon: '✨'
-        },
-        {
-          name: 'Color Play',
-          reason: `You have great ${topColor} pieces to work with`,
-          stylingTip: 'Build monochromatic looks or add pops of contrast',
-          searchQuery: `${genderPrefix} ${topColor} outfit inspiration`,
-          icon: '🎨'
-        }
-      ],
+      detectedTrends: fallbackTrends,
       userGender: context.genderContext || 'unisex',
       dominantCategories: context.closetCategories.slice(0, 5),
       stylePersona: 'casual chic'

@@ -319,7 +319,7 @@ class OutfitHistoryService {
         .from('calendar_events')
         .select('outfit_image_url')
         .eq('user_id', user.id)
-        .eq('event_date', date)
+        .eq('start_date', date)
         .eq('wore_today', true)
         .maybeSingle();
 
