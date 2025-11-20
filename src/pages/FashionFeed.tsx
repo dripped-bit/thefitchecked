@@ -15,6 +15,7 @@ import StyleStealSection from '../components/fashionfeed/StyleStealSection';
 import AISpottedSection from '../components/fashionfeed/AISpottedSection';
 import YourFitsWeekSection from '../components/fashionfeed/YourFitsWeekSection';
 import ShoppingBoardSection from '../components/fashionfeed/ShoppingBoardSection';
+import BeforeAfterSection from '../components/fashionfeed/BeforeAfterSection';
 import haptics from '../utils/haptics';
 import '../styles/scrapbook.css';
 
@@ -263,6 +264,15 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
           <ShoppingBoardSection />
         </div>
 
+        {/* Before/After Style Evolution Section */}
+        <div 
+          className={`transition-all duration-700 delay-1000 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <BeforeAfterSection items={items} />
+        </div>
+
         {/* Coming Soon Sections */}
         <div className="dots-divider">• • •</div>
 
@@ -275,9 +285,9 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
             "More magic coming soon! 🎨✨"
           </p>
           <div className="mt-4 text-center text-sm text-gray-600">
-            <p>• Before/After Comparisons</p>
             <p>• Styling Lessons</p>
             <p>• Mood Board Creation</p>
+            <p>• Style Quiz</p>
           </div>
         </div>
 
