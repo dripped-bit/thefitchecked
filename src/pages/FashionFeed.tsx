@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Settings, Camera as CameraIcon, Share2 } from 'lucide-react';
+import { ArrowLeft, Plus, Camera as CameraIcon, Share2 } from 'lucide-react';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 import { Camera, Photo } from '@capacitor/camera';
@@ -294,16 +294,6 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
             >
               <Share2 className="w-6 h-6" />
             </button>
-            <button 
-              onClick={handlePlusClick}
-              className="p-2 hover:bg-pink-50 rounded-full transition-colors"
-              aria-label="Add photo"
-            >
-              <Plus className="w-6 h-6" />
-            </button>
-            <button className="p-2 hover:bg-pink-50 rounded-full transition-colors">
-              <Settings className="w-6 h-6" />
-            </button>
           </div>
         </div>
       </div>
@@ -343,10 +333,19 @@ export default function FashionFeed({ onBack }: FashionFeedProps) {
             {/* Add Photo Button */}
             <button
               onClick={handlePlusClick}
-              className="mt-4 w-full py-3 border-2 border-dashed border-pink-300 rounded-lg hover:bg-pink-50 transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-pink-600"
+              className="mt-4 w-full py-4 border-2 border-dashed border-pink-300 rounded-lg hover:bg-pink-50 hover:border-pink-400 transition-all flex items-center justify-center gap-3 text-gray-600 hover:text-pink-600 group"
+              aria-label="Add photo to vibe"
             >
-              <CameraIcon className="w-5 h-5" />
-              <span className="font-medium">Add a photo to your vibe</span>
+              {/* Plus Icon */}
+              <Plus className="w-6 h-6 text-pink-500 group-hover:text-pink-600 transition-colors" strokeWidth={2.5} />
+              
+              {/* Camera Icon */}
+              <CameraIcon className="w-6 h-6 text-pink-500 group-hover:text-pink-600 transition-colors" strokeWidth={2} />
+              
+              {/* Text */}
+              <span className="font-semibold text-base group-hover:text-pink-700 transition-colors">
+                Add a photo to your vibe
+              </span>
             </button>
           </div>
         </div>
